@@ -1,4 +1,4 @@
-﻿import { INITIAL_TESTS_CATALOG, INITIAL_PANELS, INITIAL_DOCTORS } from './catalogData';
+import { INITIAL_TESTS_CATALOG, INITIAL_PANELS, INITIAL_DOCTORS } from './catalogData';
 
 export interface ServerStore {
   tests: any[];
@@ -9,15 +9,14 @@ export interface ServerStore {
   settings: any;
 }
 
-// Global in-memory store for serverless execution
 declare global {
   var __labStore: ServerStore | undefined;
 }
 
 function initStore(): ServerStore {
-  const patient1 = { id: 'pat-1', name: 'ط­ظٹط¯ط± ط¹ط¨ط¯ ط§ظ„ط­ط³ظٹظ† ط§ظ„ط®ظپط§ط¬ظٹ', phone: '07701239988', age: 48, gender: 'MALE', createdAt: new Date().toISOString() };
-  const patient2 = { id: 'pat-2', name: 'ط²ظٹظ†ط¨ ط¬ط§ط³ظ… ظ…ط­ظ…ط¯ ط§ظ„ط¬ط¨ظˆط±ظٹ', phone: '07804445566', age: 29, gender: 'FEMALE', createdAt: new Date().toISOString() };
-  const patient3 = { id: 'pat-3', name: 'ط¹ظ…ط± ط·ط§ط±ظ‚ ط§ظ„ط³ط§ظ…ط±ط§ط¦ظٹ', phone: '07707778899', age: 62, gender: 'MALE', createdAt: new Date().toISOString() };
+  const patient1 = { id: 'pat-1', name: 'حيدر عبد الحسين الخفاجي', phone: '07701239988', age: 48, gender: 'MALE', createdAt: new Date().toISOString() };
+  const patient2 = { id: 'pat-2', name: 'زينب جاسم محمد الجبوري', phone: '07804445566', age: 29, gender: 'FEMALE', createdAt: new Date().toISOString() };
+  const patient3 = { id: 'pat-3', name: 'عمر طارق السامرائي', phone: '07707778899', age: 62, gender: 'MALE', createdAt: new Date().toISOString() };
 
   const gueTest = INITIAL_TESTS_CATALOG.find(t => t.code === 'GUE') || INITIAL_TESTS_CATALOG[0];
   const cbcTest = INITIAL_TESTS_CATALOG.find(t => t.code === 'CBC') || INITIAL_TESTS_CATALOG[0];
@@ -38,7 +37,7 @@ function initStore(): ServerStore {
     paidAmount: 20000,
     remainingAmount: 0,
     paymentMethod: 'CASH',
-    notes: 'ظپط­طµ ط¯ظˆط±ظٹ - ظٹط¹ط§ظ†ظٹ ظ…ظ† ط­ط±ظ‚ط§ظ† ظپظٹ ط§ظ„ط¨ظˆظ„',
+    notes: 'فحص دوري - يعاني من حرقان في البول',
     createdAt: new Date().toISOString(),
     tests: [
       {
@@ -78,7 +77,7 @@ function initStore(): ServerStore {
     paidAmount: 15000,
     remainingAmount: 0,
     paymentMethod: 'CASH',
-    notes: 'ظ…طھط§ط¨ط¹ط© ط§ظ„ط­ظ…ظ„ ظˆط³ظƒط± ط§ظ„ط¯ظ…',
+    notes: 'متابعة الحمل وسكر الدم',
     createdAt: new Date().toISOString(),
     tests: [
       {
@@ -109,17 +108,17 @@ function initStore(): ServerStore {
     patients: [patient1, patient2, patient3],
     samples: [sample1, sample2],
     settings: {
-      labName: 'ظ…ط®طھط¨ط± ط§ظ„ط±ط¶ط§ ظ„ظ„طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط·ط¨ظٹط© ط§ظ„طھط®طµطµظٹط©',
-      labSubtitle: 'ظپط­ظˆطµط§طھ ظ…ط±ط¶ظٹط© ظˆطھط·ط¨ظٹظ‚ظٹط© ط¯ظ‚ظٹظ‚ط© - طھط´ط®ظٹطµ ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…طھظƒط§ظ…ظ„ ظˆظ…ط¹طھظ…ط¯',
-      doctorName: 'ط¯. ط£ط­ظ…ط¯ ط§ظ„ط±ط¶ط§',
-      doctorTitle: 'ط§ط³طھط´ط§ط±ظٹ ط§ظ„طھط­ظ„ظٹظ„ط§طھ ط§ظ„ظ…ط±ط¶ظٹط© ظˆط§ظ„ظ…ظ†ط§ط¹ط© ط§ظ„ط³ط±ظٹط±ظٹط©',
+      labName: 'مختبر الرضا للتحليلات الطبية التخصصية',
+      labSubtitle: 'فحوصات مرضية وتطبيقية دقيقة - تشخيص إلكتروني متكامل ومعتمد',
+      doctorName: 'د. أحمد الرضا',
+      doctorTitle: 'استشاري التحليلات المرضية والمناعة السريرية',
       labLicense: 'MOH-IQ-2026-8842',
       whatsappNumber: '07701234567',
-      currency: 'ط¯.ط¹',
-      address: 'ط¨ط؛ط¯ط§ط¯ - ط´ط§ط±ط¹ ط§ظ„ط£ط·ط¨ط§ط، - ظ…ظ‚ط§ط¨ظ„ ط§ظ„ظ…ط¬ظ…ط¹ ط§ظ„ط·ط¨ظٹ ط§ظ„ظ…ط±ظƒط²ظٹ',
+      currency: 'د.ع',
+      address: 'بغداد - شارع الأطباء - مقابل المجمع الطبي المركزي',
       phone: '07701234567 / 07801234567',
-      reportHeader: 'ظ…ط®طھط¨ط± ط§ظ„ط±ط¶ط§ ظ„ظ„طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط·ط¨ظٹط© ط§ظ„طھط®طµطµظٹط©',
-      reportFooter: 'ظ‡ط°ط§ ط§ظ„طھظ‚ط±ظٹط± طھظ… ط¥ط®ط±ط§ط¬ظ‡ ظˆطھط¯ظ‚ظٹظ‚ظ‡ ط¥ظ„ظƒطھط±ظˆظ†ظٹط§ظ‹طŒ ظˆظٹط¹طھط¨ط± ظ…ط¹طھظ…ط¯ط§ظ‹ ط±ط³ظ…ظٹط§ظ‹ ظˆظ…ط·ط§ط¨ظ‚ط§ظ‹ ظ„ظ…ظˆط§طµظپط§طھ ط§ظ„ط¬ظˆط¯ط© ط§ظ„ظ…ط®ط¨ط±ظٹط© ط§ظ„ط¯ظˆظ„ظٹط© (ISO 15189).',
+      reportHeader: 'مختبر الرضا للتحليلات الطبية التخصصية',
+      reportFooter: 'هذا التقرير تم إخراجه وتدقيقه إلكترونياً، ويعتبر معتمداً رسمياً ومطابقاً لمواصفات الجودة المخبرية الدولية (ISO 15189).',
     }
   };
 }
