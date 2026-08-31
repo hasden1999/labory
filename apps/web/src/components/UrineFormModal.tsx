@@ -111,9 +111,6 @@ export default function UrineFormModal({
 
   const [data, setData] = useState<UrineAnalysisData>(DEFAULT_URINE_DATA);
 
-  // Active Crystal tab in Microscopic view
-  const [activeCrystalTab, setActiveCrystalTab] = useState<'Ca. Oxalate' | 'Uric Acid' | 'Triple Phos' | 'Amorphous'>('Ca. Oxalate');
-
   // Load initial data or parse if string
   useEffect(() => {
     if (isOpen) {
@@ -814,106 +811,216 @@ export default function UrineFormModal({
                   abnormalValues={['Moderate', 'Many']}
                 />
 
-                {/* Crystals Tabbed Box */}
+                {/* Crystals & Amorphous Multi-Selector Grid */}
                 <div style={{
                   background: '#ffffff',
                   border: '1px solid #e2e8f0',
                   borderRadius: '8px',
                   padding: '12px 14px',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>
-                      Crystals & Amorphous (الأملاح والبلورات)
+                      Crystals & Amorphous (الأملاح والبلورات - اختيار متعدد)
                     </span>
-                    <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 700 }}>
-                      Selected: {activeCrystalTab} ({activeCrystalTab === 'Ca. Oxalate' ? data.calciumOxalate : activeCrystalTab === 'Uric Acid' ? data.uricAcid : activeCrystalTab === 'Triple Phos' ? data.triplePhosphate : data.amorphous})
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>
+                      يمكن تحديد أكثر من نوع في نفس العينة
                     </span>
                   </div>
 
-                  {/* Sub-tabs for crystal types */}
-                  <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
-                    {(['Ca. Oxalate', 'Uric Acid', 'Triple Phos', 'Amorphous'] as const).map((cr) => (
-                      <button
-                        key={cr}
-                        type="button"
-                        onClick={() => setActiveCrystalTab(cr)}
-                        style={{
-                          flex: 1,
-                          padding: '6px 4px',
-                          fontSize: '11.5px',
-                          fontWeight: activeCrystalTab === cr ? 800 : 600,
-                          borderRadius: '6px',
-                          border: activeCrystalTab === cr ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
-                          background: activeCrystalTab === cr ? '#e0f2fe' : '#f8fafc',
-                          color: activeCrystalTab === cr ? '#0369a1' : '#475569',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {cr}
-                      </button>
-                    ))}
+                  {/* Crystal 1: Calcium Oxalate */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '4px 0', borderBottom: '1px dashed #f1f5f9' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: data.calciumOxalate !== 'Nil' ? '#0284c7' : '#334155', minWidth: '130px' }}>
+                      • Ca. Oxalate {data.calciumOxalate !== 'Nil' && `(${data.calciumOxalate})`}
+                    </span>
+                    <div style={{ display: 'flex', gap: '4px', flex: 1, maxWidth: '280px' }}>
+                      {['Nil', '+', '++', '+++'].map((lvl) => {
+                        const isSelected = data.calciumOxalate === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => setField('calciumOxalate', lvl)}
+                            style={{
+                              flex: 1,
+                              padding: '5px 0',
+                              borderRadius: '6px',
+                              fontSize: '11.5px',
+                              fontWeight: isSelected ? 800 : 600,
+                              cursor: 'pointer',
+                              border: isSelected ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
+                              background: isSelected ? (lvl === 'Nil' ? '#0284c7' : '#e0f2fe') : '#ffffff',
+                              color: isSelected ? (lvl === 'Nil' ? '#ffffff' : '#0369a1') : '#475569',
+                              boxShadow: isSelected ? '0 1px 3px rgba(2,132,199,0.2)' : 'none',
+                            }}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  {/* Intensity options */}
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    {['Nil', '+', '++', '+++'].map((lvl) => {
-                      const curVal = activeCrystalTab === 'Ca. Oxalate' ? data.calciumOxalate : activeCrystalTab === 'Uric Acid' ? data.uricAcid : activeCrystalTab === 'Triple Phos' ? data.triplePhosphate : data.amorphous;
-                      const isSelected = curVal === lvl;
-                      return (
-                        <button
-                          key={lvl}
-                          type="button"
-                          onClick={() => {
-                            if (activeCrystalTab === 'Ca. Oxalate') setField('calciumOxalate', lvl);
-                            else if (activeCrystalTab === 'Uric Acid') setField('uricAcid', lvl);
-                            else if (activeCrystalTab === 'Triple Phos') setField('triplePhosphate', lvl);
-                            else setField('amorphous', lvl);
-                          }}
-                          style={{
-                            flex: 1,
-                            padding: '6px 0',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: isSelected ? 800 : 600,
-                            cursor: 'pointer',
-                            border: isSelected ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
-                            background: isSelected ? '#0284c7' : '#ffffff',
-                            color: isSelected ? '#ffffff' : '#475569',
-                            boxShadow: isSelected ? '0 1px 4px rgba(2,132,199,0.3)' : 'none',
-                          }}
-                        >
-                          {lvl}
-                        </button>
-                      );
-                    })}
+                  {/* Crystal 2: Uric Acid */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '4px 0', borderBottom: '1px dashed #f1f5f9' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: data.uricAcid !== 'Nil' ? '#0284c7' : '#334155', minWidth: '130px' }}>
+                      • Uric Acid {data.uricAcid !== 'Nil' && `(${data.uricAcid})`}
+                    </span>
+                    <div style={{ display: 'flex', gap: '4px', flex: 1, maxWidth: '280px' }}>
+                      {['Nil', '+', '++', '+++'].map((lvl) => {
+                        const isSelected = data.uricAcid === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => setField('uricAcid', lvl)}
+                            style={{
+                              flex: 1,
+                              padding: '5px 0',
+                              borderRadius: '6px',
+                              fontSize: '11.5px',
+                              fontWeight: isSelected ? 800 : 600,
+                              cursor: 'pointer',
+                              border: isSelected ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
+                              background: isSelected ? (lvl === 'Nil' ? '#0284c7' : '#e0f2fe') : '#ffffff',
+                              color: isSelected ? (lvl === 'Nil' ? '#ffffff' : '#0369a1') : '#475569',
+                              boxShadow: isSelected ? '0 1px 3px rgba(2,132,199,0.2)' : 'none',
+                            }}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Crystal 3: Triple Phosphate */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '4px 0', borderBottom: '1px dashed #f1f5f9' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: data.triplePhosphate !== 'Nil' ? '#0284c7' : '#334155', minWidth: '130px' }}>
+                      • Triple Phos {data.triplePhosphate !== 'Nil' && `(${data.triplePhosphate})`}
+                    </span>
+                    <div style={{ display: 'flex', gap: '4px', flex: 1, maxWidth: '280px' }}>
+                      {['Nil', '+', '++', '+++'].map((lvl) => {
+                        const isSelected = data.triplePhosphate === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => setField('triplePhosphate', lvl)}
+                            style={{
+                              flex: 1,
+                              padding: '5px 0',
+                              borderRadius: '6px',
+                              fontSize: '11.5px',
+                              fontWeight: isSelected ? 800 : 600,
+                              cursor: 'pointer',
+                              border: isSelected ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
+                              background: isSelected ? (lvl === 'Nil' ? '#0284c7' : '#e0f2fe') : '#ffffff',
+                              color: isSelected ? (lvl === 'Nil' ? '#ffffff' : '#0369a1') : '#475569',
+                              boxShadow: isSelected ? '0 1px 3px rgba(2,132,199,0.2)' : 'none',
+                            }}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Crystal 4: Amorphous Urates / Phosphates */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '4px 0' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: data.amorphous !== 'Nil' ? '#0284c7' : '#334155', minWidth: '130px' }}>
+                      • Amorphous {data.amorphous !== 'Nil' && `(${data.amorphous})`}
+                    </span>
+                    <div style={{ display: 'flex', gap: '4px', flex: 1, maxWidth: '280px' }}>
+                      {['Nil', '+', '++', '+++'].map((lvl) => {
+                        const isSelected = data.amorphous === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => setField('amorphous', lvl)}
+                            style={{
+                              flex: 1,
+                              padding: '5px 0',
+                              borderRadius: '6px',
+                              fontSize: '11.5px',
+                              fontWeight: isSelected ? 800 : 600,
+                              cursor: 'pointer',
+                              border: isSelected ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
+                              background: isSelected ? (lvl === 'Nil' ? '#0284c7' : '#e0f2fe') : '#ffffff',
+                              color: isSelected ? (lvl === 'Nil' ? '#ffffff' : '#0369a1') : '#475569',
+                              boxShadow: isSelected ? '0 1px 3px rgba(2,132,199,0.2)' : 'none',
+                            }}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
-                {/* Casts, Bacteria, Yeast, Mucus */}
+                {/* Microorganisms & Casts Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>Bacteria</div>
+                  <PillSelector
+                    label="Bacteria (البكتيريا)"
+                    refRange="Nil"
+                    value={data.bacteria}
+                    onChange={(v) => setField('bacteria', v)}
+                    options={['Nil', 'Few (+)', 'Moderate (++)', 'Many (+++)']}
+                    abnormalValues={['Moderate (++)', 'Many (+++)']}
+                  />
+
+                  <PillSelector
+                    label="Mucus Threads (المخاط)"
+                    refRange="Nil"
+                    value={data.mucus}
+                    onChange={(v) => setField('mucus', v)}
+                    options={['Nil', 'Few (+)', 'Moderate (++)', 'Many (+++)']}
+                  />
+                </div>
+
+                {/* Yeast, Trichomonas, Casts */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px' }}>
+                    <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>Yeast (الفطريات)</div>
                     <select
-                      value={data.bacteria}
-                      onChange={(e) => setField('bacteria', e.target.value)}
+                      value={data.yeast}
+                      onChange={(e) => setField('yeast', e.target.value)}
                       className="select-control"
-                      style={{ height: '34px', fontSize: '12px', width: '100%', background: '#f8fafc', borderColor: '#cbd5e1' }}
+                      style={{ height: '32px', fontSize: '11.5px', width: '100%', background: '#f8fafc', borderColor: '#cbd5e1' }}
                     >
-                      <option value="Nil">Nil</option>
+                      <option value="Not Seen">Not Seen</option>
                       <option value="Few (+)">Few (+)</option>
                       <option value="Moderate (++)">Moderate (++)</option>
                       <option value="Many (+++)">Many (+++)</option>
                     </select>
                   </div>
 
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>Casts & Mucus</div>
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px' }}>
+                    <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>Trichomonas (المشعرات)</div>
+                    <select
+                      value={data.trichomonas}
+                      onChange={(e) => setField('trichomonas', e.target.value)}
+                      className="select-control"
+                      style={{ height: '32px', fontSize: '11.5px', width: '100%', background: '#f8fafc', borderColor: '#cbd5e1' }}
+                    >
+                      <option value="Not Seen">Not Seen</option>
+                      <option value="Seen (+)">Seen (+)</option>
+                    </select>
+                  </div>
+
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px' }}>
+                    <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>Casts (الأسطوانات)</div>
                     <select
                       value={data.casts}
                       onChange={(e) => setField('casts', e.target.value)}
                       className="select-control"
-                      style={{ height: '34px', fontSize: '12px', width: '100%', background: '#f8fafc', borderColor: '#cbd5e1' }}
+                      style={{ height: '32px', fontSize: '11.5px', width: '100%', background: '#f8fafc', borderColor: '#cbd5e1' }}
                     >
                       <option value="None">None</option>
                       <option value="Hyaline Casts">Hyaline Casts</option>
@@ -1058,15 +1165,15 @@ export default function UrineFormModal({
                     </tr>
                     <tr>
                       <td style={{ color: '#64748b', padding: '2px 0' }}>Ca. Oxalate:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.calciumOxalate}</td>
+                      <td style={{ fontWeight: 700, color: data.calciumOxalate !== 'Nil' ? '#0284c7' : '#0f172a' }}>{data.calciumOxalate}</td>
                       <td style={{ color: '#64748b', padding: '2px 0' }}>Uric Acid:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.uricAcid}</td>
+                      <td style={{ fontWeight: 700, color: data.uricAcid !== 'Nil' ? '#0284c7' : '#0f172a' }}>{data.uricAcid}</td>
                     </tr>
                     <tr>
                       <td style={{ color: '#64748b', padding: '2px 0' }}>Triple Phos:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.triplePhosphate}</td>
+                      <td style={{ fontWeight: 700, color: data.triplePhosphate !== 'Nil' ? '#0284c7' : '#0f172a' }}>{data.triplePhosphate}</td>
                       <td style={{ color: '#64748b', padding: '2px 0' }}>Amorphous:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.amorphous}</td>
+                      <td style={{ fontWeight: 700, color: data.amorphous !== 'Nil' ? '#0284c7' : '#0f172a' }}>{data.amorphous}</td>
                     </tr>
                   </tbody>
                 </table>
