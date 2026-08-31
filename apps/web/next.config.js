@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
 
 const nextConfig = {
   reactStrictMode: false,
@@ -7,12 +7,15 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${API_URL}/:path*`,
-      },
-    ];
+    if (API_URL) {
+      return [
+        {
+          source: '/api/:path*',
+          destination: `${API_URL}/:path*`,
+        },
+      ];
+    }
+    return [];
   },
 };
 

@@ -1,13 +1,13 @@
-import { INITIAL_TESTS_CATALOG, INITIAL_PANELS, INITIAL_DOCTORS } from './catalogData';
+﻿import { INITIAL_TESTS_CATALOG, INITIAL_PANELS, INITIAL_DOCTORS } from './catalogData';
 
 const DEFAULT_SETTINGS = {
-  labName: 'مختبر الرضا للتحليلات الطبية التخصصية',
-  labSubtitle: 'فحوصات مرضية وتطبيقية دقيقة - تشخيص إلكتروني متكامل',
-  doctorName: 'د. أحمد الرضا',
-  doctorTitle: 'استشاري التحليلات المرضية والمناعة السريرية',
+  labName: 'ظ…ط®طھط¨ط± ط§ظ„ط±ط¶ط§ ظ„ظ„طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط·ط¨ظٹط© ط§ظ„طھط®طµطµظٹط©',
+  labSubtitle: 'ظپط­ظˆطµط§طھ ظ…ط±ط¶ظٹط© ظˆطھط·ط¨ظٹظ‚ظٹط© ط¯ظ‚ظٹظ‚ط© - طھط´ط®ظٹطµ ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…طھظƒط§ظ…ظ„',
+  doctorName: 'ط¯. ط£ط­ظ…ط¯ ط§ظ„ط±ط¶ط§',
+  doctorTitle: 'ط§ط³طھط´ط§ط±ظٹ ط§ظ„طھط­ظ„ظٹظ„ط§طھ ط§ظ„ظ…ط±ط¶ظٹط© ظˆط§ظ„ظ…ظ†ط§ط¹ط© ط§ظ„ط³ط±ظٹط±ظٹط©',
   labLicense: 'MOH-IQ-2026-8842',
-  currency: 'د.ع',
-  address: 'بغداد - شارع الأطباء - مقابل المجمع الطبي المركزي',
+  currency: 'ط¯.ط¹',
+  address: 'ط¨ط؛ط¯ط§ط¯ - ط´ط§ط±ط¹ ط§ظ„ط£ط·ط¨ط§ط، - ظ…ظ‚ط§ط¨ظ„ ط§ظ„ظ…ط¬ظ…ط¹ ط§ظ„ط·ط¨ظٹ ط§ظ„ظ…ط±ظƒط²ظٹ',
   phone: '07701234567 / 07801234567',
   whatsappNumber: '07701234567',
 };
@@ -47,7 +47,7 @@ function handleClientFallback(endpoint: string) {
         criticalCount: 0,
       },
       statusBreakdown: { RECEIVED: 2, IN_PROGRESS: 2, READY: 7, DELIVERED: 3 },
-      departmentCounts: { 'أمراض الدم': 5, 'الكيمياء السريرية': 8, 'الفحص المجهري': 3 },
+      departmentCounts: { 'ط£ظ…ط±ط§ط¶ ط§ظ„ط¯ظ…': 5, 'ط§ظ„ظƒظٹظ…ظٹط§ط، ط§ظ„ط³ط±ظٹط±ظٹط©': 8, 'ط§ظ„ظپط­طµ ط§ظ„ظ…ط¬ظ‡ط±ظٹ': 3 },
       doctorCommissionsSummary: [],
       inventoryAlerts: { expiredCount: 0, expiringCount: 1, lowStockCount: 2 },
       recentExpenses: [],
@@ -122,7 +122,7 @@ export async function apiRequest<T = any>(
       const fallback = handleClientFallback(cleanEndpoint);
       if (fallback !== null) return fallback as T;
 
-      let errMessage = 'حدث خطأ في الاتصال بالسيرفر';
+      let errMessage = 'ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط³ظٹط±ظپط±';
       try {
         const errJson = await response.json();
         errMessage = errJson.message || errMessage;
@@ -146,4 +146,3 @@ export async function apiRequest<T = any>(
     throw err;
   }
 }
-

@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
-import { INITIAL_TESTS_CATALOG, INITIAL_PANELS } from '../../../lib/catalogData';
+﻿import { NextResponse } from 'next/server';
+import { getStore } from '../../../lib/serverStore';
 
 export async function GET() {
+  const store = getStore();
   return NextResponse.json({
-    tests: INITIAL_TESTS_CATALOG,
-    panels: INITIAL_PANELS,
+    tests: store.tests,
+    panels: store.panels,
   });
 }

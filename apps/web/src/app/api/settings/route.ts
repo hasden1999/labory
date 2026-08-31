@@ -3,5 +3,5 @@ import { getStore } from '../../../lib/serverStore';
 
 export async function GET() {
   const store = getStore();
-  return NextResponse.json(store.doctors);
+  return NextResponse.json(store.settings);
 }
