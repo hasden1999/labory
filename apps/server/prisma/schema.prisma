@@ -1,0 +1,293 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./lab.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Staff {
+  id           String   @id @default(cuid())
+  name         String
+  username     String   @unique
+  passwordHash String
+  role         String   @default("TECHNICIAN") // OWNER, TECHNICIAN, RECEPTION, PATHOLOGIST
+  phone        String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+}
+
+model ReferringDoctor {
+  id                String   @id @default(cuid())
+  name              String
+  phone             String?
+  clinic            String?
+  specialty         String?
+  commissionPercent Float    @default(0)
+  createdAt         DateTime @default(now())
+  samples           Sample[]
+}
+
+model Patient {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  age       Int?
+  gender    String?  // ذكر / أنثى
+  createdAt DateTime @default(now())
+  samples   Sample[]
+}
+
+model Sample {
+  id              String           @id @default(cuid())
+  sampleNumber    Int              @unique
+  patientId       String
+  patient         Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId        String?
+  doctor          ReferringDoctor? @relation(fields: [doctorId], references: [id])
+  status          String           @default("RECEIVED") // RECEIVED, IN_PROGRESS, READY, DELIVERED
+  isUrgent        Boolean          @default(false)      // STAT / Emergency
+  priceTotal      Float            @default(0)
+  discount        Float            @default(0)
+  discountPercent Float            @default(0)
+  paidAmount      Float            @default(0)
+  remainingAmount Float            @default(0)
+  paymentMethod   String           @default("نقداً")     // نقداً / بطاقة / آجل
+  notes           String?
+  createdById     String           @default("single_operator")
+  collectionTime  DateTime         @default(now())
+  deliveredAt     DateTime?
+  createdAt       DateTime         @default(now())
+  tests           SampleTest[]
+  debtRecords     DebtRecord[]
+}
+
+model TestCatalog {
+  id               String          @id @default(cuid())
+  code             String?         // رمز الفحص (e.g. CBC, FBS, TSH, KFT-01)
+  name             String          // الاسم الإنجليزي / العلمي
+  arabicName       String?         // الاسم العربي
+  category         String          @default("عام") // أمراض الدم / كيمياء سريرية / هرمونات / وظائف الكلى / وظائف الكبد / دهون الدم / مناعة وأمصال / إدرار وخروج / دلالات أورام / فيتامينات ومعادن
+  price            Float
+  costEstimate     Float           @default(0)
+  refRangeLow      Float?
+  refRangeHigh     Float?
+  normalMaleLow    Float?
+  normalMaleHigh   Float?
+  normalFemaleLow  Float?
+  normalFemaleHigh Float?
+  criticalLow      Float?          // حد الإنذار الحرج المنخفض (Panic Low)
+  criticalHigh     Float?          // حد الإنذار الحرج المرتفع (Panic High)
+  refRangeText     String?         // مدى طبيعي نصي (مثال: Negative / 70 - 110)
+  unit             String?
+  sampleType       String?         @default("Serum") // دم كامل / مصل / بلازما / إدرار / مسحة
+  active           Boolean         @default(true)
+  sampleTests      SampleTest[]
+  panelItems       TestPanelItem[]
+  deviceMappings   DeviceTestMapping[]
+}
+
+model TestPanel {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  items       TestPanelItem[]
+}
+
+model TestPanelItem {
+  id      String      @id @default(cuid())
+  panelId String
+  testId  String
+  panel   TestPanel   @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  test    TestCatalog @relation(fields: [testId], references: [id], onDelete: Cascade)
+}
+
+model SampleTest {
+  id              String      @id @default(cuid())
+  sampleId        String
+  testId          String
+  sample          Sample      @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  test            TestCatalog @relation(fields: [testId], references: [id], onDelete: Cascade)
+  resultValue     String?
+  notes           String?     // ملاحظات الفحص السريرية
+  isAbnormal      Boolean?    @default(false)
+  isCritical      Boolean?    @default(false) // قيمة حرجة تستوجب تنبيه الطبيب
+  interpretation  String?     // التفسير التشخيصي للنتيجة
+  technicianNotes String?
+  priceAtTime     Float
+  costAtTime      Float       @default(0)
+  refRangeLow     Float?
+  refRangeHigh    Float?
+  refRangeText    String?
+  unit            String?
+  isAutoImported  Boolean?    @default(false)
+  importedFrom    String?     // اسم أو موديل الجهاز (e.g. Mindray BC-5000)
+  importedAt      DateTime?
+  enteredById     String?
+  enteredAt       DateTime?
+  createdAt       DateTime    @default(now())
+}
+
+model LabDevice {
+  id              String              @id @default(cuid())
+  name            String              // اسم الجهاز المعطى (e.g. Mindray CBC 1)
+  brand           String              // Mindray / Sysmex / Roche / Beckman / Genrui / Biobase / Rayto / Other
+  model           String              // BC-3000, BC-5000, XP-300, Cobas c111, etc.
+  category        String              @default("CBC") // CBC / CHEMISTRY / IMMUNOLOGY / URINE / ELECTROLYTES / OTHER
+  connectionType  String              @default("TCP_IP") // TCP_IP / SERIAL_PORT / FILE_WATCHER
+  protocol        String              @default("ASTM_1394") // ASTM_1394 / HL7_V2 / CSV_DELIMITED / CUSTOM_TEXT
+  ipAddress       String?             @default("192.168.1.100")
+  port            Int?                @default(5100)
+  comPort         String?             // COM1, COM2, COM3...
+  baudRate        Int?                @default(9600)
+  dataBits        Int?                @default(8)
+  stopBits        Int?                @default(1)
+  parity          String?             @default("none")
+  filePath        String?             // For FILE_WATCHER
+  apiKey          String              @unique @default(cuid()) // Pairing / Authentication Token for Local Agent
+  isActive        Boolean             @default(true)
+  autoMatchSample Boolean             @default(true) // تلقائياً إسناد النتيجة للتحليل عند تطابق رقم العينة
+  status          String              @default("OFFLINE") // ONLINE / OFFLINE / BUSY / ERROR
+  lastSeenAt      DateTime?
+  notes           String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  mappings        DeviceTestMapping[]
+  logs            DeviceRawLog[]
+  incomingResults IncomingResult[]
+}
+
+model DeviceTestMapping {
+  id             String      @id @default(cuid())
+  deviceId       String
+  device         LabDevice   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  deviceTestCode String      // رمز التحليل كما يرسله الجهاز (e.g. WBC, RBC, HGB, GLU)
+  deviceTestName String?     // الاسم الظاهر في الجهاز
+  testCatalogId  String
+  testCatalog    TestCatalog @relation(fields: [testCatalogId], references: [id], onDelete: Cascade)
+  unit           String?
+  multiplier     Float       @default(1.0) // لمعامل التحويل إن اختلفت وحدات القياس
+  createdAt      DateTime    @default(now())
+}
+
+model IncomingResult {
+  id                  String     @id @default(cuid())
+  deviceId            String
+  device              LabDevice  @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  sampleNumber        Int?       // رقم العينة المستخرج من الرسالة
+  sampleBarcode       String?    // الباركود
+  patientName         String?    // اسم المريض إن كان مرسلاً من الجهاز
+  testCode            String     // كود الفحص المستلم (e.g. WBC)
+  testName            String?
+  resultValue         String     // القيمة
+  unit                String?
+  isAbnormal          Boolean?   @default(false)
+  isCritical          Boolean?   @default(false)
+  rawFrame            String?    // الرسالة الخام
+  status              String     @default("PENDING") // PENDING / MATCHED / APPLIED / IGNORED
+  matchedSampleId     String?
+  matchedSampleTestId String?
+  receivedAt          DateTime   @default(now())
+}
+
+model DeviceRawLog {
+  id        String    @id @default(cuid())
+  deviceId  String
+  device    LabDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  direction String    @default("INCOMING") // INCOMING / OUTGOING / ERROR / SYSTEM
+  message   String
+  createdAt DateTime  @default(now())
+}
+
+model Debtor {
+  id           String       @id @default(cuid())
+  name         String
+  phone        String?
+  notes        String?
+  createdAt    DateTime     @default(now())
+  transactions DebtRecord[]
+}
+
+model DebtRecord {
+  id        String   @id @default(cuid())
+  debtorId  String
+  debtor    Debtor   @relation(fields: [debtorId], references: [id], onDelete: Cascade)
+  sampleId  String?
+  sample    Sample?  @relation(fields: [sampleId], references: [id])
+  type      String   // DEBT (إضافة دين) / PAYMENT (استلام دفعة)
+  amount    Float
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model InventoryItem {
+  id               String                 @id @default(cuid())
+  name             String
+  unit             String                 // عبوة / مل / شريط / فحص / أنبوب
+  quantity         Float
+  reorderThreshold Float
+  expiryDate       DateTime?
+  supplier         String?
+  costPerUnit      Float
+  lotNumber        String?
+  transactions     InventoryTransaction[]
+}
+
+model InventoryTransaction {
+  id                  String        @id @default(cuid())
+  itemId              String
+  item                InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  type                String        // IN / OUT / EXPENSE / DEDUCTION
+  quantity            Float
+  notes               String?
+  relatedSampleTestId String?
+  date                DateTime      @default(now())
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  description String
+  amount      Float
+  category    String   @default("مصاريف تشغيلية") // إيجار / كواشف ومواد / صيانة / رواتب / كهرباء ووقود / قرطاسية ومطبوعات
+  date        DateTime @default(now())
+}
+
+model ResultArchive {
+  id          String   @id @default(cuid())
+  periodLabel String   // e.g., "Q1 2026 (يناير - مارس)"
+  quarter     Int      // 1, 2, 3, 4
+  year        Int
+  patientName String
+  sampleNum   Int
+  testSummary String
+  resultsJson String   // JSON array of test results
+  sampleDate  DateTime
+  archivedAt  DateTime @default(now())
+}
+
+model License {
+  id         String   @id @default(cuid())
+  hardwareId String
+  signature  String
+  expiryDate DateTime
+  tier       String
+}
+
+model Settings {
+  id             String  @id @default("singleton")
+  labName        String  @default("مختبر الرضا للتحليلات الطبية التخصصية")
+  labSubtitle    String? @default("فحوصات مرضية وتطبيقية دقيقة - تشخيص إلكتروني متكامل")
+  doctorName     String? @default("د. أحمد الرضا")
+  doctorTitle    String? @default("استشاري التحليلات المرضية والطبية")
+  labLicense     String? @default("MOH-IQ-2026-8842")
+  whatsappNumber String? @default("07701234567")
+  currency       String  @default("د.ع")
+  logoPath       String?
+  address        String? @default("بغداد - شارع الأطباء - مقابل المجمع الطبي الرئيسي")
+  phone          String? @default("07701234567 / 07801234567")
+  reportHeader   String? @default("مختبر الرضا للتحليلات الطبية التخصصية")
+  reportFooter   String? @default("هذا التقرير تم إخراجه وتدقيقه إلكترونياً، ويعتبر معتمداً رسمياً دون الحاجة لتوقيع يدوي.")
+  reportTemplate String? @default("CLASSIC") // CLASSIC, MODERN, EXECUTIVE, COMPACT
+}

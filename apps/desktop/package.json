@@ -1,0 +1,43 @@
+{
+  "name": "@lab-manager/desktop",
+  "version": "1.0.0",
+  "description": "نظام إدارة المختبرات الطبية المتكامل - النسخة المكتبية الرسمية",
+  "author": "Lab Manager Team",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "dist": "npx electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "30.0.1",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.labryo.lims",
+    "productName": "Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية",
+    "electronVersion": "30.0.1",
+    "nodeGypRebuild": false,
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Labryo LIMS لابريو"
+    },
+    "files": [
+      "main.js",
+      "preload.js"
+    ]
+  }
+}
