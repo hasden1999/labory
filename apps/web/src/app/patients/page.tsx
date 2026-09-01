@@ -8,6 +8,7 @@ import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import ConfirmModal from '../../components/ConfirmModal';
+import { Patient, Sample, SampleTest } from '../../types';
 import { 
   Users, 
   Search, 
@@ -40,13 +41,13 @@ function PatientsContent() {
   const searchParams = useSearchParams();
   const toast = useToast();
 
-  const [patients, setPatients] = useState<any[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Selected active patient
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
-  const [patientDetails, setPatientDetails] = useState<any | null>(null);
+  const [patientDetails, setPatientDetails] = useState<Patient | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
   // Modals
@@ -177,7 +178,7 @@ function PatientsContent() {
     }
   };
 
-  const handleOpenWhatsApp = (sample: any) => {
+  const handleOpenWhatsApp = (sample: Sample) => {
     const phone = patientDetails?.phone || '';
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     const formattedPhone = cleanPhone.startsWith('0') ? `964${cleanPhone.slice(1)}` : cleanPhone;
@@ -286,7 +287,7 @@ function PatientsContent() {
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '3px' }}>
                       <span>{p.phone || 'بدون هاتف'}</span>
-                      <span>{p.age ? `${p.age} سنة` : ''} ({p.gender === 'FEMALE' || p.gender === 'أنثى' ? '♀ أنثى' : '♂ ذكر'})</span>
+                      <span>{p.age ? `${p.age} سنة` : ''} ({p.gender === 'FEMALE' || (p.gender as string) === 'أنثى' ? '♀ أنثى' : '♂ ذكر'})</span>
                     </div>
                   </div>
                 );
@@ -310,7 +311,7 @@ function PatientsContent() {
                       {patientDetails.name}
                     </h2>
                     <span className="badge badge-received" style={{ fontSize: '11px' }}>
-                      {patientDetails.gender === 'FEMALE' || patientDetails.gender === 'أنثى' ? 'أنثى ♀' : 'ذكر ♂'}
+                      {patientDetails.gender === 'FEMALE' || (patientDetails.gender as string) === 'أنثى' ? 'أنثى ♀' : 'ذكر ♂'}
                     </span>
                     {patientDetails.age && (
                       <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>• {patientDetails.age} سنة</span>
@@ -319,7 +320,7 @@ function PatientsContent() {
 
                   <div style={{ display: 'flex', gap: '14px', fontSize: '11.5px', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
                     <span>الهاتف: <strong style={{ color: 'var(--text-main)' }}>{patientDetails.phone || 'غير مسجل'}</strong></span>
-                    <span>تاريخ أول تسجيل: <strong>{new Date(patientDetails.createdAt).toLocaleDateString('ar-IQ')}</strong></span>
+                    <span>تاريخ أول تسجيل: <strong>{new Date(patientDetails.createdAt || '').toLocaleDateString('ar-IQ')}</strong></span>
                     <span>إجمالي الزيارات: <strong style={{ color: 'var(--accent-cyan)' }}>{patientDetails.samples?.length || 0}</strong></span>
                   </div>
                 </div>
@@ -327,7 +328,7 @@ function PatientsContent() {
                 {/* Patient Direct Fast Actions */}
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <button
-                    onClick={() => router.push(`/?patientId=${patientDetails.id}&patientName=${encodeURIComponent(patientDetails.name)}&patientPhone=${patientDetails.phone || ''}&patientAge=${patientDetails.age || ''}&patientGender=${patientDetails.gender === 'FEMALE' || patientDetails.gender === 'أنثى' ? 'FEMALE' : 'MALE'}`)}
+                    onClick={() => router.push(`/?patientId=${patientDetails.id}&patientName=${encodeURIComponent(patientDetails.name)}&patientPhone=${patientDetails.phone || ''}&patientAge=${patientDetails.age || ''}&patientGender=${patientDetails.gender === 'FEMALE' || (patientDetails.gender as string) === 'أنثى' ? 'FEMALE' : 'MALE'}`)}
                     className="btn-primary"
                     style={{ fontSize: '11.5px', padding: '5px 12px' }}
                     title="فتح طلب فحص جديد لهذا المريض مباشرة"
@@ -341,7 +342,7 @@ function PatientsContent() {
                       setPatientName(patientDetails.name);
                       setPatientPhone(patientDetails.phone || '');
                       setPatientAge(patientDetails.age ? String(patientDetails.age) : '');
-                      setPatientGender(patientDetails.gender === 'FEMALE' || patientDetails.gender === 'أنثى' ? 'FEMALE' : 'MALE');
+                      setPatientGender(patientDetails.gender === 'FEMALE' || (patientDetails.gender as string) === 'أنثى' ? 'FEMALE' : 'MALE');
                       setShowEditPatientModal(true);
                     }}
                     className="btn-secondary"
@@ -381,7 +382,7 @@ function PatientsContent() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {patientDetails.samples.map((sample: any) => (
+                  {patientDetails.samples.map((sample: Sample) => (
                     <div
                       key={sample.id}
                       style={{
@@ -456,7 +457,7 @@ function PatientsContent() {
                       <div className="data-table-container" style={{ border: 'none', background: 'transparent' }}>
                         <table className="data-table" style={{ fontSize: '12px' }}>
                           <thead>
-                            <tr style={{ background: '#0a0e1a' }}>
+                            <tr style={{ background: 'var(--table-header-bg)' }}>
                               <th>الفحص</th>
                               <th>النتيجة</th>
                               <th>المعدل الطبيعي</th>
@@ -465,12 +466,12 @@ function PatientsContent() {
                             </tr>
                           </thead>
                           <tbody>
-                            {sample.tests?.map((st: any) => (
+                            {sample.tests?.map((st: SampleTest) => (
                               <tr key={st.id}>
                                 <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>{st.test?.name}</td>
                                 <td>
                                   {st.resultValue ? (
-                                    <strong style={{ color: st.isCritical ? '#ef4444' : st.isAbnormal ? '#f59e0b' : '#10b981', fontSize: '13px' }}>
+                                    <strong style={{ color: st.isCritical ? 'var(--color-danger)' : st.isAbnormal ? 'var(--color-warning)' : 'var(--color-success)', fontSize: '13px' }}>
                                       {st.resultValue}
                                     </strong>
                                   ) : (
@@ -501,8 +502,8 @@ function PatientsContent() {
                       {/* Payment Note on Sample */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
                         <span>المبلغ الإجمالي: <strong>{sample.priceTotal?.toLocaleString()} د.ع</strong></span>
-                        {sample.remainingAmount > 0 ? (
-                          <span style={{ color: 'var(--accent-rose)', fontWeight: 800 }}>متبقي دين: {sample.remainingAmount.toLocaleString()} د.ع</span>
+                        {(sample.remainingAmount || 0) > 0 ? (
+                          <span style={{ color: 'var(--accent-rose)', fontWeight: 800 }}>متبقي دين: {(sample.remainingAmount || 0).toLocaleString()} د.ع</span>
                         ) : (
                           <span style={{ color: 'var(--accent-emerald)', fontWeight: 800 }}>✓ واصل بالكامل</span>
                         )}

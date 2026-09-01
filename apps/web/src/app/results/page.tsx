@@ -43,6 +43,7 @@ import CbcModal from '../../components/workstations/CbcModal';
 import ChemistryModal from '../../components/workstations/ChemistryModal';
 import MicrobiologyModal from '../../components/workstations/MicrobiologyModal';
 import { compareSampleWithHistory, DeltaCheckResult } from '../../lib/deltaCheck';
+import { Sample, SampleTest, Test } from '../../types';
 
 function ResultsContent() {
   const toast = useToast();
@@ -54,8 +55,8 @@ function ResultsContent() {
   const [docPreviewTitle, setDocPreviewTitle] = useState<string>('');
 
   // Worklist / Samples
-  const [samples, setSamples] = useState<any[]>([]);
-  const [selectedSample, setSelectedSample] = useState<any | null>(null);
+  const [samples, setSamples] = useState<Sample[]>([]);
+  const [selectedSample, setSelectedSample] = useState<Sample | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'RECEIVED' | 'IN_PROGRESS' | 'READY' | 'DELIVERED' | 'URGENT'>('ALL');
   const [loadingSamples, setLoadingSamples] = useState(true);
@@ -68,7 +69,7 @@ function ResultsContent() {
 
   // Refs for fast Shift / Enter navigation across table rows
   const resultInputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const selectedSampleRef = useRef<any>(null);
+  const selectedSampleRef = useRef<Sample | null>(null);
 
   useEffect(() => {
     selectedSampleRef.current = selectedSample;
@@ -99,9 +100,9 @@ function ResultsContent() {
   const [showChemistryModal, setShowChemistryModal] = useState(false);
   const [showMicrobiologyModal, setShowMicrobiologyModal] = useState(false);
   const [showAddTestsModal, setShowAddTestsModal] = useState(false);
-  const [allAvailableTests, setAllAvailableTests] = useState<any[]>([]);
+  const [allAvailableTests, setAllAvailableTests] = useState<Test[]>([]);
   const [addTestSearch, setAddTestSearch] = useState('');
-  const [selectedNewTests, setSelectedNewTests] = useState<any[]>([]);
+  const [selectedNewTests, setSelectedNewTests] = useState<Test[]>([]);
   const [addingTests, setAddingTests] = useState(false);
 
   // Load Samples
@@ -114,7 +115,7 @@ function ResultsContent() {
       const currentSelectedId = selectedSampleRef.current?.id;
       const targetId = searchParams.get('sampleId') || currentSelectedId;
       if (targetId && res && res.length > 0) {
-        const found = res.find((s: any) => s.id === targetId);
+        const found = res.find((s: Sample) => s.id === targetId);
         if (found) {
           selectSample(found);
           return;
@@ -136,7 +137,7 @@ function ResultsContent() {
   }, [searchParams]);
 
   // Select Sample
-  const selectSample = (sample: any) => {
+  const selectSample = (sample: Sample) => {
     setSelectedSample(sample);
     const initial: Record<string, { resultValue: string; isAbnormal: boolean; interpretation?: string }> = {};
     sample.tests?.forEach((st: any) => {
@@ -231,52 +232,111 @@ function ResultsContent() {
     }
   };
 
-  // Real-time Lipid & Bilirubin calculations
+  // Helper to safely parse numeric values while rejecting non-numeric strings (">1000", "<0.01", "Positive", "N/A")
+  const parseNumericResult = (val: any): number => {
+    if (val === null || val === undefined) return NaN;
+    const str = String(val).trim();
+    if (str === '') return NaN;
+    if (!/^-?\d+(\.\d+)?$/.test(str)) {
+      return NaN;
+    }
+    const n = parseFloat(str);
+    return isNaN(n) || !isFinite(n) ? NaN : n;
+  };
+
+  // Real-time Lipid & Bilirubin calculations with safe non-numeric handling
   const handleResultChange = (sampleTestId: string, val: string, test: any) => {
     const nextResults = { ...testResults };
     
     // Check abnormal / panic
     let isAbnormal = false;
-    const num = parseFloat(val);
+    const num = parseNumericResult(val);
     if (!isNaN(num)) {
       if (test?.refRangeLow !== null && test?.refRangeLow !== undefined && num < test.refRangeLow) isAbnormal = true;
       if (test?.refRangeHigh !== null && test?.refRangeHigh !== undefined && num > test.refRangeHigh) isAbnormal = true;
+    } else {
+      // Safely check qualitative/non-numeric strings (e.g. ">1000", "<0.01", "Positive", "Reactive")
+      const lower = val.trim().toLowerCase();
+      if (['positive', 'reactive', 'pos', 'موجب', 'إيجابي'].includes(lower) || lower.includes('positive') || lower.includes('reactive')) {
+        isAbnormal = true;
+      } else if (lower.startsWith('>') && test?.refRangeHigh !== null && test?.refRangeHigh !== undefined) {
+        const threshold = parseFloat(lower.replace('>', '').trim());
+        if (!isNaN(threshold) && threshold >= test.refRangeHigh) {
+          isAbnormal = true;
+        }
+      } else if (lower.startsWith('<') && test?.refRangeLow !== null && test?.refRangeLow !== undefined) {
+        const threshold = parseFloat(lower.replace('<', '').trim());
+        if (!isNaN(threshold) && threshold <= test.refRangeLow) {
+          isAbnormal = true;
+        }
+      }
     }
 
+    // Always store the raw entered text safely without breaking calculations or losing user input
     nextResults[sampleTestId] = {
       ...nextResults[sampleTestId],
       resultValue: val,
       isAbnormal,
     };
 
-    // Auto-calculate VLDL & LDL
+    // Auto-calculate VLDL & LDL safely without producing NaN
     const tgTest = selectedSample?.tests?.find((st: any) => st.test?.code === 'TG' || st.test?.name?.toLowerCase().includes('triglycerides'));
     const cholTest = selectedSample?.tests?.find((st: any) => st.test?.code === 'CHOL' || st.test?.name?.toLowerCase().includes('cholesterol'));
     const hdlTest = selectedSample?.tests?.find((st: any) => st.test?.code === 'HDL' || st.test?.name?.toLowerCase().includes('hdl'));
     const ldlTest = selectedSample?.tests?.find((st: any) => st.test?.code === 'LDL' || st.test?.name?.toLowerCase().includes('ldl'));
     const vldlTest = selectedSample?.tests?.find((st: any) => st.test?.code === 'VLDL' || st.test?.name?.toLowerCase().includes('vldl'));
 
-    const currentTG = tgTest ? parseFloat(nextResults[tgTest.id]?.resultValue) : NaN;
-    const currentCHOL = cholTest ? parseFloat(nextResults[cholTest.id]?.resultValue) : NaN;
-    const currentHDL = hdlTest ? parseFloat(nextResults[hdlTest.id]?.resultValue) : NaN;
+    const currentTG = tgTest ? parseNumericResult(nextResults[tgTest.id]?.resultValue) : NaN;
+    const currentCHOL = cholTest ? parseNumericResult(nextResults[cholTest.id]?.resultValue) : NaN;
+    const currentHDL = hdlTest ? parseNumericResult(nextResults[hdlTest.id]?.resultValue) : NaN;
 
-    if (!isNaN(currentTG) && vldlTest) {
-      const vldlVal = (currentTG / 5).toFixed(1);
-      nextResults[vldlTest.id] = {
-        ...nextResults[vldlTest.id],
-        resultValue: vldlVal,
-        isAbnormal: parseFloat(vldlVal) > 30,
-      };
+    if (vldlTest && sampleTestId !== vldlTest.id) {
+      if (!isNaN(currentTG) && currentTG >= 0) {
+        const vldlCalc = currentTG / 5;
+        if (!isNaN(vldlCalc) && isFinite(vldlCalc)) {
+          const vldlVal = vldlCalc.toFixed(1);
+          nextResults[vldlTest.id] = {
+            ...nextResults[vldlTest.id],
+            resultValue: vldlVal,
+            isAbnormal: parseFloat(vldlVal) > 30,
+          };
+        }
+      }
     }
 
-    if (!isNaN(currentCHOL) && !isNaN(currentHDL) && !isNaN(currentTG) && ldlTest) {
-      if (currentTG < 400) {
-        const ldlVal = (currentCHOL - currentHDL - (currentTG / 5)).toFixed(1);
-        nextResults[ldlTest.id] = {
-          ...nextResults[ldlTest.id],
-          resultValue: ldlVal,
-          isAbnormal: parseFloat(ldlVal) > 130,
-        };
+    if (ldlTest && sampleTestId !== ldlTest.id) {
+      if (!isNaN(currentCHOL) && !isNaN(currentHDL) && !isNaN(currentTG) && currentTG >= 0 && currentTG < 400) {
+        const ldlCalc = currentCHOL - currentHDL - (currentTG / 5);
+        if (!isNaN(ldlCalc) && isFinite(ldlCalc)) {
+          const ldlVal = ldlCalc.toFixed(1);
+          nextResults[ldlTest.id] = {
+            ...nextResults[ldlTest.id],
+            resultValue: ldlVal,
+            isAbnormal: parseFloat(ldlVal) > 130,
+          };
+        }
+      }
+    }
+
+    // Auto-calculate Indirect Bilirubin (IBIL = TBIL - DBIL) safely
+    const tbilTest = selectedSample?.tests?.find((st: any) => st.test?.code === 'TBIL' || st.test?.name?.toLowerCase().includes('total bilirubin'));
+    const dbilTest = selectedSample?.tests?.find((st: any) => st.test?.code === 'DBIL' || st.test?.name?.toLowerCase().includes('direct bilirubin'));
+    const ibilTest = selectedSample?.tests?.find((st: any) => st.test?.code === 'IBIL' || st.test?.name?.toLowerCase().includes('indirect bilirubin'));
+
+    const currentTBIL = tbilTest ? parseNumericResult(nextResults[tbilTest.id]?.resultValue) : NaN;
+    const currentDBIL = dbilTest ? parseNumericResult(nextResults[dbilTest.id]?.resultValue) : NaN;
+
+    if (ibilTest && sampleTestId !== ibilTest.id) {
+      if (!isNaN(currentTBIL) && !isNaN(currentDBIL) && currentTBIL >= currentDBIL) {
+        const ibilCalc = currentTBIL - currentDBIL;
+        if (!isNaN(ibilCalc) && isFinite(ibilCalc)) {
+          const ibilVal = ibilCalc.toFixed(2);
+          nextResults[ibilTest.id] = {
+            ...nextResults[ibilTest.id],
+            resultValue: ibilVal,
+            isAbnormal: parseFloat(ibilVal) > 0.8,
+          };
+        }
       }
     }
 
@@ -439,18 +499,19 @@ function ResultsContent() {
         
         {/* LEFT: PATIENT SAMPLE QUEUE (Image 2 Style) */}
         <div className="glass-card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', height: 'fit-content', maxHeight: 'calc(100vh - 120px)' }}>
-          <span className="input-label" style={{ fontSize: '11.5px', fontWeight: 800, marginBottom: '10px' }}>
+          <label htmlFor="results-search-input" className="input-label" style={{ fontSize: '11.5px', fontWeight: 800, marginBottom: '10px', display: 'block', cursor: 'pointer' }}>
             PATIENT SAMPLE QUEUE (طابور العينات)
-          </span>
+          </label>
 
           {/* Quick Search */}
           <div style={{ position: 'relative', marginBottom: '10px' }}>
             <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
             <input
+              id="results-search-input"
               type="text"
               placeholder="Search Queue (Sample # / Name)..."
               className="input-control"
-              style={{ paddingLeft: '28px', fontSize: '12px', height: '32px', background: '#0e1420' }}
+              style={{ paddingLeft: '28px', fontSize: '12px', height: '32px', background: 'var(--bg-input-deep)' }}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -480,14 +541,14 @@ function ResultsContent() {
                     borderRadius: '12px',
                     border: `1px solid ${
                       isActive
-                        ? (isStat ? '#ef4444' : isReady ? '#10b981' : 'var(--accent-cyan)')
+                        ? (isStat ? 'var(--color-danger)' : isReady ? 'var(--color-success)' : 'var(--accent-cyan)')
                         : '#1e2638'
                     }`,
                     background: isActive
-                      ? (isStat ? 'rgba(239, 68, 68, 0.2)' : isReady ? 'rgba(16, 185, 129, 0.2)' : 'rgba(0, 210, 211, 0.15)')
-                      : '#0e1420',
+                      ? (isStat ? 'var(--bg-stat-row)' : isReady ? 'rgba(16, 185, 129, 0.2)' : 'rgba(0, 210, 211, 0.15)')
+                      : 'var(--bg-input-deep)',
                     color: isActive
-                      ? (isStat ? '#ef4444' : isReady ? '#10b981' : 'var(--accent-cyan)')
+                      ? (isStat ? 'var(--color-danger)' : isReady ? 'var(--color-success)' : 'var(--accent-cyan)')
                       : 'var(--text-muted)',
                     cursor: 'pointer',
                     display: 'inline-flex',
@@ -550,12 +611,12 @@ function ResultsContent() {
                       borderRadius: '8px',
                       background: isSelected
                         ? (s.isUrgent ? 'linear-gradient(90deg, rgba(239,68,68,0.22) 0%, #1b2436 100%)' : '#1b2436')
-                        : (s.isUrgent ? 'rgba(239, 68, 68, 0.08)' : '#0e1420'),
+                        : (s.isUrgent ? 'var(--bg-stat-card)' : 'var(--bg-input-deep)'),
                       border: isSelected
                         ? '1px solid var(--accent-cyan)'
                         : (s.isUrgent ? '1px solid rgba(239, 68, 68, 0.45)' : '1px solid #1a2233'),
                       borderLeft: s.isUrgent
-                        ? '3.5px solid #ef4444'
+                        ? '3.5px solid var(--color-danger)'
                         : (isSelected ? '3.5px solid var(--accent-cyan)' : '3.5px solid transparent'),
                       boxShadow: s.isUrgent ? '0 0 10px rgba(239, 68, 68, 0.2)' : 'none',
                       cursor: 'pointer',
@@ -584,7 +645,7 @@ function ResultsContent() {
 
                     <div>
                       {s.isUrgent ? (
-                        <span className="badge badge-urgent" style={{ fontSize: '9px', background: 'rgba(239, 68, 68, 0.25)', color: '#ef4444', border: '1px solid #ef4444' }}>
+                        <span className="badge badge-urgent" style={{ fontSize: '9px', background: 'rgba(239, 68, 68, 0.25)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)' }}>
                           🚨 STAT
                         </span>
                       ) : isReady ? (
@@ -713,7 +774,7 @@ function ResultsContent() {
                     onClick={handleSendWhatsApp}
                     className="btn-secondary"
                     style={{
-                      color: '#10b981',
+                      color: 'var(--color-success)',
                       borderColor: 'rgba(16, 185, 129, 0.4)',
                       height: '32px',
                       fontSize: '11px',
@@ -730,7 +791,7 @@ function ResultsContent() {
             </div>
 
             {/* Results Table (Image 2 Exact Layout) */}
-            <div style={{ overflowX: 'auto', flex: 1, border: '1px solid var(--border-color)', borderRadius: '8px', background: '#0e1420' }}>
+            <div style={{ overflowX: 'auto', flex: 1, border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-input-deep)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ background: '#1c2436', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -933,9 +994,9 @@ function ResultsContent() {
                                     fontSize: '13px',
                                     fontWeight: 800,
                                     background: '#090d15',
-                                    borderColor: isPanic ? '#ef4444' : isAbnormal ? '#f59e0b' : currentVal ? 'var(--accent-cyan)' : 'var(--border-color)',
+                                    borderColor: isPanic ? 'var(--color-danger)' : isAbnormal ? 'var(--color-warning)' : currentVal ? 'var(--accent-cyan)' : 'var(--border-color)',
                                     boxShadow: isPanic ? '0 0 10px rgba(239, 68, 68, 0.4)' : isAbnormal ? '0 0 8px rgba(245, 158, 11, 0.3)' : 'none',
-                                    color: isPanic ? '#ef4444' : isAbnormal ? '#f59e0b' : 'var(--text-main)',
+                                    color: isPanic ? 'var(--color-danger)' : isAbnormal ? 'var(--color-warning)' : 'var(--text-main)',
                                     flex: 1,
                                   }}
                                   placeholder="Enter value"
@@ -979,9 +1040,9 @@ function ResultsContent() {
                                   fontSize: '13px',
                                   fontWeight: 800,
                                   background: '#090d15',
-                                  borderColor: isPanic ? '#ef4444' : isAbnormal ? '#f59e0b' : currentVal ? 'var(--accent-cyan)' : 'var(--border-color)',
+                                  borderColor: isPanic ? 'var(--color-danger)' : isAbnormal ? 'var(--color-warning)' : currentVal ? 'var(--accent-cyan)' : 'var(--border-color)',
                                   boxShadow: isPanic ? '0 0 10px rgba(239, 68, 68, 0.4)' : isAbnormal ? '0 0 8px rgba(245, 158, 11, 0.3)' : 'none',
-                                  color: isPanic ? '#ef4444' : isAbnormal ? '#f59e0b' : 'var(--text-main)',
+                                  color: isPanic ? 'var(--color-danger)' : isAbnormal ? 'var(--color-warning)' : 'var(--text-main)',
                                 }}
                                 placeholder="Enter value"
                                 value={currentVal}
@@ -1001,11 +1062,11 @@ function ResultsContent() {
                           <td style={{ padding: '12px 14px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                               {isPanic ? (
-                                <span style={{ color: '#ef4444', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ color: 'var(--color-danger)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
                                   🔴 PANIC
                                 </span>
                               ) : isAbnormal ? (
-                                <span style={{ color: '#f59e0b', fontWeight: 800 }}>
+                                <span style={{ color: 'var(--color-warning)', fontWeight: 800 }}>
                                   ⚠️ Abnormal
                                 </span>
                               ) : currentVal ? (
@@ -1031,8 +1092,8 @@ function ResultsContent() {
                                         padding: '1px 5px',
                                         borderRadius: '4px',
                                         background: isCrit ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                                        color: isCrit ? '#ef4444' : '#f59e0b',
-                                        border: `1px solid ${isCrit ? '#ef4444' : '#f59e0b'}`,
+                                        color: isCrit ? 'var(--color-danger)' : 'var(--color-warning)',
+                                        border: `1px solid ${isCrit ? 'var(--color-danger)' : 'var(--color-warning)'}`,
                                         cursor: 'help'
                                       }}
                                     >
@@ -1047,8 +1108,8 @@ function ResultsContent() {
                         </tr>
 
                         {isPanic && (
-                          <tr style={{ background: 'rgba(239, 68, 68, 0.15)' }}>
-                            <td colSpan={5} style={{ padding: '6px 14px', color: '#ef4444', fontSize: '11.5px', fontWeight: 700 }}>
+                          <tr style={{ background: 'var(--bg-stat-row)' }}>
+                            <td colSpan={5} style={{ padding: '6px 14px', color: 'var(--color-danger)', fontSize: '11.5px', fontWeight: 700 }}>
                               ⚠️ PANIC LIMIT WARNING: {st.test?.name} value ({currentVal}) exceeds critical clinical threshold!
                             </td>
                           </tr>
@@ -1081,7 +1142,7 @@ function ResultsContent() {
               const gueTest = selectedSample.tests?.find((st: any) => 
                 st.test?.code === 'GUE' || st.test?.name?.toLowerCase().includes('urine') || st.test?.name?.toLowerCase().includes('إدرار')
               );
-              return testResults[gueTest?.id]?.resultValue || gueTest?.resultValue || '';
+              return (gueTest?.id ? testResults[gueTest.id]?.resultValue : '') || gueTest?.resultValue || '';
             })()
           }
           onApply={(formattedResult: string, rawData: UrineAnalysisData) => {
@@ -1123,7 +1184,7 @@ function ResultsContent() {
             const t = selectedSample.tests?.find((st: any) => 
               st.test?.code === 'GSE' || st.test?.name?.toLowerCase().includes('stool') || st.test?.name?.toLowerCase().includes('خروج')
             );
-            return testResults[t?.id]?.resultValue || t?.resultValue || '';
+            return (t?.id ? testResults[t.id]?.resultValue : '') || t?.resultValue || '';
           })()}
           onSave={async (serialized, isAbnormal) => {
             await handleSaveWorkstationResult('GSE', serialized, isAbnormal);
@@ -1141,7 +1202,7 @@ function ResultsContent() {
             const t = selectedSample.tests?.find((st: any) => 
               st.test?.code === 'CBC' || st.test?.name?.toLowerCase().includes('cbc') || st.test?.name?.toLowerCase().includes('blood count')
             );
-            return testResults[t?.id]?.resultValue || t?.resultValue || '';
+            return (t?.id ? testResults[t.id]?.resultValue : '') || t?.resultValue || '';
           })()}
           onSave={async (serialized, isAbnormal) => {
             await handleSaveWorkstationResult('CBC', serialized, isAbnormal);
@@ -1159,7 +1220,7 @@ function ResultsContent() {
             const t = selectedSample.tests?.find((st: any) => 
               isChemistryPanel(st) || isChemistryAnalyte(st)
             );
-            return testResults[t?.id]?.resultValue || t?.resultValue || '';
+            return (t?.id ? testResults[t.id]?.resultValue : '') || t?.resultValue || '';
           })()}
           onSave={async (serialized, isAbnormal) => {
             await handleSaveWorkstationResult('CHEMISTRY', serialized, isAbnormal);
@@ -1177,7 +1238,7 @@ function ResultsContent() {
             const t = selectedSample.tests?.find((st: any) => 
               st.test?.category === 'MICROBIOLOGY' || st.test?.code?.includes('CULTURE') || st.test?.name?.toLowerCase().includes('culture')
             );
-            return testResults[t?.id]?.resultValue || t?.resultValue || '';
+            return (t?.id ? testResults[t.id]?.resultValue : '') || t?.resultValue || '';
           })()}
           onSave={async (serialized, isAbnormal) => {
             await handleSaveWorkstationResult('MICROBIOLOGY', serialized, isAbnormal);
@@ -1223,7 +1284,7 @@ function ResultsContent() {
                       style={{
                         padding: '8px 10px',
                         borderRadius: '6px',
-                        background: isChecked ? 'rgba(0,210,211,0.2)' : '#0e1420',
+                        background: isChecked ? 'rgba(0,210,211,0.2)' : 'var(--bg-input-deep)',
                         border: `1px solid ${isChecked ? 'var(--accent-cyan)' : '#1e2638'}`,
                         cursor: 'pointer',
                         display: 'flex',

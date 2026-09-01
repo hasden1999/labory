@@ -34,13 +34,14 @@ import {
   FileSearch,
   Check
 } from 'lucide-react';
+import { DashboardData, DashboardSummary, Sample } from '../../types';
 
 export default function DashboardPage() {
   const router = useRouter();
   const toast = useToast();
   
-  const [dashboardData, setDashboardData] = useState<any>(null);
-  const [recentSamples, setRecentSamples] = useState<any[]>([]);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [recentSamples, setRecentSamples] = useState<Sample[]>([]);
   const [loading, setLoading] = useState(true);
 
   // In-app Document Preview Modal
@@ -75,7 +76,7 @@ export default function DashboardPage() {
     loadData(false);
   }, []);
 
-  const handleOpenWhatsApp = (sample: any) => {
+  const handleOpenWhatsApp = (sample: Sample) => {
     const phone = sample.patient?.phone || '';
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     const formattedPhone = cleanPhone.startsWith('0') ? `964${cleanPhone.slice(1)}` : cleanPhone;
@@ -98,7 +99,7 @@ export default function DashboardPage() {
     }
   };
 
-  const summary = dashboardData?.summary || {};
+  const summary = (dashboardData?.summary || {}) as Partial<DashboardSummary>;
   const statusBreakdown = dashboardData?.statusBreakdown || {};
 
   return (
@@ -230,7 +231,7 @@ export default function DashboardPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#f59e0b',
+                color: 'var(--color-warning)',
                 flexShrink: 0,
               }}>
                 <Activity size={24} />
@@ -238,12 +239,12 @@ export default function DashboardPage() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <strong style={{ fontSize: '15px', color: 'var(--text-main)' }}>3. سجل العينات والطباعة</strong>
-                  <span style={{ fontSize: '10px', background: '#f59e0b', color: '#000', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>F3</span>
+                  <span style={{ fontSize: '10px', background: 'var(--color-warning)', color: '#000', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>F3</span>
                 </div>
                 <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>طباعة التقارير وإرسال واتساب</p>
               </div>
             </div>
-            <ChevronLeft size={18} color="#f59e0b" />
+            <ChevronLeft size={18} color="var(--color-warning)" />
           </div>
 
         </div>
@@ -276,9 +277,9 @@ export default function DashboardPage() {
           <span className="stat-desc">تم تدقيقها وجاهزة للإخراج</span>
         </div>
 
-        <div className="stat-card" style={{ borderRight: '4px solid #38bdf8' }}>
+        <div className="stat-card" style={{ borderRight: '4px solid var(--color-info)' }}>
           <span className="stat-title">مقبوضات الصندوق اليومي</span>
-          <span className="stat-value" style={{ color: '#38bdf8' }}>
+          <span className="stat-value" style={{ color: 'var(--color-info)' }}>
             {(summary.todayPaidCash || 0).toLocaleString()} د.ع
           </span>
           <span className="stat-desc">النقد الفعلي المقبوض في الصندوق اليوم</span>
@@ -300,7 +301,7 @@ export default function DashboardPage() {
         <div
           onClick={() => router.push('/samples?filter=URGENT')}
           style={{
-            background: 'rgba(239, 68, 68, 0.08)',
+            background: 'var(--bg-stat-card)',
             border: '1px solid rgba(239, 68, 68, 0.3)',
             borderRadius: 'var(--radius-md)',
             padding: '10px 14px',
@@ -372,7 +373,7 @@ export default function DashboardPage() {
         >
           <div>
             <div style={{ fontSize: '11px', color: '#818cf8', fontWeight: 800 }}>💳 حسابات ديون بحاجة لتحصيل</div>
-            <strong style={{ fontSize: '18px', color: 'var(--text-main)' }}>{(summary.totalRemainingDebts > 0 ? 1 : 0) ? 'نشطة' : 'لا يوجد'}</strong>
+            <strong style={{ fontSize: '18px', color: 'var(--text-main)' }}>{((summary.totalRemainingDebts || 0) > 0 ? 1 : 0) ? 'نشطة' : 'لا يوجد'}</strong>
           </div>
           <span className="btn-secondary" style={{ fontSize: '11px', padding: '3px 8px' }}>عرض السجل</span>
         </div>
@@ -446,8 +447,8 @@ export default function DashboardPage() {
 
                     <td>
                       <strong style={{ color: 'var(--text-main)', fontSize: '12.5px', display: 'block' }}>{s.priceTotal?.toLocaleString()} د.ع</strong>
-                      {s.remainingAmount > 0 ? (
-                        <span style={{ color: 'var(--accent-rose)', fontSize: '10.5px', fontWeight: 700 }}>متبقي: {s.remainingAmount.toLocaleString()} د.ع</span>
+                      {(s.remainingAmount || 0) > 0 ? (
+                        <span style={{ color: 'var(--accent-rose)', fontSize: '10.5px', fontWeight: 700 }}>متبقي: {(s.remainingAmount || 0).toLocaleString()} د.ع</span>
                       ) : (
                         <span style={{ color: 'var(--accent-emerald)', fontSize: '10.5px', fontWeight: 700 }}>واصل بالكامل</span>
                       )}
