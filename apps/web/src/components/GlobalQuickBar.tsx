@@ -67,16 +67,13 @@ export default function GlobalQuickBar() {
   // Global Keyboard Shortcuts (F2: Intake, F3: Results, F4: Dashboard)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
       if (e.key === 'F2') {
         e.preventDefault();
         router.push('/');
-      }
-      if (e.key === 'F3') {
+      } else if (e.key === 'F3') {
         e.preventDefault();
         router.push('/results');
-      }
-      if (e.key === 'F4') {
+      } else if (e.key === 'F4') {
         e.preventDefault();
         router.push('/dashboard');
       }

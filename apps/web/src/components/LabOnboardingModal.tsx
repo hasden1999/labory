@@ -30,7 +30,7 @@ export default function LabOnboardingModal() {
   const [whatsappNumber, setWhatsappNumber] = useState(labProfile.whatsappNumber || '07701234567');
   const [address, setAddress] = useState(labProfile.address || 'بغداد - شارع الأطباء');
   const [currency, setCurrency] = useState(labProfile.currency || 'د.ع');
-  const [reportTemplate, setReportTemplate] = useState<'CLASSIC' | 'MODERN' | 'EXECUTIVE' | 'COMPACT' | 'PREPRINTED' | 'BLANK_WHITE'>(
+  const [reportTemplate, setReportTemplate] = useState<'CLASSIC' | 'MODERN' | 'EXECUTIVE' | 'COMPACT' | 'SPECIALIZED' | 'PREPRINTED' | 'BLANK_WHITE'>(
     labProfile.reportTemplate || 'CLASSIC'
   );
   const [saving, setSaving] = useState(false);

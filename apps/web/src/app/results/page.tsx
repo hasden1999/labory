@@ -27,14 +27,27 @@ import {
   TestTube,
   Plus,
   MoreHorizontal,
-  ChevronDown
+  ChevronDown,
+  Microscope,
+  Bug,
+  Activity,
+  Zap,
+  Sparkles,
+  MessageCircle
 } from 'lucide-react';
 import Link from 'next/link';
+import { useLab } from '../../components/LabContext';
 import UrineFormModal, { UrineAnalysisData } from '../../components/UrineFormModal';
+import GseModal from '../../components/workstations/GseModal';
+import CbcModal from '../../components/workstations/CbcModal';
+import ChemistryModal from '../../components/workstations/ChemistryModal';
+import MicrobiologyModal from '../../components/workstations/MicrobiologyModal';
+import { compareSampleWithHistory, DeltaCheckResult } from '../../lib/deltaCheck';
 
 function ResultsContent() {
   const toast = useToast();
   const searchParams = useSearchParams();
+  const { labProfile } = useLab();
 
   // Preview Modal
   const [docPreviewUrl, setDocPreviewUrl] = useState<string | null>(null);
@@ -51,6 +64,7 @@ function ResultsContent() {
   const [testResults, setTestResults] = useState<Record<string, { resultValue: string; isAbnormal: boolean; interpretation?: string }>>({});
   const [savingResults, setSavingResults] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [deltaChecks, setDeltaChecks] = useState<Record<string, DeltaCheckResult>>({});
 
   // Refs for fast Shift / Enter navigation across table rows
   const resultInputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -64,8 +78,12 @@ function ResultsContent() {
     }
   };
 
-  // Modals
+  // Workstation Modals
   const [showUrineModal, setShowUrineModal] = useState(false);
+  const [showGseModal, setShowGseModal] = useState(false);
+  const [showCbcModal, setShowCbcModal] = useState(false);
+  const [showChemistryModal, setShowChemistryModal] = useState(false);
+  const [showMicrobiologyModal, setShowMicrobiologyModal] = useState(false);
   const [showAddTestsModal, setShowAddTestsModal] = useState(false);
   const [allAvailableTests, setAllAvailableTests] = useState<any[]>([]);
   const [addTestSearch, setAddTestSearch] = useState('');
@@ -109,6 +127,88 @@ function ResultsContent() {
       };
     });
     setTestResults(initial);
+
+    // Compute Delta Checks against patient's previous visits
+    try {
+      const patId = sample.patientId || sample.patient?.id;
+      const patName = sample.patient?.name;
+      const priorVisits = samples.filter((s: any) => 
+        s.id !== sample.id && 
+        ((patId && s.patientId === patId) || (patName && s.patient?.name === patName))
+      );
+      if (priorVisits.length > 0) {
+        const deltas = compareSampleWithHistory(sample, priorVisits);
+        setDeltaChecks(deltas);
+      } else {
+        setDeltaChecks({});
+      }
+    } catch (e) {
+      console.error('Failed computing delta checks', e);
+      setDeltaChecks({});
+    }
+  };
+
+  // Helper to persist workstation results immediately
+  const handleSaveWorkstationResult = async (categoryOrCode: string, serialized: string, isAbnormal: boolean) => {
+    if (!selectedSample) return;
+
+    let targetTest = selectedSample.tests?.find((st: any) => {
+      const code = (st.test?.code || '').toUpperCase();
+      const name = (st.test?.name || '').toUpperCase();
+      if (categoryOrCode === 'GUE') return code === 'GUE' || name.includes('URINE') || name.includes('إدرار');
+      if (categoryOrCode === 'GSE') return code === 'GSE' || name.includes('STOOL') || name.includes('خروج');
+      if (categoryOrCode === 'CBC') return code === 'CBC' || name.includes('BLOOD') || name.includes('CBC') || name.includes('دم');
+      if (categoryOrCode === 'MICROBIOLOGY') return code.includes('CULTURE') || name.includes('CULTURE') || name.includes('زرع');
+      if (categoryOrCode === 'CHEMISTRY') return st.test?.category === 'CHEMISTRY' || code.includes('LFT') || code.includes('KFT') || code.includes('LIPID');
+      return false;
+    });
+
+    if (!targetTest && selectedSample.tests?.length > 0) {
+      targetTest = selectedSample.tests[0];
+    }
+
+    if (targetTest) {
+      const nextResults = {
+        ...testResults,
+        [targetTest.id]: {
+          resultValue: serialized,
+          isAbnormal,
+          interpretation: isAbnormal ? 'Abnormal Findings' : 'Normal',
+        }
+      };
+      setTestResults(nextResults);
+
+      try {
+        const resultsPayload = Object.entries(nextResults).map(([sampleTestId, data]: [string, any]) => ({
+          sampleTestId,
+          resultValue: data.resultValue,
+          isAbnormal: data.isAbnormal,
+          interpretation: data.interpretation,
+        }));
+
+        await apiRequest(`/samples/${selectedSample.id}/results`, 'PUT', {
+          results: resultsPayload,
+          tests: resultsPayload,
+          status: 'READY',
+          markReady: true,
+        });
+
+        // Update local sample object
+        setSelectedSample((prev: any) => ({
+          ...prev,
+          status: 'READY',
+          tests: prev.tests.map((t: any) => 
+            t.id === targetTest.id ? { ...t, resultValue: serialized, isAbnormal } : t
+          )
+        }));
+
+        // Refresh sample queue
+        const refreshed = await apiRequest('/samples');
+        setSamples(refreshed || []);
+      } catch (err: any) {
+        console.error('Error saving workstation results:', err);
+      }
+    }
   };
 
   // Real-time Lipid & Bilirubin calculations
@@ -168,7 +268,7 @@ function ResultsContent() {
     if (!selectedSample) return;
     try {
       setSavingResults(true);
-      const resultsPayload = Object.entries(testResults).map(([sampleTestId, data]) => ({
+      const resultsPayload = Object.entries(testResults).map(([sampleTestId, data]: [string, any]) => ({
         sampleTestId,
         resultValue: data.resultValue,
         isAbnormal: data.isAbnormal,
@@ -192,6 +292,23 @@ function ResultsContent() {
     } finally {
       setSavingResults(false);
     }
+  };
+
+  // Milestone M4: WhatsApp Direct Share
+  const handleSendWhatsApp = () => {
+    if (!selectedSample) return;
+    const patientPhone = selectedSample.patient?.phone;
+    if (!patientPhone) {
+      toast.error('المريض لا يمتلك رقم هاتف مسجل في المنظومة', 'تعذر الإرسال');
+      return;
+    }
+    const cleanPhone = patientPhone.replace(/[^0-9]/g, '');
+    const fullPhone = cleanPhone.startsWith('0') ? '964' + cleanPhone.substring(1) : cleanPhone.startsWith('964') ? cleanPhone : '964' + cleanPhone;
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080';
+    const verifyUrl = `${origin}/verify/${selectedSample.id}`;
+    const rawMessage = `مرحباً ${selectedSample.patient?.name}، تقرير التحليلات الطبية الخاص بك جاهز في ${labProfile?.labName || 'المختبر'}. رقم العينة: #${selectedSample.sampleNumber}. يمكنك الاطلاع على التقرير وتدقيقه عبر الرابط: ${verifyUrl}`;
+    const whatsappLink = `https://wa.me/${fullPhone}?text=${encodeURIComponent(rawMessage)}`;
+    window.open(whatsappLink, '_blank');
   };
 
   // Filter Samples
@@ -350,14 +467,14 @@ function ResultsContent() {
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={handleOpenAddTestsModal}
                   className="btn-secondary"
-                  style={{ color: 'var(--accent-cyan)', borderColor: 'rgba(0,210,211,0.4)', height: '34px', fontSize: '11.5px' }}
+                  style={{ color: 'var(--accent-cyan)', borderColor: 'rgba(0,210,211,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
                 >
-                  <Plus size={14} />
+                  <Plus size={13} />
                   <span>➕ Add Tests</span>
                 </button>
 
@@ -365,10 +482,55 @@ function ResultsContent() {
                   type="button"
                   onClick={() => setShowUrineModal(true)}
                   className="btn-secondary"
-                  style={{ color: '#f59e0b', borderColor: 'rgba(245,158,11,0.4)', height: '34px', fontSize: '11.5px' }}
+                  style={{ color: '#0284c7', borderColor: 'rgba(2,132,199,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
+                  title="محطة فحص الإدرار العام G.U.E"
                 >
-                  <TestTube size={14} />
-                  <span>🔬 G.U.E Form</span>
+                  <TestTube size={13} />
+                  <span>🧪 G.U.E</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowGseModal(true)}
+                  className="btn-secondary"
+                  style={{ color: '#d97706', borderColor: 'rgba(217,119,6,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
+                  title="محطة فحص الخروج العام G.S.E"
+                >
+                  <Microscope size={13} />
+                  <span>🧫 G.S.E</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowCbcModal(true)}
+                  className="btn-secondary"
+                  style={{ color: '#e11d48', borderColor: 'rgba(225,29,72,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
+                  title="محطة تعداد الدم الكامل CBC"
+                >
+                  <Activity size={13} />
+                  <span>🩸 CBC</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowChemistryModal(true)}
+                  className="btn-secondary"
+                  style={{ color: '#8b5cf6', borderColor: 'rgba(139,92,246,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
+                  title="محطة الكيمياء السريرية والحسابات التلقائية"
+                >
+                  <Zap size={13} />
+                  <span>⚗️ Chemistry</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowMicrobiologyModal(true)}
+                  className="btn-secondary"
+                  style={{ color: '#0d9488', borderColor: 'rgba(13,148,136,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
+                  title="محطة المزرعة وحساسية المضادات الحيوية"
+                >
+                  <Bug size={13} />
+                  <span>🦠 Culture</span>
                 </button>
 
                 <button
@@ -376,11 +538,31 @@ function ResultsContent() {
                   onClick={() => handleSaveResults(true)}
                   disabled={savingResults}
                   className="btn-cyan-primary"
-                  style={{ height: '34px', padding: '0 16px', fontSize: '12px' }}
+                  style={{ height: '32px', padding: '0 14px', fontSize: '11.5px' }}
                 >
-                  <Printer size={14} />
-                  <span>SAVE & PRINT REPORT ✓</span>
+                  <Printer size={13} />
+                  <span>SAVE & PRINT ✓</span>
                 </button>
+
+                {selectedSample?.patient?.phone && (
+                  <button
+                    type="button"
+                    onClick={handleSendWhatsApp}
+                    className="btn-secondary"
+                    style={{
+                      color: '#10b981',
+                      borderColor: 'rgba(16, 185, 129, 0.4)',
+                      height: '32px',
+                      fontSize: '11px',
+                      padding: '0 10px',
+                      background: 'rgba(16, 185, 129, 0.1)'
+                    }}
+                    title="إرسال تقرير المريض ورابط التحقق عبر واتساب"
+                  >
+                    <MessageCircle size={13} />
+                    <span>WhatsApp</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -418,6 +600,7 @@ function ResultsContent() {
                           </td>
 
                           <td style={{ padding: '8px 14px' }}>
+                            {/* G.U.E Button */}
                             {(st.test?.code === 'GUE' || st.test?.name?.toLowerCase().includes('urine') || st.test?.name?.toLowerCase().includes('إدرار')) ? (
                               <button
                                 type="button"
@@ -427,9 +610,9 @@ function ResultsContent() {
                                   minHeight: '36px',
                                   padding: '6px 12px',
                                   borderRadius: '6px',
-                                  background: currentVal ? 'rgba(16, 185, 129, 0.16)' : 'rgba(245, 158, 11, 0.16)',
-                                  border: `1.5px solid ${currentVal ? 'var(--accent-emerald)' : '#f59e0b'}`,
-                                  color: currentVal ? 'var(--accent-emerald)' : '#f59e0b',
+                                  background: currentVal ? 'rgba(16, 185, 129, 0.16)' : 'rgba(2, 132, 199, 0.16)',
+                                  border: `1.5px solid ${currentVal ? 'var(--accent-emerald)' : '#0284c7'}`,
+                                  color: currentVal ? 'var(--accent-emerald)' : '#38bdf8',
                                   fontSize: '12px',
                                   fontWeight: 800,
                                   cursor: 'pointer',
@@ -437,16 +620,94 @@ function ResultsContent() {
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
                                   gap: '8px',
-                                  boxShadow: currentVal ? '0 0 10px rgba(16, 185, 129, 0.2)' : '0 0 10px rgba(245, 158, 11, 0.2)'
                                 }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   <TestTube size={15} />
-                                  <span>{currentVal ? '✓ تم إدخال فورمة الإدرار (اضغط للتعديل)' : '🔬 فتح فورمة فحص الإدرار الشامل'}</span>
+                                  <span>{currentVal ? '✓ تم إدخال فحص الإدرار (تعديل)' : '🧪 فتح فورمة الإدرار G.U.E'}</span>
                                 </div>
-                                <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                                  G.U.E Form
-                                </span>
+                                <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>G.U.E</span>
+                              </button>
+                            ) : /* G.S.E Button */ (st.test?.code === 'GSE' || st.test?.name?.toLowerCase().includes('stool') || st.test?.name?.toLowerCase().includes('خروج')) ? (
+                              <button
+                                type="button"
+                                onClick={() => setShowGseModal(true)}
+                                style={{
+                                  width: '100%',
+                                  minHeight: '36px',
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  background: currentVal ? 'rgba(16, 185, 129, 0.16)' : 'rgba(217, 119, 6, 0.16)',
+                                  border: `1.5px solid ${currentVal ? 'var(--accent-emerald)' : '#d97706'}`,
+                                  color: currentVal ? 'var(--accent-emerald)' : '#fbbf24',
+                                  fontSize: '12px',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: '8px',
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <Microscope size={15} />
+                                  <span>{currentVal ? '✓ تم إدخال فحص الخروج (تعديل)' : '🧫 فتح فورمة الخروج G.S.E'}</span>
+                                </div>
+                                <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>G.S.E</span>
+                              </button>
+                            ) : /* CBC Button */ (st.test?.code === 'CBC' || st.test?.name?.toLowerCase().includes('blood count') || st.test?.name?.toLowerCase().includes('cbc') || st.test?.name?.toLowerCase().includes('تعداد الدم')) ? (
+                              <button
+                                type="button"
+                                onClick={() => setShowCbcModal(true)}
+                                style={{
+                                  width: '100%',
+                                  minHeight: '36px',
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  background: currentVal ? 'rgba(16, 185, 129, 0.16)' : 'rgba(225, 29, 72, 0.16)',
+                                  border: `1.5px solid ${currentVal ? 'var(--accent-emerald)' : '#e11d48'}`,
+                                  color: currentVal ? 'var(--accent-emerald)' : '#fb7185',
+                                  fontSize: '12px',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: '8px',
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <Activity size={15} />
+                                  <span>{currentVal ? '✓ تم إدخال فحص الدم (تعديل)' : '🩸 فتح محطة الدمويات CBC'}</span>
+                                </div>
+                                <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>CBC</span>
+                              </button>
+                            ) : /* Microbiology Button */ (st.test?.category === 'MICROBIOLOGY' || st.test?.code?.includes('CULTURE') || st.test?.name?.toLowerCase().includes('culture') || st.test?.name?.toLowerCase().includes('مزرعة')) ? (
+                              <button
+                                type="button"
+                                onClick={() => setShowMicrobiologyModal(true)}
+                                style={{
+                                  width: '100%',
+                                  minHeight: '36px',
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  background: currentVal ? 'rgba(16, 185, 129, 0.16)' : 'rgba(13, 148, 136, 0.16)',
+                                  border: `1.5px solid ${currentVal ? 'var(--accent-emerald)' : '#0d9488'}`,
+                                  color: currentVal ? 'var(--accent-emerald)' : '#2dd4bf',
+                                  fontSize: '12px',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: '8px',
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <Bug size={15} />
+                                  <span>{currentVal ? '✓ تم إدخال المزرعة (تعديل)' : '🦠 فتح محطة المزرعة Culture'}</span>
+                                </div>
+                                <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>Culture</span>
                               </button>
                             ) : (
                               <input
@@ -479,21 +740,50 @@ function ResultsContent() {
                           </td>
 
                           <td style={{ padding: '12px 14px' }}>
-                            {isPanic ? (
-                              <span style={{ color: '#ef4444', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                🔴 PANIC (Critical)
-                              </span>
-                            ) : isAbnormal ? (
-                              <span style={{ color: '#f59e0b', fontWeight: 800 }}>
-                                ⚠️ Abnormal (Amber)
-                              </span>
-                            ) : currentVal ? (
-                              <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>
-                                Normal (Cyan)
-                              </span>
-                            ) : (
-                              <span style={{ color: 'var(--text-dim)' }}>Pending</span>
-                            )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              {isPanic ? (
+                                <span style={{ color: '#ef4444', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  🔴 PANIC
+                                </span>
+                              ) : isAbnormal ? (
+                                <span style={{ color: '#f59e0b', fontWeight: 800 }}>
+                                  ⚠️ Abnormal
+                                </span>
+                              ) : currentVal ? (
+                                <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>
+                                  Normal
+                                </span>
+                              ) : (
+                                <span style={{ color: 'var(--text-dim)' }}>Pending</span>
+                              )}
+
+                              {/* Delta Check Alert Badge */}
+                              {(() => {
+                                const code = st.test?.code || st.test?.name;
+                                const delta = deltaChecks[code] || (st.test?.code && deltaChecks[st.test.code]);
+                                if (delta && delta.isBreached) {
+                                  const isCrit = delta.badgeLevel === 'CRITICAL';
+                                  return (
+                                    <span
+                                      title={delta.message || `تغير حاد مقارنة بالزيارة السابقة: ${delta.previousValue}`}
+                                      style={{
+                                        fontSize: '10px',
+                                        fontWeight: 800,
+                                        padding: '1px 5px',
+                                        borderRadius: '4px',
+                                        background: isCrit ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                                        color: isCrit ? '#ef4444' : '#f59e0b',
+                                        border: `1px solid ${isCrit ? '#ef4444' : '#f59e0b'}`,
+                                        cursor: 'help'
+                                      }}
+                                    >
+                                      Δ {delta.deltaPercent}% {delta.direction === 'increased' ? '↑' : '↓'}
+                                    </span>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </div>
                           </td>
                         </tr>
 
@@ -560,6 +850,78 @@ function ResultsContent() {
               }));
               toast.success('تم إدراج تقرير فحص الإدرار بنجاح!');
             }
+          }}
+        />
+      )}
+
+      {/* GSE MODAL */}
+      {showGseModal && selectedSample && (
+        <GseModal
+          isOpen={showGseModal}
+          onClose={() => setShowGseModal(false)}
+          sample={selectedSample}
+          initialValue={(() => {
+            const t = selectedSample.tests?.find((st: any) => 
+              st.test?.code === 'GSE' || st.test?.name?.toLowerCase().includes('stool') || st.test?.name?.toLowerCase().includes('خروج')
+            );
+            return testResults[t?.id]?.resultValue || t?.resultValue || '';
+          })()}
+          onSave={async (serialized, isAbnormal) => {
+            await handleSaveWorkstationResult('GSE', serialized, isAbnormal);
+          }}
+        />
+      )}
+
+      {/* CBC MODAL */}
+      {showCbcModal && selectedSample && (
+        <CbcModal
+          isOpen={showCbcModal}
+          onClose={() => setShowCbcModal(false)}
+          sample={selectedSample}
+          initialValue={(() => {
+            const t = selectedSample.tests?.find((st: any) => 
+              st.test?.code === 'CBC' || st.test?.name?.toLowerCase().includes('cbc') || st.test?.name?.toLowerCase().includes('blood count')
+            );
+            return testResults[t?.id]?.resultValue || t?.resultValue || '';
+          })()}
+          onSave={async (serialized, isAbnormal) => {
+            await handleSaveWorkstationResult('CBC', serialized, isAbnormal);
+          }}
+        />
+      )}
+
+      {/* CHEMISTRY MODAL */}
+      {showChemistryModal && selectedSample && (
+        <ChemistryModal
+          isOpen={showChemistryModal}
+          onClose={() => setShowChemistryModal(false)}
+          sample={selectedSample}
+          initialValue={(() => {
+            const t = selectedSample.tests?.find((st: any) => 
+              st.test?.category === 'CHEMISTRY' || (st.test?.code && ['LFT', 'KFT', 'LIPID', 'FBS', 'CREAT'].includes(st.test.code))
+            );
+            return testResults[t?.id]?.resultValue || t?.resultValue || '';
+          })()}
+          onSave={async (serialized, isAbnormal) => {
+            await handleSaveWorkstationResult('CHEMISTRY', serialized, isAbnormal);
+          }}
+        />
+      )}
+
+      {/* MICROBIOLOGY MODAL */}
+      {showMicrobiologyModal && selectedSample && (
+        <MicrobiologyModal
+          isOpen={showMicrobiologyModal}
+          onClose={() => setShowMicrobiologyModal(false)}
+          sample={selectedSample}
+          initialValue={(() => {
+            const t = selectedSample.tests?.find((st: any) => 
+              st.test?.category === 'MICROBIOLOGY' || st.test?.code?.includes('CULTURE') || st.test?.name?.toLowerCase().includes('culture')
+            );
+            return testResults[t?.id]?.resultValue || t?.resultValue || '';
+          })()}
+          onSave={async (serialized, isAbnormal) => {
+            await handleSaveWorkstationResult('MICROBIOLOGY', serialized, isAbnormal);
           }}
         />
       )}

@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useEffect, useState, useMemo, useRef, Suspense } from 'react';
+import React, { useEffect, useState, useMemo, useRef, Suspense, useCallback } from 'react';
 import AppShell from '../components/AppShell';
 import { apiRequest } from '../lib/api';
 import { useToast } from '../components/Toast';
@@ -32,19 +32,28 @@ import {
   Stethoscope,
   Microscope,
   Dna,
-  Layers
+  Layers,
+  AlertTriangle,
+  RotateCcw,
+  Percent,
+  Keyboard,
+  CreditCard,
+  Banknote,
+  Plus
 } from 'lucide-react';
 
 // English Clinical Category Mapping
 const CLINICAL_CATEGORIES = [
   { id: 'ALL', label: 'ALL TESTS (كل الفحوصات)' },
   { id: 'HEMATOLOGY', label: 'HEMATOLOGY (أمراض الدم)', dbKeywords: ['دم', 'تخثر', 'hematology'] },
-  { id: 'CHEMISTRY', label: 'CHEMISTRY (الكيمياء السريرية)', dbKeywords: ['كيمياء', 'سكري', 'كبد', 'كلى', 'دهون', 'قلب', 'chemistry'] },
+  { id: 'CHEMISTRY', label: 'CHEMISTRY (الكيمياء السريرية)', dbKeywords: ['كيمياء', 'سكري', 'كبد', 'كلى', 'دهون', 'قلb', 'chemistry'] },
   { id: 'HORMONES', label: 'HORMONES (الهرمونات والغدد)', dbKeywords: ['هرمون', 'غدة', 'درقية', 'hormone'] },
   { id: 'IMMUNOLOGY', label: 'IMMUNOLOGY (المناعة والأمصال)', dbKeywords: ['مناعة', 'أمصال', 'مصول', 'immunology', 'serology'] },
   { id: 'URINE_STOOL', label: 'G.U.E & G.S.E (إدرار وخروج)', dbKeywords: ['مجهري', 'إدرار', 'خروج', 'urine', 'stool'] },
   { id: 'VITAMINS_MARKERS', label: 'VITAMINS & MARKERS (فيتامينات وأورام)', dbKeywords: ['معادن', 'فيتامين', 'أورام', 'vitamin', 'tumor'] },
 ];
+
+const QUICK_DISCOUNT_PERCENTAGES = [5, 10, 15, 20, 50, 100];
 
 function IntakeContent() {
   const router = useRouter();
@@ -67,40 +76,39 @@ function IntakeContent() {
   const [patientPhone, setPatientPhone] = useState('');
   const [patientAge, setPatientAge] = useState('');
   const [patientGender, setPatientGender] = useState<'MALE' | 'FEMALE'>('MALE');
+  const [patientNotes, setPatientNotes] = useState('');
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
   
-  // Patient Autocomplete
+  // Patient Autocomplete & Rich History
   const [patientSearchQuery, setPatientSearchQuery] = useState('');
   const [patientSuggestions, setPatientSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedPatientHistory, setSelectedPatientHistory] = useState<any | null>(null);
 
   // Form States - Sample & Tests
   const [selectedTests, setSelectedTests] = useState<any[]>([]);
   const [isUrgent, setIsUrgent] = useState(false);
+  const [sampleNotes, setSampleNotes] = useState('');
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [customDiscountAmount, setCustomDiscountAmount] = useState<number>(0);
   const [paidAmount, setPaidAmount] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'DEBT' | 'CARD'>('CASH');
 
-  // Filter States
+  // Filter States & Catalog Keyboard Navigation
   const [testSearch, setTestSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('ALL');
+  const [highlightedTestIndex, setHighlightedTestIndex] = useState<number>(0);
 
   // Submission State
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdSample, setCreatedSample] = useState<any | null>(null);
 
-  // Refs for Shift / Enter Keyboard Navigation
+  // DOM Refs for Keyboard Navigation
+  const patientNameInputRef = useRef<HTMLInputElement | null>(null);
+  const testSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const discountInputRef = useRef<HTMLInputElement | null>(null);
   const inputRefs = useRef<(HTMLInputElement | HTMLSelectElement | null)[]>([]);
-
-  const handleInputKeyDown = (e: React.KeyboardEvent, index: number) => {
-    if (e.key === 'Shift' || e.key === 'Enter') {
-      e.preventDefault();
-      const nextIndex = (index + 1) % inputRefs.current.length;
-      inputRefs.current[nextIndex]?.focus();
-    }
-  };
 
   // 1. Load Tests, Panels, Doctors
   useEffect(() => {
@@ -124,6 +132,7 @@ function IntakeContent() {
             setPatientPhone(p.phone || '');
             setPatientAge(p.age ? String(p.age) : '');
             setPatientGender(p.gender || 'MALE');
+            setSelectedPatientHistory(p);
           }
         }
       } catch (err: any) {
@@ -135,7 +144,7 @@ function IntakeContent() {
     loadInitialData();
   }, [searchParams]);
 
-  // 2. Autocomplete
+  // 2. Autocomplete Search
   useEffect(() => {
     if (!patientSearchQuery.trim() || patientSearchQuery.length < 2) {
       setPatientSuggestions([]);
@@ -158,19 +167,45 @@ function IntakeContent() {
     setPatientPhone(p.phone || '');
     setPatientAge(p.age ? String(p.age) : '');
     setPatientGender(p.gender || 'MALE');
+    setSelectedPatientHistory(p);
     setPatientSearchQuery('');
     setShowSuggestions(false);
     toast.success(`تم استرجاع بيانات المريض: ${p.name}`);
   };
 
-  const handleClearPatient = () => {
+  const handleRepeatLastTests = (p: any) => {
+    selectExistingPatient(p);
+    if (p.lastTestIds && p.lastTestIds.length > 0) {
+      const repeated = tests.filter(t => p.lastTestIds.includes(t.id) || p.lastTestIds.includes(t.code));
+      if (repeated.length > 0) {
+        setSelectedTests(repeated);
+        toast.success(`تم تحديد ${repeated.length} فحوصات من آخر زيارة سابقة للمريض`);
+      } else {
+        toast.info('لم يتم العثور على فحوصات مطابقة في الكتالوج الحالي');
+      }
+    } else {
+      toast.info('لا توجد فحوصات سابقة مسجلة لهذا المريض');
+    }
+  };
+
+  const handleClearPatient = useCallback(() => {
     setPatientId(null);
     setPatientName('');
     setPatientPhone('');
     setPatientAge('');
     setPatientGender('MALE');
+    setPatientNotes('');
     setSelectedDoctorId('');
-  };
+    setSelectedPatientHistory(null);
+    setSelectedTests([]);
+    setDiscountPercent(0);
+    setCustomDiscountAmount(0);
+    setIsUrgent(false);
+    setSampleNotes('');
+    setTimeout(() => {
+      patientNameInputRef.current?.focus();
+    }, 50);
+  }, []);
 
   const handleToggleTest = (test: any) => {
     if (selectedTests.some((t) => t.id === test.id)) {
@@ -187,7 +222,7 @@ function IntakeContent() {
 
   const calculatedDiscount = useMemo(() => {
     if (customDiscountAmount > 0) return customDiscountAmount;
-    if (discountPercent > 0) return (grossTotal * discountPercent) / 100;
+    if (discountPercent > 0) return Math.round((grossTotal * discountPercent) / 100);
     return 0;
   }, [grossTotal, discountPercent, customDiscountAmount]);
 
@@ -195,6 +230,17 @@ function IntakeContent() {
     const total = grossTotal - calculatedDiscount;
     return total > 0 ? total : 0;
   }, [grossTotal, calculatedDiscount]);
+
+  // Selected Doctor & Live Commission Calculation
+  const selectedDoctor = useMemo(() => {
+    return doctors.find(d => d.id === selectedDoctorId) || null;
+  }, [doctors, selectedDoctorId]);
+
+  const doctorCommission = useMemo(() => {
+    if (!selectedDoctor) return 0;
+    const rate = selectedDoctor.commissionPercent || 0;
+    return Math.round((netTotal * rate) / 100);
+  }, [selectedDoctor, netTotal]);
 
   useEffect(() => {
     if (paymentMethod === 'CASH' || paymentMethod === 'CARD') {
@@ -204,10 +250,14 @@ function IntakeContent() {
     }
   }, [netTotal, paymentMethod]);
 
+  const remainingBalance = useMemo(() => {
+    const paid = parseFloat(paidAmount) || 0;
+    return Math.max(0, netTotal - paid);
+  }, [netTotal, paidAmount]);
+
   // Filter Tests with English Category and Search
   const filteredTests = useMemo(() => {
     return tests.filter((t) => {
-      // Category Match
       let matchCat = true;
       if (activeCategory !== 'ALL') {
         const catConfig = CLINICAL_CATEGORIES.find(c => c.id === activeCategory);
@@ -219,7 +269,6 @@ function IntakeContent() {
         }
       }
 
-      // Search Match
       const matchSearch =
         !testSearch.trim() ||
         t.name?.toLowerCase().includes(testSearch.toLowerCase()) ||
@@ -230,13 +279,37 @@ function IntakeContent() {
     });
   }, [tests, activeCategory, testSearch]);
 
-  const handleRegisterSample = async () => {
+  // Discount Handlers
+  const handleSelectDiscountPercent = (pct: number) => {
+    if (pct === discountPercent) {
+      setDiscountPercent(0);
+      setCustomDiscountAmount(0);
+    } else {
+      setDiscountPercent(pct);
+      setCustomDiscountAmount(Math.round((grossTotal * pct) / 100));
+    }
+  };
+
+  const handleCustomDiscountChange = (valStr: string) => {
+    const val = parseFloat(valStr) || 0;
+    setCustomDiscountAmount(val);
+    if (grossTotal > 0) {
+      setDiscountPercent(Math.round((val / grossTotal) * 100));
+    } else {
+      setDiscountPercent(0);
+    }
+  };
+
+  // Submit Sample
+  const handleRegisterSample = useCallback(async () => {
     if (!patientName.trim()) {
       toast.error('يرجى إدخال اسم المريض', 'بيانات ناقصة');
+      patientNameInputRef.current?.focus();
       return;
     }
     if (selectedTests.length === 0) {
       toast.error('يرجى اختيار فحص مخبري واحد على الأقل', 'تنبيه');
+      testSearchInputRef.current?.focus();
       return;
     }
 
@@ -253,11 +326,16 @@ function IntakeContent() {
         gender: patientGender,
         patientGender,
         doctorId: selectedDoctorId || undefined,
+        doctorCommission,
         testIds: selectedTests.map((t) => t.id),
         isUrgent,
+        priceTotal: grossTotal,
         discount: calculatedDiscount,
+        discountPercent,
         paidAmount: parseFloat(paidAmount) || 0,
+        remainingAmount: remainingBalance,
         paymentMethod,
+        notes: sampleNotes.trim() || undefined,
       };
 
       const result = await apiRequest('/samples', 'POST', payload);
@@ -268,6 +346,93 @@ function IntakeContent() {
       toast.error(err.message || 'فشل تسجيل العينة', 'خطأ');
     } finally {
       setSubmitting(false);
+    }
+  }, [
+    patientName,
+    selectedTests,
+    patientId,
+    patientPhone,
+    patientAge,
+    patientGender,
+    selectedDoctorId,
+    doctorCommission,
+    isUrgent,
+    grossTotal,
+    calculatedDiscount,
+    discountPercent,
+    paidAmount,
+    remainingBalance,
+    paymentMethod,
+    sampleNotes,
+    toast
+  ]);
+
+  // Global & Form Keyboard Navigation (F2, F8, F9, Ctrl+Enter, Arrow Catalog Nav)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // F2: New Intake
+      if (e.key === 'F2') {
+        e.preventDefault();
+        handleClearPatient();
+        toast.info('تم بدء استلام مريض جديد (F2)');
+        return;
+      }
+
+      // F8: Search Tests Catalog
+      if (e.key === 'F8') {
+        e.preventDefault();
+        testSearchInputRef.current?.focus();
+        testSearchInputRef.current?.select();
+        toast.info('البحث في كتالوج الفحوصات (F8)');
+        return;
+      }
+
+      // F9: Discount Focus
+      if (e.key === 'F9') {
+        e.preventDefault();
+        discountInputRef.current?.focus();
+        discountInputRef.current?.select();
+        toast.info('تحديد الخصم المالي (F9)');
+        return;
+      }
+
+      // Ctrl+Enter or Cmd+Enter: Instant Submit
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleRegisterSample();
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [handleClearPatient, handleRegisterSample, toast]);
+
+  // Arrow Key Navigation inside Test Catalog
+  const handleCatalogKeyDown = (e: React.KeyboardEvent) => {
+    if (filteredTests.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedTestIndex((prev) => (prev + 1) % filteredTests.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedTestIndex((prev) => (prev - 1 + filteredTests.length) % filteredTests.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const currentTest = filteredTests[highlightedTestIndex];
+      if (currentTest) {
+        handleToggleTest(currentTest);
+        toast.info(`${selectedTests.some(t => t.id === currentTest.id) ? 'إزالة' : 'إضافة'}: ${currentTest.name}`);
+      }
+    }
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const nextIndex = (index + 1) % inputRefs.current.length;
+      inputRefs.current[nextIndex]?.focus();
     }
   };
 
@@ -282,7 +447,6 @@ function IntakeContent() {
     return <Dna size={18} />;
   };
 
-  // Get English Category Tag for each card
   const getEnglishCategoryTag = (cat: string) => {
     if (!cat) return 'GENERAL';
     if (cat.includes('دم') || cat.includes('تخثر')) return 'HEMATOLOGY';
@@ -296,34 +460,63 @@ function IntakeContent() {
 
   return (
     <AppShell>
-      {/* 1. Header (Mockup Style) */}
-      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* 1. Header & Hotkey Bar */}
+      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '4px' }}>
-            PATIENT RECEPTION
+          <h1 style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '0.5px', textTransform: 'uppercase', margin: 0 }}>
+            PATIENT RECEPTION & INTAKE (استقبال وتسجيل المرضى)
           </h1>
-          <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.5px' }}>
-            LABRYO LIMS | TEST INTAKE | {new Date().toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '2px' }}>
+            LABRYO LIMS • HIGH-SPEED RECEPTION • {new Date().toLocaleDateString('ar-IQ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
         </div>
 
-        <div style={{ fontSize: '11px', color: 'var(--text-dim)', background: 'var(--bg-input)', padding: '6px 12px', borderRadius: '20px', border: '1px solid var(--border-color)' }}>
-          ⌨️ اضغط <kbd style={{ background: '#1c2436', padding: '2px 5px', borderRadius: '4px', color: 'var(--accent-cyan)' }}>Shift</kbd> للتنقل الفوري بين الحقول
+        {/* Live Keyboard Hotkey Guide */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(0, 210, 211, 0.08)', border: '1px solid rgba(0, 210, 211, 0.25)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: 'var(--accent-cyan)' }}>
+            <Keyboard size={13} />
+            <span><kbd style={{ background: '#1c2436', padding: '1px 5px', borderRadius: '4px', color: '#fff', fontWeight: 800 }}>F2</kbd> New Intake</span>
+            <span style={{ opacity: 0.4 }}>|</span>
+            <span><kbd style={{ background: '#1c2436', padding: '1px 5px', borderRadius: '4px', color: '#fff', fontWeight: 800 }}>F8</kbd> Search Tests</span>
+            <span style={{ opacity: 0.4 }}>|</span>
+            <span><kbd style={{ background: '#1c2436', padding: '1px 5px', borderRadius: '4px', color: '#fff', fontWeight: 800 }}>F9</kbd> Discount</span>
+            <span style={{ opacity: 0.4 }}>|</span>
+            <span><kbd style={{ background: '#1c2436', padding: '1px 5px', borderRadius: '4px', color: '#fff', fontWeight: 800 }}>Ctrl+↵</kbd> Register</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleClearPatient}
+            className="btn-secondary"
+            style={{ height: '32px', padding: '0 12px', fontSize: '11.5px', gap: '6px' }}
+            title="ابدأ استلام مريض جديد (F2)"
+          >
+            <RotateCcw size={13} />
+            <span>استلام جديد (F2)</span>
+          </button>
         </div>
       </div>
 
-      {/* 2. Main 2-Column Grid (dir=ltr ensures left-to-right alignment matching Image 1) */}
+      {/* 2. Main 2-Column Grid (dir=ltr for high efficiency split view) */}
       <div className="reception-mockup-grid" style={{ direction: 'ltr' }}>
         
         {/* LEFT / MAIN WORKSPACE */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           
-          {/* A. ADD NEW PATIENT CARD */}
-          <div className="glass-card" style={{ padding: '16px 20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <span className="input-label" style={{ margin: 0, fontSize: '11.5px', fontWeight: 800 }}>
-                ADD NEW PATIENT (بيانات المريض)
-              </span>
+          {/* A. PATIENT INTAKE & AUTOCOMPLETE CARD */}
+          <div className="glass-card" style={{ padding: '16px 18px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <User size={15} color="var(--accent-cyan)" />
+                <span className="input-label" style={{ margin: 0, fontSize: '11.5px', fontWeight: 800 }}>
+                  PATIENT INFORMATION (بيانات المريض)
+                </span>
+                {patientId && (
+                  <span style={{ background: 'rgba(0, 210, 211, 0.15)', color: 'var(--accent-cyan)', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                    EXISTING PATIENT ({patientId})
+                  </span>
+                )}
+              </div>
 
               {patientId && (
                 <button
@@ -331,32 +524,88 @@ function IntakeContent() {
                   onClick={handleClearPatient}
                   style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}
                 >
-                  ✕ Clear / New Patient
+                  ✕ Clear / Switch Patient
                 </button>
               )}
             </div>
 
-            {/* Quick Autocomplete Search */}
+            {/* Quick Autocomplete Search with Past Visits & Debt Preview */}
             {!patientId && (
               <div style={{ position: 'relative', marginBottom: '12px' }}>
                 <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
                 <input
                   type="text"
-                  placeholder="Quick search existing patient by name or phone..."
+                  placeholder="بحث سريع عن مريض سابق بالاسم أو رقم الهاتف أو المعرّف (Quick Patient Autocomplete)..."
                   className="input-control"
                   style={{ paddingLeft: '30px', fontSize: '12px', height: '34px', background: '#0e1420' }}
                   value={patientSearchQuery}
                   onChange={(e) => setPatientSearchQuery(e.target.value)}
                 />
                 {showSuggestions && patientSuggestions.length > 0 && (
-                  <div className="quick-search-dropdown">
-                    <div className="dropdown-header">MATCHING PATIENT RECORDS:</div>
+                  <div className="quick-search-dropdown" style={{ zIndex: 100 }}>
+                    <div className="dropdown-header">سجلات المرضى المطابقة ({patientSuggestions.length}):</div>
                     {patientSuggestions.map((p) => (
-                      <div key={p.id} className="dropdown-item" onClick={() => selectExistingPatient(p)}>
-                        <strong style={{ fontSize: '12.5px', color: 'var(--text-main)' }}>{p.name}</strong>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px' }}>
-                          {p.phone || 'No phone'} • {p.age ? `${p.age} yrs` : ''} ({p.gender})
-                        </span>
+                      <div
+                        key={p.id}
+                        className="dropdown-item"
+                        style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '8px 12px' }}
+                        onClick={() => selectExistingPatient(p)}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>{p.name}</strong>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px' }}>
+                              {p.phone || 'بدون هاتف'} • {p.age ? `${p.age} سنة` : ''} ({p.gender === 'FEMALE' ? 'أنثى' : 'ذكر'})
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span className="badge badge-received" style={{ fontSize: '10px' }}>
+                              {p.visitCount || 0} زيارات
+                            </span>
+                            {p.outstandingDebt > 0 && (
+                              <span style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                                🔴 دين: {p.outstandingDebt.toLocaleString()} د.ع
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Historical abnormal flags preview */}
+                        {p.abnormalFlags && p.abnormalFlags.length > 0 && (
+                          <div style={{ fontSize: '10.5px', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <AlertTriangle size={11} />
+                            <span>فحوصات غير طبيعية سابقة: {p.abnormalFlags.slice(0, 2).join(' | ')}</span>
+                          </div>
+                        )}
+
+                        {/* Repeat Last Tests Button */}
+                        {p.lastTestIds && p.lastTestIds.length > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px' }}>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRepeatLastTests(p);
+                              }}
+                              style={{
+                                background: 'rgba(0, 210, 211, 0.15)',
+                                border: '1px solid rgba(0, 210, 211, 0.3)',
+                                color: 'var(--accent-cyan)',
+                                fontSize: '10.5px',
+                                fontWeight: 700,
+                                borderRadius: '4px',
+                                padding: '2px 8px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              <RotateCcw size={11} />
+                              <span>إعادة نفس فحوصات الزيارة السابقة ({p.lastTestNames?.slice(0, 2).join(', ')}...)</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -364,19 +613,46 @@ function IntakeContent() {
               </div>
             )}
 
-            {/* Horizontal Patient Row with Doctor Field & Shift Navigation */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1.6fr 0.7fr 0.7fr 1.1fr 1.2fr auto', gap: '8px', alignItems: 'center' }}>
-              <div style={{ color: 'var(--text-dim)', cursor: 'grab' }}>
-                <GripVertical size={16} />
-              </div>
+            {/* Selected Patient Alert Banner (if historical flags or debt exist) */}
+            {selectedPatientHistory && (
+              <div style={{ marginBottom: '12px', padding: '8px 12px', background: '#0e1420', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-main)', fontWeight: 700 }}>
+                    سجل المريض: <span style={{ color: 'var(--accent-cyan)' }}>{selectedPatientHistory.visitCount || selectedPatientHistory.samples?.length || 0} زيارة</span>
+                  </span>
+                  {selectedPatientHistory.outstandingDebt > 0 && (
+                    <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>
+                      ⚠️ متبقي ديون سابقة: {selectedPatientHistory.outstandingDebt.toLocaleString()} د.ع
+                    </span>
+                  )}
+                </div>
 
+                {selectedPatientHistory.lastTestIds && selectedPatientHistory.lastTestIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRepeatLastTests(selectedPatientHistory)}
+                    className="btn-secondary"
+                    style={{ height: '26px', fontSize: '11px', padding: '0 8px', gap: '4px' }}
+                  >
+                    <RotateCcw size={11} />
+                    <span>إعادة نفس الفحوصات السابقة</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Patient Form Fields Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.7fr 0.7fr 1.1fr 1.3fr', gap: '8px', alignItems: 'flex-start' }}>
               <div>
-                <span className="input-label" style={{ fontSize: '10px' }}>Full Name *</span>
+                <span className="input-label" style={{ fontSize: '10px' }}>Full Name (اسم المريض) *</span>
                 <input
-                  ref={(el) => { inputRefs.current[0] = el; }}
+                  ref={(el) => {
+                    patientNameInputRef.current = el;
+                    inputRefs.current[0] = el;
+                  }}
                   onKeyDown={(e) => handleInputKeyDown(e, 0)}
                   type="text"
-                  placeholder="Patient Name"
+                  placeholder="اسم المريض الثلاثي..."
                   className="input-control"
                   style={{ height: '36px', fontSize: '12.5px' }}
                   value={patientName}
@@ -386,12 +662,12 @@ function IntakeContent() {
               </div>
 
               <div>
-                <span className="input-label" style={{ fontSize: '10px' }}>Age (Yrs)</span>
+                <span className="input-label" style={{ fontSize: '10px' }}>Age (العمر)</span>
                 <input
                   ref={(el) => { inputRefs.current[1] = el; }}
                   onKeyDown={(e) => handleInputKeyDown(e, 1)}
                   type="number"
-                  placeholder="Age"
+                  placeholder="العمر"
                   className="input-control"
                   style={{ height: '36px', fontSize: '12.5px' }}
                   value={patientAge}
@@ -400,7 +676,7 @@ function IntakeContent() {
               </div>
 
               <div>
-                <span className="input-label" style={{ fontSize: '10px' }}>Gender</span>
+                <span className="input-label" style={{ fontSize: '10px' }}>Gender (الجنس)</span>
                 <select
                   ref={(el) => { inputRefs.current[2] = el; }}
                   onKeyDown={(e) => handleInputKeyDown(e, 2)}
@@ -409,18 +685,18 @@ function IntakeContent() {
                   value={patientGender}
                   onChange={(e) => setPatientGender(e.target.value as any)}
                 >
-                  <option value="MALE">M ♂</option>
-                  <option value="FEMALE">F ♀</option>
+                  <option value="MALE">ذكر ♂</option>
+                  <option value="FEMALE">أنثى ♀</option>
                 </select>
               </div>
 
               <div>
-                <span className="input-label" style={{ fontSize: '10px' }}>Phone</span>
+                <span className="input-label" style={{ fontSize: '10px' }}>Phone (الهاتف)</span>
                 <input
                   ref={(el) => { inputRefs.current[3] = el; }}
                   onKeyDown={(e) => handleInputKeyDown(e, 3)}
                   type="text"
-                  placeholder="+964 770..."
+                  placeholder="0770..."
                   className="input-control"
                   style={{ height: '36px', fontSize: '12px' }}
                   value={patientPhone}
@@ -429,7 +705,7 @@ function IntakeContent() {
               </div>
 
               <div>
-                <span className="input-label" style={{ fontSize: '10px' }}>Doctor (الطبيب)</span>
+                <span className="input-label" style={{ fontSize: '10px' }}>Referring Doctor (الطبيب المحيل)</span>
                 <select
                   ref={(el) => { inputRefs.current[4] = el; }}
                   onKeyDown={(e) => handleInputKeyDown(e, 4)}
@@ -438,62 +714,62 @@ function IntakeContent() {
                   value={selectedDoctorId}
                   onChange={(e) => setSelectedDoctorId(e.target.value)}
                 >
-                  <option value="">Direct (بدون تحويل)</option>
+                  <option value="">مباشر (بدون تحويل)</option>
                   {doctors.map((d) => (
                     <option key={d.id} value={d.id}>
-                      Dr. {d.name}
+                      د. {d.name} ({d.commissionPercent || 0}%)
                     </option>
                   ))}
                 </select>
               </div>
-
-              <div style={{ paddingTop: '16px' }}>
-                <button
-                  type="button"
-                  onClick={() => toast.success('تم تثبيت بيانات المريض')}
-                  className="btn-cyan-primary"
-                  style={{ height: '36px', padding: '0 12px', fontSize: '11.5px', textTransform: 'uppercase' }}
-                >
-                  <Check size={14} strokeWidth={3} />
-                  <span>CONFIRM</span>
-                </button>
-              </div>
             </div>
           </div>
 
-          {/* B. TEST SELECTION CARD WITH ENGLISH CATEGORIES & IRAQI CODES */}
-          <div className="glass-card" style={{ padding: '16px 20px' }}>
+          {/* B. TEST SELECTION CARD WITH HOTKEY SEARCH & ARROW NAVIGATION */}
+          <div className="glass-card" style={{ padding: '16px 18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
-              <span className="input-label" style={{ margin: 0, fontSize: '11.5px', fontWeight: 800 }}>
-                TEST SELECTION ({filteredTests.length} AVAILABLE)
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <FlaskConical size={15} color="var(--accent-cyan)" />
+                <span className="input-label" style={{ margin: 0, fontSize: '11.5px', fontWeight: 800 }}>
+                  TEST SELECTION ({filteredTests.length} AVAILABLE)
+                </span>
+              </div>
 
-              <div style={{ position: 'relative', width: '280px' }}>
+              <div style={{ position: 'relative', width: '320px' }}>
                 <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
                 <input
-                  ref={(el) => { inputRefs.current[5] = el; }}
-                  onKeyDown={(e) => handleInputKeyDown(e, 5)}
+                  ref={testSearchInputRef}
+                  onKeyDown={handleCatalogKeyDown}
                   type="text"
-                  placeholder="Search code or test (CBC, TSH, Lipid)..."
+                  placeholder="بحث سريع (F8) بالكود أو الاسم (CBC, TSH, Lipid)..."
                   className="input-control"
                   style={{ paddingLeft: '28px', fontSize: '12px', height: '32px', background: '#0e1420' }}
                   value={testSearch}
-                  onChange={(e) => setTestSearch(e.target.value)}
+                  onChange={(e) => {
+                    setTestSearch(e.target.value);
+                    setHighlightedTestIndex(0);
+                  }}
                 />
+                <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', color: 'var(--text-dim)', background: '#1c2436', padding: '1px 5px', borderRadius: '3px' }}>
+                  F8
+                </span>
               </div>
             </div>
 
             {/* English Clinical Category Filter Strip */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
               {CLINICAL_CATEGORIES.map((cat) => {
                 const isActive = activeCategory === cat.id;
                 return (
                   <button
                     key={cat.id}
                     type="button"
-                    onClick={() => setActiveCategory(cat.id)}
+                    onClick={() => {
+                      setActiveCategory(cat.id);
+                      setHighlightedTestIndex(0);
+                    }}
                     style={{
-                      padding: '5px 10px',
+                      padding: '4px 10px',
                       fontSize: '10.5px',
                       fontWeight: isActive ? 800 : 600,
                       borderRadius: '6px',
@@ -502,7 +778,6 @@ function IntakeContent() {
                       color: isActive ? 'var(--accent-cyan)' : 'var(--text-muted)',
                       cursor: 'pointer',
                       transition: 'all 0.12s ease',
-                      letterSpacing: '0.3px'
                     }}
                   >
                     {cat.label}
@@ -511,19 +786,20 @@ function IntakeContent() {
               })}
             </div>
 
-            {/* Test Cards Grid - Wide Cards, Zero Truncation, Iraqi Common Codes */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px', maxHeight: '340px', overflowY: 'auto', paddingRight: '2px' }}>
+            {/* Test Cards Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '8px', maxHeight: '320px', overflowY: 'auto', paddingRight: '2px' }}>
               {loading ? (
                 <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-                  Loading tests catalogue...
+                  جاري تحميل كتالوج الفحوصات...
                 </div>
               ) : filteredTests.length === 0 ? (
                 <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-                  No matching tests found in this category
+                  لا توجد فحوصات مطابقة للبحث
                 </div>
               ) : (
-                filteredTests.map((t) => {
+                filteredTests.map((t, idx) => {
                   const isSelected = selectedTests.some((st) => st.id === t.id);
+                  const isHighlighted = highlightedTestIndex === idx;
                   const englishCat = getEnglishCategoryTag(t.category);
 
                   return (
@@ -531,28 +807,28 @@ function IntakeContent() {
                       key={t.id}
                       onClick={() => handleToggleTest(t)}
                       style={{
-                        padding: '12px 14px',
-                        borderRadius: '10px',
-                        background: isSelected ? 'rgba(0, 210, 211, 0.16)' : '#0e1420',
-                        border: `1.5px solid ${isSelected ? 'var(--accent-cyan)' : '#1e2638'}`,
-                        boxShadow: isSelected ? '0 0 14px rgba(0, 210, 211, 0.25)' : 'none',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        background: isSelected ? 'rgba(0, 210, 211, 0.16)' : (isHighlighted ? 'rgba(255, 255, 255, 0.04)' : '#0e1420'),
+                        border: `1.5px solid ${isSelected ? 'var(--accent-cyan)' : (isHighlighted ? 'rgba(0, 210, 211, 0.5)' : '#1e2638')}`,
+                        boxShadow: isSelected ? '0 0 12px rgba(0, 210, 211, 0.2)' : 'none',
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
-                        gap: '8px',
-                        minHeight: '76px',
+                        gap: '6px',
+                        minHeight: '70px',
                         transition: 'all 0.12s ease',
                       }}
                     >
-                      {/* Top Row: Iraqi Common Code Badge & English Category */}
+                      {/* Top Row: Code Badge & English Category */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <div
                             style={{
-                              width: '26px',
-                              height: '26px',
-                              borderRadius: '6px',
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '5px',
                               background: isSelected ? 'var(--accent-cyan)' : 'rgba(0, 210, 211, 0.1)',
                               color: isSelected ? '#000' : 'var(--accent-cyan)',
                               display: 'flex',
@@ -564,14 +840,13 @@ function IntakeContent() {
                             {getTestIcon(t.name, t.code || '')}
                           </div>
 
-                          {/* Prominent Iraqi Lab Code Badge */}
                           <span
                             style={{
-                              fontSize: '12px',
+                              fontSize: '11.5px',
                               fontWeight: 900,
                               color: isSelected ? 'var(--accent-cyan)' : '#fff',
                               background: isSelected ? 'rgba(0, 210, 211, 0.25)' : 'rgba(255, 255, 255, 0.06)',
-                              padding: '2px 8px',
+                              padding: '1px 6px',
                               borderRadius: '4px',
                               letterSpacing: '0.5px'
                             }}
@@ -580,31 +855,33 @@ function IntakeContent() {
                           </span>
                         </div>
 
-                        {/* English Category Tag */}
-                        <span style={{ fontSize: '9.5px', color: 'var(--text-dim)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        <span style={{ fontSize: '9px', color: 'var(--text-dim)', fontWeight: 700, textTransform: 'uppercase' }}>
                           {englishCat}
                         </span>
                       </div>
 
-                      {/* Middle & Bottom: Full Clinical Name (No Truncation) & Price */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '10px' }}>
+                      {/* Middle & Bottom: Test Name & Price */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '8px' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <span
                             style={{
-                              fontSize: '12px',
+                              fontSize: '11.5px',
                               fontWeight: 700,
                               color: isSelected ? 'var(--accent-cyan)' : 'var(--text-main)',
                               display: 'block',
-                              lineHeight: 1.3,
-                              wordBreak: 'break-word',
+                              lineHeight: 1.25,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
                             }}
+                            title={t.name}
                           >
                             {t.name}
                           </span>
                         </div>
 
                         <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                          <strong style={{ fontSize: '13px', color: isSelected ? 'var(--accent-cyan)' : 'var(--accent-emerald)', fontWeight: 900 }}>
+                          <strong style={{ fontSize: '12px', color: isSelected ? 'var(--accent-cyan)' : 'var(--accent-emerald)', fontWeight: 900 }}>
                             {t.price?.toLocaleString()} د.ع
                           </strong>
                         </div>
@@ -618,23 +895,24 @@ function IntakeContent() {
 
         </div>
 
-        {/* RIGHT COLUMN: TEST INTAKE SUMMARY (Mockup Style) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* RIGHT COLUMN: INTAKE SUMMARY & FINANCIALS */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           
-          <div className="glass-card" style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <span className="input-label" style={{ marginBottom: '12px', fontSize: '11.5px', fontWeight: 800 }}>
-              TEST INTAKE SUMMARY (ملخص الفحص)
-            </span>
-
-            {/* Selected Tests List */}
-            <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginBottom: '6px', fontWeight: 700 }}>
-              Selected Tests ({selectedTests.length})
+          <div className="glass-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <span className="input-label" style={{ margin: 0, fontSize: '11.5px', fontWeight: 800 }}>
+                INTAKE & FINANCIAL SUMMARY (ملخص الفحص)
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--accent-cyan)', fontWeight: 800 }}>
+                {selectedTests.length} فحص محدد
+              </span>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minHeight: '140px', maxHeight: '220px', overflowY: 'auto', marginBottom: '16px' }}>
+            {/* Selected Tests List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1, minHeight: '120px', maxHeight: '180px', overflowY: 'auto', marginBottom: '12px' }}>
               {selectedTests.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-dim)', fontSize: '12px' }}>
-                  No tests selected yet. Click cards on the left to add.
+                <div style={{ textAlign: 'center', padding: '24px 10px', color: 'var(--text-dim)', fontSize: '11.5px' }}>
+                  لم يتم اختيار أي فحص بعد. انقر على الفحوصات لإضافتها.
                 </div>
               ) : (
                 selectedTests.map((t) => (
@@ -644,17 +922,17 @@ function IntakeContent() {
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      padding: '6px 8px',
+                      padding: '5px 8px',
                       background: '#0e1420',
                       borderRadius: '6px',
-                      fontSize: '12px',
+                      fontSize: '11.5px',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '10.5px', fontWeight: 800, color: 'var(--accent-cyan)' }}>{t.code || ''}</span>
-                      <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{t.name}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                      <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--accent-cyan)' }}>{t.code || ''}</span>
+                      <span style={{ color: 'var(--text-main)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                       <span style={{ color: 'var(--text-main)', fontWeight: 800 }}>{t.price?.toLocaleString()} د.ع</span>
                       <button
                         type="button"
@@ -669,41 +947,163 @@ function IntakeContent() {
               )}
             </div>
 
-            {/* Financial Details */}
-            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
-                <span>Total ({selectedTests.length} Tests)</span>
-                <span style={{ color: 'var(--accent-cyan)', fontSize: '16px' }}>{netTotal.toLocaleString()} د.ع</span>
+            {/* Financial Discount Section (Requirement R4) */}
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '10px', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Percent size={12} color="var(--accent-cyan)" />
+                  <span>DISCOUNT (الخصم المالي - F9)</span>
+                </span>
+                {calculatedDiscount > 0 && (
+                  <span style={{ fontSize: '10.5px', color: 'var(--accent-rose)', fontWeight: 800 }}>
+                    - {calculatedDiscount.toLocaleString()} د.ع ({discountPercent}%)
+                  </span>
+                )}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-muted)' }}>
-                <span>Patient</span>
-                <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{patientName || 'None selected'}</span>
+              {/* Quick % Discount Buttons */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '4px', marginBottom: '6px' }}>
+                {QUICK_DISCOUNT_PERCENTAGES.map((pct) => {
+                  const isSelected = discountPercent === pct && customDiscountAmount === Math.round((grossTotal * pct) / 100);
+                  return (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => handleSelectDiscountPercent(pct)}
+                      style={{
+                        padding: '3px 0',
+                        fontSize: '10.5px',
+                        fontWeight: isSelected ? 900 : 700,
+                        borderRadius: '4px',
+                        border: `1px solid ${isSelected ? 'var(--accent-cyan)' : 'var(--border-color)'}`,
+                        background: isSelected ? 'var(--accent-cyan)' : '#0e1420',
+                        color: isSelected ? '#000' : 'var(--text-main)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {pct}%
+                    </button>
+                  );
+                })}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
-                <span>Priority</span>
+              {/* Custom IQD Discount Input */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <input
+                  ref={discountInputRef}
+                  type="number"
+                  placeholder="خصم مخصص (IQD)..."
+                  className="input-control"
+                  style={{ height: '30px', fontSize: '11.5px', background: '#0e1420' }}
+                  value={customDiscountAmount || ''}
+                  onChange={(e) => handleCustomDiscountChange(e.target.value)}
+                />
+                {customDiscountAmount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomDiscountAmount(0);
+                      setDiscountPercent(0);
+                    }}
+                    style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}
+                  >
+                    مسح
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Referring Doctor Commission Live Breakdown */}
+            {selectedDoctor && (
+              <div style={{ background: 'rgba(2, 132, 199, 0.08)', border: '1px solid rgba(2, 132, 199, 0.25)', borderRadius: '6px', padding: '6px 10px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11.5px' }}>
+                <span style={{ color: 'var(--accent-blue)', fontWeight: 700 }}>
+                  عمولة د. {selectedDoctor.name} ({selectedDoctor.commissionPercent || 0}%):
+                </span>
+                <strong style={{ color: 'var(--text-main)', fontWeight: 900 }}>
+                  {doctorCommission.toLocaleString()} د.ع
+                </strong>
+              </div>
+            )}
+
+            {/* Financial Totals */}
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                <span>المبلغ الإجمالي (Gross):</span>
+                <span>{grossTotal.toLocaleString()} د.ع</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', fontWeight: 900, color: 'var(--text-main)' }}>
+                <span>الصافي المطلوب (Net Total):</span>
+                <span style={{ color: 'var(--accent-cyan)', fontSize: '15px' }}>{netTotal.toLocaleString()} د.ع</span>
+              </div>
+
+              {/* Payment Method Selector */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', marginTop: '4px' }}>
+                {(['CASH', 'DEBT', 'CARD'] as const).map((method) => (
+                  <button
+                    key={method}
+                    type="button"
+                    onClick={() => setPaymentMethod(method)}
+                    style={{
+                      padding: '4px 0',
+                      fontSize: '10.5px',
+                      fontWeight: paymentMethod === method ? 900 : 600,
+                      borderRadius: '4px',
+                      border: `1px solid ${paymentMethod === method ? 'var(--accent-cyan)' : 'var(--border-color)'}`,
+                      background: paymentMethod === method ? 'rgba(0, 210, 211, 0.15)' : '#0e1420',
+                      color: paymentMethod === method ? 'var(--accent-cyan)' : 'var(--text-muted)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {method === 'CASH' ? 'نقداً Cash' : method === 'DEBT' ? 'دين Debt' : 'بطاقة Card'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Paid & Remaining Balance */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '4px' }}>
+                <div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>المدفوع (Paid)</span>
+                  <input
+                    type="number"
+                    className="input-control"
+                    style={{ height: '30px', fontSize: '11.5px', background: '#0e1420' }}
+                    value={paidAmount}
+                    onChange={(e) => setPaidAmount(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>المتبقي (Remaining)</span>
+                  <div style={{ height: '30px', background: '#0e1420', border: '1px solid var(--border-color)', borderRadius: '6px', display: 'flex', alignItems: 'center', padding: '0 8px', fontSize: '11.5px', fontWeight: 800, color: remainingBalance > 0 ? '#ef4444' : '#10b981' }}>
+                    {remainingBalance.toLocaleString()} د.ع
+                  </div>
+                </div>
+              </div>
+
+              {/* Urgency Setting */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px', fontSize: '11.5px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>أولوية التحليل (Urgency):</span>
                 <select
                   className="select-control"
-                  style={{ width: '110px', height: '28px', padding: '2px 6px', fontSize: '11.5px', background: isUrgent ? 'rgba(239, 68, 68, 0.2)' : '#0e1420', color: isUrgent ? '#ef4444' : 'inherit' }}
+                  style={{ width: '110px', height: '28px', padding: '2px 6px', fontSize: '11px', background: isUrgent ? 'rgba(239, 68, 68, 0.2)' : '#0e1420', color: isUrgent ? '#ef4444' : 'inherit' }}
                   value={isUrgent ? 'URGENT' : 'ROUTINE'}
                   onChange={(e) => setIsUrgent(e.target.value === 'URGENT')}
                 >
-                  <option value="ROUTINE">Routine</option>
-                  <option value="URGENT">🚨 STAT</option>
+                  <option value="ROUTINE">عادي Routine</option>
+                  <option value="URGENT">🚨 مستعجل STAT</option>
                 </select>
               </div>
             </div>
 
-            {/* Big Prominent Action Button (PROCEED TO INTAKE) */}
+            {/* Big Action Submit Button (Ctrl+Enter) */}
             <button
               type="button"
               onClick={handleRegisterSample}
-              disabled={submitting || selectedTests.length === 0}
+              disabled={submitting || selectedTests.length === 0 || !patientName.trim()}
               className="btn-cyan-primary"
-              style={{ width: '100%', height: '44px', fontSize: '13.5px', textTransform: 'uppercase', letterSpacing: '0.5px' }}
+              style={{ width: '100%', height: '42px', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 'auto' }}
             >
-              <span>{submitting ? 'PROCESSING...' : 'PROCEED TO INTAKE →'}</span>
+              <span>{submitting ? 'جاري التسجيل...' : 'تسجيل العينة وطباعة الباركود (Ctrl+Enter) →'}</span>
             </button>
 
           </div>
@@ -712,19 +1112,19 @@ function IntakeContent() {
 
       </div>
 
-      {/* SUCCESS MODAL */}
+      {/* SUCCESS MODAL WITH DIRECT PRINT & WORKSTATION ACTIONS */}
       {showSuccessModal && createdSample && (
         <div className="modal-overlay" onClick={() => setShowSuccessModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(0, 210, 211, 0.2)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-cyan)', marginBottom: '8px' }}>
-                <CheckCircle2 size={26} />
+              <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'rgba(0, 210, 211, 0.2)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-cyan)', marginBottom: '8px' }}>
+                <CheckCircle2 size={30} />
               </div>
-              <h3 style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-main)' }}>
-                Sample #{createdSample.sampleNumber} Registered!
+              <h3 style={{ fontSize: '19px', fontWeight: 900, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
+                تم تسجيل العينة #{createdSample.sampleNumber} بنجاح!
               </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                Patient: {createdSample.patient?.name}
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
+                المريض: <strong style={{ color: 'var(--text-main)' }}>{createdSample.patient?.name}</strong> • الصافي: {createdSample.priceTotal - (createdSample.discount || 0)} د.ع
               </p>
             </div>
 
@@ -733,26 +1133,26 @@ function IntakeContent() {
                 type="button"
                 onClick={() => {
                   setDocPreviewUrl(`/api/samples/${createdSample.id}/barcode`);
-                  setDocPreviewTitle(`Barcode - #${createdSample.sampleNumber}`);
+                  setDocPreviewTitle(`طباعة ملصق الباركود - عينة #${createdSample.sampleNumber}`);
                 }}
-                className="btn-secondary"
-                style={{ width: '100%', justifyContent: 'center', height: '40px' }}
+                className="btn-cyan-primary"
+                style={{ width: '100%', justifyContent: 'center', height: '42px' }}
               >
-                <Printer size={15} />
-                <span>Print Barcode Label (ملصق الباركود)</span>
+                <Printer size={16} />
+                <span>طباعة ملصق أنبوب التحليل (Print Barcode Label 50x25mm)</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => {
                   setDocPreviewUrl(`/api/samples/${createdSample.id}/print`);
-                  setDocPreviewTitle(`Report - #${createdSample.sampleNumber}`);
+                  setDocPreviewTitle(`معاينة التقرير الطبي A4 - #${createdSample.sampleNumber}`);
                 }}
                 className="btn-secondary"
                 style={{ width: '100%', justifyContent: 'center', height: '40px' }}
               >
                 <FileText size={15} />
-                <span>Preview Medical Report A4 (تقرير التحليل)</span>
+                <span>معاينة استمارة التقرير الطبي (Preview A4 Report)</span>
               </button>
 
               <button
@@ -761,11 +1161,32 @@ function IntakeContent() {
                   setShowSuccessModal(false);
                   router.push(`/results?sampleId=${createdSample.id}`);
                 }}
-                className="btn-cyan-primary"
-                style={{ width: '100%', justifyContent: 'center', height: '42px', marginTop: '6px' }}
+                className="btn-secondary"
+                style={{ width: '100%', justifyContent: 'center', height: '40px' }}
               >
-                <Activity size={15} />
-                <span>Go to Results Workstation →</span>
+                <Activity size={15} color="var(--accent-cyan)" />
+                <span>الانتقال لمحطة إدخال النتائج (Go to Results Workstation) →</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  handleClearPatient();
+                }}
+                style={{
+                  background: 'none',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-muted)',
+                  borderRadius: '8px',
+                  height: '36px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  marginTop: '4px'
+                }}
+              >
+                + استلام عينة لمريض جديد (F2)
               </button>
             </div>
           </div>
@@ -792,7 +1213,7 @@ function IntakeContent() {
                   style={{ height: '30px', padding: '0 12px', fontSize: '12px' }}
                 >
                   <Printer size={13} />
-                  <span>Print</span>
+                  <span>طباعة (Print)</span>
                 </button>
                 <button type="button" onClick={() => setDocPreviewUrl(null)} className="btn-secondary" style={{ height: '30px', padding: '0 8px' }}>
                   <X size={14} />
@@ -812,7 +1233,7 @@ function IntakeContent() {
 
 export default function IntakePage() {
   return (
-    <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>}>
+    <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>جاري تحميل شاشة الاستقبال...</div>}>
       <IntakeContent />
     </Suspense>
   );

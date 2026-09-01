@@ -15,7 +15,16 @@ export interface LabProfile {
   phone: string;
   reportHeader: string;
   reportFooter: string;
-  reportTemplate: 'CLASSIC' | 'MODERN' | 'EXECUTIVE' | 'COMPACT' | 'PREPRINTED' | 'BLANK_WHITE';
+  reportTemplate: 'CLASSIC' | 'MODERN' | 'EXECUTIVE' | 'COMPACT' | 'SPECIALIZED' | 'PREPRINTED' | 'BLANK_WHITE';
+  headerMode?: 'DIGITAL' | 'PREPRINTED';
+  topMarginMm?: number;
+  bottomMarginMm?: number;
+  leftMarginMm?: number;
+  rightMarginMm?: number;
+  primaryColor?: string;
+  enableQrCode?: boolean;
+  qrCodePosition?: 'HEADER' | 'FOOTER';
+  accreditationBadge?: string;
   logoPath?: string;
   isConfigured: boolean;
 }
@@ -33,6 +42,15 @@ const DEFAULT_LAB_PROFILE: LabProfile = {
   reportHeader: 'مختبر الرضا للتحليلات الطبية التخصصية',
   reportFooter: 'هذا التقرير تم إخراجه وتدقيقه إلكترونياً، ويعتبر معتمداً رسمياً دون الحاجة لتوقيع يدوي.',
   reportTemplate: 'CLASSIC',
+  headerMode: 'DIGITAL',
+  topMarginMm: 15,
+  bottomMarginMm: 15,
+  leftMarginMm: 12,
+  rightMarginMm: 12,
+  primaryColor: '#0284c7',
+  enableQrCode: true,
+  qrCodePosition: 'HEADER',
+  accreditationBadge: 'ISO 15189 Certified Lab',
   isConfigured: false,
 };
 

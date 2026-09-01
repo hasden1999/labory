@@ -118,7 +118,8 @@ export default function DashboardPage() {
             <span>تحديث المؤشرات</span>
           </button>
         </div>
-      </div>�      {/* 1. HERO COMMAND CARDS (أهم 3 عمليات يومية بضغطة زر واحدة) */}
+      </div>
+      {/* 1. HERO COMMAND CARDS (أهم 3 عمليات يومية بضغطة زر واحدة) */}
       <div style={{ marginBottom: '20px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
           
