@@ -41,12 +41,13 @@ import {
   Banknote,
   Plus
 } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 // English Clinical Category Mapping
 const CLINICAL_CATEGORIES = [
   { id: 'ALL', label: 'ALL TESTS (كل الفحوصات)' },
   { id: 'HEMATOLOGY', label: 'HEMATOLOGY (أمراض الدم)', dbKeywords: ['دم', 'تخثر', 'hematology'] },
-  { id: 'CHEMISTRY', label: 'CHEMISTRY (الكيمياء السريرية)', dbKeywords: ['كيمياء', 'سكري', 'كبد', 'كلى', 'دهون', 'قلb', 'chemistry'] },
+  { id: 'CHEMISTRY', label: 'CHEMISTRY (الكيمياء السريرية)', dbKeywords: ['كيمياء', 'سكري', 'كبد', 'كلى', 'دهون', 'قلب', 'chemistry'] },
   { id: 'HORMONES', label: 'HORMONES (الهرمونات والغدد)', dbKeywords: ['هرمون', 'غدة', 'درقية', 'hormone'] },
   { id: 'IMMUNOLOGY', label: 'IMMUNOLOGY (المناعة والأمصال)', dbKeywords: ['مناعة', 'أمصال', 'مصول', 'immunology', 'serology'] },
   { id: 'URINE_STOOL', label: 'G.U.E & G.S.E (إدرار وخروج)', dbKeywords: ['مجهري', 'إدرار', 'خروج', 'urine', 'stool'] },
@@ -102,6 +103,7 @@ function IntakeContent() {
   // Submission State
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [createdSample, setCreatedSample] = useState<any | null>(null);
 
   // DOM Refs for Keyboard Navigation
@@ -188,7 +190,7 @@ function IntakeContent() {
     }
   };
 
-  const handleClearPatient = useCallback(() => {
+  const handleExecuteClearPatient = useCallback(() => {
     setPatientId(null);
     setPatientName('');
     setPatientPhone('');
@@ -206,6 +208,14 @@ function IntakeContent() {
       patientNameInputRef.current?.focus();
     }, 50);
   }, []);
+
+  const handleClearPatient = useCallback(() => {
+    if (patientName.trim() || selectedTests.length > 0) {
+      setShowClearConfirm(true);
+      return;
+    }
+    handleExecuteClearPatient();
+  }, [patientName, selectedTests.length, handleExecuteClearPatient]);
 
   const handleToggleTest = (test: any) => {
     if (selectedTests.some((t) => t.id === test.id)) {
@@ -278,6 +288,26 @@ function IntakeContent() {
       return matchCat && matchSearch;
     });
   }, [tests, activeCategory, testSearch]);
+
+  // Count selected tests per clinical category
+  const categorySelectedCounts = useMemo(() => {
+    const counts: Record<string, number> = { ALL: selectedTests.length };
+    CLINICAL_CATEGORIES.forEach((cat) => {
+      if (cat.id === 'ALL') return;
+      if (!cat.dbKeywords) {
+        counts[cat.id] = 0;
+        return;
+      }
+      const count = selectedTests.filter((t) => {
+        const catLower = (t.category || '').toLowerCase();
+        const nameLower = (t.name || '').toLowerCase();
+        const codeLower = (t.code || '').toLowerCase();
+        return cat.dbKeywords.some((kw) => catLower.includes(kw) || nameLower.includes(kw) || codeLower.includes(kw));
+      }).length;
+      counts[cat.id] = count;
+    });
+    return counts;
+  }, [selectedTests]);
 
   // Discount Handlers
   const handleSelectDiscountPercent = (pct: number) => {
@@ -723,10 +753,25 @@ function IntakeContent() {
                 </select>
               </div>
             </div>
+
+            {/* Sample Notes / Clinical Instructions */}
+            <div style={{ marginTop: '10px' }}>
+              <span className="input-label" style={{ fontSize: '10px' }}>
+                Sample Notes / Clinical Instructions (ملاحظات العينة / التوجيهات السريرية)
+              </span>
+              <input
+                type="text"
+                placeholder="ملاحظات العينة أو التوجيهات السريرية (مثل: مريض صائم 12 ساعة، عينة دم شرياني، تدقيق إضافي...)"
+                className="input-control"
+                style={{ height: '34px', fontSize: '12px', background: '#0e1420' }}
+                value={sampleNotes}
+                onChange={(e) => setSampleNotes(e.target.value)}
+              />
+            </div>
           </div>
 
           {/* B. TEST SELECTION CARD WITH HOTKEY SEARCH & ARROW NAVIGATION */}
-          <div className="glass-card" style={{ padding: '16px 18px' }}>
+          <div className="glass-card" style={{ padding: '16px 18px', flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <FlaskConical size={15} color="var(--accent-cyan)" />
@@ -756,10 +801,11 @@ function IntakeContent() {
               </div>
             </div>
 
-            {/* English Clinical Category Filter Strip */}
+            {/* English Clinical Category Filter Strip with Badge Counters */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
               {CLINICAL_CATEGORIES.map((cat) => {
                 const isActive = activeCategory === cat.id;
+                const count = categorySelectedCounts[cat.id] || 0;
                 return (
                   <button
                     key={cat.id}
@@ -777,17 +823,34 @@ function IntakeContent() {
                       background: isActive ? 'rgba(0, 210, 211, 0.15)' : '#0e1420',
                       color: isActive ? 'var(--accent-cyan)' : 'var(--text-muted)',
                       cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
                       transition: 'all 0.12s ease',
                     }}
                   >
-                    {cat.label}
+                    <span>{cat.label}</span>
+                    {count > 0 && (
+                      <span
+                        style={{
+                          background: isActive ? 'var(--accent-cyan)' : 'rgba(0, 210, 211, 0.22)',
+                          color: isActive ? '#000' : 'var(--accent-cyan)',
+                          fontSize: '9.5px',
+                          fontWeight: 900,
+                          padding: '1px 5px',
+                          borderRadius: '8px',
+                        }}
+                      >
+                        {count}
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
 
-            {/* Test Cards Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '8px', maxHeight: '320px', overflowY: 'auto', paddingRight: '2px' }}>
+            {/* Test Cards Grid (Flexible height, no large gaps) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '8px', minHeight: '360px', maxHeight: 'calc(100vh - 350px)', overflowY: 'auto', paddingRight: '2px', alignContent: 'start' }}>
               {loading ? (
                 <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
                   جاري تحميل كتالوج الفحوصات...
@@ -1129,32 +1192,45 @@ function IntakeContent() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {/* 1. Print Tube Barcode Label 50x25mm (Primary Cyan Button) */}
               <button
                 type="button"
                 onClick={() => {
                   setDocPreviewUrl(`/api/samples/${createdSample.id}/barcode`);
-                  setDocPreviewTitle(`طباعة ملصق الباركود - عينة #${createdSample.sampleNumber}`);
+                  setDocPreviewTitle(`طباعة ملصق الباركود (50x25mm) - عينة #${createdSample.sampleNumber}`);
                 }}
                 className="btn-cyan-primary"
-                style={{ width: '100%', justifyContent: 'center', height: '42px' }}
+                style={{ width: '100%', justifyContent: 'center', height: '42px', fontSize: '13px', fontWeight: 800 }}
               >
                 <Printer size={16} />
-                <span>طباعة ملصق أنبوب التحليل (Print Barcode Label 50x25mm)</span>
+                <span>🏷️ طباعة ملصق أنبوب التحليل (Print Barcode Label 50x25mm)</span>
               </button>
 
+              {/* 2. + New Patient Intake / استلام عينة جديدة (F2) (Secondary prominent button) */}
               <button
                 type="button"
                 onClick={() => {
-                  setDocPreviewUrl(`/api/samples/${createdSample.id}/print`);
-                  setDocPreviewTitle(`معاينة التقرير الطبي A4 - #${createdSample.sampleNumber}`);
+                  setShowSuccessModal(false);
+                  handleExecuteClearPatient();
+                  toast.info('تم بدء استلام مريض جديد (F2)');
                 }}
                 className="btn-secondary"
-                style={{ width: '100%', justifyContent: 'center', height: '40px' }}
+                style={{
+                  width: '100%',
+                  justifyContent: 'center',
+                  height: '40px',
+                  fontSize: '13px',
+                  fontWeight: 800,
+                  color: 'var(--accent-cyan)',
+                  borderColor: 'rgba(0, 210, 211, 0.4)',
+                  background: 'rgba(0, 210, 211, 0.08)',
+                }}
               >
-                <FileText size={15} />
-                <span>معاينة استمارة التقرير الطبي (Preview A4 Report)</span>
+                <Plus size={16} />
+                <span>+ استلام عينة جديدة لمريض آخر (New Patient Intake - F2)</span>
               </button>
 
+              {/* 3. Go to Results Workstation / إدخال النتائج */}
               <button
                 type="button"
                 onClick={() => {
@@ -1162,31 +1238,36 @@ function IntakeContent() {
                   router.push(`/results?sampleId=${createdSample.id}`);
                 }}
                 className="btn-secondary"
-                style={{ width: '100%', justifyContent: 'center', height: '40px' }}
+                style={{ width: '100%', justifyContent: 'center', height: '40px', fontSize: '12.5px' }}
               >
                 <Activity size={15} color="var(--accent-cyan)" />
                 <span>الانتقال لمحطة إدخال النتائج (Go to Results Workstation) →</span>
               </button>
 
+              {/* 4. Preview A4 Report (secondary outline) */}
               <button
                 type="button"
                 onClick={() => {
-                  setShowSuccessModal(false);
-                  handleClearPatient();
+                  setDocPreviewUrl(`/api/samples/${createdSample.id}/print`);
+                  setDocPreviewTitle(`معاينة التقرير الطبي A4 - #${createdSample.sampleNumber}`);
                 }}
                 style={{
-                  background: 'none',
-                  border: '1px solid var(--border-color)',
-                  color: 'var(--text-muted)',
-                  borderRadius: '8px',
+                  width: '100%',
+                  justifyContent: 'center',
                   height: '36px',
                   fontSize: '12px',
-                  fontWeight: 700,
+                  background: 'transparent',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-muted)',
+                  borderRadius: '6px',
                   cursor: 'pointer',
-                  marginTop: '4px'
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
                 }}
               >
-                + استلام عينة لمريض جديد (F2)
+                <FileText size={14} />
+                <span>معاينة استمارة التقرير الطبي (Preview A4 Report)</span>
               </button>
             </div>
           </div>
@@ -1226,6 +1307,22 @@ function IntakeContent() {
           </div>
         </div>
       )}
+
+      {/* CLEAR PATIENT CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={showClearConfirm}
+        title="بدء مريض جديد وتفريغ البيانات (F2)"
+        message="هناك بيانات مريض أو فحوصات محددة مسجلة على الشاشة. هل أنت متأكد من تفريغ الشاشة والبدء من جديد؟"
+        type="warning"
+        confirmText="نعم، تفريغ الشاشة"
+        cancelText="متابعة العمل الحالي"
+        onConfirm={() => {
+          setShowClearConfirm(false);
+          handleExecuteClearPatient();
+          toast.info('تم تفريغ الحقول واستلام مريض جديد (F2)');
+        }}
+        onCancel={() => setShowClearConfirm(false)}
+      />
 
     </AppShell>
   );

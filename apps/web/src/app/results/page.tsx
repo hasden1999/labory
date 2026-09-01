@@ -68,13 +68,27 @@ function ResultsContent() {
 
   // Refs for fast Shift / Enter navigation across table rows
   const resultInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const selectedSampleRef = useRef<any>(null);
+
+  useEffect(() => {
+    selectedSampleRef.current = selectedSample;
+  }, [selectedSample]);
 
   const handleResultKeyDown = (e: React.KeyboardEvent, index: number) => {
-    if (e.key === 'Shift' || e.key === 'Enter') {
+    if (e.key === 'Enter') {
       e.preventDefault();
-      const nextIndex = (index + 1) % (selectedSample?.tests?.length || 1);
-      resultInputRefs.current[nextIndex]?.focus();
-      resultInputRefs.current[nextIndex]?.select();
+      const total = selectedSample?.tests?.length || 1;
+      if (e.shiftKey) {
+        // Shift+Enter: moves to previous row
+        const prevIndex = (index - 1 + total) % total;
+        resultInputRefs.current[prevIndex]?.focus();
+        resultInputRefs.current[prevIndex]?.select();
+      } else {
+        // Enter: moves to next row
+        const nextIndex = (index + 1) % total;
+        resultInputRefs.current[nextIndex]?.focus();
+        resultInputRefs.current[nextIndex]?.select();
+      }
     }
   };
 
@@ -97,11 +111,17 @@ function ResultsContent() {
       const res = await apiRequest('/samples');
       setSamples(res || []);
       
-      const targetId = searchParams.get('sampleId');
-      if (targetId && res) {
+      const currentSelectedId = selectedSampleRef.current?.id;
+      const targetId = searchParams.get('sampleId') || currentSelectedId;
+      if (targetId && res && res.length > 0) {
         const found = res.find((s: any) => s.id === targetId);
-        if (found) selectSample(found);
-      } else if (res && res.length > 0 && !selectedSample) {
+        if (found) {
+          selectSample(found);
+          return;
+        }
+      }
+      
+      if (res && res.length > 0 && !selectedSampleRef.current) {
         selectSample(res[0]);
       }
     } catch (err: any) {
@@ -159,7 +179,7 @@ function ResultsContent() {
       if (categoryOrCode === 'GSE') return code === 'GSE' || name.includes('STOOL') || name.includes('خروج');
       if (categoryOrCode === 'CBC') return code === 'CBC' || name.includes('BLOOD') || name.includes('CBC') || name.includes('دم');
       if (categoryOrCode === 'MICROBIOLOGY') return code.includes('CULTURE') || name.includes('CULTURE') || name.includes('زرع');
-      if (categoryOrCode === 'CHEMISTRY') return st.test?.category === 'CHEMISTRY' || code.includes('LFT') || code.includes('KFT') || code.includes('LIPID');
+      if (categoryOrCode === 'CHEMISTRY') return st.test?.category === 'CHEMISTRY' || ['LFT', 'KFT', 'LIPID', 'GLUCOSE', 'FBS', 'UREA', 'CREAT', 'CHEMISTRY'].some(c => code.includes(c)) || ['كيمياء', 'سكري', 'كبد', 'كلى', 'وظائف', 'دهون', 'يوريا', 'كرياتنين'].some(k => name.includes(k));
       return false;
     });
 
@@ -327,6 +347,59 @@ function ResultsContent() {
     });
   }, [samples, searchQuery, statusFilter]);
 
+  // Status Counts for Quick Filter Pills
+  const statusCounts = useMemo(() => {
+    return {
+      ALL: samples.length,
+      URGENT: samples.filter((s) => s.isUrgent).length,
+      RECEIVED: samples.filter((s) => s.status === 'RECEIVED').length,
+      IN_PROGRESS: samples.filter((s) => s.status === 'IN_PROGRESS').length,
+      READY: samples.filter((s) => s.status === 'READY').length,
+    };
+  }, [samples]);
+
+  // Helper for elapsed time indicator
+  const getElapsedTime = (createdAt: string | Date) => {
+    if (!createdAt) return '';
+    const now = new Date();
+    const past = new Date(createdAt);
+    const diffMs = now.getTime() - past.getTime();
+    if (isNaN(diffMs) || diffMs < 0) return '';
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'الآن';
+    if (diffMins < 60) return `منذ ${diffMins} د`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `منذ ${diffHours} س`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `منذ ${diffDays} يوم`;
+  };
+
+  // Helpers for Chemistry workstation triggers
+  const isChemistryPanel = (st: any) => {
+    const code = (st.test?.code || '').toUpperCase();
+    const name = (st.test?.name || '').toLowerCase();
+    return (
+      ['LFT', 'KFT', 'LIPID', 'LIPIDS', 'CHEMISTRY', 'CMP', 'BMP'].includes(code) ||
+      name.includes('lipid profile') ||
+      name.includes('liver function') ||
+      name.includes('kidney function') ||
+      name.includes('renal function') ||
+      name.includes('وظائف كبد') ||
+      name.includes('وظائف كلى')
+    );
+  };
+
+  const isChemistryAnalyte = (st: any) => {
+    const cat = (st.test?.category || '').toUpperCase();
+    const code = (st.test?.code || '').toUpperCase();
+    const name = (st.test?.name || '').toLowerCase();
+    return (
+      cat === 'CHEMISTRY' ||
+      ['LFT', 'KFT', 'LIPID', 'GLUCOSE', 'FBS', 'RBS', 'HBA1C', 'UREA', 'CREAT', 'CREATININE', 'URIC', 'AST', 'ALT', 'ALP', 'BILI', 'CHOL', 'TG', 'HDL', 'LDL', 'VLDL', 'NA', 'K', 'CL', 'CA', 'ELECTROLYTES', 'AMYLASE', 'LIPASE', 'ALBUMIN', 'PROTEIN'].some(c => code === c || code.startsWith(c) || code.includes(c)) ||
+      ['كيمياء', 'سكري', 'كبد', 'كلى', 'وظائف', 'دهون', 'يوريا', 'كرياتنين', 'أملاح', 'شحوم', 'glucose', 'urea', 'creatinine', 'bilirubin', 'cholesterol', 'triglyceride', 'electrolyte'].some(k => name.includes(k))
+    );
+  };
+
   // Open Add Tests Modal
   const handleOpenAddTestsModal = async () => {
     try {
@@ -366,12 +439,12 @@ function ResultsContent() {
         
         {/* LEFT: PATIENT SAMPLE QUEUE (Image 2 Style) */}
         <div className="glass-card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', height: 'fit-content', maxHeight: 'calc(100vh - 120px)' }}>
-          <span className="input-label" style={{ fontSize: '11.5px', fontWeight: 800, marginBottom: '12px' }}>
-            PATIENT SAMPLE QUEUE
+          <span className="input-label" style={{ fontSize: '11.5px', fontWeight: 800, marginBottom: '10px' }}>
+            PATIENT SAMPLE QUEUE (طابور العينات)
           </span>
 
           {/* Quick Search */}
-          <div style={{ position: 'relative', marginBottom: '12px' }}>
+          <div style={{ position: 'relative', marginBottom: '10px' }}>
             <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
             <input
               type="text"
@@ -383,9 +456,67 @@ function ResultsContent() {
             />
           </div>
 
+          {/* Status Filter Tabs (Pills) */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '12px' }}>
+            {([
+              { id: 'ALL', label: 'الكل', count: statusCounts.ALL, variant: 'default' },
+              { id: 'URGENT', label: '🚨 STAT', count: statusCounts.URGENT, variant: 'stat' },
+              { id: 'RECEIVED', label: 'مستلمة', count: statusCounts.RECEIVED, variant: 'default' },
+              { id: 'IN_PROGRESS', label: 'قيد الفحص', count: statusCounts.IN_PROGRESS, variant: 'default' },
+              { id: 'READY', label: 'جاهزة', count: statusCounts.READY, variant: 'ready' },
+            ] as const).map((tab) => {
+              const isActive = statusFilter === tab.id;
+              const isStat = tab.variant === 'stat';
+              const isReady = tab.variant === 'ready';
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setStatusFilter(tab.id as any)}
+                  style={{
+                    padding: '3px 8px',
+                    fontSize: '10.5px',
+                    fontWeight: isActive ? 800 : 600,
+                    borderRadius: '12px',
+                    border: `1px solid ${
+                      isActive
+                        ? (isStat ? '#ef4444' : isReady ? '#10b981' : 'var(--accent-cyan)')
+                        : '#1e2638'
+                    }`,
+                    background: isActive
+                      ? (isStat ? 'rgba(239, 68, 68, 0.2)' : isReady ? 'rgba(16, 185, 129, 0.2)' : 'rgba(0, 210, 211, 0.15)')
+                      : '#0e1420',
+                    color: isActive
+                      ? (isStat ? '#ef4444' : isReady ? '#10b981' : 'var(--accent-cyan)')
+                      : 'var(--text-muted)',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.12s ease',
+                  }}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    style={{
+                      fontSize: '9px',
+                      fontWeight: 900,
+                      opacity: 0.9,
+                      background: isActive ? 'rgba(255,255,255,0.15)' : '#1a2233',
+                      padding: '0 4px',
+                      borderRadius: '6px',
+                    }}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           {/* Active Highlight Banner if selected */}
           {selectedSample && (
-            <div style={{ padding: '12px', background: 'rgba(0, 210, 211, 0.15)', border: '1px solid var(--accent-cyan)', borderRadius: '8px', marginBottom: '12px' }}>
+            <div style={{ padding: '10px 12px', background: 'rgba(0, 210, 211, 0.15)', border: '1px solid var(--accent-cyan)', borderRadius: '8px', marginBottom: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>
                   {selectedSample.patient?.name}
@@ -394,13 +525,13 @@ function ResultsContent() {
                   #{selectedSample.sampleNumber}
                 </span>
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+              <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
                 {selectedSample.patient?.gender === 'FEMALE' ? 'Female' : 'Male'}, {selectedSample.patient?.age || '-'} yrs • {new Date(selectedSample.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
           )}
 
-          {/* Queue List */}
+          {/* Queue List with Distinct STAT & Elapsed Time */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', flex: 1, paddingRight: '2px' }}>
             {loadingSamples ? (
               <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>Loading queue...</div>
@@ -417,8 +548,16 @@ function ResultsContent() {
                     style={{
                       padding: '10px 12px',
                       borderRadius: '8px',
-                      background: isSelected ? '#1b2436' : '#0e1420',
-                      border: `1px solid ${isSelected ? 'var(--accent-cyan)' : '#1a2233'}`,
+                      background: isSelected
+                        ? (s.isUrgent ? 'linear-gradient(90deg, rgba(239,68,68,0.22) 0%, #1b2436 100%)' : '#1b2436')
+                        : (s.isUrgent ? 'rgba(239, 68, 68, 0.08)' : '#0e1420'),
+                      border: isSelected
+                        ? '1px solid var(--accent-cyan)'
+                        : (s.isUrgent ? '1px solid rgba(239, 68, 68, 0.45)' : '1px solid #1a2233'),
+                      borderLeft: s.isUrgent
+                        ? '3.5px solid #ef4444'
+                        : (isSelected ? '3.5px solid var(--accent-cyan)' : '3.5px solid transparent'),
+                      boxShadow: s.isUrgent ? '0 0 10px rgba(239, 68, 68, 0.2)' : 'none',
                       cursor: 'pointer',
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -430,14 +569,24 @@ function ResultsContent() {
                       <strong style={{ fontSize: '12.5px', color: isSelected ? 'var(--accent-cyan)' : 'var(--text-main)', display: 'block' }}>
                         {s.patient?.name}
                       </strong>
-                      <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}>
-                        #{s.sampleNumber} • {s.tests?.length || 0} tests
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                        <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}>
+                          #{s.sampleNumber} • {s.tests?.length || 0} tests
+                        </span>
+                        {s.createdAt && (
+                          <span style={{ fontSize: '10px', color: s.isUrgent ? '#f87171' : 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                            <Clock size={10} />
+                            <span>{getElapsedTime(s.createdAt)}</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div>
                       {s.isUrgent ? (
-                        <span className="badge badge-urgent" style={{ fontSize: '9.5px' }}>🔴 STAT</span>
+                        <span className="badge badge-urgent" style={{ fontSize: '9px', background: 'rgba(239, 68, 68, 0.25)', color: '#ef4444', border: '1px solid #ef4444' }}>
+                          🚨 STAT
+                        </span>
                       ) : isReady ? (
                         <span className="badge badge-ready" style={{ fontSize: '9.5px' }}>VALIDATED</span>
                       ) : (
@@ -535,6 +684,20 @@ function ResultsContent() {
 
                 <button
                   type="button"
+                  onClick={() => {
+                    setDocPreviewUrl(`/api/samples/${selectedSample.id}/barcode`);
+                    setDocPreviewTitle(`طباعة ملصق الباركود (50x25mm) - عينة #${selectedSample.sampleNumber} (${selectedSample.patient?.name})`);
+                  }}
+                  className="btn-secondary"
+                  style={{ color: '#06b6d4', borderColor: 'rgba(6,182,212,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
+                  title="طباعة ملصق الباركود الحراري 50x25mm لأنبوب التحليل"
+                >
+                  <Printer size={13} />
+                  <span>🏷️ طباعة الباركود 50x25mm</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => handleSaveResults(true)}
                   disabled={savingResults}
                   className="btn-cyan-primary"
@@ -572,7 +735,7 @@ function ResultsContent() {
                 <thead>
                   <tr style={{ background: '#1c2436', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     <th style={{ padding: '10px 14px' }}>PARAMETER</th>
-                    <th style={{ padding: '10px 14px', width: '180px' }}>RESULT</th>
+                    <th style={{ padding: '10px 14px', width: '220px' }}>RESULT</th>
                     <th style={{ padding: '10px 14px' }}>RANGE</th>
                     <th style={{ padding: '10px 14px' }}>UNITS</th>
                     <th style={{ padding: '10px 14px' }}>STATUS</th>
@@ -589,12 +752,34 @@ function ResultsContent() {
                       <React.Fragment key={st.id}>
                         <tr style={{ borderBottom: '1px solid #182233', background: isPanic ? 'rgba(239, 68, 68, 0.08)' : 'transparent' }}>
                           <td style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-main)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                               <span>{st.test?.name}</span>
                               {st.test?.code && (
                                 <span style={{ fontSize: '10px', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.05)', padding: '1px 4px', borderRadius: '3px' }}>
                                   {st.test?.code}
                                 </span>
+                              )}
+                              {isChemistryAnalyte(st) && (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowChemistryModal(true)}
+                                  title="فتح محطة الكيمياء السريرية"
+                                  style={{
+                                    fontSize: '9.5px',
+                                    color: '#c084fc',
+                                    background: 'rgba(139, 92, 246, 0.15)',
+                                    border: '1px solid rgba(139, 92, 246, 0.35)',
+                                    padding: '1px 5px',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                  }}
+                                >
+                                  <Zap size={9} />
+                                  <span>CHEM</span>
+                                </button>
                               )}
                             </div>
                           </td>
@@ -709,6 +894,80 @@ function ResultsContent() {
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>Culture</span>
                               </button>
+                            ) : /* Chemistry Panel Button (Full Profile) */ isChemistryPanel(st) ? (
+                              <button
+                                type="button"
+                                onClick={() => setShowChemistryModal(true)}
+                                style={{
+                                  width: '100%',
+                                  minHeight: '36px',
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  background: currentVal ? 'rgba(16, 185, 129, 0.16)' : 'rgba(139, 92, 246, 0.16)',
+                                  border: `1.5px solid ${currentVal ? 'var(--accent-emerald)' : '#8b5cf6'}`,
+                                  color: currentVal ? 'var(--accent-emerald)' : '#c084fc',
+                                  fontSize: '12px',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: '8px',
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <Zap size={15} />
+                                  <span>{currentVal ? '✓ تم إدخال فحص الكيمياء (تعديل)' : '⚗️ فتح محطة الكيمياء السريرية'}</span>
+                                </div>
+                                <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>{st.test?.code || 'CHEM'}</span>
+                              </button>
+                            ) : /* Chemistry Analyte (Input + Smart Quick Workstation Trigger) */ isChemistryAnalyte(st) ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <input
+                                  ref={(el) => { resultInputRefs.current[index] = el; }}
+                                  onKeyDown={(e) => handleResultKeyDown(e, index)}
+                                  type="text"
+                                  className="input-control"
+                                  style={{
+                                    height: '34px',
+                                    fontSize: '13px',
+                                    fontWeight: 800,
+                                    background: '#090d15',
+                                    borderColor: isPanic ? '#ef4444' : isAbnormal ? '#f59e0b' : currentVal ? 'var(--accent-cyan)' : 'var(--border-color)',
+                                    boxShadow: isPanic ? '0 0 10px rgba(239, 68, 68, 0.4)' : isAbnormal ? '0 0 8px rgba(245, 158, 11, 0.3)' : 'none',
+                                    color: isPanic ? '#ef4444' : isAbnormal ? '#f59e0b' : 'var(--text-main)',
+                                    flex: 1,
+                                  }}
+                                  placeholder="Enter value"
+                                  value={currentVal}
+                                  onChange={(e) => handleResultChange(st.id, e.target.value, st.test)}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowChemistryModal(true)}
+                                  title="فتح محطة الكيمياء السريرية والحسابات التلقائية"
+                                  style={{
+                                    height: '34px',
+                                    padding: '0 8px',
+                                    borderRadius: '6px',
+                                    background: 'rgba(139, 92, 246, 0.15)',
+                                    border: '1px solid rgba(139, 92, 246, 0.4)',
+                                    color: '#c084fc',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    whiteSpace: 'nowrap',
+                                    flexShrink: 0,
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                >
+                                  <Zap size={12} />
+                                  <span>⚗️ محطة الكيمياء</span>
+                                </button>
+                              </div>
                             ) : (
                               <input
                                 ref={(el) => { resultInputRefs.current[index] = el; }}
@@ -898,7 +1157,7 @@ function ResultsContent() {
           sample={selectedSample}
           initialValue={(() => {
             const t = selectedSample.tests?.find((st: any) => 
-              st.test?.category === 'CHEMISTRY' || (st.test?.code && ['LFT', 'KFT', 'LIPID', 'FBS', 'CREAT'].includes(st.test.code))
+              isChemistryPanel(st) || isChemistryAnalyte(st)
             );
             return testResults[t?.id]?.resultValue || t?.resultValue || '';
           })()}

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getStore } from '../../../../../lib/serverStore';
 
-export async function handleSaveResults(request: Request, params: { id: string }) {
+async function handleSaveResults(request: Request, params: { id: string }) {
   let body: any;
   try {
     const text = await request.text();

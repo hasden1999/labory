@@ -65,7 +65,7 @@ function PatientsContent() {
   const [patientName, setPatientName] = useState('');
   const [patientPhone, setPatientPhone] = useState('');
   const [patientAge, setPatientAge] = useState('');
-  const [patientGender, setPatientGender] = useState('ذكر');
+  const [patientGender, setPatientGender] = useState<'MALE' | 'FEMALE'>('MALE');
 
   const loadPatients = async () => {
     setLoading(true);
@@ -132,6 +132,7 @@ function PatientsContent() {
       setPatientName('');
       setPatientPhone('');
       setPatientAge('');
+      setPatientGender('MALE');
       toast.success('تمت إضافة المريض الجديد بنجاح!', 'تم الحفظ');
       await loadPatients();
       setSelectedPatientId(newP.id);
@@ -219,7 +220,7 @@ function PatientsContent() {
             setPatientName('');
             setPatientPhone('');
             setPatientAge('');
-            setPatientGender('ذكر');
+            setPatientGender('MALE');
             setShowAddPatientModal(true);
           }}
           className="btn-primary"
@@ -285,7 +286,7 @@ function PatientsContent() {
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '3px' }}>
                       <span>{p.phone || 'بدون هاتف'}</span>
-                      <span>{p.age ? `${p.age} سنة` : ''} ({p.gender === 'أنثى' || p.gender === 'FEMALE' ? '♀' : '♂'})</span>
+                      <span>{p.age ? `${p.age} سنة` : ''} ({p.gender === 'FEMALE' || p.gender === 'أنثى' ? '♀ أنثى' : '♂ ذكر'})</span>
                     </div>
                   </div>
                 );
@@ -309,7 +310,7 @@ function PatientsContent() {
                       {patientDetails.name}
                     </h2>
                     <span className="badge badge-received" style={{ fontSize: '11px' }}>
-                      {patientDetails.gender === 'أنثى' || patientDetails.gender === 'FEMALE' ? 'أنثى ♀' : 'ذكر ♂'}
+                      {patientDetails.gender === 'FEMALE' || patientDetails.gender === 'أنثى' ? 'أنثى ♀' : 'ذكر ♂'}
                     </span>
                     {patientDetails.age && (
                       <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>• {patientDetails.age} سنة</span>
@@ -326,7 +327,7 @@ function PatientsContent() {
                 {/* Patient Direct Fast Actions */}
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <button
-                    onClick={() => router.push(`/?patientId=${patientDetails.id}&patientName=${encodeURIComponent(patientDetails.name)}&patientPhone=${patientDetails.phone || ''}&patientAge=${patientDetails.age || ''}&patientGender=${patientDetails.gender || ''}`)}
+                    onClick={() => router.push(`/?patientId=${patientDetails.id}&patientName=${encodeURIComponent(patientDetails.name)}&patientPhone=${patientDetails.phone || ''}&patientAge=${patientDetails.age || ''}&patientGender=${patientDetails.gender === 'FEMALE' || patientDetails.gender === 'أنثى' ? 'FEMALE' : 'MALE'}`)}
                     className="btn-primary"
                     style={{ fontSize: '11.5px', padding: '5px 12px' }}
                     title="فتح طلب فحص جديد لهذا المريض مباشرة"
@@ -340,7 +341,7 @@ function PatientsContent() {
                       setPatientName(patientDetails.name);
                       setPatientPhone(patientDetails.phone || '');
                       setPatientAge(patientDetails.age ? String(patientDetails.age) : '');
-                      setPatientGender(patientDetails.gender || 'ذكر');
+                      setPatientGender(patientDetails.gender === 'FEMALE' || patientDetails.gender === 'أنثى' ? 'FEMALE' : 'MALE');
                       setShowEditPatientModal(true);
                     }}
                     className="btn-secondary"
@@ -576,10 +577,10 @@ function PatientsContent() {
                 <select
                   className="select-control"
                   value={patientGender}
-                  onChange={(e) => setPatientGender(e.target.value)}
+                  onChange={(e) => setPatientGender(e.target.value as 'MALE' | 'FEMALE')}
                 >
-                  <option value="ذكر">ذكر ♂</option>
-                  <option value="أنثى">أنثى ♀</option>
+                  <option value="MALE">ذكر ♂</option>
+                  <option value="FEMALE">أنثى ♀</option>
                 </select>
               </div>
 
@@ -646,10 +647,10 @@ function PatientsContent() {
                 <select
                   className="select-control"
                   value={patientGender}
-                  onChange={(e) => setPatientGender(e.target.value)}
+                  onChange={(e) => setPatientGender(e.target.value as 'MALE' | 'FEMALE')}
                 >
-                  <option value="ذكر">ذكر ♂</option>
-                  <option value="أنثى">أنثى ♀</option>
+                  <option value="MALE">ذكر ♂</option>
+                  <option value="FEMALE">أنثى ♀</option>
                 </select>
               </div>
 
