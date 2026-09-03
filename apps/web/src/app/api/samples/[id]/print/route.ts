@@ -72,286 +72,89 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const verifyUrl = `http://localhost:3000/verify/${sample.id}`;
   const qrSvg = generateQrSvg(verifyUrl, 64);
 
-  const testRowsHtml = (sample.tests || []).map((t: any) => {
-    let displayValue = t.resultValue ? escapeHtml(t.resultValue) : '<span style="color:#94a3b8;">Pending (قيد الفحص)</span>';
-    const testName = escapeHtml(t.test?.name || t.testCode || 'Test');
-    const testArabic = escapeHtml(t.test?.arabicName || '');
-    const testUnit = escapeHtml(t.test?.unit || '-');
-    const testRef = escapeHtml(t.test?.refRangeText || '-');
-    
-    // -------------------------------------------------------------
-    // 1. G.U.E Report Parser
-    // -------------------------------------------------------------
-    if (typeof displayValue === 'string' && (displayValue.includes('G.U.E') || displayValue.includes('PHYSICAL:') && !displayValue.includes('G.S.E'))) {
-      const clean = displayValue.replace(/\[.*?G\.?U\.?E.*?\]/gi, '').trim();
-      const lines = clean.split('\n').filter(Boolean);
-      let physicalHtml = '';
-      let chemicalHtml = '';
-      let microHtml = '';
-      let notesHtml = '';
+  // Tests Categorization
+  const allTests = sample.tests || [];
 
-      lines.forEach((line: string) => {
-        const cleanLine = line.trim();
-        if (cleanLine.toUpperCase().startsWith('PHYSICAL:')) {
-          const parts = cleanLine.replace(/PHYSICAL:/i, '').split('|').map(p => p.trim()).filter(Boolean);
-          physicalHtml = `
-            <div style="margin-bottom: 6px;">
-              <div style="font-size: 11px; font-weight: 800; color: ${primaryCol}; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">PHYSICAL EXAMINATION</div>
-              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; font-size: 11px;">
-                ${parts.map(p => `<div style="background: #ffffff; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0;">${p}</div>`).join('')}
-              </div>
-            </div>`;
-        } else if (cleanLine.toUpperCase().startsWith('CHEMICAL:')) {
-          const parts = cleanLine.replace(/CHEMICAL:/i, '').split('|').map(p => p.trim()).filter(Boolean);
-          chemicalHtml = `
-            <div style="margin-bottom: 6px;">
-              <div style="font-size: 11px; font-weight: 800; color: ${primaryCol}; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">CHEMICAL EXAMINATION</div>
-              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; font-size: 11px;">
-                ${parts.map(p => {
-                  const isAbn = p.includes('1+') || p.includes('2+') || p.includes('3+') || p.includes('4+') || p.includes('Positive') || p.includes('++');
-                  return `<div style="background: ${isAbn ? '#fef2f2' : '#ffffff'}; color: ${isAbn ? '#b91c1c' : '#1e293b'}; font-weight: ${isAbn ? '700' : '500'}; padding: 2px 6px; border-radius: 4px; border: 1px solid ${isAbn ? '#fca5a5' : '#e2e8f0'};">${p}</div>`;
-                }).join('')}
-              </div>
-            </div>`;
-        } else if (cleanLine.toUpperCase().startsWith('MICROSCOPIC:')) {
-          const parts = cleanLine.replace(/MICROSCOPIC:/i, '').split('|').map(p => p.trim()).filter(Boolean);
-          microHtml = `
-            <div style="margin-bottom: 6px;">
-              <div style="font-size: 11px; font-weight: 800; color: ${primaryCol}; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">MICROSCOPIC EXAMINATION (HPF)</div>
-              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; font-size: 11px;">
-                ${parts.map(p => {
-                  const isAbn = p.includes('15-20') || p.includes('25-35') || p.includes('30-40') || p.includes('40-50') || p.includes('Full') || p.includes('Bloody') || p.includes('+++') || p.includes('++');
-                  return `<div style="background: ${isAbn ? '#fef2f2' : '#ffffff'}; color: ${isAbn ? '#b91c1c' : '#1e293b'}; font-weight: ${isAbn ? '700' : '500'}; padding: 2px 6px; border-radius: 4px; border: 1px solid ${isAbn ? '#fca5a5' : '#e2e8f0'};">${p}</div>`;
-                }).join('')}
-              </div>
-            </div>`;
-        } else if (cleanLine.toUpperCase().startsWith('NOTES:')) {
-          notesHtml = `
-            <div style="background: #f8fafc; border-left: 3px solid ${primaryCol}; padding: 4px 8px; font-size: 11px; color: #334155; margin-top: 4px; border-radius: 0 4px 4px 0;">
-              <strong>Note:</strong> ${cleanLine.replace(/NOTES?:/i, '').trim()}
-            </div>`;
-        }
-      });
+  const isGueTest = (t: any) => {
+    const code = (t.test?.code || t.testCode || '').toUpperCase();
+    const name = (t.test?.name || '').toLowerCase();
+    const val = typeof t.resultValue === 'string' ? t.resultValue : '';
+    return code === 'GUE' || val.includes('G.U.E') || name.includes('urine') || name.includes('إدرار') || (val.includes('PHYSICAL:') && !val.includes('G.S.E') && !val.includes('PARASITOLOGY:'));
+  };
 
-      displayValue = `
-        <div style="text-align: left; background: #f8fafc; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; max-width: 520px; margin: 4px 0;">
-          ${physicalHtml}
-          ${chemicalHtml}
-          ${microHtml}
-          ${notesHtml}
-        </div>`;
+  const isGseTest = (t: any) => {
+    const code = (t.test?.code || t.testCode || '').toUpperCase();
+    const name = (t.test?.name || '').toLowerCase();
+    const val = typeof t.resultValue === 'string' ? t.resultValue : '';
+    return code === 'GSE' || val.includes('G.S.E') || name.includes('stool') || name.includes('خروج') || val.includes('PARASITOLOGY:');
+  };
+
+  const gueTests = allTests.filter(isGueTest);
+  const gseTests = allTests.filter(isGseTest);
+  const generalTests = allTests.filter((t: any) => !isGueTest(t) && !isGseTest(t));
+
+  // Shared Helper: Digital or Pre-printed Header
+  const renderHeader = (safeLabName: string, safeLabSubtitle: string, safeAddress: string, safePhone: string, safeDocName: string, safeDocTitle: string, safeLicense: string) => {
+    if (isPreprinted) {
+      return `<div style="height: 10px; margin-bottom: 10px;"></div>`;
     }
-
-    // -------------------------------------------------------------
-    // 2. G.S.E Report Parser
-    // -------------------------------------------------------------
-    else if (typeof displayValue === 'string' && (displayValue.includes('G.S.E') || displayValue.includes('PARASITOLOGY:'))) {
-      const clean = displayValue.replace(/\[.*?G\.?S\.?E.*?\]/gi, '').trim();
-      const lines = clean.split('\n').filter(Boolean);
-      let physicalHtml = '';
-      let fobtHtml = '';
-      let microHtml = '';
-      let paraHtml = '';
-      let notesHtml = '';
-
-      lines.forEach((line: string) => {
-        const cleanLine = line.trim();
-        if (cleanLine.startsWith('PHYSICAL:')) {
-          const parts = cleanLine.replace('PHYSICAL:', '').split('|').map(p => p.trim());
-          physicalHtml = `
-            <div style="margin-bottom: 6px;">
-              <div style="font-size: 11px; font-weight: 800; color: #b45309; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">PHYSICAL EXAMINATION</div>
-              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; font-size: 11px;">
-                ${parts.map(p => `<div style="background: #ffffff; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0;">${p}</div>`).join('')}
-              </div>
-            </div>`;
-        } else if (cleanLine.startsWith('FOBT:')) {
-          const val = cleanLine.replace('FOBT:', '').trim();
-          const isPos = val.includes('Positive');
-          fobtHtml = `
-            <div style="margin-bottom: 6px;">
-              <div style="font-size: 11px; font-weight: 800; color: #b91c1c; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">OCCULT BLOOD (F.O.B.T)</div>
-              <div style="background: ${isPos ? '#fef2f2' : '#f0fdf4'}; color: ${isPos ? '#b91c1c' : '#15803d'}; font-weight: 700; padding: 3px 8px; border-radius: 4px; border: 1px solid ${isPos ? '#fca5a5' : '#bbf7d0'}; font-size: 11px;">
-                ${val}
-              </div>
-            </div>`;
-        } else if (cleanLine.startsWith('MICROSCOPIC:')) {
-          const parts = cleanLine.replace('MICROSCOPIC:', '').split('|').map(p => p.trim());
-          microHtml = `
-            <div style="margin-bottom: 6px;">
-              <div style="font-size: 11px; font-weight: 800; color: #b45309; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">MICROSCOPIC (HPF)</div>
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; font-size: 11px;">
-                ${parts.map(p => `<div style="background: #ffffff; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0;">${p}</div>`).join('')}
-              </div>
-            </div>`;
-        } else if (cleanLine.startsWith('PARASITOLOGY:')) {
-          const val = cleanLine.replace('PARASITOLOGY:', '').trim();
-          const isNil = val.startsWith('Nil');
-          paraHtml = `
-            <div style="margin-bottom: 6px;">
-              <div style="font-size: 11px; font-weight: 800; color: #7e22ce; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">PARASITOLOGY & HELMINTHS</div>
-              <div style="background: ${isNil ? '#f8fafc' : '#fffbeb'}; color: ${isNil ? '#475569' : '#b45309'}; font-weight: ${isNil ? '500' : '700'}; padding: 3px 8px; border-radius: 4px; border: 1px solid ${isNil ? '#e2e8f0' : '#fde68a'}; font-size: 11px;">
-                ${val}
-              </div>
-            </div>`;
-        } else if (cleanLine.startsWith('NOTES:')) {
-          notesHtml = `
-            <div style="background: #f8fafc; border-left: 3px solid #b45309; padding: 4px 8px; font-size: 11px; color: #334155; margin-top: 4px; border-radius: 0 4px 4px 0;">
-              <strong>Note:</strong> ${cleanLine.replace('NOTES:', '').trim()}
-            </div>`;
-        }
-      });
-
-      displayValue = `
-        <div style="text-align: left; background: #fffdfa; padding: 8px 12px; border-radius: 8px; border: 1px solid #fed7aa; max-width: 520px; margin: 4px 0;">
-          ${physicalHtml}
-          ${fobtHtml}
-          ${microHtml}
-          ${paraHtml}
-          ${notesHtml}
-        </div>`;
-    }
-
-    // -------------------------------------------------------------
-    // 3. CBC Report Parser
-    // -------------------------------------------------------------
-    else if (typeof displayValue === 'string' && (displayValue.includes('CBC') || displayValue.includes('ERYTHROID:') || displayValue.includes('DIFFERENTIAL:'))) {
-      const clean = displayValue.replace(/\[.*?CBC.*?\]/gi, '').trim();
-      const lines = clean.split('\n').filter(Boolean);
-      let contentHtml = '';
-
-      lines.forEach((line: string) => {
-        const cleanLine = line.trim();
-        if (cleanLine.startsWith('ERYTHROID:') || cleanLine.startsWith('PLATELETS:') || cleanLine.startsWith('DIFFERENTIAL:')) {
-          const colonIdx = cleanLine.indexOf(':');
-          const title = cleanLine.substring(0, colonIdx);
-          const body = cleanLine.substring(colonIdx + 1).trim();
-          const items = body.split('|').map(p => p.trim());
-          contentHtml += `
-            <div style="margin-bottom: 6px;">
-              <div style="font-size: 11px; font-weight: 800; color: #e11d48; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">${title}</div>
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; font-size: 11px;">
-                ${items.map(p => `<div style="background: #ffffff; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0;">${p}</div>`).join('')}
-              </div>
-            </div>`;
-        } else {
-          contentHtml += `
-            <div style="background: #ffffff; border: 1px solid #e2e8f0; padding: 3px 8px; border-radius: 4px; font-size: 11px; margin-bottom: 4px;">
-              ${cleanLine}
-            </div>`;
-        }
-      });
-
-      displayValue = `
-        <div style="text-align: left; background: #fff1f2; padding: 8px 12px; border-radius: 8px; border: 1px solid #fecdd3; max-width: 520px; margin: 4px 0;">
-          ${contentHtml}
-        </div>`;
-    }
-
-    // -------------------------------------------------------------
-    // 4. Microbiology & Antibiogram Parser
-    // -------------------------------------------------------------
-    else if (typeof displayValue === 'string' && (displayValue.includes('MICROBIOLOGY') || displayValue.includes('ANTIBIOGRAM:'))) {
-      const clean = displayValue.replace(/\[.*?MICROBIOLOGY.*?\]/gi, '').trim();
-      const lines = clean.split('\n').filter(Boolean);
-      let metaHtml = '';
-      let antiHtml = '';
-      let notesHtml = '';
-
-      lines.forEach((line: string) => {
-        const cleanLine = line.trim();
-        if (cleanLine.startsWith('ANTIBIOGRAM:')) {
-          const itemsStr = cleanLine.replace('ANTIBIOGRAM:', '').trim();
-          if (!itemsStr.includes('No active')) {
-            const items = itemsStr.split('|').map(p => p.trim());
-            antiHtml = `
-              <div style="margin-top: 6px;">
-                <div style="font-size: 11px; font-weight: 800; color: #0d9488; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">ANTIBIOTIC SENSITIVITY PROFILE</div>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; font-size: 11px;">
-                  ${items.map(item => {
-                    const isS = item.includes(': S');
-                    const isR = item.includes(': R');
-                    const bg = isS ? '#f0fdf4' : isR ? '#fef2f2' : '#fffbeb';
-                    const col = isS ? '#15803d' : isR ? '#b91c1c' : '#b45309';
-                    const bdr = isS ? '#bbf7d0' : isR ? '#fca5a5' : '#fde68a';
-                    return `<div style="background: ${bg}; color: ${col}; font-weight: 700; padding: 3px 6px; border-radius: 4px; border: 1px solid ${bdr};">${item}</div>`;
-                  }).join('')}
-                </div>
-              </div>`;
-          } else {
-            antiHtml = `<div style="font-size: 11px; color: #64748b; margin-top: 4px;">${itemsStr}</div>`;
-          }
-        } else if (cleanLine.startsWith('NOTES:')) {
-          notesHtml = `
-            <div style="background: #f8fafc; border-left: 3px solid #0d9488; padding: 4px 8px; font-size: 11px; color: #334155; margin-top: 6px; border-radius: 0 4px 4px 0;">
-              <strong>Note:</strong> ${cleanLine.replace('NOTES:', '').trim()}
-            </div>`;
-        } else {
-          metaHtml += `
-            <div style="background: #ffffff; padding: 3px 6px; border-radius: 4px; border: 1px solid #e2e8f0; font-size: 11px; margin-bottom: 3px;">
-              ${cleanLine}
-            </div>`;
-        }
-      });
-
-      displayValue = `
-        <div style="text-align: left; background: #f0fdfa; padding: 8px 12px; border-radius: 8px; border: 1px solid #99f6e4; max-width: 520px; margin: 4px 0;">
-          ${metaHtml}
-          ${antiHtml}
-          ${notesHtml}
-        </div>`;
-    }
-
-    // -------------------------------------------------------------
-    // 5. Chemistry Panels Parser
-    // -------------------------------------------------------------
-    else if (typeof displayValue === 'string' && (displayValue.includes('CHEMISTRY') || displayValue.includes('RENAL:') || displayValue.includes('LIPIDS:'))) {
-      const clean = displayValue.replace(/\[.*?CHEMISTRY.*?\]/gi, '').trim();
-      const lines = clean.split('\n').filter(Boolean);
-      let contentHtml = '';
-
-      lines.forEach((line: string) => {
-        const cleanLine = line.trim();
-        const colonIdx = cleanLine.indexOf(':');
-        if (colonIdx > 0) {
-          const title = cleanLine.substring(0, colonIdx);
-          const body = cleanLine.substring(colonIdx + 1).trim();
-          const items = body.split('|').map(p => p.trim());
-          contentHtml += `
-            <div style="margin-bottom: 6px;">
-              <div style="font-size: 11px; font-weight: 800; color: #0284c7; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">${title}</div>
-              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; font-size: 11px;">
-                ${items.map(p => `<div style="background: #ffffff; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0;">${p}</div>`).join('')}
-              </div>
-            </div>`;
-        } else {
-          contentHtml += `<div style="background: #ffffff; padding: 3px 6px; border-radius: 4px; border: 1px solid #e2e8f0; font-size: 11px; margin-bottom: 3px;">${cleanLine}</div>`;
-        }
-      });
-
-      displayValue = `
-        <div style="text-align: left; background: #f0f9ff; padding: 8px 12px; border-radius: 8px; border: 1px solid #bae6fd; max-width: 520px; margin: 4px 0;">
-          ${contentHtml}
-        </div>`;
-    }
-
-    const isAbnormal = t.isAbnormal;
     return `
-      <tr style="border-bottom: 1px solid #e2e8f0; page-break-inside: avoid;">
-        <td style="padding: 10px 12px; font-weight: 800; color: #0f172a; text-align: left;">
-          ${testName}
-          <div style="font-size: 11px; color: #64748b; font-weight: normal;">${testArabic}</div>
-        </td>
-        <td style="padding: 10px 12px; font-weight: 700; color: ${isAbnormal ? '#dc2626' : '#0f172a'}; text-align: left;">
-          ${displayValue}
-        </td>
-        <td style="padding: 10px 12px; color: #475569; font-weight: 600; text-align: left;">${testUnit}</td>
-        <td style="padding: 10px 12px; color: #334155; font-weight: 600; text-align: left;">${testRef}</td>
-        <td style="padding: 10px 12px; font-size: 11px; color: ${isAbnormal ? '#dc2626' : '#16a34a'}; font-weight: 700; text-align: left;">
-          ${isAbnormal ? 'ABNORMAL' : 'NORMAL'}
-        </td>
-      </tr>`;
-  }).join('');
+      <div class="header-border" style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 14px; margin-bottom: 16px;">
+        <div style="text-align: right;">
+          <h1 style="margin: 0; font-size: 20px; color: ${primaryCol}; font-weight: 900;">${safeLabName}</h1>
+          <p style="margin: 3px 0 0 0; font-size: 11.5px; color: #64748b; font-weight: 600;">${safeLabSubtitle}</p>
+          <p style="margin: 4px 0 0 0; font-size: 11px; color: #475569;">العنوان: ${safeAddress} | هاتف: ${safePhone}</p>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 14px;">
+          ${qrEnabled && qrPosition === 'HEADER' ? `
+            <div style="text-align: center;">
+              ${qrSvg}
+              <div style="font-size: 9px; color: #64748b; margin-top: 2px;">تحقق إلكتروني</div>
+            </div>
+          ` : ''}
+
+          <div style="text-align: left;" dir="ltr">
+            <div style="font-size: 13px; font-weight: 800; color: #0f172a;">${safeDocName || 'Laboratory Director'}</div>
+            <div style="font-size: 11px; color: #64748b;">${safeDocTitle || 'Consultant Clinical Pathologist'}</div>
+            <div style="font-size: 10px; color: #94a3b8;">License: ${safeLicense || 'MOH-2026'}</div>
+          </div>
+        </div>
+      </div>`;
+  };
+
+  // Shared Helper: Patient Demographics Box
+  const renderPatientMetaBox = (safePatientName: string, safeDoctorName: string) => `
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 12px;">
+      <div><span style="color: #64748b;">اسم المريض:</span> <strong>${safePatientName}</strong></div>
+      <div><span style="color: #64748b;">العمر / الجنس:</span> <strong>${patient.age || '-'} سنة / ${patient.gender === 'FEMALE' ? 'أنثى (Female)' : 'ذكر (Male)'}</strong></div>
+      <div><span style="color: #64748b;">رقم العينة:</span> <strong style="color: ${primaryCol};">#${sample.sampleNumber}</strong></div>
+      <div><span style="color: #64748b;">الطبيب المعالج:</span> <strong>${safeDoctorName}</strong></div>
+      <div><span style="color: #64748b;">تاريخ الفحص:</span> <strong>${new Date(sample.createdAt).toLocaleDateString('ar-IQ')}</strong></div>
+      <div><span style="color: #64748b;">حالة التقرير:</span> <strong style="color: #16a34a;">معتمد نهائي (Verified)</strong></div>
+    </div>`;
+
+  // Shared Helper: Legal Accreditation Footer
+  const renderFooter = (safeFooter: string, safeLabName: string) => `
+    <div style="margin-top: 24px; border-top: 1px dashed #cbd5e1; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; color: #64748b;">
+      <div>
+        <div>${safeFooter || 'تم فحص وتدقيق التقرير إلكترونياً وهو معتمد رسمياً.'}</div>
+        ${isPreprinted ? '' : `<div style="margin-top: 2px; color: #94a3b8;">${safeLabName} • تشخيص مخبري معتمد</div>`}
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 14px;">
+        ${qrEnabled && qrPosition === 'FOOTER' ? `
+          <div style="text-align: center;">
+            ${qrSvg}
+            <div style="font-size: 9px; color: #64748b; margin-top: 2px;">تحقق إلكتروني</div>
+          </div>
+        ` : ''}
+        <div style="font-weight: 700; color: #0f172a; text-align: left;" dir="ltr">
+          <div>Approved by Clinical Pathologist</div>
+          <div style="font-size: 9px; color: #64748b;">Labryo Clinical LIS Validated</div>
+        </div>
+      </div>
+    </div>`;
 
   // ---------------------------------------------------------------
   // Template CSS Styling Variations
@@ -403,6 +206,318 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const safeLicense = escapeHtml(settings.labLicense);
   const safeFooter = escapeHtml(settings.reportFooter);
 
+  const renderedPages: string[] = [];
+
+  // 1. General Laboratory Tests (Blood, Chemistry, Hormones, etc.)
+  if (generalTests.length > 0) {
+    const generalRows = generalTests.map((t: any) => {
+      let displayValue = t.resultValue ? escapeHtml(t.resultValue) : '<span style="color:#94a3b8;">Pending (قيد الفحص)</span>';
+      const testName = escapeHtml(t.test?.name || t.testCode || 'Test');
+      const testArabic = escapeHtml(t.test?.arabicName || '');
+      const testUnit = escapeHtml(t.test?.unit || '-');
+      const testRef = escapeHtml(t.test?.refRangeText || '-');
+      const isAbnormal = t.isAbnormal;
+
+      if (typeof t.resultValue === 'string' && (t.resultValue.includes('CBC') || t.resultValue.includes('ERYTHROID:') || t.resultValue.includes('DIFFERENTIAL:'))) {
+        const clean = t.resultValue.replace(/\[.*?CBC.*?\]/gi, '').trim();
+        const lines = clean.split('\n').filter(Boolean);
+        let contentHtml = '';
+        lines.forEach((line: string) => {
+          const cleanLine = line.trim();
+          if (cleanLine.startsWith('ERYTHROID:') || cleanLine.startsWith('PLATELETS:') || cleanLine.startsWith('DIFFERENTIAL:')) {
+            const colonIdx = cleanLine.indexOf(':');
+            const title = cleanLine.substring(0, colonIdx);
+            const body = cleanLine.substring(colonIdx + 1).trim();
+            const items = body.split('|').map(p => p.trim());
+            contentHtml += `
+              <div style="margin-bottom: 6px;">
+                <div style="font-size: 11px; font-weight: 800; color: #e11d48; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">${escapeHtml(title)}</div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; font-size: 11px;">
+                  ${items.map(p => `<div style="background: #ffffff; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0;">${escapeHtml(p)}</div>`).join('')}
+                </div>
+              </div>`;
+          } else {
+            contentHtml += `<div style="background: #ffffff; border: 1px solid #e2e8f0; padding: 3px 8px; border-radius: 4px; font-size: 11px; margin-bottom: 4px;">${escapeHtml(cleanLine)}</div>`;
+          }
+        });
+        displayValue = `<div style="text-align: left; background: #fff1f2; padding: 8px 12px; border-radius: 8px; border: 1px solid #fecdd3; max-width: 520px; margin: 4px 0;">${contentHtml}</div>`;
+      } else if (typeof t.resultValue === 'string' && (t.resultValue.includes('MICROBIOLOGY') || t.resultValue.includes('ANTIBIOGRAM:'))) {
+        const clean = t.resultValue.replace(/\[.*?MICROBIOLOGY.*?\]/gi, '').trim();
+        const lines = clean.split('\n').filter(Boolean);
+        let metaHtml = '';
+        let antiHtml = '';
+        let notesHtml = '';
+        lines.forEach((line: string) => {
+          const cleanLine = line.trim();
+          if (cleanLine.startsWith('ANTIBIOGRAM:')) {
+            const itemsStr = cleanLine.replace('ANTIBIOGRAM:', '').trim();
+            if (!itemsStr.includes('No active')) {
+              const items = itemsStr.split('|').map(p => p.trim());
+              antiHtml = `
+                <div style="margin-top: 6px;">
+                  <div style="font-size: 11px; font-weight: 800; color: #0d9488; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">ANTIBIOTIC SENSITIVITY PROFILE</div>
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; font-size: 11px;">
+                    ${items.map(item => {
+                      const isS = item.includes(': S');
+                      const isR = item.includes(': R');
+                      const bg = isS ? '#f0fdf4' : isR ? '#fef2f2' : '#fffbeb';
+                      const col = isS ? '#15803d' : isR ? '#b91c1c' : '#b45309';
+                      const bdr = isS ? '#bbf7d0' : isR ? '#fca5a5' : '#fde68a';
+                      return `<div style="background: ${bg}; color: ${col}; font-weight: 700; padding: 3px 6px; border-radius: 4px; border: 1px solid ${bdr};">${escapeHtml(item)}</div>`;
+                    }).join('')}
+                  </div>
+                </div>`;
+            } else {
+              antiHtml = `<div style="font-size: 11px; color: #64748b; margin-top: 4px;">${escapeHtml(itemsStr)}</div>`;
+            }
+          } else if (cleanLine.startsWith('NOTES:')) {
+            notesHtml = `<div style="background: #f8fafc; border-left: 3px solid #0d9488; padding: 4px 8px; font-size: 11px; color: #334155; margin-top: 6px; border-radius: 0 4px 4px 0;"><strong>Note:</strong> ${escapeHtml(cleanLine.replace('NOTES:', '').trim())}</div>`;
+          } else {
+            metaHtml += `<div style="background: #ffffff; padding: 3px 6px; border-radius: 4px; border: 1px solid #e2e8f0; font-size: 11px; margin-bottom: 3px;">${escapeHtml(cleanLine)}</div>`;
+          }
+        });
+        displayValue = `<div style="text-align: left; background: #f0fdfa; padding: 8px 12px; border-radius: 8px; border: 1px solid #99f6e4; max-width: 520px; margin: 4px 0;">${metaHtml}${antiHtml}${notesHtml}</div>`;
+      }
+
+      return `
+        <tr style="border-bottom: 1px solid #e2e8f0; page-break-inside: avoid;">
+          <td style="padding: 10px 12px; font-weight: 800; color: #0f172a; text-align: left;">
+            ${testName}
+            <div style="font-size: 11px; color: #64748b; font-weight: normal;">${testArabic}</div>
+          </td>
+          <td style="padding: 10px 12px; font-weight: 700; color: ${isAbnormal ? '#dc2626' : '#0f172a'}; text-align: left;">
+            ${displayValue}
+          </td>
+          <td style="padding: 10px 12px; color: #475569; font-weight: 600; text-align: left;">${testUnit}</td>
+          <td style="padding: 10px 12px; color: #334155; font-weight: 600; text-align: left;">${testRef}</td>
+          <td style="padding: 10px 12px; font-size: 11px; color: ${isAbnormal ? '#dc2626' : '#16a34a'}; font-weight: 700; text-align: left;">
+            ${isAbnormal ? 'ABNORMAL' : 'NORMAL'}
+          </td>
+        </tr>`;
+    }).join('');
+
+    renderedPages.push(`
+      <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
+        ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
+        ${renderPatientMetaBox(safePatientName, safeDoctorName)}
+        <table dir="ltr" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; text-align: left;">
+          <thead>
+            <tr class="table-header" style="background: #0f172a; color: #ffffff;">
+              <th style="padding: 8px 12px; text-align: left; border-radius: 6px 0 0 0;">Test Name / Investigation (اسم التحليل)</th>
+              <th style="padding: 8px 12px; text-align: left;">Result (النتيجة)</th>
+              <th style="padding: 8px 12px; text-align: left;">Unit (الوحدة)</th>
+              <th style="padding: 8px 12px; text-align: left;">Reference Range (المجال الطبيعي)</th>
+              <th style="padding: 8px 12px; text-align: left; border-radius: 0 6px 0 0;">Status (الحالة)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${generalRows}
+          </tbody>
+        </table>
+        ${renderFooter(safeFooter, safeLabName)}
+      </div>
+    `);
+  }
+
+  // 2. Dedicated General Urine Examination (G.U.E) Page
+  for (const gue of gueTests) {
+    const rawVal = gue.resultValue ? String(gue.resultValue) : '';
+    const clean = rawVal.replace(/\[.*?G\.?U\.?E.*?\]/gi, '').trim();
+    const lines = clean.split('\n').filter(Boolean);
+    let physicalParts: string[] = [];
+    let chemicalParts: string[] = [];
+    let microParts: string[] = [];
+    let noteText = '';
+
+    lines.forEach((line) => {
+      const cleanLine = line.trim();
+      if (cleanLine.toUpperCase().startsWith('PHYSICAL:')) {
+        physicalParts = cleanLine.replace(/PHYSICAL:/i, '').split('|').map(p => p.trim()).filter(Boolean);
+      } else if (cleanLine.toUpperCase().startsWith('CHEMICAL:')) {
+        chemicalParts = cleanLine.replace(/CHEMICAL:/i, '').split('|').map(p => p.trim()).filter(Boolean);
+      } else if (cleanLine.toUpperCase().startsWith('MICROSCOPIC:')) {
+        microParts = cleanLine.replace(/MICROSCOPIC:/i, '').split('|').map(p => p.trim()).filter(Boolean);
+      } else if (cleanLine.toUpperCase().startsWith('NOTES:')) {
+        noteText = cleanLine.replace(/NOTES?:/i, '').trim();
+      }
+    });
+
+    renderedPages.push(`
+      <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
+        ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
+        ${renderPatientMetaBox(safePatientName, safeDoctorName)}
+        
+        <div style="background: ${primaryCol}; color: #ffffff; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: 13px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+          <span>GENERAL URINE EXAMINATION (G.U.E)</span>
+          <span style="font-size: 12px; font-weight: normal;" dir="rtl">تقرير فحص الإدرار العام الميكروسكوبي</span>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <!-- Physical Examination Section -->
+          <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between;">
+              <span>PHYSICAL EXAMINATION</span>
+              <span style="color: #64748b; font-weight: normal;">الفحص الفيزيائي / العيني</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;">
+              ${physicalParts.length > 0 ? physicalParts.map(p => `<div style="background: #f1f5f9; padding: 6px 10px; border-radius: 4px; border: 1px solid #e2e8f0; font-weight: 600;">${escapeHtml(p)}</div>`).join('') : '<div style="color: #94a3b8;">Pending (قيد الفحص)</div>'}
+            </div>
+          </div>
+
+          <!-- Chemical Examination Section -->
+          <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between;">
+              <span>CHEMICAL EXAMINATION</span>
+              <span style="color: #64748b; font-weight: normal;">الفحص الكيميائي</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;">
+              ${chemicalParts.length > 0 ? chemicalParts.map(p => {
+                const isAbn = p.includes('1+') || p.includes('2+') || p.includes('3+') || p.includes('4+') || p.includes('Positive') || p.includes('++');
+                return `<div style="background: ${isAbn ? '#fef2f2' : '#f8fafc'}; color: ${isAbn ? '#b91c1c' : '#1e293b'}; font-weight: ${isAbn ? '800' : '600'}; padding: 6px 10px; border-radius: 4px; border: 1px solid ${isAbn ? '#fca5a5' : '#e2e8f0'};">${escapeHtml(p)}</div>`;
+              }).join('') : '<div style="color: #94a3b8;">Pending (قيد الفحص)</div>'}
+            </div>
+          </div>
+
+          <!-- Microscopic Examination Section -->
+          <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between;">
+              <span>MICROSCOPIC EXAMINATION (HPF)</span>
+              <span style="color: #64748b; font-weight: normal;">الفحص المجهري المخبري</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;">
+              ${microParts.length > 0 ? microParts.map(p => {
+                const isAbn = p.includes('15-20') || p.includes('25-35') || p.includes('30-40') || p.includes('40-50') || p.includes('Full') || p.includes('Bloody') || p.includes('+++') || p.includes('++');
+                return `<div style="background: ${isAbn ? '#fef2f2' : '#f8fafc'}; color: ${isAbn ? '#b91c1c' : '#1e293b'}; font-weight: ${isAbn ? '800' : '600'}; padding: 6px 10px; border-radius: 4px; border: 1px solid ${isAbn ? '#fca5a5' : '#e2e8f0'};">${escapeHtml(p)}</div>`;
+              }).join('') : '<div style="color: #94a3b8;">Pending (قيد الفحص)</div>'}
+            </div>
+          </div>
+
+          ${noteText ? `
+            <div style="background: #f8fafc; border-left: 4px solid ${primaryCol}; padding: 8px 12px; font-size: 11px; color: #334155; border-radius: 0 6px 6px 0;">
+              <strong>Clinical Note / ملاحظات الفحص:</strong> ${escapeHtml(noteText)}
+            </div>
+          ` : ''}
+        </div>
+
+        ${renderFooter(safeFooter, safeLabName)}
+      </div>
+    `);
+  }
+
+  // 3. Dedicated General Stool Examination (G.S.E) Page
+  for (const gse of gseTests) {
+    const rawVal = gse.resultValue ? String(gse.resultValue) : '';
+    const clean = rawVal.replace(/\[.*?G\.?S\.?E.*?\]/gi, '').trim();
+    const lines = clean.split('\n').filter(Boolean);
+    let physicalParts: string[] = [];
+    let fobtVal = '';
+    let microParts: string[] = [];
+    let paraParts: string[] = [];
+    let noteText = '';
+
+    lines.forEach((line) => {
+      const cleanLine = line.trim();
+      if (cleanLine.startsWith('PHYSICAL:')) {
+        physicalParts = cleanLine.replace('PHYSICAL:', '').split('|').map(p => p.trim()).filter(Boolean);
+      } else if (cleanLine.startsWith('FOBT:')) {
+        fobtVal = cleanLine.replace('FOBT:', '').trim();
+      } else if (cleanLine.startsWith('MICROSCOPIC:')) {
+        microParts = cleanLine.replace('MICROSCOPIC:', '').split('|').map(p => p.trim()).filter(Boolean);
+      } else if (cleanLine.startsWith('PARASITOLOGY:')) {
+        const val = cleanLine.replace('PARASITOLOGY:', '').trim();
+        if (val) paraParts.push(val);
+      } else if (cleanLine.startsWith('NOTES:')) {
+        noteText = cleanLine.replace('NOTES:', '').trim();
+      }
+    });
+
+    renderedPages.push(`
+      <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
+        ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
+        ${renderPatientMetaBox(safePatientName, safeDoctorName)}
+        
+        <div style="background: #b45309; color: #ffffff; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: 13px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+          <span>GENERAL STOOL EXAMINATION (G.S.E)</span>
+          <span style="font-size: 12px; font-weight: normal;" dir="rtl">تقرير فحص الخروج العام والطفيليات</span>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <!-- Physical Examination Section -->
+          <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b45309; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between;">
+              <span>PHYSICAL EXAMINATION</span>
+              <span style="color: #64748b; font-weight: normal;">الفحص الفيزيائي / القوام واللون</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;">
+              ${physicalParts.length > 0 ? physicalParts.map(p => `<div style="background: #f1f5f9; padding: 6px 10px; border-radius: 4px; border: 1px solid #e2e8f0; font-weight: 600;">${escapeHtml(p)}</div>`).join('') : '<div style="color: #94a3b8;">Pending (قيد الفحص)</div>'}
+            </div>
+          </div>
+
+          <!-- Occult Blood FOBT Section -->
+          ${fobtVal ? `
+            <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+              <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b91c1c; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between;">
+                <span>OCCULT BLOOD (F.O.B.T)</span>
+                <span style="color: #64748b; font-weight: normal;">فحص الدم الخفي</span>
+              </div>
+              <div style="padding: 12px;">
+                <div style="background: ${fobtVal.includes('Positive') ? '#fef2f2' : '#f0fdf4'}; color: ${fobtVal.includes('Positive') ? '#b91c1c' : '#15803d'}; font-weight: 800; padding: 6px 12px; border-radius: 6px; border: 1px solid ${fobtVal.includes('Positive') ? '#fca5a5' : '#bbf7d0'}; font-size: 12px; display: inline-block;">
+                  ${escapeHtml(fobtVal)}
+                </div>
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Microscopic Examination Section -->
+          <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b45309; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between;">
+              <span>MICROSCOPIC EXAMINATION (HPF)</span>
+              <span style="color: #64748b; font-weight: normal;">الفحص المجهري للخروج</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;">
+              ${microParts.length > 0 ? microParts.map(p => `<div style="background: #f1f5f9; padding: 6px 10px; border-radius: 4px; border: 1px solid #e2e8f0; font-weight: 600;">${escapeHtml(p)}</div>`).join('') : '<div style="color: #94a3b8;">Pending (قيد الفحص)</div>'}
+            </div>
+          </div>
+
+          <!-- Parasitology & Helminths Section -->
+          ${paraParts.length > 0 ? `
+            <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+              <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #7e22ce; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between;">
+                <span>PARASITOLOGY & HELMINTHS</span>
+                <span style="color: #64748b; font-weight: normal;">الطفيليات والديدان وبيوضها</span>
+              </div>
+              <div style="padding: 12px; font-size: 11.5px;">
+                ${paraParts.map(p => `<div style="background: #fffbeb; color: #b45309; font-weight: 700; padding: 6px 10px; border-radius: 4px; border: 1px solid #fde68a; margin-bottom: 4px;">${escapeHtml(p)}</div>`).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          ${noteText ? `
+            <div style="background: #f8fafc; border-left: 4px solid #b45309; padding: 8px 12px; font-size: 11px; color: #334155; border-radius: 0 6px 6px 0;">
+              <strong>Clinical Note / ملاحظات الفحص:</strong> ${escapeHtml(noteText)}
+            </div>
+          ` : ''}
+        </div>
+
+        ${renderFooter(safeFooter, safeLabName)}
+      </div>
+    `);
+  }
+
+  // Fallback if empty
+  if (renderedPages.length === 0) {
+    renderedPages.push(`
+      <div class="${containerClass}">
+        ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
+        ${renderPatientMetaBox(safePatientName, safeDoctorName)}
+        <div style="padding: 30px; text-align: center; color: #64748b; font-size: 13px;">
+          لا توجد فحوصات مسجلة لهذه العينة.
+        </div>
+        ${renderFooter(safeFooter, safeLabName)}
+      </div>
+    `);
+  }
+
   const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -419,14 +534,21 @@ export async function GET(request: Request, { params }: { params: { id: string }
       margin: 0;
       padding: 0;
       color: #0f172a;
-      background: #ffffff;
+      background: #f1f5f9;
       line-height: 1.4;
     }
     .report-card {
       max-width: 820px;
-      margin: 0 auto;
+      margin: 0 auto 24px auto;
       padding: 24px;
       position: relative;
+      background: #ffffff;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      border-radius: 8px;
+    }
+    .page-break {
+      page-break-before: always;
+      break-before: page;
     }
     .print-btn-bar {
       max-width: 820px;
@@ -450,7 +572,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
     ${templateCss}
     @media print {
       body { padding: 0; margin: 0; background: transparent; }
-      .report-card { border: none !important; box-shadow: none !important; padding: 0 !important; width: 100% !important; max-width: none !important; }
+      .report-card { border: none !important; box-shadow: none !important; padding: 0 !important; width: 100% !important; max-width: none !important; margin: 0 !important; border-radius: 0 !important; }
+      .page-break { page-break-before: always !important; break-before: page !important; }
       .print-btn-bar { display: none !important; }
       tr { page-break-inside: avoid; }
     }
@@ -461,84 +584,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     <button class="btn-print" onclick="window.print()">طباعة التقرير (Print A4)</button>
   </div>
 
-  <div class="${containerClass}">
-    <!-- Header: Suppressed if PREPRINTED mode -->
-    ${isPreprinted ? `
-      <!-- Pre-Printed Letterhead spacer -->
-      <div style="height: 10px; margin-bottom: 10px;"></div>
-    ` : `
-      <!-- Digital Header -->
-      <div class="header-border" style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 14px; margin-bottom: 18px;">
-        <div style="text-align: right;">
-          <h1 style="margin: 0; font-size: 20px; color: ${primaryCol}; font-weight: 900;">${safeLabName}</h1>
-          <p style="margin: 3px 0 0 0; font-size: 11.5px; color: #64748b; font-weight: 600;">${safeLabSubtitle}</p>
-          <p style="margin: 4px 0 0 0; font-size: 11px; color: #475569;">العنوان: ${safeAddress} | هاتف: ${safePhone}</p>
-        </div>
-
-        <div style="display: flex; align-items: center; gap: 14px;">
-          ${qrEnabled && qrPosition === 'HEADER' ? `
-            <div style="text-align: center;">
-              ${qrSvg}
-              <div style="font-size: 9px; color: #64748b; margin-top: 2px;">تحقق إلكتروني</div>
-            </div>
-          ` : ''}
-
-          <div style="text-align: left;" dir="ltr">
-            <div style="font-size: 13px; font-weight: 800; color: #0f172a;">${safeDocName || 'Laboratory Director'}</div>
-            <div style="font-size: 11px; color: #64748b;">${safeDocTitle || 'Consultant Clinical Pathologist'}</div>
-            <div style="font-size: 10px; color: #94a3b8;">License: ${safeLicense || 'MOH-2026'}</div>
-          </div>
-        </div>
-      </div>
-    `}
-
-    <!-- Patient & Sample Meta Box -->
-    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 12px;">
-      <div><span style="color: #64748b;">اسم المريض:</span> <strong>${safePatientName}</strong></div>
-      <div><span style="color: #64748b;">العمر / الجنس:</span> <strong>${patient.age || '-'} سنة / ${patient.gender === 'FEMALE' ? 'أنثى (Female)' : 'ذكر (Male)'}</strong></div>
-      <div><span style="color: #64748b;">رقم العينة:</span> <strong style="color: ${primaryCol};">#${sample.sampleNumber}</strong></div>
-      <div><span style="color: #64748b;">الطبيب المعالج:</span> <strong>${safeDoctorName}</strong></div>
-      <div><span style="color: #64748b;">تاريخ الفحص:</span> <strong>${new Date(sample.createdAt).toLocaleDateString('ar-IQ')}</strong></div>
-      <div><span style="color: #64748b;">حالة التقرير:</span> <strong style="color: #16a34a;">معتمد نهائي (Verified)</strong></div>
-    </div>
-
-    <!-- Test Results Table -->
-    <table dir="ltr" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; text-align: left;">
-      <thead>
-        <tr class="table-header" style="background: #0f172a; color: #ffffff;">
-          <th style="padding: 8px 12px; text-align: left; border-radius: 6px 0 0 0;">Test Name / Investigation (اسم التحليل)</th>
-          <th style="padding: 8px 12px; text-align: left;">Result (النتيجة)</th>
-          <th style="padding: 8px 12px; text-align: left;">Unit (الوحدة)</th>
-          <th style="padding: 8px 12px; text-align: left;">Reference Range (المجال الطبيعي)</th>
-          <th style="padding: 8px 12px; text-align: left; border-radius: 0 6px 0 0;">Status (الحالة)</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${testRowsHtml}
-      </tbody>
-    </table>
-
-    <!-- Footer -->
-    <div style="margin-top: 24px; border-top: 1px dashed #cbd5e1; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; color: #64748b;">
-      <div>
-        <div>${safeFooter || 'تم فحص وتدقيق التقرير إلكترونياً وهو معتمد رسمياً.'}</div>
-        ${isPreprinted ? '' : `<div style="margin-top: 2px; color: #94a3b8;">${safeLabName} • تشخيص مخبري معتمد</div>`}
-      </div>
-
-      <div style="display: flex; align-items: center; gap: 14px;">
-        ${qrEnabled && qrPosition === 'FOOTER' ? `
-          <div style="text-align: center;">
-            ${qrSvg}
-            <div style="font-size: 9px; color: #64748b; margin-top: 2px;">تحقق إلكتروني</div>
-          </div>
-        ` : ''}
-          <div style="font-weight: 700; color: #0f172a; text-align: left;" dir="ltr">
-            <div>Approved by Clinical Pathologist</div>
-            <div style="font-size: 9px; color: #64748b;">Labryo Clinical LIS Validated</div>
-          </div>
-      </div>
-    </div>
-  </div>
+  ${renderedPages.join('\n')}
 </body>
 </html>`;
 

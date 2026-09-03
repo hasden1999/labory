@@ -362,7 +362,7 @@ export async function resultRoutes(fastify: FastifyInstance) {
                   <div style="font-size: 11px; font-weight: 800; color: #0284c7; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">MICROSCOPIC EXAMINATION (HPF)</div>
                   <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; font-size: 10.5px;">
                     ${parts.map(p => {
-                      const isAbn = p.includes('8-10') || p.includes('15-20') || p.includes('25-35') || p.includes('40-50') || p.includes('Full') || p.includes('Bloody') || p.includes('+++');
+                      const isAbn = p.includes('8-10') || p.includes('15-20') || p.includes('25-35') || p.includes('40-50') || p.includes('Full') || p.includes('Bloody') || p.includes('++++') || p.includes('+++') || p.includes('++');
                       return `<div style="background: ${isAbn ? '#fef2f2' : '#ffffff'}; color: ${isAbn ? '#b91c1c' : '#1e293b'}; font-weight: ${isAbn ? '700' : '500'}; padding: 2px 6px; border-radius: 4px; border: 1px solid ${isAbn ? '#fca5a5' : '#e2e8f0'};">${p}</div>`;
                     }).join('')}
                   </div>

@@ -137,8 +137,15 @@ export default function UrineFormModal({
         parsed.pusCells = matchVal('Pus', initialData)?.replace('/HPF', '').trim() || parsed.pusCells;
         parsed.rbcs = matchVal('RBCs', initialData)?.replace('/HPF', '').trim() || parsed.rbcs;
         parsed.epithelialCells = matchVal('Epith', initialData) || parsed.epithelialCells;
-        parsed.bacteria = matchVal('Bacteria', initialData) || parsed.bacteria;
-        parsed.mucus = matchVal('Mucus', initialData) || parsed.mucus;
+        parsed.bacteria = matchVal('Bacteria', initialData) || 'Nil';
+        parsed.mucus = matchVal('Mucus', initialData) || 'Nil';
+        parsed.calciumOxalate = matchVal('Ca\\.?\\s*Oxalate', initialData) || 'Nil';
+        parsed.uricAcid = matchVal('Uric\\s*Acid', initialData) || 'Nil';
+        parsed.triplePhosphate = matchVal('Triple\\s*Phos(?:phate)?', initialData) || 'Nil';
+        parsed.amorphous = matchVal('Amorphous', initialData) || 'Nil';
+        parsed.casts = matchVal('Casts', initialData) || 'None';
+        parsed.yeast = matchVal('Yeast', initialData) || 'Not Seen';
+        parsed.trichomonas = matchVal('Trichomonas', initialData) || 'Not Seen';
         parsed.otherNotes = matchVal('Notes', initialData) || '';
 
         setData(parsed);
@@ -202,11 +209,57 @@ export default function UrineFormModal({
 
   // Format result output for system database and medical report
   const handleSaveAndApply = () => {
+    // 1. Collect non-Nil crystals
+    const activeCrystals: string[] = [];
+    if (data.calciumOxalate && data.calciumOxalate !== 'Nil') {
+      activeCrystals.push(`Ca.Oxalate: ${data.calciumOxalate}`);
+    }
+    if (data.uricAcid && data.uricAcid !== 'Nil') {
+      activeCrystals.push(`Uric Acid: ${data.uricAcid}`);
+    }
+    if (data.triplePhosphate && data.triplePhosphate !== 'Nil') {
+      activeCrystals.push(`Triple Phos: ${data.triplePhosphate}`);
+    }
+    if (data.amorphous && data.amorphous !== 'Nil') {
+      activeCrystals.push(`Amorphous: ${data.amorphous}`);
+    }
+
+    // 2. Base microscopic findings
+    const microParts: string[] = [
+      `Pus: ${data.pusCells} /HPF`,
+      `RBCs: ${data.rbcs} /HPF`,
+      `Epith: ${data.epithelialCells}`
+    ];
+
+    // Crystals section: only active or clean 'Crystals: Nil'
+    if (activeCrystals.length > 0) {
+      microParts.push(...activeCrystals);
+    } else {
+      microParts.push('Crystals: Nil');
+    }
+
+    // Microorganisms & casts: only include if selected / positive
+    if (data.casts && data.casts !== 'None' && data.casts !== 'Nil') {
+      microParts.push(`Casts: ${data.casts}`);
+    }
+    if (data.bacteria && data.bacteria !== 'Nil') {
+      microParts.push(`Bacteria: ${data.bacteria}`);
+    }
+    if (data.yeast && data.yeast !== 'Not Seen' && data.yeast !== 'Nil') {
+      microParts.push(`Yeast: ${data.yeast}`);
+    }
+    if (data.trichomonas && data.trichomonas !== 'Not Seen' && data.trichomonas !== 'Nil') {
+      microParts.push(`Trichomonas: ${data.trichomonas}`);
+    }
+    if (data.mucus && data.mucus !== 'Nil') {
+      microParts.push(`Mucus: ${data.mucus}`);
+    }
+
     const formatted = [
       '[GENERAL URINE EXAMINATION - G.U.E]',
       `PHYSICAL: Color: ${data.color} | Clarity: ${data.appearance} | Sp.Gr: ${data.spGravity} | pH: ${data.reactionPh} | Volume: ${data.volume} | Odor: ${data.odor}`,
       `CHEMICAL: Protein: ${data.protein} | Sugar: ${data.glucose} | Ketones: ${data.ketones} | Bilirubin: ${data.bilirubin} | Urob: ${data.urobilinogen} | Blood: ${data.blood} | Nitrite: ${data.nitrite} | Leukocytes: ${data.leukocyteEsterase}`,
-      `MICROSCOPIC: Pus: ${data.pusCells} /HPF | RBCs: ${data.rbcs} /HPF | Epith: ${data.epithelialCells} | Ca.Oxalate: ${data.calciumOxalate} | Uric Acid: ${data.uricAcid} | Triple Phos: ${data.triplePhosphate} | Amorphous: ${data.amorphous} | Casts: ${data.casts} | Bacteria: ${data.bacteria} | Yeast: ${data.yeast} | Trichomonas: ${data.trichomonas} | Mucus: ${data.mucus}`,
+      `MICROSCOPIC: ${microParts.join(' | ')}`,
       data.otherNotes ? `Notes: ${data.otherNotes}` : ''
     ].filter(Boolean).join('\n');
 
@@ -290,6 +343,76 @@ export default function UrineFormModal({
                 }}
               >
                 {opt}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // Helper Component for Flexible Crystal Row with Nil, +, ++, +++, ++++, Full Field
+  const CrystalSelectorRow = ({
+    name,
+    arabicName,
+    value,
+    onChange,
+  }: {
+    name: string;
+    arabicName?: string;
+    value: string;
+    onChange: (val: string) => void;
+  }) => {
+    const levels = ['Nil', '+', '++', '+++', '++++', 'Full Field'];
+    const isPositive = value && value !== 'Nil';
+    const isSevere = ['+++', '++++', 'Full Field'].includes(value);
+
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '8px',
+        padding: '5px 0',
+        borderBottom: '1px dashed #f1f5f9'
+      }}>
+        <div style={{ minWidth: '150px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: isPositive ? (isSevere ? '#dc2626' : '#0284c7') : '#334155' }}>
+            • {name} {isPositive && <span style={{ fontWeight: 800 }}>({value})</span>}
+          </span>
+          {arabicName && <span style={{ fontSize: '11px', color: '#64748b', marginRight: '4px' }}>- {arabicName}</span>}
+        </div>
+        <div style={{ display: 'flex', gap: '4px', flex: 1, maxWidth: '340px' }}>
+          {levels.map((lvl) => {
+            const isSelected = value === lvl;
+            const isLvlHeavy = ['+++', '++++', 'Full Field'].includes(lvl);
+            return (
+              <button
+                key={lvl}
+                type="button"
+                onClick={() => onChange(lvl)}
+                style={{
+                  flex: 1,
+                  padding: '5px 0',
+                  borderRadius: '6px',
+                  fontSize: lvl === 'Full Field' ? '10px' : '11px',
+                  fontWeight: isSelected ? 800 : 600,
+                  cursor: 'pointer',
+                  border: isSelected 
+                    ? (isLvlHeavy ? '1.5px solid #dc2626' : '1.5px solid #0284c7')
+                    : '1px solid #cbd5e1',
+                  background: isSelected 
+                    ? (lvl === 'Nil' ? '#0284c7' : isLvlHeavy ? '#fee2e2' : '#e0f2fe') 
+                    : '#ffffff',
+                  color: isSelected 
+                    ? (lvl === 'Nil' ? '#ffffff' : isLvlHeavy ? '#b91c1c' : '#0369a1') 
+                    : '#475569',
+                  boxShadow: isSelected ? '0 1px 3px rgba(2,132,199,0.2)' : 'none',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.12s ease',
+                }}
+              >
+                {lvl}
               </button>
             );
           })}
@@ -832,136 +955,36 @@ export default function UrineFormModal({
                   </div>
 
                   {/* Crystal 1: Calcium Oxalate */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '4px 0', borderBottom: '1px dashed #f1f5f9' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: data.calciumOxalate !== 'Nil' ? '#0284c7' : '#334155', minWidth: '130px' }}>
-                      • Ca. Oxalate {data.calciumOxalate !== 'Nil' && `(${data.calciumOxalate})`}
-                    </span>
-                    <div style={{ display: 'flex', gap: '4px', flex: 1, maxWidth: '280px' }}>
-                      {['Nil', '+', '++', '+++'].map((lvl) => {
-                        const isSelected = data.calciumOxalate === lvl;
-                        return (
-                          <button
-                            key={lvl}
-                            type="button"
-                            onClick={() => setField('calciumOxalate', lvl)}
-                            style={{
-                              flex: 1,
-                              padding: '5px 0',
-                              borderRadius: '6px',
-                              fontSize: '11.5px',
-                              fontWeight: isSelected ? 800 : 600,
-                              cursor: 'pointer',
-                              border: isSelected ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
-                              background: isSelected ? (lvl === 'Nil' ? '#0284c7' : '#e0f2fe') : '#ffffff',
-                              color: isSelected ? (lvl === 'Nil' ? '#ffffff' : '#0369a1') : '#475569',
-                              boxShadow: isSelected ? '0 1px 3px rgba(2,132,199,0.2)' : 'none',
-                            }}
-                          >
-                            {lvl}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <CrystalSelectorRow
+                    name="Ca. Oxalate"
+                    arabicName="أوكزالات الكالسيوم"
+                    value={data.calciumOxalate}
+                    onChange={(lvl) => setField('calciumOxalate', lvl)}
+                  />
 
                   {/* Crystal 2: Uric Acid */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '4px 0', borderBottom: '1px dashed #f1f5f9' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: data.uricAcid !== 'Nil' ? '#0284c7' : '#334155', minWidth: '130px' }}>
-                      • Uric Acid {data.uricAcid !== 'Nil' && `(${data.uricAcid})`}
-                    </span>
-                    <div style={{ display: 'flex', gap: '4px', flex: 1, maxWidth: '280px' }}>
-                      {['Nil', '+', '++', '+++'].map((lvl) => {
-                        const isSelected = data.uricAcid === lvl;
-                        return (
-                          <button
-                            key={lvl}
-                            type="button"
-                            onClick={() => setField('uricAcid', lvl)}
-                            style={{
-                              flex: 1,
-                              padding: '5px 0',
-                              borderRadius: '6px',
-                              fontSize: '11.5px',
-                              fontWeight: isSelected ? 800 : 600,
-                              cursor: 'pointer',
-                              border: isSelected ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
-                              background: isSelected ? (lvl === 'Nil' ? '#0284c7' : '#e0f2fe') : '#ffffff',
-                              color: isSelected ? (lvl === 'Nil' ? '#ffffff' : '#0369a1') : '#475569',
-                              boxShadow: isSelected ? '0 1px 3px rgba(2,132,199,0.2)' : 'none',
-                            }}
-                          >
-                            {lvl}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <CrystalSelectorRow
+                    name="Uric Acid"
+                    arabicName="حامض اليوريك"
+                    value={data.uricAcid}
+                    onChange={(lvl) => setField('uricAcid', lvl)}
+                  />
 
                   {/* Crystal 3: Triple Phosphate */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '4px 0', borderBottom: '1px dashed #f1f5f9' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: data.triplePhosphate !== 'Nil' ? '#0284c7' : '#334155', minWidth: '130px' }}>
-                      • Triple Phos {data.triplePhosphate !== 'Nil' && `(${data.triplePhosphate})`}
-                    </span>
-                    <div style={{ display: 'flex', gap: '4px', flex: 1, maxWidth: '280px' }}>
-                      {['Nil', '+', '++', '+++'].map((lvl) => {
-                        const isSelected = data.triplePhosphate === lvl;
-                        return (
-                          <button
-                            key={lvl}
-                            type="button"
-                            onClick={() => setField('triplePhosphate', lvl)}
-                            style={{
-                              flex: 1,
-                              padding: '5px 0',
-                              borderRadius: '6px',
-                              fontSize: '11.5px',
-                              fontWeight: isSelected ? 800 : 600,
-                              cursor: 'pointer',
-                              border: isSelected ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
-                              background: isSelected ? (lvl === 'Nil' ? '#0284c7' : '#e0f2fe') : '#ffffff',
-                              color: isSelected ? (lvl === 'Nil' ? '#ffffff' : '#0369a1') : '#475569',
-                              boxShadow: isSelected ? '0 1px 3px rgba(2,132,199,0.2)' : 'none',
-                            }}
-                          >
-                            {lvl}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <CrystalSelectorRow
+                    name="Triple Phos"
+                    arabicName="فوسفات ثلاثي"
+                    value={data.triplePhosphate}
+                    onChange={(lvl) => setField('triplePhosphate', lvl)}
+                  />
 
                   {/* Crystal 4: Amorphous Urates / Phosphates */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '4px 0' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: data.amorphous !== 'Nil' ? '#0284c7' : '#334155', minWidth: '130px' }}>
-                      • Amorphous {data.amorphous !== 'Nil' && `(${data.amorphous})`}
-                    </span>
-                    <div style={{ display: 'flex', gap: '4px', flex: 1, maxWidth: '280px' }}>
-                      {['Nil', '+', '++', '+++'].map((lvl) => {
-                        const isSelected = data.amorphous === lvl;
-                        return (
-                          <button
-                            key={lvl}
-                            type="button"
-                            onClick={() => setField('amorphous', lvl)}
-                            style={{
-                              flex: 1,
-                              padding: '5px 0',
-                              borderRadius: '6px',
-                              fontSize: '11.5px',
-                              fontWeight: isSelected ? 800 : 600,
-                              cursor: 'pointer',
-                              border: isSelected ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
-                              background: isSelected ? (lvl === 'Nil' ? '#0284c7' : '#e0f2fe') : '#ffffff',
-                              color: isSelected ? (lvl === 'Nil' ? '#ffffff' : '#0369a1') : '#475569',
-                              boxShadow: isSelected ? '0 1px 3px rgba(2,132,199,0.2)' : 'none',
-                            }}
-                          >
-                            {lvl}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <CrystalSelectorRow
+                    name="Amorphous"
+                    arabicName="أملاح غير متبلورة"
+                    value={data.amorphous}
+                    onChange={(lvl) => setField('amorphous', lvl)}
+                  />
                 </div>
 
                 {/* Microorganisms & Casts Grid */}
@@ -971,8 +994,8 @@ export default function UrineFormModal({
                     refRange="Nil"
                     value={data.bacteria}
                     onChange={(v) => setField('bacteria', v)}
-                    options={['Nil', 'Few (+)', 'Moderate (++)', 'Many (+++)']}
-                    abnormalValues={['Moderate (++)', 'Many (+++)']}
+                    options={['Nil', 'Few (+)', 'Moderate (++)', 'Many (+++)', '++++', 'Full Field']}
+                    abnormalValues={['Moderate (++)', 'Many (+++)', '++++', 'Full Field']}
                   />
 
                   <PillSelector
@@ -980,7 +1003,8 @@ export default function UrineFormModal({
                     refRange="Nil"
                     value={data.mucus}
                     onChange={(v) => setField('mucus', v)}
-                    options={['Nil', 'Few (+)', 'Moderate (++)', 'Many (+++)']}
+                    options={['Nil', 'Few (+)', 'Moderate (++)', 'Many (+++)', '++++', 'Full Field']}
+                    abnormalValues={['Many (+++)', '++++', 'Full Field']}
                   />
                 </div>
 
@@ -998,6 +1022,8 @@ export default function UrineFormModal({
                       <option value="Few (+)">Few (+)</option>
                       <option value="Moderate (++)">Moderate (++)</option>
                       <option value="Many (+++)">Many (+++)</option>
+                      <option value="++++">++++ (4+)</option>
+                      <option value="Full Field">Full Field</option>
                     </select>
                   </div>
 
@@ -1011,6 +1037,9 @@ export default function UrineFormModal({
                     >
                       <option value="Not Seen">Not Seen</option>
                       <option value="Seen (+)">Seen (+)</option>
+                      <option value="Moderate (++)">Moderate (++)</option>
+                      <option value="Many (+++)">Many (+++)</option>
+                      <option value="Full Field">Full Field</option>
                     </select>
                   </div>
 
@@ -1023,10 +1052,13 @@ export default function UrineFormModal({
                       style={{ height: '32px', fontSize: '11.5px', width: '100%', background: '#f8fafc', borderColor: '#cbd5e1' }}
                     >
                       <option value="None">None</option>
-                      <option value="Hyaline Casts">Hyaline Casts</option>
-                      <option value="Granular Casts">Granular Casts</option>
+                      <option value="Hyaline (+)">Hyaline (+)</option>
+                      <option value="Hyaline (++)">Hyaline (++)</option>
+                      <option value="Granular (+)">Granular (+)</option>
+                      <option value="Granular (++)">Granular (++)</option>
                       <option value="WBC Casts">WBC Casts</option>
                       <option value="RBC Casts">RBC Casts</option>
+                      <option value="Full Field">Full Field</option>
                     </select>
                   </div>
                 </div>
@@ -1152,29 +1184,80 @@ export default function UrineFormModal({
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <tbody>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Pus Cells:</td>
-                      <td style={{ fontWeight: 700, color: isPusAbnormal ? '#dc2626' : '#0f172a' }}>{data.pusCells} /HPF</td>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>RBCs:</td>
-                      <td style={{ fontWeight: 700, color: isRbcAbnormal ? '#dc2626' : '#0f172a' }}>{data.rbcs} /HPF</td>
+                      <td style={{ color: '#64748b', padding: '2px 0', width: '25%' }}>Pus Cells:</td>
+                      <td style={{ fontWeight: 700, color: isPusAbnormal ? '#dc2626' : '#0f172a', width: '25%' }}>{data.pusCells} /HPF</td>
+                      <td style={{ color: '#64748b', padding: '2px 0', width: '25%' }}>RBCs:</td>
+                      <td style={{ fontWeight: 700, color: isRbcAbnormal ? '#dc2626' : '#0f172a', width: '25%' }}>{data.rbcs} /HPF</td>
                     </tr>
                     <tr>
                       <td style={{ color: '#64748b', padding: '2px 0' }}>Epithelial:</td>
                       <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.epithelialCells}</td>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Bacteria:</td>
-                      <td style={{ fontWeight: 700, color: data.bacteria !== 'Nil' ? '#dc2626' : '#0f172a' }}>{data.bacteria}</td>
+                      {data.bacteria !== 'Nil' ? (
+                        <>
+                          <td style={{ color: '#64748b', padding: '2px 0' }}>Bacteria:</td>
+                          <td style={{ fontWeight: 700, color: '#dc2626' }}>{data.bacteria}</td>
+                        </>
+                      ) : (
+                        <td colSpan={2}></td>
+                      )}
                     </tr>
-                    <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Ca. Oxalate:</td>
-                      <td style={{ fontWeight: 700, color: data.calciumOxalate !== 'Nil' ? '#0284c7' : '#0f172a' }}>{data.calciumOxalate}</td>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Uric Acid:</td>
-                      <td style={{ fontWeight: 700, color: data.uricAcid !== 'Nil' ? '#0284c7' : '#0f172a' }}>{data.uricAcid}</td>
-                    </tr>
-                    <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Triple Phos:</td>
-                      <td style={{ fontWeight: 700, color: data.triplePhosphate !== 'Nil' ? '#0284c7' : '#0f172a' }}>{data.triplePhosphate}</td>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Amorphous:</td>
-                      <td style={{ fontWeight: 700, color: data.amorphous !== 'Nil' ? '#0284c7' : '#0f172a' }}>{data.amorphous}</td>
-                    </tr>
+
+                    {/* Crystals: Only display selected / positive crystals, or clean Crystals: Nil */}
+                    {(() => {
+                      const activeCrystals = [
+                        { name: 'Ca. Oxalate', val: data.calciumOxalate },
+                        { name: 'Uric Acid', val: data.uricAcid },
+                        { name: 'Triple Phos', val: data.triplePhosphate },
+                        { name: 'Amorphous', val: data.amorphous },
+                      ].filter(c => c.val && c.val !== 'Nil');
+
+                      if (activeCrystals.length === 0) {
+                        return (
+                          <tr>
+                            <td style={{ color: '#64748b', padding: '2px 0' }}>Crystals:</td>
+                            <td colSpan={3} style={{ fontWeight: 600, color: '#64748b' }}>Nil (Not Seen)</td>
+                          </tr>
+                        );
+                      }
+
+                      return activeCrystals.map((c, i) => {
+                        const isSevere = ['+++', '++++', 'Full Field'].includes(c.val);
+                        return (
+                          <tr key={i}>
+                            <td style={{ color: '#64748b', padding: '2px 0' }}>{c.name}:</td>
+                            <td colSpan={3} style={{ fontWeight: 800, color: isSevere ? '#dc2626' : '#0284c7' }}>
+                              {c.val}
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
+
+                    {/* Microorganisms, Casts, Mucus: Only if positive / selected */}
+                    {data.mucus !== 'Nil' && (
+                      <tr>
+                        <td style={{ color: '#64748b', padding: '2px 0' }}>Mucus:</td>
+                        <td colSpan={3} style={{ fontWeight: 600, color: '#0f172a' }}>{data.mucus}</td>
+                      </tr>
+                    )}
+                    {data.casts !== 'None' && data.casts !== 'Nil' && (
+                      <tr>
+                        <td style={{ color: '#64748b', padding: '2px 0' }}>Casts:</td>
+                        <td colSpan={3} style={{ fontWeight: 700, color: '#dc2626' }}>{data.casts}</td>
+                      </tr>
+                    )}
+                    {data.yeast !== 'Not Seen' && data.yeast !== 'Nil' && (
+                      <tr>
+                        <td style={{ color: '#64748b', padding: '2px 0' }}>Yeast:</td>
+                        <td colSpan={3} style={{ fontWeight: 700, color: '#dc2626' }}>{data.yeast}</td>
+                      </tr>
+                    )}
+                    {data.trichomonas !== 'Not Seen' && data.trichomonas !== 'Nil' && (
+                      <tr>
+                        <td style={{ color: '#64748b', padding: '2px 0' }}>Trichomonas:</td>
+                        <td colSpan={3} style={{ fontWeight: 700, color: '#dc2626' }}>{data.trichomonas}</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

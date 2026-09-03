@@ -762,8 +762,8 @@ function IntakeContent() {
         </div>
       </div>
 
-      {/* 2. Main 2-Column Grid (dir=ltr for high efficiency split view) */}
-      <div className="reception-mockup-grid" style={{ direction: 'ltr' }}>
+      {/* 2. Main 2-Column Grid (RTL clinical layout: Workspace Right, Financials Left) */}
+      <div className="reception-mockup-grid" style={{ direction: 'rtl' }}>
         
         {/* LEFT / MAIN WORKSPACE */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -831,46 +831,62 @@ function IntakeContent() {
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <User size={15} color="var(--accent-cyan)" />
-                <span className="input-label" style={{ margin: 0, fontSize: '11.5px', fontWeight: 800 }}>
-                  PATIENT INFORMATION (بيانات المريض)
-                </span>
-                {patientId && (
-                  <span style={{ background: 'rgba(0, 210, 211, 0.15)', color: 'var(--accent-cyan)', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
-                    EXISTING PATIENT ({patientId})
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'var(--accent-cyan-subtle)', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <User size={16} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                    تسجيل واستقبال المريض (Patient Information)
+                  </h3>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    {patientId ? `مريض مسجل مسبقاً (ID: ${patientId})` : 'بيانات المريض الأساسية وتاريخ الزيارات'}
                   </span>
-                )}
+                </div>
               </div>
 
               {patientId && (
                 <button
                   type="button"
                   onClick={handleClearPatient}
-                  style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}
+                  style={{ background: '#fff', border: '1px solid var(--border-color)', color: 'var(--accent-rose)', cursor: 'pointer', fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                 >
-                  <X size={12} /> Clear / Switch Patient
+                  <X size={12} /> تبديل المريض / جديد
                 </button>
               )}
             </div>
 
-            {/* Quick Autocomplete Search with Past Visits & Debt Preview */}
+            {/* Prominent Quick Autocomplete Search for Existing Patients */}
             {!patientId && (
-              <div style={{ position: 'relative', marginBottom: '12px' }}>
-                <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-                <input
-                  type="text"
-                  placeholder="بحث سريع عن مريض سابق بالاسم أو رقم الهاتف أو المعرّف (Quick Patient Autocomplete)..."
-                  className="input-control"
-                  style={{ paddingLeft: '30px', fontSize: '12px', height: '34px', background: 'var(--bg-input-deep)' }}
-                  value={patientSearchQuery}
-                  onChange={(e) => {
-                    setPatientSearchQuery(e.target.value);
-                    setHighlightedSuggestionIndex(-1);
-                  }}
-                  onKeyDown={handlePatientSearchKeyDown}
-                />
+              <div style={{ position: 'relative', marginBottom: '14px', background: 'var(--bg-card-subtle)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Search size={13} color="var(--accent-cyan)" />
+                    <span>البحث عن مريض مسجل مسبقاً:</span>
+                  </span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                    (ابحث بالاسم أو الهاتف للتعبئة التلقائية)
+                  </span>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <Search size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                  <input
+                    type="text"
+                    placeholder="ابحث هنا بالاسم، رقم الهاتف، أو المعرّف (F3)..."
+                    className="input-control"
+                    style={{ paddingRight: '36px', paddingLeft: '45px', fontSize: '12.5px', height: '36px', background: 'var(--bg-card)', border: '1.5px solid var(--border-color)', borderRadius: '6px' }}
+                    value={patientSearchQuery}
+                    onChange={(e) => {
+                      setPatientSearchQuery(e.target.value);
+                      setHighlightedSuggestionIndex(-1);
+                    }}
+                    onKeyDown={handlePatientSearchKeyDown}
+                  />
+                  <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '9.5px', background: 'var(--bg-card-hover)', border: '1px solid var(--border-color)', color: 'var(--text-dim)', padding: '1px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>
+                    F3
+                  </span>
+                </div>
                 {showSuggestions && patientSuggestions.length > 0 && (
                   <div className="quick-search-dropdown" style={{ zIndex: 100 }}>
                     <div className="dropdown-header">سجلات المرضى المطابقة ({patientSuggestions.length}): (استخدم ↑ ↓ للتنقل و Enter للاختيار)</div>
@@ -1202,6 +1218,7 @@ function IntakeContent() {
                   const isSelected = selectedTests.some((st) => st.id === t.id);
                   const isHighlighted = highlightedTestIndex === idx;
                   const englishCat = getEnglishCategoryTag(t.category);
+                  const code = t.code || t.name.split(' ')[0] || 'TEST';
 
                   return (
                     <div
@@ -1209,17 +1226,17 @@ function IntakeContent() {
                       onClick={() => handleToggleTest(t)}
                       style={{
                         padding: '10px 12px',
-                        borderRadius: '8px',
-                        background: isSelected ? 'rgba(0, 210, 211, 0.16)' : (isHighlighted ? 'rgba(255, 255, 255, 0.04)' : 'var(--bg-input-deep)'),
-                        border: `1.5px solid ${isSelected ? 'var(--accent-cyan)' : (isHighlighted ? 'rgba(0, 210, 211, 0.5)' : '#1e2638')}`,
-                        boxShadow: isSelected ? '0 0 12px rgba(0, 210, 211, 0.2)' : 'none',
+                        borderRadius: '10px',
+                        background: isSelected ? 'var(--accent-cyan-subtle)' : 'var(--bg-card)',
+                        border: `1.5px solid ${isSelected ? 'var(--accent-cyan)' : (isHighlighted ? 'var(--border-focus)' : 'var(--border-color)')}`,
+                        boxShadow: isSelected ? '0 2px 10px rgba(37, 99, 235, 0.12)' : '0 1px 3px rgba(0,0,0,0.02)',
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
-                        gap: '6px',
-                        minHeight: '70px',
-                        transition: 'all 0.12s ease',
+                        gap: '8px',
+                        minHeight: '84px',
+                        transition: 'all 0.15s ease',
                       }}
                     >
                       {/* Top Row: Code Badge & English Category */}
@@ -1229,9 +1246,9 @@ function IntakeContent() {
                             style={{
                               width: '24px',
                               height: '24px',
-                              borderRadius: '5px',
-                              background: isSelected ? 'var(--accent-cyan)' : 'rgba(0, 210, 211, 0.1)',
-                              color: isSelected ? '#000' : 'var(--accent-cyan)',
+                              borderRadius: '6px',
+                              background: isSelected ? 'var(--accent-cyan)' : 'var(--accent-cyan-subtle)',
+                              color: isSelected ? '#ffffff' : 'var(--accent-cyan)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -1243,16 +1260,16 @@ function IntakeContent() {
 
                           <span
                             style={{
-                              fontSize: '11.5px',
+                              fontSize: '11px',
                               fontWeight: 900,
-                              color: isSelected ? 'var(--accent-cyan)' : '#fff',
-                              background: isSelected ? 'rgba(0, 210, 211, 0.25)' : 'rgba(255, 255, 255, 0.06)',
-                              padding: '1px 6px',
-                              borderRadius: '4px',
+                              color: isSelected ? '#ffffff' : 'var(--accent-cyan)',
+                              background: isSelected ? 'var(--accent-cyan)' : 'var(--accent-cyan-subtle)',
+                              padding: '2px 7px',
+                              borderRadius: '5px',
                               letterSpacing: '0.5px'
                             }}
                           >
-                            {t.code || t.name.split(' ')[0]}
+                            {code}
                           </span>
                         </div>
 
@@ -1261,31 +1278,57 @@ function IntakeContent() {
                         </span>
                       </div>
 
-                      {/* Middle & Bottom: Test Name & Price */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '8px' }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <span
-                            style={{
-                              fontSize: '11.5px',
-                              fontWeight: 700,
-                              color: isSelected ? 'var(--accent-cyan)' : 'var(--text-main)',
-                              display: 'block',
-                              lineHeight: 1.25,
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                            }}
-                            title={t.name}
-                          >
-                            {t.name}
-                          </span>
-                        </div>
+                      {/* Middle: English Test Name */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <strong
+                          style={{
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            color: 'var(--text-main)',
+                            display: 'block',
+                            lineHeight: 1.3,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            fontFamily: 'system-ui, sans-serif',
+                          }}
+                          title={t.name}
+                        >
+                          {t.name}
+                        </strong>
+                      </div>
 
-                        <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                          <strong style={{ fontSize: '12px', color: isSelected ? 'var(--accent-cyan)' : 'var(--accent-emerald)', fontWeight: 900 }}>
-                            {t.price?.toLocaleString()} د.ع
-                          </strong>
-                        </div>
+                      {/* Bottom Row: Price & Action Add Button */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px', borderTop: '1px solid var(--border-subtle)' }}>
+                        <strong style={{ fontSize: '12px', color: 'var(--accent-cyan)', fontWeight: 800 }}>
+                          {t.price?.toLocaleString()} د.ع
+                        </strong>
+
+                        <span
+                          style={{
+                            fontSize: '10.5px',
+                            fontWeight: 700,
+                            color: isSelected ? '#ffffff' : 'var(--accent-cyan)',
+                            background: isSelected ? 'var(--accent-cyan)' : 'var(--accent-cyan-subtle)',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                          }}
+                        >
+                          {isSelected ? (
+                            <>
+                              <Check size={11} />
+                              <span>محدد</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus size={11} />
+                              <span>إضافة</span>
+                            </>
+                          )}
+                        </span>
                       </div>
                     </div>
                   );

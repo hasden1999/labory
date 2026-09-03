@@ -129,7 +129,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     fontSize: '12px',
                     fontWeight: isActive ? 800 : 600,
                     color: isActive ? 'var(--accent-cyan)' : 'var(--text-muted)',
-                    background: isActive ? 'rgba(6, 182, 212, 0.1)' : 'transparent',
+                    background: isActive ? 'var(--accent-cyan-subtle)' : 'transparent',
                     borderRadius: '8px',
                     textDecoration: 'none',
                     position: 'relative',
@@ -226,33 +226,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
 
-        {/* Right: Quick Tools (Theme Toggle, User Profile, Mobile Menu) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          
-          {/* Theme Toggle Icon */}
-          <button
-            onClick={toggleTheme}
-            style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '8px',
-              background: 'var(--bg-input)',
-              border: '1px solid var(--border-color)',
-              color: theme === 'dark' ? '#fbbf24' : '#0284c7',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-            title={theme === 'dark' ? 'التحويل للوضع النهاري (Light)' : 'التحويل للوضع الليلي (Dark)'}
-          >
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
+        {/* Right: Global Search Bar & Quick Tools (Accessible across all screens) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <GlobalQuickBar />
 
           {/* User Role Badge */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '20px', padding: '4px 10px', fontSize: '11px', color: 'var(--text-main)', fontWeight: 700 }}>
-            <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }}></div>
+            <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--accent-emerald)', boxShadow: '0 0 6px var(--accent-emerald)' }}></div>
             <span>مدير المختبر</span>
           </div>
 

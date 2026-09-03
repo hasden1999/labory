@@ -839,66 +839,25 @@ function ResultsContent() {
                 <button
                   type="button"
                   onClick={handleOpenAddTestsModal}
-                  className="btn-secondary"
-                  style={{ color: 'var(--accent-cyan)', borderColor: 'rgba(0,210,211,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
+                  style={{
+                    height: '34px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    padding: '0 14px',
+                    background: 'var(--accent-cyan-subtle)',
+                    border: '1.5px solid var(--accent-cyan)',
+                    color: 'var(--accent-cyan)',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 1px 3px rgba(37, 99, 235, 0.1)',
+                  }}
+                  title="إضافة تحليل إضافي طلبه الطبيب ودمجه مباشرة مع هذه العينة والتقرير السابق"
                 >
-                  <Plus size={13} />
-                  <span>إضافة فحوصات للعينة</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowUrineModal(true)}
-                  className="btn-secondary"
-                  style={{ color: '#0284c7', borderColor: 'rgba(2,132,199,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
-                  title="محطة فحص الإدرار العام G.U.E"
-                >
-                  <TestTube size={13} />
-                  <span><TestTube size={14} /> G.U.E</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowGseModal(true)}
-                  className="btn-secondary"
-                  style={{ color: '#d97706', borderColor: 'rgba(217,119,6,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
-                  title="محطة فحص الخروج العام G.S.E"
-                >
-                  <Microscope size={13} />
-                  <span><Microscope size={14} /> G.S.E</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowCbcModal(true)}
-                  className="btn-secondary"
-                  style={{ color: '#e11d48', borderColor: 'rgba(225,29,72,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
-                  title="محطة تعداد الدم الكامل CBC"
-                >
-                  <Activity size={13} />
-                  <span><Activity size={14} /> CBC</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowChemistryModal(true)}
-                  className="btn-secondary"
-                  style={{ color: '#8b5cf6', borderColor: 'rgba(139,92,246,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
-                  title="محطة الكيمياء السريرية والحسابات التلقائية"
-                >
-                  <Zap size={13} />
-                  <span><FlaskConical size={14} /> Chemistry</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowMicrobiologyModal(true)}
-                  className="btn-secondary"
-                  style={{ color: '#0d9488', borderColor: 'rgba(13,148,136,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
-                  title="محطة المزرعة وحساسية المضادات الحيوية"
-                >
-                  <Bug size={13} />
-                  <span><Bug size={14} /> Culture</span>
+                  <Plus size={15} />
+                  <span>➕ إضافة فحص ودمجه مع العينة (Add & Merge Test)</span>
                 </button>
 
                 <button
@@ -911,8 +870,8 @@ function ResultsContent() {
                   style={{ color: '#06b6d4', borderColor: 'rgba(6,182,212,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
                   title="طباعة ملصق الباركود الحراري 50x25mm لأنبوب التحليل"
                 >
-                  <Printer size={13} />
-                  <span><Barcode size={14} /> طباعة الباركود 50x25mm</span>
+                  <Barcode size={13} />
+                  <span>طباعة ملصق الباركود</span>
                 </button>
 
                 {/* Fast Pathologist Approval Hotkey Button */}
@@ -944,10 +903,10 @@ function ResultsContent() {
                   onClick={() => handleSaveResults(true)}
                   disabled={savingResults}
                   className="btn-cyan-primary"
-                  style={{ height: '32px', padding: '0 14px', fontSize: '11.5px' }}
+                  style={{ height: '32px', padding: '0 14px', fontSize: '11.5px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
                   <Printer size={13} />
-                  <span>SAVE & PRINT <Check size={12} /></span>
+                  <span>حفظ وطباعة التقرير</span>
                 </button>
 
                 {isDirty && (
@@ -1058,8 +1017,8 @@ function ResultsContent() {
                                 }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <TestTube size={15} />
-                                  <span>{currentVal ? '<Check size={12} /> تم إدخال فحص الإدرار (تعديل)' : '<TestTube size={14} /> فتح فورمة الإدرار G.U.E'}</span>
+                                  {currentVal ? <Check size={14} /> : <TestTube size={14} />}
+                                  <span>{currentVal ? 'تم إدخال فحص الإدرار (تعديل)' : 'فتح فورمة الإدرار G.U.E'}</span>
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>G.U.E</span>
                               </button>
@@ -1085,8 +1044,8 @@ function ResultsContent() {
                                 }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <Microscope size={15} />
-                                  <span>{currentVal ? '<Check size={12} /> تم إدخال فحص الخروج (تعديل)' : '<Microscope size={14} /> فتح فورمة الخروج G.S.E'}</span>
+                                  {currentVal ? <Check size={14} /> : <Microscope size={14} />}
+                                  <span>{currentVal ? 'تم إدخال فحص الخروج (تعديل)' : 'فتح فورمة الخروج G.S.E'}</span>
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>G.S.E</span>
                               </button>
@@ -1112,8 +1071,8 @@ function ResultsContent() {
                                 }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <Activity size={15} />
-                                  <span>{currentVal ? '<Check size={12} /> تم إدخال فحص الدم (تعديل)' : '<Activity size={14} /> فتح محطة الدمويات CBC'}</span>
+                                  {currentVal ? <Check size={14} /> : <Activity size={14} />}
+                                  <span>{currentVal ? 'تم إدخال فحص الدم (تعديل)' : 'فتح محطة الدمويات CBC'}</span>
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>CBC</span>
                               </button>
@@ -1139,8 +1098,8 @@ function ResultsContent() {
                                 }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <Bug size={15} />
-                                  <span>{currentVal ? '<Check size={12} /> تم إدخال المزرعة (تعديل)' : '<Bug size={14} /> فتح محطة المزرعة Culture'}</span>
+                                  {currentVal ? <Check size={14} /> : <Bug size={14} />}
+                                  <span>{currentVal ? 'تم إدخال المزرعة (تعديل)' : 'فتح محطة المزرعة Culture'}</span>
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>Culture</span>
                               </button>
@@ -1166,8 +1125,8 @@ function ResultsContent() {
                                 }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <Zap size={15} />
-                                  <span>{currentVal ? '<Check size={12} /> تم إدخال فحص الكيمياء (تعديل)' : '<FlaskConical size={14} /> فتح محطة الكيمياء السريرية'}</span>
+                                  {currentVal ? <Check size={14} /> : <FlaskConical size={14} />}
+                                  <span>{currentVal ? 'تم إدخال فحص الكيمياء (تعديل)' : 'فتح محطة الكيمياء السريرية'}</span>
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>{st.test?.code || 'CHEM'}</span>
                               </button>

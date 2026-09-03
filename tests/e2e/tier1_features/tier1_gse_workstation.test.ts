@@ -83,4 +83,52 @@ describe('Tier 1: G.S.E Specialized Workstation', () => {
     expect(serializedReport).toContain('Active amoebic dysentery');
   });
 
+  test('R2.6: Dynamic filtering of Nil digestion residues and support for ++++ (4+) & Full Field', () => {
+    // 1. Clean normal scenario
+    const cleanSample = {
+      pusCells: '0-2',
+      rbcs: '0-1',
+      muscleFibers: 'Nil',
+      starchGranules: 'Nil',
+      fatGlobules: 'Nil',
+      vegetableCells: 'Nil',
+      parasites: []
+    };
+
+    const cleanResidues = [
+      cleanSample.muscleFibers !== 'Nil' && `Muscle Fibers: ${cleanSample.muscleFibers}`,
+      cleanSample.starchGranules !== 'Nil' && `Starch: ${cleanSample.starchGranules}`,
+      cleanSample.fatGlobules !== 'Nil' && `Fat: ${cleanSample.fatGlobules}`,
+      cleanSample.vegetableCells !== 'Nil' && `Vegetable: ${cleanSample.vegetableCells}`
+    ].filter(Boolean);
+
+    // Negative elements MUST NOT appear in clean report
+    expect(cleanResidues.length).toBe(0);
+
+    // 2. Severe scenario with ++++ and Full Field
+    const severeSample = {
+      pusCells: '40-50',
+      rbcs: 'Full Field',
+      muscleFibers: '++++',
+      starchGranules: 'Full Field',
+      fatGlobules: 'Nil',
+      vegetableCells: 'Nil',
+      parasites: [
+        { organism: 'Entamoeba histolytica', stage: 'Trophozoite', severity: '++++' },
+        { organism: 'Giardia lamblia', stage: 'Trophozoite', severity: 'Full Field' }
+      ]
+    };
+
+    const severeResidues = [
+      severeSample.muscleFibers !== 'Nil' && `Muscle Fibers: ${severeSample.muscleFibers}`,
+      severeSample.starchGranules !== 'Nil' && `Starch: ${severeSample.starchGranules}`,
+      severeSample.fatGlobules !== 'Nil' && `Fat: ${severeSample.fatGlobules}`,
+      severeSample.vegetableCells !== 'Nil' && `Vegetable: ${severeSample.vegetableCells}`
+    ].filter(Boolean);
+
+    expect(severeResidues).toEqual(['Muscle Fibers: ++++', 'Starch: Full Field']);
+    expect(severeSample.parasites[0].severity).toBe('++++');
+    expect(severeSample.parasites[1].severity).toBe('Full Field');
+  });
+
 });
