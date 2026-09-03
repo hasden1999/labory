@@ -319,6 +319,30 @@ export async function GET(request: Request, { params }: { params: { id: string }
     `);
   }
 
+  // Helper: Clinical Finding Badge with strict Left-to-Right layout and Bidi isolation
+  const renderClinicalFindingBadge = (p: string, forceAbnormal = false) => {
+    const isAbn = forceAbnormal || 
+      p.includes('1+') || p.includes('2+') || p.includes('3+') || p.includes('4+') || 
+      p.includes('Positive') || p.includes('+++') || p.includes('++') || 
+      p.includes('Full') || p.includes('Bloody') || 
+      p.includes('15-20') || p.includes('25-35') || p.includes('30-40') || p.includes('40-50');
+
+    const colonIdx = p.indexOf(':');
+    let innerHtml = '';
+    if (colonIdx > 0) {
+      const key = p.substring(0, colonIdx).trim();
+      const val = p.substring(colonIdx + 1).trim();
+      innerHtml = `<span style="color: ${isAbn ? '#991b1b' : '#64748b'}; font-weight: 700; white-space: nowrap;">${escapeHtml(key)}:</span> <span style="color: ${isAbn ? '#b91c1c' : '#0f172a'}; font-weight: 800; unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(val)}</span>`;
+    } else {
+      innerHtml = `<span style="color: ${isAbn ? '#b91c1c' : '#0f172a'}; font-weight: 800; unicode-bidi: isolate;">${escapeHtml(p)}</span>`;
+    }
+
+    const bg = isAbn ? '#fef2f2' : '#f8fafc';
+    const bdr = isAbn ? '#fca5a5' : '#e2e8f0';
+
+    return `<div style="background: ${bg}; border: 1px solid ${bdr}; padding: 6px 10px; border-radius: 4px; font-size: 11.5px; text-align: left; direction: ltr; unicode-bidi: isolate; display: flex; align-items: center; justify-content: flex-start;">${innerHtml}</div>`;
+  };
+
   // 2. Dedicated General Urine Examination (G.U.E) Page
   for (const gue of gueTests) {
     const rawVal = gue.resultValue ? String(gue.resultValue) : '';
@@ -355,46 +379,40 @@ export async function GET(request: Request, { params }: { params: { id: string }
         <div style="margin-bottom: 16px;">
           <!-- Physical Examination Section -->
           <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between;">
+            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
               <span>PHYSICAL EXAMINATION</span>
-              <span style="color: #64748b; font-weight: normal;">الفحص الفيزيائي / العيني</span>
+              <span style="color: #64748b; font-weight: normal;" dir="rtl">الفحص الفيزيائي / العيني</span>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;">
-              ${physicalParts.length > 0 ? physicalParts.map(p => `<div style="background: #f1f5f9; padding: 6px 10px; border-radius: 4px; border: 1px solid #e2e8f0; font-weight: 600;">${escapeHtml(p)}</div>`).join('') : '<div style="color: #94a3b8;">Pending (قيد الفحص)</div>'}
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
+              ${physicalParts.length > 0 ? physicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
             </div>
           </div>
 
           <!-- Chemical Examination Section -->
           <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between;">
+            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
               <span>CHEMICAL EXAMINATION</span>
-              <span style="color: #64748b; font-weight: normal;">الفحص الكيميائي</span>
+              <span style="color: #64748b; font-weight: normal;" dir="rtl">الفحص الكيميائي</span>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;">
-              ${chemicalParts.length > 0 ? chemicalParts.map(p => {
-                const isAbn = p.includes('1+') || p.includes('2+') || p.includes('3+') || p.includes('4+') || p.includes('Positive') || p.includes('++');
-                return `<div style="background: ${isAbn ? '#fef2f2' : '#f8fafc'}; color: ${isAbn ? '#b91c1c' : '#1e293b'}; font-weight: ${isAbn ? '800' : '600'}; padding: 6px 10px; border-radius: 4px; border: 1px solid ${isAbn ? '#fca5a5' : '#e2e8f0'};">${escapeHtml(p)}</div>`;
-              }).join('') : '<div style="color: #94a3b8;">Pending (قيد الفحص)</div>'}
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
+              ${chemicalParts.length > 0 ? chemicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
             </div>
           </div>
 
           <!-- Microscopic Examination Section -->
           <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between;">
+            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
               <span>MICROSCOPIC EXAMINATION (HPF)</span>
-              <span style="color: #64748b; font-weight: normal;">الفحص المجهري المخبري</span>
+              <span style="color: #64748b; font-weight: normal;" dir="rtl">الفحص المجهري المخبري</span>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;">
-              ${microParts.length > 0 ? microParts.map(p => {
-                const isAbn = p.includes('15-20') || p.includes('25-35') || p.includes('30-40') || p.includes('40-50') || p.includes('Full') || p.includes('Bloody') || p.includes('+++') || p.includes('++');
-                return `<div style="background: ${isAbn ? '#fef2f2' : '#f8fafc'}; color: ${isAbn ? '#b91c1c' : '#1e293b'}; font-weight: ${isAbn ? '800' : '600'}; padding: 6px 10px; border-radius: 4px; border: 1px solid ${isAbn ? '#fca5a5' : '#e2e8f0'};">${escapeHtml(p)}</div>`;
-              }).join('') : '<div style="color: #94a3b8;">Pending (قيد الفحص)</div>'}
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
+              ${microParts.length > 0 ? microParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
             </div>
           </div>
 
           ${noteText ? `
-            <div style="background: #f8fafc; border-left: 4px solid ${primaryCol}; padding: 8px 12px; font-size: 11px; color: #334155; border-radius: 0 6px 6px 0;">
-              <strong>Clinical Note / ملاحظات الفحص:</strong> ${escapeHtml(noteText)}
+            <div style="background: #f8fafc; border-left: 4px solid ${primaryCol}; padding: 8px 12px; font-size: 11px; color: #334155; border-radius: 0 6px 6px 0; text-align: left; direction: ltr;">
+              <strong>Clinical Note:</strong> <span style="unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(noteText)}</span>
             </div>
           ` : ''}
         </div>
@@ -444,24 +462,24 @@ export async function GET(request: Request, { params }: { params: { id: string }
         <div style="margin-bottom: 16px;">
           <!-- Physical Examination Section -->
           <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b45309; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between;">
+            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b45309; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
               <span>PHYSICAL EXAMINATION</span>
-              <span style="color: #64748b; font-weight: normal;">الفحص الفيزيائي / القوام واللون</span>
+              <span style="color: #64748b; font-weight: normal;" dir="rtl">الفحص الفيزيائي / القوام واللون</span>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;">
-              ${physicalParts.length > 0 ? physicalParts.map(p => `<div style="background: #f1f5f9; padding: 6px 10px; border-radius: 4px; border: 1px solid #e2e8f0; font-weight: 600;">${escapeHtml(p)}</div>`).join('') : '<div style="color: #94a3b8;">Pending (قيد الفحص)</div>'}
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
+              ${physicalParts.length > 0 ? physicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
             </div>
           </div>
 
           <!-- Occult Blood FOBT Section -->
           ${fobtVal ? `
             <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-              <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b91c1c; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between;">
+              <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b91c1c; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
                 <span>OCCULT BLOOD (F.O.B.T)</span>
-                <span style="color: #64748b; font-weight: normal;">فحص الدم الخفي</span>
+                <span style="color: #64748b; font-weight: normal;" dir="rtl">فحص الدم الخفي</span>
               </div>
-              <div style="padding: 12px;">
-                <div style="background: ${fobtVal.includes('Positive') ? '#fef2f2' : '#f0fdf4'}; color: ${fobtVal.includes('Positive') ? '#b91c1c' : '#15803d'}; font-weight: 800; padding: 6px 12px; border-radius: 6px; border: 1px solid ${fobtVal.includes('Positive') ? '#fca5a5' : '#bbf7d0'}; font-size: 12px; display: inline-block;">
+              <div style="padding: 12px;" dir="ltr">
+                <div style="background: ${fobtVal.includes('Positive') ? '#fef2f2' : '#f0fdf4'}; color: ${fobtVal.includes('Positive') ? '#b91c1c' : '#15803d'}; font-weight: 800; padding: 6px 12px; border-radius: 6px; border: 1px solid ${fobtVal.includes('Positive') ? '#fca5a5' : '#bbf7d0'}; font-size: 12px; display: inline-block; text-align: left; direction: ltr;">
                   ${escapeHtml(fobtVal)}
                 </div>
               </div>
@@ -470,31 +488,31 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
           <!-- Microscopic Examination Section -->
           <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b45309; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between;">
+            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b45309; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
               <span>MICROSCOPIC EXAMINATION (HPF)</span>
-              <span style="color: #64748b; font-weight: normal;">الفحص المجهري للخروج</span>
+              <span style="color: #64748b; font-weight: normal;" dir="rtl">الفحص المجهري للخروج</span>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;">
-              ${microParts.length > 0 ? microParts.map(p => `<div style="background: #f1f5f9; padding: 6px 10px; border-radius: 4px; border: 1px solid #e2e8f0; font-weight: 600;">${escapeHtml(p)}</div>`).join('') : '<div style="color: #94a3b8;">Pending (قيد الفحص)</div>'}
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
+              ${microParts.length > 0 ? microParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
             </div>
           </div>
 
           <!-- Parasitology & Helminths Section -->
           ${paraParts.length > 0 ? `
             <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-              <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #7e22ce; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between;">
+              <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #7e22ce; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
                 <span>PARASITOLOGY & HELMINTHS</span>
-                <span style="color: #64748b; font-weight: normal;">الطفيليات والديدان وبيوضها</span>
+                <span style="color: #64748b; font-weight: normal;" dir="rtl">الطفيليات والديدان وبيوضها</span>
               </div>
-              <div style="padding: 12px; font-size: 11.5px;">
-                ${paraParts.map(p => `<div style="background: #fffbeb; color: #b45309; font-weight: 700; padding: 6px 10px; border-radius: 4px; border: 1px solid #fde68a; margin-bottom: 4px;">${escapeHtml(p)}</div>`).join('')}
+              <div style="padding: 12px; font-size: 11.5px;" dir="ltr">
+                ${paraParts.map(p => renderClinicalFindingBadge(p, !p.startsWith('Nil'))).join('')}
               </div>
             </div>
           ` : ''}
 
           ${noteText ? `
-            <div style="background: #f8fafc; border-left: 4px solid #b45309; padding: 8px 12px; font-size: 11px; color: #334155; border-radius: 0 6px 6px 0;">
-              <strong>Clinical Note / ملاحظات الفحص:</strong> ${escapeHtml(noteText)}
+            <div style="background: #f8fafc; border-left: 4px solid #b45309; padding: 8px 12px; font-size: 11px; color: #334155; border-radius: 0 6px 6px 0; text-align: left; direction: ltr;">
+              <strong>Clinical Note:</strong> <span style="unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(noteText)}</span>
             </div>
           ` : ''}
         </div>
