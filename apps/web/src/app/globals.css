@@ -1,48 +1,49 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Cairo:wght@400;600;700;800;900&display=swap');
 
-:root, [data-theme="dark"] {
-  /* Pixel-Perfect Mockup Colors */
-  --bg-primary: #0b0f17;
-  --bg-secondary: #121824;
-  --bg-card: #151b26;
-  --bg-card-hover: #1b2333;
-  --bg-card-subtle: #0e1420;
-  --bg-input: #0f1522;
-  --bg-input-focus: #131c2d;
+:root, [data-theme="light"] {
+  /* Clean Clinical Light Theme */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --bg-card-subtle: #f8fafc;
+  --bg-input: #ffffff;
+  --bg-input-focus: #ffffff;
+  --bg-input-deep: #f8fafc;
   
-  --border-color: #1f293d;
-  --border-subtle: #182233;
-  --border-focus: #00d2d3;
-  --border-glow: rgba(8, 145, 178, 0.2);
-  --badge-ready-text: #34d399;
-  --badge-received-text: #38bdf8;
-  --badge-urgent-text: #f87171;
+  --border-color: #e2e8f0;
+  --border-subtle: #f1f5f9;
+  --border-focus: #2563eb;
+  --border-glow: rgba(37, 99, 235, 0.15);
   
-  --text-main: #f1f5f9;
-  --text-muted: #8e9db2;
-  --text-dim: #5a6b82;
-  --text-inverse: #0b0f17;
+  --badge-ready-text: #059669;
+  --badge-received-text: #0284c7;
+  --badge-urgent-text: #dc2626;
   
-  /* Mockup Accents */
-  --accent-cyan: #00d2d3;
-  --accent-cyan-hover: #00b4b5;
-  --accent-cyan-subtle: rgba(0, 210, 211, 0.15);
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --text-inverse: #ffffff;
   
-  --accent-teal: #059669;
-  --accent-emerald: #10b981;
+  /* Clinical Accents */
+  --accent-cyan: #2563eb;
+  --accent-cyan-hover: #1d4ed8;
+  --accent-cyan-subtle: rgba(37, 99, 235, 0.08);
+  
+  --accent-teal: #0d9488;
+  --accent-emerald: #059669;
   --accent-rose: #ef4444;
-  --accent-amber: #f59e0b;
+  --accent-amber: #d97706;
 
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
-  --color-success: #10b981;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --color-success: #059669;
   --color-info: #0284c7;
-  --bg-input-deep: #0e1420;
-  --bg-stat-row: rgba(239, 68, 68, 0.12);
-  --bg-stat-card: rgba(239, 68, 68, 0.06);
+  --bg-stat-row: rgba(220, 38, 38, 0.06);
+  --bg-stat-card: rgba(220, 38, 38, 0.03);
   
-  --table-header-bg: #1c2436;
-  --table-row-hover: rgba(0, 210, 211, 0.06);
+  --table-header-bg: #f8fafc;
+  --table-row-hover: rgba(37, 99, 235, 0.03);
 
   --font-family: 'Inter', 'Cairo', system-ui, -apple-system, sans-serif;
   --radius-sm: 8px;
@@ -50,47 +51,49 @@
   --radius-lg: 16px;
 }
 
-[data-theme="light"] {
-  --bg-primary: #f1f5f9;
-  --bg-secondary: #ffffff;
-  --bg-card: #ffffff;
-  --bg-card-hover: #f8fafc;
-  --bg-card-subtle: #f1f5f9;
-  --bg-input: #f8fafc;
-  --bg-input-focus: #ffffff;
+[data-theme="dark"] {
+  /* Soft Slate Navy Pro (Calm, low glare, no harsh neon) */
+  --bg-primary: #0b1120;
+  --bg-secondary: #0f172a;
+  --bg-card: #151f32;
+  --bg-card-hover: #1c2a42;
+  --bg-card-subtle: #0d1527;
+  --bg-input: #0f172a;
+  --bg-input-focus: #141f36;
+  --bg-input-deep: #0b1120;
   
-  --border-color: #cbd5e1;
-  --border-subtle: #e2e8f0;
-  --border-focus: #0284c7;
-  --border-glow: rgba(14, 116, 144, 0.15);
-  --badge-ready-text: #047857;
-  --badge-received-text: #0e7490;
-  --badge-urgent-text: #b91c1c;
+  --border-color: #1e293b;
+  --border-subtle: #172033;
+  --border-focus: #38bdf8;
+  --border-glow: rgba(56, 189, 248, 0.2);
   
-  --text-main: #0f172a;
-  --text-muted: #475569;
+  --badge-ready-text: #34d399;
+  --badge-received-text: #38bdf8;
+  --badge-urgent-text: #f87171;
+  
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
   --text-dim: #64748b;
-  --text-inverse: #ffffff;
+  --text-inverse: #0f172a;
   
-  --accent-cyan: #0284c7;
-  --accent-cyan-hover: #0369a1;
-  --accent-cyan-subtle: rgba(2, 132, 199, 0.12);
+  --accent-cyan: #38bdf8;
+  --accent-cyan-hover: #0284c7;
+  --accent-cyan-subtle: rgba(56, 189, 248, 0.12);
   
-  --accent-teal: #059669;
+  --accent-teal: #14b8a6;
   --accent-emerald: #10b981;
-  --accent-rose: #ef4444;
+  --accent-rose: #f43f5e;
   --accent-amber: #f59e0b;
 
-  --color-warning: #d97706;
-  --color-danger: #dc2626;
-  --color-success: #059669;
-  --color-info: #0284c7;
-  --bg-input-deep: #f8fafc;
-  --bg-stat-row: rgba(220, 38, 38, 0.08);
-  --bg-stat-card: rgba(220, 38, 38, 0.04);
+  --color-warning: #f59e0b;
+  --color-danger: #f43f5e;
+  --color-success: #10b981;
+  --color-info: #38bdf8;
+  --bg-stat-row: rgba(244, 63, 94, 0.1);
+  --bg-stat-card: rgba(244, 63, 94, 0.05);
   
-  --table-header-bg: #e2e8f0;
-  --table-row-hover: rgba(2, 132, 199, 0.05);
+  --table-header-bg: #111a2e;
+  --table-row-hover: rgba(56, 189, 248, 0.06);
 
   --font-family: 'Inter', 'Cairo', system-ui, -apple-system, sans-serif;
   --radius-sm: 8px;

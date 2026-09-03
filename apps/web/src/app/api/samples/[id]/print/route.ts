@@ -338,16 +338,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
     const isAbnormal = t.isAbnormal;
     return `
       <tr style="border-bottom: 1px solid #e2e8f0; page-break-inside: avoid;">
-        <td style="padding: 10px 12px; font-weight: 800; color: #0f172a;">
+        <td style="padding: 10px 12px; font-weight: 800; color: #0f172a; text-align: left;">
           ${testName}
           <div style="font-size: 11px; color: #64748b; font-weight: normal;">${testArabic}</div>
         </td>
-        <td style="padding: 10px 12px; font-weight: 700; color: ${isAbnormal ? '#dc2626' : '#0f172a'};">
+        <td style="padding: 10px 12px; font-weight: 700; color: ${isAbnormal ? '#dc2626' : '#0f172a'}; text-align: left;">
           ${displayValue}
         </td>
-        <td style="padding: 10px 12px; color: #475569; font-weight: 600;">${testUnit}</td>
-        <td style="padding: 10px 12px; color: #334155; font-weight: 600;">${testRef}</td>
-        <td style="padding: 10px 12px; font-size: 11px; color: ${isAbnormal ? '#dc2626' : '#16a34a'}; font-weight: 700;">
+        <td style="padding: 10px 12px; color: #475569; font-weight: 600; text-align: left;">${testUnit}</td>
+        <td style="padding: 10px 12px; color: #334155; font-weight: 600; text-align: left;">${testRef}</td>
+        <td style="padding: 10px 12px; font-size: 11px; color: ${isAbnormal ? '#dc2626' : '#16a34a'}; font-weight: 700; text-align: left;">
           ${isAbnormal ? 'ABNORMAL' : 'NORMAL'}
         </td>
       </tr>`;
@@ -503,14 +503,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
     </div>
 
     <!-- Test Results Table -->
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px;">
+    <table dir="ltr" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; text-align: left;">
       <thead>
         <tr class="table-header" style="background: #0f172a; color: #ffffff;">
-          <th style="padding: 8px 12px; text-align: right; border-radius: 6px 0 0 0;">الفحص المخبري (Test Name)</th>
-          <th style="padding: 8px 12px; text-align: right;">النتيجة (Result)</th>
-          <th style="padding: 8px 12px; text-align: right;">الوحدة (Unit)</th>
-          <th style="padding: 8px 12px; text-align: right;">المجال الطبيعي (Ref. Range)</th>
-          <th style="padding: 8px 12px; text-align: right; border-radius: 0 6px 0 0;">الحالة (Status)</th>
+          <th style="padding: 8px 12px; text-align: left; border-radius: 6px 0 0 0;">Test Name / Investigation (اسم التحليل)</th>
+          <th style="padding: 8px 12px; text-align: left;">Result (النتيجة)</th>
+          <th style="padding: 8px 12px; text-align: left;">Unit (الوحدة)</th>
+          <th style="padding: 8px 12px; text-align: left;">Reference Range (المجال الطبيعي)</th>
+          <th style="padding: 8px 12px; text-align: left; border-radius: 0 6px 0 0;">Status (الحالة)</th>
         </tr>
       </thead>
       <tbody>

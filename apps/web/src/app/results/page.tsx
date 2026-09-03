@@ -980,15 +980,15 @@ function ResultsContent() {
             </div>
 
             {/* Results Table (Image 2 Exact Layout) */}
-            <div style={{ overflowX: 'auto', flex: 1, border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-input-deep)' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px', textAlign: 'left' }}>
+            <div style={{ overflowX: 'auto', flex: 1, border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-input-deep)' }} dir="ltr">
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px', textAlign: 'left' }} dir="ltr">
                 <thead>
                   <tr style={{ background: '#1c2436', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    <th style={{ padding: '10px 14px' }}>PARAMETER</th>
-                    <th style={{ padding: '10px 14px', width: '220px' }}>RESULT</th>
-                    <th style={{ padding: '10px 14px' }}>RANGE</th>
-                    <th style={{ padding: '10px 14px' }}>UNITS</th>
-                    <th style={{ padding: '10px 14px' }}>STATUS</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left' }}>PARAMETER (TEST NAME)</th>
+                    <th style={{ padding: '10px 14px', width: '220px', textAlign: 'left' }}>RESULT</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left' }}>RANGE</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left' }}>UNITS</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left' }}>STATUS</th>
                   </tr>
                 </thead>
                 <tbody>
