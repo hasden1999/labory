@@ -7,34 +7,7 @@ import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useSearchParams } from 'next/navigation';
-import { 
-  FileText, 
-  Search, 
-  Printer, 
-  Save, 
-  AlertTriangle, 
-  Check, 
-  User, 
-  Clock, 
-  CheckCircle2, 
-  Share2, 
-  History, 
-  Calculator, 
-  FlaskConical, 
-  X, 
-  Eye, 
-  Cpu,
-  TestTube,
-  Plus,
-  MoreHorizontal,
-  ChevronDown,
-  Microscope,
-  Bug,
-  Activity,
-  Zap,
-  Sparkles,
-  MessageCircle
-} from 'lucide-react';
+import { FileText, Search, Printer, Save, AlertTriangle, Check, User, Clock, CheckCircle2, Share2, History, Calculator, FlaskConical, X, Eye, Cpu, TestTube, Plus, MoreHorizontal, ChevronDown, Microscope, Bug, Activity, Zap, Sparkles, MessageCircle, AlertOctagon, CircleAlert, Barcode } from 'lucide-react';
 import Link from 'next/link';
 import { useLab } from '../../components/LabContext';
 import UrineFormModal, { UrineAnalysisData } from '../../components/UrineFormModal';
@@ -308,12 +281,20 @@ function ResultsContent() {
       if (!isNaN(currentCHOL) && !isNaN(currentHDL) && !isNaN(currentTG) && currentTG >= 0 && currentTG < 400) {
         const ldlCalc = currentCHOL - currentHDL - (currentTG / 5);
         if (!isNaN(ldlCalc) && isFinite(ldlCalc)) {
-          const ldlVal = ldlCalc.toFixed(1);
-          nextResults[ldlTest.id] = {
-            ...nextResults[ldlTest.id],
-            resultValue: ldlVal,
-            isAbnormal: parseFloat(ldlVal) > 130,
-          };
+          if (ldlCalc < 10) {
+            nextResults[ldlTest.id] = {
+              ...nextResults[ldlTest.id],
+              resultValue: 'Direct LDL required (Calculated <10)',
+              isAbnormal: true,
+            };
+          } else {
+            const ldlVal = ldlCalc.toFixed(1);
+            nextResults[ldlTest.id] = {
+              ...nextResults[ldlTest.id],
+              resultValue: ldlVal,
+              isAbnormal: parseFloat(ldlVal) > 130,
+            };
+          }
         }
       }
     }
@@ -521,7 +502,7 @@ function ResultsContent() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '12px' }}>
             {([
               { id: 'ALL', label: 'الكل', count: statusCounts.ALL, variant: 'default' },
-              { id: 'URGENT', label: '🚨 STAT', count: statusCounts.URGENT, variant: 'stat' },
+              { id: 'URGENT', label: '<AlertOctagon size={12} /> STAT', count: statusCounts.URGENT, variant: 'stat' },
               { id: 'RECEIVED', label: 'مستلمة', count: statusCounts.RECEIVED, variant: 'default' },
               { id: 'IN_PROGRESS', label: 'قيد الفحص', count: statusCounts.IN_PROGRESS, variant: 'default' },
               { id: 'READY', label: 'جاهزة', count: statusCounts.READY, variant: 'ready' },
@@ -646,7 +627,7 @@ function ResultsContent() {
                     <div>
                       {s.isUrgent ? (
                         <span className="badge badge-urgent" style={{ fontSize: '9px', background: 'rgba(239, 68, 68, 0.25)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)' }}>
-                          🚨 STAT
+                          <AlertOctagon size={12} /> STAT
                         </span>
                       ) : isReady ? (
                         <span className="badge badge-ready" style={{ fontSize: '9.5px' }}>VALIDATED</span>
@@ -685,7 +666,7 @@ function ResultsContent() {
                   style={{ color: 'var(--accent-cyan)', borderColor: 'rgba(0,210,211,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
                 >
                   <Plus size={13} />
-                  <span>➕ Add Tests</span>
+                  <span><Plus size={14} /> Add Tests</span>
                 </button>
 
                 <button
@@ -696,7 +677,7 @@ function ResultsContent() {
                   title="محطة فحص الإدرار العام G.U.E"
                 >
                   <TestTube size={13} />
-                  <span>🧪 G.U.E</span>
+                  <span><TestTube size={14} /> G.U.E</span>
                 </button>
 
                 <button
@@ -707,7 +688,7 @@ function ResultsContent() {
                   title="محطة فحص الخروج العام G.S.E"
                 >
                   <Microscope size={13} />
-                  <span>🧫 G.S.E</span>
+                  <span><Microscope size={14} /> G.S.E</span>
                 </button>
 
                 <button
@@ -718,7 +699,7 @@ function ResultsContent() {
                   title="محطة تعداد الدم الكامل CBC"
                 >
                   <Activity size={13} />
-                  <span>🩸 CBC</span>
+                  <span><Activity size={14} /> CBC</span>
                 </button>
 
                 <button
@@ -729,7 +710,7 @@ function ResultsContent() {
                   title="محطة الكيمياء السريرية والحسابات التلقائية"
                 >
                   <Zap size={13} />
-                  <span>⚗️ Chemistry</span>
+                  <span><FlaskConical size={14} /> Chemistry</span>
                 </button>
 
                 <button
@@ -740,7 +721,7 @@ function ResultsContent() {
                   title="محطة المزرعة وحساسية المضادات الحيوية"
                 >
                   <Bug size={13} />
-                  <span>🦠 Culture</span>
+                  <span><Bug size={14} /> Culture</span>
                 </button>
 
                 <button
@@ -754,7 +735,7 @@ function ResultsContent() {
                   title="طباعة ملصق الباركود الحراري 50x25mm لأنبوب التحليل"
                 >
                   <Printer size={13} />
-                  <span>🏷️ طباعة الباركود 50x25mm</span>
+                  <span><Barcode size={14} /> طباعة الباركود 50x25mm</span>
                 </button>
 
                 <button
@@ -765,7 +746,7 @@ function ResultsContent() {
                   style={{ height: '32px', padding: '0 14px', fontSize: '11.5px' }}
                 >
                   <Printer size={13} />
-                  <span>SAVE & PRINT ✓</span>
+                  <span>SAVE & PRINT <Check size={12} /></span>
                 </button>
 
                 {selectedSample?.patient?.phone && (
@@ -870,7 +851,7 @@ function ResultsContent() {
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   <TestTube size={15} />
-                                  <span>{currentVal ? '✓ تم إدخال فحص الإدرار (تعديل)' : '🧪 فتح فورمة الإدرار G.U.E'}</span>
+                                  <span>{currentVal ? '<Check size={12} /> تم إدخال فحص الإدرار (تعديل)' : '<TestTube size={14} /> فتح فورمة الإدرار G.U.E'}</span>
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>G.U.E</span>
                               </button>
@@ -897,7 +878,7 @@ function ResultsContent() {
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   <Microscope size={15} />
-                                  <span>{currentVal ? '✓ تم إدخال فحص الخروج (تعديل)' : '🧫 فتح فورمة الخروج G.S.E'}</span>
+                                  <span>{currentVal ? '<Check size={12} /> تم إدخال فحص الخروج (تعديل)' : '<Microscope size={14} /> فتح فورمة الخروج G.S.E'}</span>
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>G.S.E</span>
                               </button>
@@ -924,7 +905,7 @@ function ResultsContent() {
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   <Activity size={15} />
-                                  <span>{currentVal ? '✓ تم إدخال فحص الدم (تعديل)' : '🩸 فتح محطة الدمويات CBC'}</span>
+                                  <span>{currentVal ? '<Check size={12} /> تم إدخال فحص الدم (تعديل)' : '<Activity size={14} /> فتح محطة الدمويات CBC'}</span>
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>CBC</span>
                               </button>
@@ -951,7 +932,7 @@ function ResultsContent() {
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   <Bug size={15} />
-                                  <span>{currentVal ? '✓ تم إدخال المزرعة (تعديل)' : '🦠 فتح محطة المزرعة Culture'}</span>
+                                  <span>{currentVal ? '<Check size={12} /> تم إدخال المزرعة (تعديل)' : '<Bug size={14} /> فتح محطة المزرعة Culture'}</span>
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>Culture</span>
                               </button>
@@ -978,7 +959,7 @@ function ResultsContent() {
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   <Zap size={15} />
-                                  <span>{currentVal ? '✓ تم إدخال فحص الكيمياء (تعديل)' : '⚗️ فتح محطة الكيمياء السريرية'}</span>
+                                  <span>{currentVal ? '<Check size={12} /> تم إدخال فحص الكيمياء (تعديل)' : '<FlaskConical size={14} /> فتح محطة الكيمياء السريرية'}</span>
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>{st.test?.code || 'CHEM'}</span>
                               </button>
@@ -1026,7 +1007,7 @@ function ResultsContent() {
                                   }}
                                 >
                                   <Zap size={12} />
-                                  <span>⚗️ محطة الكيمياء</span>
+                                  <span><FlaskConical size={14} /> محطة الكيمياء</span>
                                 </button>
                               </div>
                             ) : (
@@ -1063,11 +1044,11 @@ function ResultsContent() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                               {isPanic ? (
                                 <span style={{ color: 'var(--color-danger)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                  🔴 PANIC
+                                  <CircleAlert size={12} /> PANIC
                                 </span>
                               ) : isAbnormal ? (
                                 <span style={{ color: 'var(--color-warning)', fontWeight: 800 }}>
-                                  ⚠️ Abnormal
+                                  <AlertTriangle size={12} /> Abnormal
                                 </span>
                               ) : currentVal ? (
                                 <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>
@@ -1110,7 +1091,7 @@ function ResultsContent() {
                         {isPanic && (
                           <tr style={{ background: 'var(--bg-stat-row)' }}>
                             <td colSpan={5} style={{ padding: '6px 14px', color: 'var(--color-danger)', fontSize: '11.5px', fontWeight: 700 }}>
-                              ⚠️ PANIC LIMIT WARNING: {st.test?.name} value ({currentVal}) exceeds critical clinical threshold!
+                              <AlertTriangle size={12} /> PANIC LIMIT WARNING: {st.test?.name} value ({currentVal}) exceeds critical clinical threshold!
                             </td>
                           </tr>
                         )}
@@ -1304,7 +1285,7 @@ function ResultsContent() {
                 Cancel
               </button>
               <button type="button" onClick={handleConfirmAddTests} disabled={addingTests || selectedNewTests.length === 0} className="btn-cyan-primary">
-                {addingTests ? 'Adding...' : `Add ${selectedNewTests.length} Tests ✓`}
+                {addingTests ? 'Adding...' : `Add ${selectedNewTests.length} Tests <Check size={12} />`}
               </button>
             </div>
           </div>

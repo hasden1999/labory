@@ -7,33 +7,7 @@ import { useRouter } from 'next/navigation';
 import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
-import { 
-  LayoutDashboard, 
-  Plus, 
-  FileText, 
-  FlaskConical, 
-  Users, 
-  Search, 
-  Printer, 
-  Share2, 
-  Clock, 
-  AlertCircle, 
-  CheckCircle2, 
-  TrendingUp, 
-  DollarSign, 
-  CreditCard, 
-  Receipt, 
-  ChevronLeft, 
-  Activity, 
-  Flame, 
-  RefreshCw, 
-  Eye, 
-  Send,
-  X,
-  UserPlus,
-  FileSearch,
-  Check
-} from 'lucide-react';
+import { LayoutDashboard, Plus, FileText, FlaskConical, Users, Search, Printer, Share2, Clock, AlertCircle, CheckCircle2, TrendingUp, DollarSign, CreditCard, Receipt, ChevronLeft, Activity, Flame, RefreshCw, Eye, Send, X, UserPlus, FileSearch, Check, AlertOctagon, AlertTriangle } from 'lucide-react';
 import { DashboardData, DashboardSummary, Sample } from '../../types';
 
 export default function DashboardPage() {
@@ -312,7 +286,7 @@ export default function DashboardPage() {
           }}
         >
           <div>
-            <div style={{ fontSize: '11px', color: 'var(--accent-rose)', fontWeight: 800 }}>🚨 عينات إسعافية عاجلة (STAT)</div>
+            <div style={{ fontSize: '11px', color: 'var(--accent-rose)', fontWeight: 800 }}><AlertOctagon size={12} /> عينات إسعافية عاجلة (STAT)</div>
             <strong style={{ fontSize: '18px', color: 'var(--text-main)' }}>{summary.urgentPendingCount || 0}</strong>
           </div>
           <span className="btn-secondary" style={{ fontSize: '11px', padding: '3px 8px' }}>معالجة فورية</span>
@@ -332,7 +306,7 @@ export default function DashboardPage() {
           }}
         >
           <div>
-            <div style={{ fontSize: '11px', color: 'var(--accent-amber)', fontWeight: 800 }}>⚠️ إنذارات وقيم حرجة (Panic)</div>
+            <div style={{ fontSize: '11px', color: 'var(--accent-amber)', fontWeight: 800 }}><AlertTriangle size={12} /> إنذارات وقيم حرجة (Panic)</div>
             <strong style={{ fontSize: '18px', color: 'var(--text-main)' }}>{summary.criticalCount || 0}</strong>
           </div>
           <span className="btn-secondary" style={{ fontSize: '11px', padding: '3px 8px' }}>تدقيق</span>

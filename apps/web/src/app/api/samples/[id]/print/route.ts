@@ -73,7 +73,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const qrSvg = generateQrSvg(verifyUrl, 64);
 
   const testRowsHtml = (sample.tests || []).map((t: any) => {
-    let displayValue = t.resultValue || '<span style="color:#94a3b8;">Pending (قيد الفحص)</span>';
+    let displayValue = t.resultValue ? escapeHtml(t.resultValue) : '<span style="color:#94a3b8;">Pending (قيد الفحص)</span>';
+    const testName = escapeHtml(t.test?.name || t.testCode || 'Test');
+    const testArabic = escapeHtml(t.test?.arabicName || '');
+    const testUnit = escapeHtml(t.test?.unit || '-');
+    const testRef = escapeHtml(t.test?.refRangeText || '-');
     
     // -------------------------------------------------------------
     // 1. G.U.E Report Parser
@@ -335,16 +339,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
     return `
       <tr style="border-bottom: 1px solid #e2e8f0; page-break-inside: avoid;">
         <td style="padding: 10px 12px; font-weight: 800; color: #0f172a;">
-          ${t.test?.name || t.testCode || 'Test'}
-          <div style="font-size: 11px; color: #64748b; font-weight: normal;">${t.test?.arabicName || ''}</div>
+          ${testName}
+          <div style="font-size: 11px; color: #64748b; font-weight: normal;">${testArabic}</div>
         </td>
         <td style="padding: 10px 12px; font-weight: 700; color: ${isAbnormal ? '#dc2626' : '#0f172a'};">
           ${displayValue}
         </td>
-        <td style="padding: 10px 12px; color: #475569; font-weight: 600;">${t.test?.unit || '-'}</td>
-        <td style="padding: 10px 12px; color: #334155; font-weight: 600;">${t.test?.refRangeText || '-'}</td>
+        <td style="padding: 10px 12px; color: #475569; font-weight: 600;">${testUnit}</td>
+        <td style="padding: 10px 12px; color: #334155; font-weight: 600;">${testRef}</td>
         <td style="padding: 10px 12px; font-size: 11px; color: ${isAbnormal ? '#dc2626' : '#16a34a'}; font-weight: 700;">
-          ${isAbnormal ? '⚠️ Abnormal' : '✓ Normal'}
+          ${isAbnormal ? 'ABNORMAL' : 'NORMAL'}
         </td>
       </tr>`;
   }).join('');
@@ -390,6 +394,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const safePatientName = escapeHtml(patient.name);
   const safeDoctorName = escapeHtml(doctor.name);
+  const safeLabName = escapeHtml(settings.labName);
+  const safeLabSubtitle = escapeHtml(settings.labSubtitle);
+  const safeAddress = escapeHtml(settings.address);
+  const safePhone = escapeHtml(settings.phone);
+  const safeDocTitle = escapeHtml(settings.doctorTitle);
+  const safeDocName = escapeHtml(settings.doctorName);
+  const safeLicense = escapeHtml(settings.labLicense);
+  const safeFooter = escapeHtml(settings.reportFooter);
 
   const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -446,7 +458,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 </head>
 <body>
   <div class="print-btn-bar">
-    <button class="btn-print" onclick="window.print()">🖨️ طباعة التقرير (Print A4)</button>
+    <button class="btn-print" onclick="window.print()">طباعة التقرير (Print A4)</button>
   </div>
 
   <div class="${containerClass}">
@@ -458,9 +470,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
       <!-- Digital Header -->
       <div class="header-border" style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 14px; margin-bottom: 18px;">
         <div style="text-align: right;">
-          <h1 style="margin: 0; font-size: 20px; color: ${primaryCol}; font-weight: 900;">🧪 ${settings.labName}</h1>
-          <p style="margin: 3px 0 0 0; font-size: 11.5px; color: #64748b; font-weight: 600;">${settings.labSubtitle || ''}</p>
-          <p style="margin: 4px 0 0 0; font-size: 11px; color: #475569;">📍 ${settings.address || ''} | 📞 ${settings.phone || ''}</p>
+          <h1 style="margin: 0; font-size: 20px; color: ${primaryCol}; font-weight: 900;">${safeLabName}</h1>
+          <p style="margin: 3px 0 0 0; font-size: 11.5px; color: #64748b; font-weight: 600;">${safeLabSubtitle}</p>
+          <p style="margin: 4px 0 0 0; font-size: 11px; color: #475569;">العنوان: ${safeAddress} | هاتف: ${safePhone}</p>
         </div>
 
         <div style="display: flex; align-items: center; gap: 14px;">
@@ -472,9 +484,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
           ` : ''}
 
           <div style="text-align: left;" dir="ltr">
-            <div style="font-size: 13px; font-weight: 800; color: #0f172a;">${settings.doctorName || 'Laboratory Director'}</div>
-            <div style="font-size: 11px; color: #64748b;">${settings.doctorTitle || 'Consultant Clinical Pathologist'}</div>
-            <div style="font-size: 10px; color: #94a3b8;">License: ${settings.labLicense || 'MOH-2026'}</div>
+            <div style="font-size: 13px; font-weight: 800; color: #0f172a;">${safeDocName || 'Laboratory Director'}</div>
+            <div style="font-size: 11px; color: #64748b;">${safeDocTitle || 'Consultant Clinical Pathologist'}</div>
+            <div style="font-size: 10px; color: #94a3b8;">License: ${safeLicense || 'MOH-2026'}</div>
           </div>
         </div>
       </div>
@@ -483,11 +495,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
     <!-- Patient & Sample Meta Box -->
     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 12px;">
       <div><span style="color: #64748b;">اسم المريض:</span> <strong>${safePatientName}</strong></div>
-      <div><span style="color: #64748b;">العمر / الجنس:</span> <strong>${patient.age || '-'} سنة / ${patient.gender === 'FEMALE' ? 'أنثى ♀' : 'ذكر ♂'}</strong></div>
+      <div><span style="color: #64748b;">العمر / الجنس:</span> <strong>${patient.age || '-'} سنة / ${patient.gender === 'FEMALE' ? 'أنثى (Female)' : 'ذكر (Male)'}</strong></div>
       <div><span style="color: #64748b;">رقم العينة:</span> <strong style="color: ${primaryCol};">#${sample.sampleNumber}</strong></div>
       <div><span style="color: #64748b;">الطبيب المعالج:</span> <strong>${safeDoctorName}</strong></div>
       <div><span style="color: #64748b;">تاريخ الفحص:</span> <strong>${new Date(sample.createdAt).toLocaleDateString('ar-IQ')}</strong></div>
-      <div><span style="color: #64748b;">حالة التقرير:</span> <strong style="color: #16a34a;">معتمد نهائي ✓</strong></div>
+      <div><span style="color: #64748b;">حالة التقرير:</span> <strong style="color: #16a34a;">معتمد نهائي (Verified)</strong></div>
     </div>
 
     <!-- Test Results Table -->
@@ -509,8 +521,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
     <!-- Footer -->
     <div style="margin-top: 24px; border-top: 1px dashed #cbd5e1; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; color: #64748b;">
       <div>
-        <div>${settings.reportFooter || 'تم فحص وتدقيق التقرير إلكترونياً وهو معتمد رسمياً.'}</div>
-        ${isPreprinted ? '' : `<div style="margin-top: 2px; color: #94a3b8;">${settings.labName} • تشخيص مخبري معتمد</div>`}
+        <div>${safeFooter || 'تم فحص وتدقيق التقرير إلكترونياً وهو معتمد رسمياً.'}</div>
+        ${isPreprinted ? '' : `<div style="margin-top: 2px; color: #94a3b8;">${safeLabName} • تشخيص مخبري معتمد</div>`}
       </div>
 
       <div style="display: flex; align-items: center; gap: 14px;">
@@ -520,10 +532,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
             <div style="font-size: 9px; color: #64748b; margin-top: 2px;">تحقق إلكتروني</div>
           </div>
         ` : ''}
-        <div style="font-weight: 700; color: #0f172a; text-align: left;" dir="ltr">
-          <div>Approved by Pathologist ✍️</div>
-          <div style="font-size: 9px; color: #64748b;">Labryo Clinical LIS Validated</div>
-        </div>
+          <div style="font-weight: 700; color: #0f172a; text-align: left;" dir="ltr">
+            <div>Approved by Clinical Pathologist</div>
+            <div style="font-size: 9px; color: #64748b;">Labryo Clinical LIS Validated</div>
+          </div>
       </div>
     </div>
   </div>
@@ -532,6 +544,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   return new Response(html, {
     status: 200,
-    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    headers: { 
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+    },
   });
 }

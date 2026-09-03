@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import LabryoLogo from '../../components/LabryoLogo';
-import { FlaskConical, Lock, User, ShieldCheck, ArrowLeft, CheckCircle2, Sparkles } from 'lucide-react';
+import { FlaskConical, Lock, User, ShieldCheck, ArrowLeft, CheckCircle2, Sparkles, Check } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -137,7 +137,7 @@ export default function LoginPage() {
             className="btn-primary"
             style={{ width: '100%', marginTop: '6px', minHeight: '38px', fontSize: '13px' }}
           >
-            {loading ? 'جارٍ التحقق...' : 'تسجيل الدخول ✓'}
+            {loading ? 'جارٍ التحقق...' : 'تسجيل الدخول <Check size={12} />'}
           </button>
         </form>
 
@@ -165,7 +165,7 @@ export default function LoginPage() {
               className="btn-secondary"
               style={{ padding: '8px 10px', fontSize: '11.5px', flexDirection: 'column', alignItems: 'flex-start', gap: '2px', textAlign: 'right' }}
             >
-              <strong style={{ color: 'var(--accent-emerald)', fontSize: '12px' }}>🔬 فني المختبر</strong>
+              <strong style={{ color: 'var(--accent-emerald)', fontSize: '12px' }}>فني المختبر (Lab Tech)</strong>
               <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>tech / tech123</span>
             </button>
           </div>

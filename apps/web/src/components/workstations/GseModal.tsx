@@ -1,15 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  Check, 
-  Sparkles, 
-  Microscope,
-  Plus,
-  Trash2,
-  Activity
-} from 'lucide-react';
+import { X, Check, Sparkles, Microscope, Plus, Trash2, Activity, AlertOctagon, AlertTriangle } from 'lucide-react';
 import { useToast } from '../Toast';
 
 export interface ParasiteEntry {
@@ -243,12 +235,20 @@ export default function GseModal({
     toast.success('تم تطبيق حالة الزحار الأميبي الحاد (Amoebic Dysentery)', 'تطبيق سريع');
   };
 
+  function parseRangeMax(val: string): number {
+    if (val.includes('-')) {
+      const parts = val.split('-').map(s => parseInt(s.trim()));
+      return Math.max(...parts.filter(n => !isNaN(n)));
+    }
+    return parseInt(val) || 0;
+  }
+
   const isAbnormal = 
     data.fobt === 'Positive' ||
     data.fobt === 'Weakly Positive' ||
     data.parasites.length > 0 ||
-    parseInt(data.pusCells) > 5 ||
-    parseInt(data.rbcs) > 3 ||
+    parseRangeMax(data.pusCells) > 5 ||
+    parseRangeMax(data.rbcs) > 3 ||
     data.consistency.includes('Loose') ||
     data.consistency.includes('Watery') ||
     data.consistency.includes('Mucoid') ||
@@ -284,11 +284,11 @@ export default function GseModal({
                 <h2 className="text-lg font-black tracking-tight">محطة فحص الخروج العام (G.S.E Workstation)</h2>
                 {isAbnormal ? (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500/10 text-rose-600 border border-rose-200">
-                    ⚠️ غير طبيعي (Abnormal)
+                    <AlertTriangle size={12} /> غير طبيعي (Abnormal)
                   </span>
                 ) : (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-600 border border-emerald-200">
-                    ✓ طبيعي (Normal)
+                    <Check size={12} /> طبيعي (Normal)
                   </span>
                 )}
               </div>
@@ -403,9 +403,9 @@ export default function GseModal({
                             : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
                         }`}
                       >
-                        {opt === 'Negative' && '✓ سلبي (Negative)'}
-                        {opt === 'Weakly Positive' && '⚠️ إيجابي خفيف (+)'}
-                        {opt === 'Positive' && '🚨 إيجابي (Positive)'}
+                        {opt === 'Negative' && '<Check size={12} /> سلبي (Negative)'}
+                        {opt === 'Weakly Positive' && '<AlertTriangle size={12} /> إيجابي خفيف (+)'}
+                        {opt === 'Positive' && '<AlertOctagon size={12} /> إيجابي (Positive)'}
                       </button>
                     );
                   })}

@@ -1,16 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  Check, 
-  Sparkles, 
-  AlertTriangle,
-  RotateCcw,
-  Activity,
-  Calculator,
-  AlertCircle
-} from 'lucide-react';
+import { X, Check, Sparkles, AlertTriangle, RotateCcw, Activity, Calculator, AlertCircle, AlertOctagon } from 'lucide-react';
 import { useToast } from '../Toast';
 import { 
   validateDifferentialSum, 
@@ -91,7 +82,11 @@ export function serializeCbc(data: CbcAnalysisData): string {
   if (rbcVal > 0 && mcvVal > 0) {
     const mentzer = calculateMentzerIndex(mcvVal, rbcVal);
     if (mentzer) {
-      parts.push(`INDICES: Mentzer Index: ${mentzer.value} (${mentzer.interpretation})`);
+      if (mentzer.isApplicable === false) {
+        parts.push(`INDICES: Mentzer Index: ${mentzer.interpretation}`);
+      } else {
+        parts.push(`INDICES: Mentzer Index: ${mentzer.value} (${mentzer.interpretation})`);
+      }
     }
   }
 
@@ -304,15 +299,15 @@ export default function CbcModal({
                 <h2 className="text-lg font-black tracking-tight">محطة أمراض الدم وتعداد الدم الكامل (CBC Workstation)</h2>
                 {hasCriticalPanic ? (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-600 text-white animate-pulse">
-                    🚨 قيمة حرجة مهددة للحياة (CRITICAL PANIC)
+                    <AlertOctagon size={12} /> قيمة حرجة مهددة للحياة (CRITICAL PANIC)
                   </span>
                 ) : isAbnormal ? (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500/10 text-amber-600 border border-amber-200">
-                    ⚠️ غير طبيعي (Abnormal)
+                    <AlertTriangle size={12} /> غير طبيعي (Abnormal)
                   </span>
                 ) : (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-600 border border-emerald-200">
-                    ✓ طبيعي (Normal)
+                    <Check size={12} /> طبيعي (Normal)
                   </span>
                 )}
               </div>
@@ -550,7 +545,7 @@ export default function CbcModal({
                       : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 border-rose-300 animate-pulse'
                   }`}
                 >
-                  {diffSum}% {isDiffValid ? '✓ متطابق' : '⚠️ غير متوازن (يجب أن يكون 100%)'}
+                  {diffSum}% {isDiffValid ? '<Check size={12} /> متطابق' : '<AlertTriangle size={12} /> غير متوازن (يجب أن يكون 100%)'}
                 </span>
               </div>
             </div>

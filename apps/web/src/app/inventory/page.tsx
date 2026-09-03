@@ -7,21 +7,7 @@ import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import ConfirmModal from '../../components/ConfirmModal';
-import { 
-  Package, 
-  Plus, 
-  AlertTriangle, 
-  Clock, 
-  Trash2, 
-  X, 
-  Check,
-  Calendar,
-  AlertCircle,
-  Search,
-  ArrowUpRight,
-  ArrowDownLeft,
-  CheckCircle2
-} from 'lucide-react';
+import { Package, Plus, AlertTriangle, Clock, Trash2, X, Check, Calendar, AlertCircle, Search, ArrowUpRight, ArrowDownLeft, CheckCircle2, AlertOctagon } from 'lucide-react';
 
 export default function InventoryPage() {
   const toast = useToast();
@@ -323,11 +309,11 @@ export default function InventoryPage() {
 
                       <td>
                         {isExpired ? (
-                          <span className="badge badge-urgent">🚨 منتهي الصلاحية</span>
+                          <span className="badge badge-urgent"><AlertOctagon size={12} /> منتهي الصلاحية</span>
                         ) : isExpiring ? (
-                          <span className="badge badge-progress">⚠️ ينتهي قريباً</span>
+                          <span className="badge badge-progress"><AlertTriangle size={12} /> ينتهي قريباً</span>
                         ) : (
-                          <span className="badge badge-ready">✓ سليم وصالح</span>
+                          <span className="badge badge-ready"><Check size={12} /> سليم وصالح</span>
                         )}
                       </td>
 

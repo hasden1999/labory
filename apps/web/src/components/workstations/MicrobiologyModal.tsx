@@ -1,17 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  Check, 
-  Sparkles, 
-  RotateCcw,
-  Bug,
-  ShieldAlert,
-  Plus,
-  Trash2,
-  Activity
-} from 'lucide-react';
+import { X, Check, Sparkles, RotateCcw, Bug, ShieldAlert, Plus, Trash2, Activity, AlertTriangle } from 'lucide-react';
 import { useToast } from '../Toast';
 
 export interface AntibioticSensitivityItem {
@@ -283,11 +273,11 @@ export default function MicrobiologyModal({
                 <h2 className="text-lg font-black tracking-tight">محطة الميكروبيولوجي ومزرعة الحساسية (Microbiology & Antibiogram)</h2>
                 {isAbnormal ? (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500/10 text-rose-600 border border-rose-200">
-                    ⚠️ عزل بكتيري موجب (Positive Culture)
+                    <AlertTriangle size={12} /> عزل بكتيري موجب (Positive Culture)
                   </span>
                 ) : (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-600 border border-emerald-200">
-                    ✓ عينة عقيمة (Sterile / No Growth)
+                    <Check size={12} /> عينة عقيمة (Sterile / No Growth)
                   </span>
                 )}
               </div>

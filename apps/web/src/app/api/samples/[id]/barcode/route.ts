@@ -285,7 +285,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   </div>
 
   <div class="no-print-bar">
-    <span>🖨️ ملصق أنابيب حراري (50mm × 25mm Thermal Label)</span>
+    <span>ملصق أنابيب حراري (50mm × 25mm Thermal Label)</span>
     <button class="print-btn" onclick="window.print()">طباعة الملصق الآن (Print Label)</button>
   </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, AlertTriangle, Info, X, AlertOctagon } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info' | 'urgent';
 
@@ -51,7 +51,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const error = useCallback((msg: string, title = 'تنبيه خطأ') => showToast(msg, 'error', title, 5000), [showToast]);
   const warning = useCallback((msg: string, title = 'تنبيه') => showToast(msg, 'warning', title), [showToast]);
   const info = useCallback((msg: string, title = 'معلومة') => showToast(msg, 'info', title), [showToast]);
-  const urgent = useCallback((msg: string, title = '🚨 حالة إسعافية عاجلة') => showToast(msg, 'urgent', title, 6000), [showToast]);
+  const urgent = useCallback((msg: string, title = '<AlertOctagon size={12} /> حالة إسعافية عاجلة') => showToast(msg, 'urgent', title, 6000), [showToast]);
 
   return (
     <ToastContext.Provider value={{ showToast, success, error, warning, info, urgent }}>

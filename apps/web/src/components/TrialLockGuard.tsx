@@ -4,17 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { apiRequest } from '../lib/api';
 import { useToast } from './Toast';
-import { 
-  Lock, 
-  ShieldAlert, 
-  Copy, 
-  CheckCircle2, 
-  Smartphone, 
-  KeyRound, 
-  Sparkles, 
-  PhoneCall,
-  AlertTriangle
-} from 'lucide-react';
+import { Lock, ShieldAlert, Copy, CheckCircle2, Smartphone, KeyRound, Sparkles, PhoneCall, AlertTriangle, Check } from 'lucide-react';
 
 export default function TrialLockGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -236,7 +226,7 @@ export default function TrialLockGuard({ children }: { children: React.ReactNode
                 background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
               }}
             >
-              {activating ? 'جاري التحقق من المفتاح...' : 'تفعيل النسخة الدائمة ✓'}
+              {activating ? 'جاري التحقق من المفتاح...' : 'تفعيل النسخة الدائمة <Check size={12} />'}
             </button>
           </form>
 

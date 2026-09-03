@@ -57,7 +57,7 @@ export interface CalculationInputs {
 }
 
 export interface EgfrResult {
-  value: number;
+  value: number | null;
   stage: string;
   note: string;
 }
@@ -90,6 +90,7 @@ export interface HomaIrResult {
 export interface MentzerIndexResult {
   value: number;
   interpretation: string;
+  isApplicable?: boolean;
 }
 
 export interface CbcIndicesResult {
@@ -161,6 +162,15 @@ export function calculateEgfr(
     return { value: 0, stage: 'N/A', note: 'Invalid creatinine or age input' };
   }
 
+  if (age < 18) {
+    return { 
+      value: null, 
+      stage: 'N/A', 
+      note: 'Pediatric patient (age < 18). Adult CKD-EPI equation is not applicable. Use Bedside Schwartz formula: eGFR = (0.413 × Height_cm) / Creatinine_mg_dL' 
+    };
+  }
+
+
   const isFemale = isFemaleGender(gender);
   const kappa = isFemale ? 0.7 : 0.9;
   const alpha = isFemale ? -0.241 : -0.302;
@@ -223,6 +233,12 @@ export function calculateLdl(
     };
   }
   const ldl = tc - hdl - tg / 5;
+  if (ldl < 10) {
+    return {
+      value: null,
+      invalidReason: 'Calculated LDL < 10 mg/dL (clinically implausible) - Direct LDL measurement recommended per CLSI C56-A',
+    };
+  }
   return { value: Math.round(ldl * 10) / 10 };
 }
 
@@ -375,10 +391,19 @@ export function calculateMentzerIndex(mcv: number, rbc: number): MentzerIndexRes
     return { value: 0, interpretation: 'Indeterminate' };
   }
   const index = Math.round((mcv / rbc) * 10) / 10;
+  
+  if (mcv >= 80) {
+    return { 
+      value: index, 
+      interpretation: 'Not applicable - Normocytic RBC (MCV ≥ 80 fL). Mentzer index is only valid for microcytic anemia screening.', 
+      isApplicable: false 
+    };
+  }
+
   const interpretation =
     index < 13
-      ? 'Suggests Beta-Thalassemia Trait (< 13)'
-      : 'Suggests Iron Deficiency Anemia (>= 13)';
+      ? 'Suggests Beta-Thalassemia Trait'
+      : 'Suggests Iron Deficiency Anemia';
   return { value: index, interpretation };
 }
 

@@ -1,16 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  Check, 
-  Sparkles, 
-  AlertTriangle,
-  Calculator,
-  Activity,
-  Zap,
-  RotateCcw
-} from 'lucide-react';
+import { X, Check, Sparkles, AlertTriangle, Calculator, Activity, Zap, RotateCcw, AlertOctagon } from 'lucide-react';
 import { useToast } from '../Toast';
 import { 
   calculateAll,
@@ -323,15 +314,15 @@ export default function ChemistryModal({
                 <h2 className="text-lg font-black tracking-tight">محطة الكيمياء السريرية والغدد الصماء (Chemistry Workstation)</h2>
                 {hasCriticalPanic ? (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-600 text-white animate-pulse">
-                    🚨 قيمة خطيرة مهددة للحياة (PANIC VALUE)
+                    <AlertOctagon size={12} /> قيمة خطيرة مهددة للحياة (PANIC VALUE)
                   </span>
                 ) : isAbnormal ? (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500/10 text-amber-600 border border-amber-200">
-                    ⚠️ غير طبيعي (Abnormal)
+                    <AlertTriangle size={12} /> غير طبيعي (Abnormal)
                   </span>
                 ) : (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-600 border border-emerald-200">
-                    ✓ طبيعي (Normal)
+                    <Check size={12} /> طبيعي (Normal)
                   </span>
                 )}
               </div>
@@ -447,7 +438,7 @@ export default function ChemistryModal({
                 </div>
               ) : calcs.ldl?.invalidReason ? (
                 <div className="text-xs px-3 py-1 rounded-lg bg-rose-100 text-rose-700 font-bold border border-rose-200">
-                  ⚠️ يتعذر حساب LDL: {calcs.ldl.invalidReason}
+                  <AlertTriangle size={12} /> يتعذر حساب LDL: {calcs.ldl.invalidReason}
                 </div>
               ) : null}
             </div>

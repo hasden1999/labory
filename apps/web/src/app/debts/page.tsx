@@ -129,7 +129,7 @@ export default function DebtsPage() {
     }
   };
 
-  const totalOutstanding = debtors.reduce((acc, d) => acc + (d.currentBalance || 0), 0);
+  const totalOutstanding = debtors.reduce((acc, d) => acc + (d.remainingBalance || 0), 0);
 
   const filteredDebtors = useMemo(() => {
     return debtors.filter((d) => {
@@ -221,8 +221,8 @@ export default function DebtsPage() {
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{d.phone || '-'}</td>
                     <td>
-                      <span style={{ fontSize: '14px', fontWeight: 900, color: d.currentBalance > 0 ? 'var(--accent-rose)' : 'var(--accent-emerald)' }}>
-                        {d.currentBalance?.toLocaleString()} د.ع
+                      <span style={{ fontSize: '14px', fontWeight: 900, color: d.remainingBalance > 0 ? 'var(--accent-rose)' : 'var(--accent-emerald)' }}>
+                        {d.remainingBalance?.toLocaleString()} د.ع
                       </span>
                     </td>
                     <td style={{ color: 'var(--text-dim)', fontSize: '11.5px' }}>{d.notes || '-'}</td>
@@ -233,7 +233,7 @@ export default function DebtsPage() {
                           onClick={() => {
                             setSelectedDebtor(d);
                             setTxType('PAYMENT');
-                            setTxAmount(String(d.currentBalance > 0 ? d.currentBalance : ''));
+                            setTxAmount(String(d.remainingBalance > 0 ? d.remainingBalance : ''));
                             setShowTxModal(true);
                           }}
                           className="btn-success"
@@ -366,7 +366,7 @@ export default function DebtsPage() {
             <form onSubmit={handleRecordTransaction} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg-card-subtle)', borderRadius: '8px' }}>
                 <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>الدين الحالي القائم:</span>
-                <strong style={{ fontSize: '14px', color: 'var(--accent-rose)' }}>{selectedDebtor.currentBalance?.toLocaleString()} د.ع</strong>
+                <strong style={{ fontSize: '14px', color: 'var(--accent-rose)' }}>{selectedDebtor.remainingBalance?.toLocaleString()} د.ع</strong>
               </div>
 
               <div>
@@ -425,7 +425,7 @@ export default function DebtsPage() {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(244, 63, 94, 0.1)', borderRadius: '8px', border: '1px solid rgba(244, 63, 94, 0.3)', marginBottom: '14px' }}>
               <span style={{ fontWeight: 700, color: 'var(--accent-rose)' }}>الرصيد المتبقي الإجمالي:</span>
-              <strong style={{ fontSize: '16px', color: 'var(--text-main)' }}>{selectedDebtor.currentBalance?.toLocaleString()} د.ع</strong>
+              <strong style={{ fontSize: '16px', color: 'var(--text-main)' }}>{selectedDebtor.remainingBalance?.toLocaleString()} د.ع</strong>
             </div>
 
             <div className="data-table-container">

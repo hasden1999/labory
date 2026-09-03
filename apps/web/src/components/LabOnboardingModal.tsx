@@ -3,20 +3,7 @@
 import React, { useState } from 'react';
 import { useLab } from './LabContext';
 import { useToast } from './Toast';
-import { 
-  Building2, 
-  Sparkles, 
-  CheckCircle2, 
-  Layout, 
-  Phone, 
-  MapPin, 
-  UserCheck, 
-  Printer, 
-  ShieldCheck,
-  FileText,
-  X,
-  ArrowLeft
-} from 'lucide-react';
+import { Building2, Sparkles, CheckCircle2, Layout, Phone, MapPin, UserCheck, Printer, ShieldCheck, FileText, X, ArrowLeft, TestTube, Zap } from 'lucide-react';
 
 export default function LabOnboardingModal() {
   const { labProfile, updateLabProfile, showSetupModal, setShowSetupModal } = useLab();
@@ -87,7 +74,7 @@ export default function LabOnboardingModal() {
     },
     {
       id: 'MODERN',
-      title: '⚡ عصري حديث (Modern Tech)',
+      title: '<Zap size={14} /> عصري حديث (Modern Tech)',
       desc: 'ترويسة بتدرج فيروزي أنيق (Teal/Cyan Gradient) وبطاقات عصرية ورمز QR بارز للتحقق الرقمي.',
       badge: 'تصميم مبتكر',
       color: '#0d9488',
@@ -95,7 +82,7 @@ export default function LabOnboardingModal() {
     },
     {
       id: 'EXECUTIVE',
-      title: '💎 مؤسسي فخم (Executive Luxury)',
+      title: ' مؤسسي فخم (Executive Luxury)',
       desc: 'ترويسة كحلية ملكية (Navy & Gold) مع علامة مائية أمنية وتوقيع رقمي موثق للتقارير المتقدمة.',
       badge: 'فخم وموثق',
       color: '#1e3a8a',
@@ -330,9 +317,9 @@ export default function LabOnboardingModal() {
             </span>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0284c7', paddingBottom: '8px' }}>
               <div>
-                <h4 style={{ fontSize: '15px', fontWeight: 900, color: '#0369a1' }}>🧪 {labName}</h4>
+                <h4 style={{ fontSize: '15px', fontWeight: 900, color: '#0369a1' }}><TestTube size={14} /> {labName}</h4>
                 <p style={{ fontSize: '11px', color: '#64748b' }}>{labSubtitle}</p>
-                <p style={{ fontSize: '10px', color: '#475569', marginTop: '2px' }}>📍 {address} | 📞 {phone}</p>
+                <p style={{ fontSize: '10px', color: '#475569', marginTop: '2px' }}>العنوان: {address} | هاتف: {phone}</p>
               </div>
               <div style={{ textAlign: 'left' }}>
                 <h5 style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{doctorName}</h5>
@@ -360,7 +347,7 @@ export default function LabOnboardingModal() {
               style={{ padding: '10px 28px', fontSize: '14px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 16px rgba(6,182,212,0.3)' }}
             >
               <Sparkles size={18} />
-              <span>{saving ? 'جاري الحفظ والتطبيق...' : 'حفظ وبدء العمل بنسخة المختبر 🚀'}</span>
+              <span>{saving ? 'جاري الحفظ والتطبيق...' : 'حفظ وبدء العمل بنسخة المختبر '}</span>
             </button>
           </div>
         </form>

@@ -134,7 +134,7 @@ export default function StaffPage() {
                     <td style={{ color: 'var(--text-muted)' }}>{s.phone || '-'}</td>
                     <td>
                       {s.active ? (
-                        <span className="badge badge-ready">✓ مفعّل ونشط</span>
+                        <span className="badge badge-ready"><Check size={12} /> مفعّل ونشط</span>
                       ) : (
                         <span className="badge badge-progress" style={{ color: 'var(--text-dim)' }}>معطّل</span>
                       )}

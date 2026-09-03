@@ -7,26 +7,7 @@ import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useLab } from '../../components/LabContext';
-import { 
-  Settings as SettingsIcon, 
-  Save, 
-  Sparkles, 
-  Printer, 
-  CheckCircle2, 
-  Award, 
-  Phone, 
-  DollarSign, 
-  Building2,
-  Layout,
-  FileText,
-  Maximize2,
-  QrCode,
-  Sliders,
-  Palette,
-  Eye,
-  ShieldCheck,
-  Check
-} from 'lucide-react';
+import { Settings as SettingsIcon, Save, Sparkles, Printer, CheckCircle2, Award, Phone, DollarSign, Building2, Layout, FileText, Maximize2, QrCode, Sliders, Palette, Eye, ShieldCheck, Check, TestTube, Zap } from 'lucide-react';
 
 export default function SettingsPage() {
   const toast = useToast();
@@ -131,31 +112,31 @@ export default function SettingsPage() {
   const templates = [
     {
       id: 'CLASSIC',
-      title: '🏛️ كلاسيكي معتمد (Classic Hospital)',
+      title: 'كلاسيكي معتمد (Classic Hospital)',
       desc: 'التصميم الطبي المعتمد للمستشفيات، حدود زرقاء ملكية داكنة وجداول مريحة للقراءة.',
       color: '#0284c7',
     },
     {
       id: 'MODERN',
-      title: '⚡ عصري متدرج (Modern Tech Gradient)',
+      title: 'عصري متدرج (Modern Tech Gradient)',
       desc: 'ترويسة بتدرج فيروزي/سيان انسيابي وشارات نتائج ملونة تضفي طابعاً تكنولوجياً فائق التطور.',
       color: '#0d9488',
     },
     {
       id: 'EXECUTIVE',
-      title: '💎 مؤسسي فاخر (Executive Luxury)',
+      title: 'مؤسسي رسمي (Executive Luxury)',
       desc: 'تصميم ملكي كحلي مع إطارات ذهبية وعلامة مائية أمنية، موجه للمختبرات المركزية والاستشارية.',
       color: '#b45309',
     },
     {
       id: 'COMPACT',
-      title: '🌿 مدمج مقتصد (Compact Dual-Column)',
+      title: 'مدمج مقتصد (Compact Dual-Column)',
       desc: 'مخصص لتوفير الورق والأحبار، يعرض الفحوصات بكثافة بيانات عالية لمنع انقسام النتائج لعدة صفحات.',
       color: '#334155',
     },
     {
       id: 'SPECIALIZED',
-      title: '🔬 تخصصي متقدم (Specialized Multi-Part)',
+      title: 'تخصصي متقدم (Specialized Multi-Part)',
       desc: 'تصميم مقسم إلى كتل سريرية واضحة مخصصة للتحاليل الكبرى كالإدرار، الخروج، وزراعة الجراثيم.',
       color: '#e11d48',
     },
@@ -193,7 +174,7 @@ export default function SettingsPage() {
             style={{ padding: '0 18px', height: '36px', fontSize: '12px' }}
           >
             <Save size={15} />
-            <span>{saving ? 'جاري الحفظ...' : 'حفظ الإعدادات والتصميم ✓'}</span>
+            <span>{saving ? 'جاري الحفظ...' : 'حفظ الإعدادات والتصميم <Check size={12} />'}</span>
           </button>
         </div>
       </div>
@@ -731,9 +712,9 @@ export default function SettingsPage() {
                   alignItems: 'center'
                 }}>
                   <div>
-                    <h3 style={{ fontSize: '15px', fontWeight: 900, color: '#fff' }}>🧪 {labName}</h3>
+                    <h3 style={{ fontSize: '15px', fontWeight: 900, color: '#fff' }}><TestTube size={14} /> {labName}</h3>
                     <p style={{ fontSize: '10px', opacity: 0.9 }}>{labSubtitle}</p>
-                    <p style={{ fontSize: '9px', opacity: 0.8, marginTop: '2px' }}>📍 {address} | 📞 {phone}</p>
+                    <p style={{ fontSize: '9px', opacity: 0.8, marginTop: '2px' }}>العنوان: {address} | هاتف: {phone}</p>
                   </div>
                   <div style={{ textAlign: 'right', display: 'flex', gap: '8px', alignItems: 'center' }}>
                     {enableQrCode && qrCodePosition === 'HEADER' && (
@@ -753,7 +734,7 @@ export default function SettingsPage() {
                     <span style={{ fontSize: '9px', background: primaryColor, color: '#fff', padding: '1px 6px', borderRadius: '2px', fontWeight: 800 }}>OFFICIAL MEDICAL REPORT</span>
                     <h3 style={{ fontSize: '15px', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>🏛️ {labName}</h3>
                     <p style={{ fontSize: '10px', color: '#64748b' }}>{labSubtitle}</p>
-                    <p style={{ fontSize: '9px', color: '#475569' }}>📍 {address} | 📞 {phone}</p>
+                    <p style={{ fontSize: '9px', color: '#475569' }}>العنوان: {address} | هاتف: {phone}</p>
                   </div>
                   <div style={{ textAlign: 'right', display: 'flex', gap: '8px', alignItems: 'center' }}>
                     {enableQrCode && qrCodePosition === 'HEADER' && (
@@ -770,9 +751,9 @@ export default function SettingsPage() {
               ) : (
                 <div style={{ borderBottom: `2px solid ${primaryColor}`, paddingBottom: '8px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <h3 style={{ fontSize: '15px', fontWeight: 900, color: primaryColor }}>🧪 {labName}</h3>
+                    <h3 style={{ fontSize: '15px', fontWeight: 900, color: primaryColor }}><TestTube size={14} /> {labName}</h3>
                     <p style={{ fontSize: '10px', color: '#64748b', fontWeight: 600 }}>{labSubtitle}</p>
-                    <p style={{ fontSize: '9px', color: '#475569', marginTop: '2px' }}>📍 {address} | 📞 {phone}</p>
+                    <p style={{ fontSize: '9px', color: '#475569', marginTop: '2px' }}>العنوان: {address} | هاتف: {phone}</p>
                   </div>
                   <div style={{ textAlign: 'right', display: 'flex', gap: '8px', alignItems: 'center' }}>
                     {enableQrCode && qrCodePosition === 'HEADER' && (

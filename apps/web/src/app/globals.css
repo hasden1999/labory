@@ -13,7 +13,10 @@
   --border-color: #1f293d;
   --border-subtle: #182233;
   --border-focus: #00d2d3;
-  --border-glow: rgba(0, 210, 211, 0.35);
+  --border-glow: rgba(8, 145, 178, 0.2);
+  --badge-ready-text: #34d399;
+  --badge-received-text: #38bdf8;
+  --badge-urgent-text: #f87171;
   
   --text-main: #f1f5f9;
   --text-muted: #8e9db2;
@@ -59,7 +62,10 @@
   --border-color: #cbd5e1;
   --border-subtle: #e2e8f0;
   --border-focus: #0284c7;
-  --border-glow: rgba(2, 132, 199, 0.25);
+  --border-glow: rgba(14, 116, 144, 0.15);
+  --badge-ready-text: #047857;
+  --badge-received-text: #0e7490;
+  --badge-urgent-text: #b91c1c;
   
   --text-main: #0f172a;
   --text-muted: #475569;
@@ -146,7 +152,7 @@ body {
 /* Buttons */
 .btn-cyan-primary {
   background: var(--accent-cyan);
-  color: #000;
+  color: var(--text-inverse);
   font-weight: 800;
   font-size: 13px;
   border: none;
@@ -158,7 +164,7 @@ body {
   justify-content: center;
   gap: 8px;
   transition: all 0.15s ease;
-  box-shadow: 0 2px 10px rgba(0, 210, 211, 0.3);
+  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.2);
 }
 
 .btn-cyan-primary:hover {
@@ -256,20 +262,31 @@ body {
 
 .badge-ready {
   background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
+  color: var(--badge-ready-text);
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .badge-received {
   background: rgba(0, 210, 211, 0.15);
-  color: #00d2d3;
+  color: var(--badge-received-text);
   border: 1px solid rgba(0, 210, 211, 0.3);
 }
 
 .badge-urgent {
   background: rgba(239, 68, 68, 0.18);
-  color: #ef4444;
+  color: var(--badge-urgent-text);
   border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+/* Tabular figures for clinical result alignment */
+.result-value, .reference-range, .financial-amount, td[data-numeric] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Prevent RTL bracket inversion on reference ranges */
+.reference-range, .ltr-range {
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 /* Responsive grid */

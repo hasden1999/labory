@@ -111,6 +111,11 @@ describe('M2 Challenger: Friedewald Equation & Lipid Fractions', () => {
     const b399 = calculateLdl(200, 50, 399);
     expect(b399.value).toBe(70.2);
     expect(b399.invalidReason).toBeUndefined();
+
+    // Negative values
+    const neg = calculateLdl(-10, 50, 150);
+    expect(neg.value).toBeNull();
+    expect(neg.invalidReason).toContain('Invalid lipid panel values');
   });
 
   test('Automatic Invalidation when TG >= 400 mg/dL (Chylomicronemia safety rule)', () => {
@@ -246,6 +251,10 @@ describe('M2 Challenger: De Ritis, eAG, HOMA-IR, Mentzer Index & CBC Auto-Indice
     const ida = calculateMentzerIndex(68, 3.2);
     expect(ida.value).toBeCloseTo(21.3, 1);
     expect(ida.interpretation).toContain('Iron Deficiency Anemia');
+
+    // Not applicable (MCV >= 80)
+    const normalMcv = calculateMentzerIndex(85, 4.5);
+    expect(normalMcv.interpretation).toContain('Not applicable');
   });
 
   test('CBC Red Cell Indices & 5-Part Differential Sum Validator', () => {
@@ -463,8 +472,9 @@ describe('M2 Challenger: Historical Delta Check Engine', () => {
 
   test('Robust edge handling: zero previous value, empty strings, null inputs', () => {
     const zeroPrev = evaluateDeltaCheck('HGB', 12.0, 0);
-    expect(zeroPrev.isBreached).toBe(false);
-    expect(zeroPrev.message).toContain('Previous value is zero');
+    expect(zeroPrev.isBreached).toBe(true);
+    expect(zeroPrev.badgeLevel).toBe('WARNING');
+    expect(zeroPrev.message).toContain('New appearance from zero baseline - clinical review recommended');
 
     const emptyPrev = evaluateDeltaCheck('HGB', 12.0, '');
     expect(emptyPrev.hasPrevious).toBe(false);

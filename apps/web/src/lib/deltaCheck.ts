@@ -12,7 +12,7 @@
  * 5. Batch multi-analyte evaluation & Sample-to-History cross-comparator.
  */
 
-export type DeltaBadgeLevel = 'NORMAL' | 'SIGNIFICANT' | 'CRITICAL';
+export type DeltaBadgeLevel = 'NORMAL' | 'SIGNIFICANT' | 'CRITICAL' | 'WARNING';
 
 export interface DeltaCheckResult {
   hasPrevious: boolean;
@@ -25,7 +25,7 @@ export interface DeltaCheckResult {
   thresholdPercent?: number;
   criticalThresholdPercent?: number;
   badgeLevel: DeltaBadgeLevel;
-  direction?: 'increased' | 'decreased' | 'unchanged';
+  direction?: 'increased' | 'decreased' | 'unchanged' | 'UP' | 'DOWN';
   message?: string;
 }
 
@@ -131,12 +131,13 @@ export function evaluateDeltaCheck(
   previousDate?: string,
   previousSampleId?: string,
   customThreshold?: number,
-  customCriticalThreshold?: number
+  customCriticalThreshold?: number,
+  upperReference?: number
 ): DeltaCheckResult {
   const currNum = parseNumericValue(currentVal);
   const prevNum = parseNumericValue(previousVal);
 
-  if (prevNum === null || prevNum === 0 || currNum === null) {
+  if (prevNum === null || currNum === null) {
     return {
       hasPrevious: prevNum !== null,
       previousValue: previousVal,
@@ -145,9 +146,38 @@ export function evaluateDeltaCheck(
       currentValue: currentVal,
       isBreached: false,
       badgeLevel: 'NORMAL',
-      message: prevNum === null ? 'No previous record found' : 'Previous value is zero; delta cannot be calculated',
+      message: 'No previous record found',
     };
   }
+
+  if (prevNum === 0 && currNum > 0) {
+    if (upperReference !== undefined && currNum > upperReference) {
+      return {
+        hasPrevious: true,
+        previousValue: previousVal,
+        previousSampleId,
+        previousDate,
+        currentValue: currentVal,
+        isBreached: true,
+        badgeLevel: 'WARNING',
+        direction: 'UP',
+        message: 'New appearance from zero baseline exceeding upper reference - clinical review recommended'
+      };
+    }
+    
+    return {
+      hasPrevious: true,
+      previousValue: previousVal,
+      previousSampleId,
+      previousDate,
+      currentValue: currentVal,
+      isBreached: true,
+      badgeLevel: 'WARNING',
+      direction: 'UP',
+      message: 'New appearance from zero baseline - clinical review recommended'
+    };
+  }
+
 
   const delta = Math.abs(currNum - prevNum);
   const deltaPercent = Math.round((delta / Math.abs(prevNum)) * 1000) / 10;

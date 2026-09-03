@@ -8,28 +8,7 @@ import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import ConfirmModal from '../../components/ConfirmModal';
-import { 
-  Activity, 
-  Search, 
-  Plus, 
-  FileText, 
-  Printer, 
-  Share2, 
-  CheckCircle2, 
-  Clock, 
-  FlaskConical, 
-  AlertCircle, 
-  X, 
-  ChevronLeft, 
-  Send,
-  RefreshCw,
-  Eye,
-  Calendar,
-  Filter,
-  User,
-  History,
-  Check
-} from 'lucide-react';
+import { Activity, Search, Plus, FileText, Printer, Share2, CheckCircle2, Clock, FlaskConical, AlertCircle, X, ChevronLeft, Send, RefreshCw, Eye, Calendar, Filter, User, History, Check, AlertOctagon, Zap } from 'lucide-react';
 
 function SamplesContent() {
   const router = useRouter();
@@ -145,11 +124,11 @@ function SamplesContent() {
             <Activity size={18} color="var(--accent-cyan)" />
             <span>سجل العينات والطلبات اليومية</span>
             <span className="badge badge-received" style={{ fontSize: '11px', marginRight: '6px' }}>
-              {dateFilter === 'TODAY' ? '📅 كشف اليوم' : dateFilter === 'YESTERDAY' ? 'الأمس' : dateFilter === 'WEEK' ? 'الأسبوع الحالي' : dateFilter === 'MONTH' ? 'الشهر الحالي' : 'كافة السجلات'}
+              {dateFilter === 'TODAY' ? 'كشف اليوم' : dateFilter === 'YESTERDAY' ? 'الأمس' : dateFilter === 'WEEK' ? 'الأسبوع الحالي' : dateFilter === 'MONTH' ? 'الشهر الحالي' : 'كافة السجلات'}
             </span>
           </h1>
           <p className="page-subtitle">
-            متابعة مراحل العينات اللحظية: أخذ العينة 📥 ➔ جاري الفحص 🔬 ➔ جاهزة للطباعة ✅ ➔ تم تسليم التقرير 📤
+            متابعة مراحل العينات اللحظية: استلام العينة ➔ جاري الفحص ➔ جاهزة للطباعة ➔ تم تسليم التقرير
           </p>
         </div>
 
@@ -260,7 +239,7 @@ function SamplesContent() {
           className="stat-card cursor-pointer"
           style={{ padding: '10px 12px', cursor: 'pointer', border: statusFilter === 'IN_PROGRESS' ? '1px solid #f59e0b' : '1px solid var(--border-color)' }}
         >
-          <span className="stat-title" style={{ color: '#fbbf24' }}>🔬 جاري الفحص المخبري</span>
+          <span className="stat-title" style={{ color: '#fbbf24' }}>جاري الفحص المخبري</span>
           <strong className="stat-value" style={{ color: '#fbbf24' }}>{stats.inProgress}</strong>
           <span className="stat-desc">على الأجهزة أو الفحص اليدوي</span>
         </div>
@@ -270,7 +249,7 @@ function SamplesContent() {
           className="stat-card cursor-pointer"
           style={{ padding: '10px 12px', cursor: 'pointer', border: statusFilter === 'READY' ? '1px solid #10b981' : '1px solid var(--border-color)' }}
         >
-          <span className="stat-title" style={{ color: '#34d399' }}>✅ النتيجة جاهزة للطباعة</span>
+          <span className="stat-title" style={{ color: '#34d399' }}>النتيجة جاهزة للطباعة</span>
           <strong className="stat-value" style={{ color: '#34d399' }}>{stats.ready}</strong>
           <span className="stat-desc">جاهزة للتسليم للمريض</span>
         </div>
@@ -280,7 +259,7 @@ function SamplesContent() {
           className="stat-card cursor-pointer"
           style={{ padding: '10px 12px', cursor: 'pointer', border: statusFilter === 'DELIVERED' ? '1px solid var(--accent-blue)' : '1px solid var(--border-color)' }}
         >
-          <span className="stat-title" style={{ color: 'var(--accent-blue)' }}>📤 تم تسليم التقرير للمريض</span>
+          <span className="stat-title" style={{ color: 'var(--accent-blue)' }}>تم تسليم التقرير للمريض</span>
           <strong className="stat-value" style={{ color: 'var(--accent-blue)' }}>{stats.delivered}</strong>
           <span className="stat-desc">تم إنهاء الزيارة بنجاح</span>
         </div>
@@ -314,28 +293,28 @@ function SamplesContent() {
             className={`btn-secondary ${statusFilter === 'RECEIVED' ? 'active' : ''}`}
             style={{ padding: '4px 9px', fontSize: '11px', height: '30px' }}
           >
-            📥 تم أخذ العينة ({stats.received})
+            تم أخذ العينة ({stats.received})
           </button>
           <button
             onClick={() => setStatusFilter('IN_PROGRESS')}
             className={`btn-secondary ${statusFilter === 'IN_PROGRESS' ? 'active' : ''}`}
             style={{ padding: '4px 9px', fontSize: '11px', height: '30px' }}
           >
-            🔬 جاري الفحص ({stats.inProgress})
+            جاري الفحص ({stats.inProgress})
           </button>
           <button
             onClick={() => setStatusFilter('READY')}
             className={`btn-secondary ${statusFilter === 'READY' ? 'active' : ''}`}
             style={{ padding: '4px 9px', fontSize: '11px', height: '30px' }}
           >
-            ✅ جاهزة ({stats.ready})
+            جاهزة ({stats.ready})
           </button>
           <button
             onClick={() => setStatusFilter('DELIVERED')}
             className={`btn-secondary ${statusFilter === 'DELIVERED' ? 'active' : ''}`}
             style={{ padding: '4px 9px', fontSize: '11px', height: '30px' }}
           >
-            📤 تم التسليم للمريض ({stats.delivered})
+            تم التسليم ({stats.delivered})
           </button>
           {stats.urgent > 0 && (
             <button
@@ -343,7 +322,7 @@ function SamplesContent() {
               className={`btn-secondary ${statusFilter === 'URGENT' ? 'active' : ''}`}
               style={{ padding: '4px 9px', fontSize: '11px', height: '30px', color: '#ef4444', borderColor: '#ef4444' }}
             >
-              🚨 عاجل ({stats.urgent})
+              <AlertOctagon size={12} /> عاجل ({stats.urgent})
             </button>
           )}
         </div>
@@ -405,7 +384,7 @@ function SamplesContent() {
                         </strong>
                         {s.isUrgent && (
                           <span className="badge badge-urgent" style={{ fontSize: '9px', padding: '1px 3px' }}>
-                            🚨 عاجل
+                            <AlertOctagon size={12} /> عاجل
                           </span>
                         )}
                       </div>
@@ -445,7 +424,7 @@ function SamplesContent() {
                         {s.tests?.slice(0, 3).map((st: any) => (
                           <span key={st.id} className="badge badge-received" style={{ fontSize: '10px' }}>
                             {st.test?.name}
-                            {st.isAutoImported && <span style={{ color: '#10b981', marginRight: '2px' }}>⚡</span>}
+                            {st.isAutoImported && <span style={{ color: '#10b981', marginRight: '2px' }}><Zap size={14} /></span>}
                           </span>
                         ))}
                         {s.tests?.length > 3 && (
@@ -492,22 +471,22 @@ function SamplesContent() {
                     <td>
                       {s.status === 'RECEIVED' && (
                         <span className="badge badge-received">
-                          📥 تم أخذ العينة
+                          تم استلام العينة
                         </span>
                       )}
                       {s.status === 'IN_PROGRESS' && (
                         <span className="badge badge-in_progress">
-                          🔬 جاري الفحص
+                          جاري الفحص المخبري
                         </span>
                       )}
                       {s.status === 'READY' && (
                         <span className="badge badge-ready">
-                          ✅ النتيجة جاهزة
+                          جاهزة للاعتماد
                         </span>
                       )}
                       {s.status === 'DELIVERED' && (
                         <span className="badge badge-delivered">
-                          📤 تم تسليم التقرير للمريض
+                          تم تسليم التقرير
                         </span>
                       )}
                     </td>
@@ -535,7 +514,7 @@ function SamplesContent() {
                             style={{ padding: '3px 6px', fontSize: '10px', height: '26px', color: '#fbbf24', borderColor: '#fbbf24' }}
                             title="بدء الفحص المخبري"
                           >
-                            <span>بدء الفحص 🔬</span>
+                            <span>بدء الفحص</span>
                           </button>
                         )}
                         {s.status === 'IN_PROGRESS' && (
@@ -545,7 +524,7 @@ function SamplesContent() {
                             style={{ padding: '3px 6px', fontSize: '10px', height: '26px', color: '#34d399', borderColor: '#10b981' }}
                             title="اعتماد وجاهز للتسليم"
                           >
-                            <span>جاهزة ✅</span>
+                            <span>جاهزة للاعتماد</span>
                           </button>
                         )}
                         {s.status === 'READY' && (

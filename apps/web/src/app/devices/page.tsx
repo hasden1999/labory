@@ -7,24 +7,7 @@ import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import ConfirmModal from '../../components/ConfirmModal';
-import { 
-  Cpu, 
-  Plus, 
-  Activity, 
-  Zap, 
-  Trash2, 
-  Edit3, 
-  Layers, 
-  RefreshCw, 
-  Copy, 
-  Check, 
-  Terminal, 
-  Download, 
-  Play, 
-  X, 
-  FileText, 
-  Sparkles
-} from 'lucide-react';
+import { Cpu, Plus, Activity, Zap, Trash2, Edit3, Layers, RefreshCw, Copy, Check, Terminal, Download, Play, X, FileText, Sparkles, TestTube, AlertTriangle, Barcode } from 'lucide-react';
 
 export default function DevicesPage() {
   const toast = useToast();
@@ -306,7 +289,7 @@ export default function DevicesPage() {
       });
 
       toast.success(
-        `⚡ تم الإرسال بنجاح! تم استلام ${res.summary.totalItems} فحص ومطابقة ${res.summary.appliedItems} نتيجة بالعينة #${simSampleNumber}`
+        `<Zap size={14} /> تم الإرسال بنجاح! تم استلام ${res.summary.totalItems} فحص ومطابقة ${res.summary.appliedItems} نتيجة بالعينة #${simSampleNumber}`
       );
       setShowSimulateModal(false);
       fetchData();
@@ -521,8 +504,8 @@ export default function DevicesPage() {
                           </div>
                           <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'flex', gap: '8px' }}>
                             <span>🏭 {dev.brand}</span>
-                            <span>🏷️ {dev.model}</span>
-                            <span>🧪 {dev.category}</span>
+                            <span><Barcode size={14} /> {dev.model}</span>
+                            <span><TestTube size={14} /> {dev.category}</span>
                           </div>
                         </div>
 
@@ -551,7 +534,7 @@ export default function DevicesPage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <span style={{ color: 'var(--text-muted)' }}>المطابقة التلقائية:</span>
                           <span style={{ color: dev.autoMatchSample ? '#4ade80' : '#f87171', fontWeight: 700 }}>
-                            {dev.autoMatchSample ? '⚡ مفعّلة (تنزيل فوري)' : 'يدوية'}
+                            {dev.autoMatchSample ? '<Zap size={14} /> مفعّلة (تنزيل فوري)' : 'يدوية'}
                           </span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px', borderTop: '1px solid var(--border-color)', marginTop: '2px' }}>
@@ -616,7 +599,7 @@ export default function DevicesPage() {
                 <Activity size={16} color="var(--accent-cyan)" />
                 <strong style={{ fontSize: '13.5px', color: 'var(--text-main)' }}>سجل النتائج الواردة من الأجهزة لحظة بلحظة</strong>
               </div>
-              <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>يتم التحديث تلقائياً كل 10 ثوانٍ ⚡</span>
+              <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>يتم التحديث تلقائياً كل 10 ثوانٍ <Zap size={14} /></span>
             </div>
 
             {incomingResults.length === 0 ? (
@@ -660,7 +643,7 @@ export default function DevicesPage() {
                           </td>
                           <td style={{ padding: '10px 14px', fontWeight: 800, fontSize: '13px', color: item.isCritical ? '#f87171' : item.isAbnormal ? '#fbbf24' : '#fff' }}>
                             {item.resultValue}
-                            {item.isCritical && <span style={{ marginRight: '4px', color: '#f87171' }}>⚠️ حرج</span>}
+                            {item.isCritical && <span style={{ marginRight: '4px', color: '#f87171' }}><AlertTriangle size={12} /> حرج</span>}
                           </td>
                           <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{item.unit || '-'}</td>
                           <td style={{ padding: '10px 14px' }}>
@@ -674,7 +657,7 @@ export default function DevicesPage() {
                                 color: isApplied ? '#4ade80' : '#facc15',
                               }}
                             >
-                              {isApplied ? '✓ نزل بالعينة' : '⏳ معلق'}
+                              {isApplied ? '<Check size={12} /> نزل بالعينة' : '⏳ معلق'}
                             </span>
                           </td>
                           <td style={{ padding: '10px 14px' }}>
@@ -775,7 +758,7 @@ export default function DevicesPage() {
                 {!editingDeviceId && (
                   <div style={{ background: 'rgba(6, 182, 212, 0.08)', border: '1px solid rgba(6, 182, 212, 0.3)', padding: '10px 12px', borderRadius: '8px' }}>
                     <label style={{ fontSize: '11.5px', color: 'var(--accent-cyan)', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                      ⚡ اختر من قوالب الأجهزة الجاهزة (Plug & Play):
+                      <Zap size={14} /> اختر من قوالب الأجهزة الجاهزة (Plug & Play):
                     </label>
                     <select
                       value={selectedPresetId}
@@ -1057,7 +1040,7 @@ export default function DevicesPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Play size={18} color="#fbbf24" />
                   <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                    ⚡ محاكاة فحص وتنزيل نتائج تجريبية
+                    <Zap size={14} /> محاكاة فحص وتنزيل نتائج تجريبية
                   </h3>
                 </div>
                 <button onClick={() => setShowSimulateModal(false)} className="btn-icon">
@@ -1100,7 +1083,7 @@ export default function DevicesPage() {
                     إلغاء
                   </button>
                   <button type="submit" disabled={simulating} className="btn-primary" style={{ background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)', color: '#000', fontWeight: 800 }}>
-                    {simulating ? 'جارِ الإرسال والمطابقة...' : '⚡ تشغيل الإرسال الفوري'}
+                    {simulating ? 'جارِ الإرسال والمطابقة...' : '<Zap size={14} /> تشغيل الإرسال الفوري'}
                   </button>
                 </div>
               </form>

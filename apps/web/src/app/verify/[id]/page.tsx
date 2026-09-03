@@ -3,19 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState } from 'react';
-import { 
-  CheckCircle2, 
-  ShieldCheck, 
-  FileText, 
-  Printer, 
-  Building2, 
-  Clock, 
-  Calendar,
-  AlertTriangle,
-  User,
-  Share2,
-  ExternalLink
-} from 'lucide-react';
+import { CheckCircle2, ShieldCheck, FileText, Printer, Building2, Clock, Calendar, AlertTriangle, User, Share2, ExternalLink, Check } from 'lucide-react';
 import Link from 'next/link';
 
 export default function VerifyPage({ params }: { params: { id: string } }) {
@@ -29,7 +17,7 @@ export default function VerifyPage({ params }: { params: { id: string } }) {
       try {
         setLoading(true);
         const [sampleRes, settingsRes] = await Promise.all([
-          fetch(`/api/samples/${params.id}`).then(r => r.ok ? r.json() : null),
+          fetch(`/api/verify/${params.id}`).then(r => r.ok ? r.json() : null),
           fetch(`/api/settings`).then(r => r.ok ? r.json() : null)
         ]);
 
@@ -102,7 +90,7 @@ export default function VerifyPage({ params }: { params: { id: string } }) {
           </div>
           
           <div className="inline-block px-3 py-1 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-            ✓ وثيقة طبية معتمدة ومحققة رسمياً
+            <Check size={12} /> وثيقة طبية معتمدة ومحققة رسمياً
           </div>
 
           <h1 className="text-lg font-black text-white pt-1">{labName}</h1>
@@ -124,7 +112,7 @@ export default function VerifyPage({ params }: { params: { id: string } }) {
           <div className="flex justify-between items-center py-1 border-b border-slate-800/60">
             <span className="text-slate-400">حالة التقرير المخبري:</span>
             <span className={`font-black px-2 py-0.5 rounded ${isReady ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
-              {isReady ? 'معتمد وموثق نهائياً ✓' : 'قيد الفحص المخبري'}
+              {isReady ? 'معتمد وموثق نهائياً <Check size={12} />' : 'قيد الفحص المخبري'}
             </span>
           </div>
 

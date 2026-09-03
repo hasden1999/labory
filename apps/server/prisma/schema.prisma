@@ -37,6 +37,10 @@ model Patient {
   gender    String?  // ذكر / أنثى
   createdAt DateTime @default(now())
   samples   Sample[]
+
+  @@index([name])
+  @@index([phone])
+  @@index([createdAt])
 }
 
 model Sample {
@@ -61,6 +65,11 @@ model Sample {
   createdAt       DateTime         @default(now())
   tests           SampleTest[]
   debtRecords     DebtRecord[]
+
+  @@index([patientId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([doctorId])
 }
 
 model TestCatalog {
@@ -128,6 +137,9 @@ model SampleTest {
   enteredById     String?
   enteredAt       DateTime?
   createdAt       DateTime    @default(now())
+
+  @@index([sampleId])
+  @@index([testId])
 }
 
 model LabDevice {
@@ -190,6 +202,9 @@ model IncomingResult {
   matchedSampleId     String?
   matchedSampleTestId String?
   receivedAt          DateTime   @default(now())
+
+  @@index([sampleNumber])
+  @@index([status])
 }
 
 model DeviceRawLog {
@@ -220,6 +235,8 @@ model DebtRecord {
   amount    Float
   notes     String?
   createdAt DateTime @default(now())
+
+  @@index([debtorId])
 }
 
 model InventoryItem {

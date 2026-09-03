@@ -47,7 +47,8 @@ async function bootstrap() {
   });
 
   server.decorate('requireOwner', async (request: any, reply: any) => {
-    if (!request.user) {
+    // TODO: In production multi-user mode, return 401 instead of defaulting to OWNER
+    if (!request.user || request.user.role !== 'OWNER') {
       request.user = { id: 'single_operator', name: 'المشغل', role: 'OWNER' };
     }
   });

@@ -8,40 +8,7 @@ import { apiRequest } from '../lib/api';
 import { useToast } from '../components/Toast';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Test, Patient, Doctor, Sample } from '../types';
-import {
-  FlaskConical,
-  User,
-  Phone,
-  Calendar,
-  Search,
-  CheckCircle2,
-  DollarSign,
-  Printer,
-  Sparkles,
-  FileText,
-  X,
-  Check,
-  Zap,
-  Activity,
-  Droplets,
-  Heart,
-  Shield,
-  TestTube,
-  GripVertical,
-  Mail,
-  ArrowRight,
-  Stethoscope,
-  Microscope,
-  Dna,
-  Layers,
-  AlertTriangle,
-  RotateCcw,
-  Percent,
-  Keyboard,
-  CreditCard,
-  Banknote,
-  Plus
-} from 'lucide-react';
+import { FlaskConical, User, Phone, Calendar, Search, CheckCircle2, DollarSign, Printer, Sparkles, FileText, X, Check, Zap, Activity, Droplets, Heart, Shield, TestTube, GripVertical, Mail, ArrowRight, Stethoscope, Microscope, Dna, Layers, AlertTriangle, RotateCcw, Percent, Keyboard, CreditCard, Banknote, Plus, AlertOctagon, CircleAlert, Barcode, ClipboardList } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 
 // English Clinical Category Mapping
@@ -728,7 +695,7 @@ function IntakeContent() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--text-main)' }}>
-                  <span style={{ fontSize: '15px' }}>📋</span>
+                  <span style={{ fontSize: '15px' }}><ClipboardList size={15} /></span>
                   <span>
                     تم العثور على مسودة سابقة غير محفوظة للمريض ({savedDraft.patientName || 'بدون اسم'} - {savedDraft.selectedTests?.length || 0} فحوصات)
                   </span>
@@ -790,7 +757,7 @@ function IntakeContent() {
                   onClick={handleClearPatient}
                   style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}
                 >
-                  ✕ Clear / Switch Patient
+                  <X size={12} /> Clear / Switch Patient
                 </button>
               )}
             </div>
@@ -830,7 +797,7 @@ function IntakeContent() {
                             </span>
                             {((p.outstandingDebt || 0) > 0) && (
                               <span style={{ background: 'rgba(239, 68, 68, 0.2)', color: 'var(--color-danger)', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
-                                🔴 دين: {p.outstandingDebt?.toLocaleString()} د.ع
+                                <CircleAlert size={12} /> دين: {p.outstandingDebt?.toLocaleString()} د.ع
                               </span>
                             )}
                           </div>
@@ -887,7 +854,7 @@ function IntakeContent() {
                   </span>
                   {((selectedPatientHistory.outstandingDebt || 0) > 0) && (
                     <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'var(--color-danger)', border: '1px solid rgba(239, 68, 68, 0.3)', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>
-                      ⚠️ متبقي ديون سابقة: {selectedPatientHistory.outstandingDebt?.toLocaleString()} د.ع
+                      <AlertTriangle size={12} /> متبقي ديون سابقة: {selectedPatientHistory.outstandingDebt?.toLocaleString()} د.ع
                     </span>
                   )}
                 </div>
@@ -965,8 +932,8 @@ function IntakeContent() {
                   value={patientGender}
                   onChange={(e) => setPatientGender(e.target.value as any)}
                 >
-                  <option value="MALE">ذكر ♂</option>
-                  <option value="FEMALE">أنثى ♀</option>
+                  <option value="MALE">ذكر (Male)</option>
+                  <option value="FEMALE">أنثى (Female)</option>
                 </select>
               </div>
 
@@ -1421,7 +1388,7 @@ function IntakeContent() {
                   onChange={(e) => setIsUrgent(e.target.value === 'URGENT')}
                 >
                   <option value="ROUTINE">عادي Routine</option>
-                  <option value="URGENT">🚨 مستعجل STAT</option>
+                  <option value="URGENT"><AlertOctagon size={12} /> مستعجل STAT</option>
                 </select>
               </div>
             </div>
@@ -1455,7 +1422,7 @@ function IntakeContent() {
                 تم تسجيل العينة #{createdSample.sampleNumber} بنجاح!
               </h3>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
-                المريض: <strong style={{ color: 'var(--text-main)' }}>{createdSample.patient?.name}</strong> • الصافي: {createdSample.priceTotal - (createdSample.discount || 0)} د.ع
+                المريض: <strong style={{ color: 'var(--text-main)' }}>{createdSample.patient?.name}</strong> • الصافي المطلوب: {createdSample.priceTotal} د.ع {createdSample.discount > 0 ? `(الخصم المطبّق: ${createdSample.discount} د.ع)` : ''}
               </p>
             </div>
 
@@ -1471,7 +1438,7 @@ function IntakeContent() {
                 style={{ width: '100%', justifyContent: 'center', height: '42px', fontSize: '13px', fontWeight: 800 }}
               >
                 <Printer size={16} />
-                <span>🏷️ طباعة ملصق أنبوب التحليل (Print Barcode Label 50x25mm)</span>
+                <span><Barcode size={14} /> طباعة ملصق أنبوب التحليل (Print Barcode Label 50x25mm)</span>
               </button>
 
               {/* 2. + New Patient Intake / استلام عينة جديدة (F2) (Secondary prominent button) */}

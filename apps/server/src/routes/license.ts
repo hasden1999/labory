@@ -102,35 +102,5 @@ export async function licenseRoutes(fastify: FastifyInstance) {
     });
   });
 
-  // 3. Developer Keygen Generator API
-  fastify.post('/license/developer/generate', async (request, reply) => {
-    const { hwid, daysValid, tier, labName, secretPasscode } = request.body as {
-      hwid: string;
-      daysValid?: number;
-      tier?: 'MONTHLY' | 'YEARLY' | 'LIFETIME';
-      labName?: string;
-      secretPasscode: string;
-    };
-
-    // Secret passcode check for developer
-    if (secretPasscode !== 'admin123' && secretPasscode !== 'lab@2026') {
-      return reply.status(401).send({ message: 'كلمة المرور الخاصة بالمطور غير صحيحة' });
-    }
-
-    if (!hwid || !hwid.trim()) {
-      return reply.status(400).send({ message: 'كود بصمة جهاز العميل (HWID) مطلوب' });
-    }
-
-    const selectedTier = tier || (daysValid && daysValid >= 365 ? 'YEARLY' : 'MONTHLY');
-    const validDays = selectedTier === 'LIFETIME' ? 36500 : (daysValid || 30);
-    const key = generateLicenseKey(hwid.trim(), validDays, selectedTier, labName || 'مختبر طبي');
-
-    return reply.send({
-      success: true,
-      hwid: hwid.trim(),
-      tier: selectedTier,
-      daysValid: validDays,
-      licenseKey: key,
-    });
-  });
+  // REMOVED: Developer keygen endpoint - security risk
 }

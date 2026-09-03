@@ -387,12 +387,12 @@ describe('Tier 5: Adversarial & Stress Testing', () => {
   // Domain 4: Delta Check Edge Cases & Numerical Stability
   // ==========================================================================
 
-  test('T5.4.1: Delta check when prior value is 0 returns unbreached NORMAL with division-by-zero protection', () => {
+  test('T5.4.1: Delta check when prior value is 0 returns WARNING with division-by-zero protection', () => {
     const deltaRes = evaluateDeltaCheck('HGB', 14.5, 0);
     expect(deltaRes.hasPrevious).toBe(true);
-    expect(deltaRes.isBreached).toBe(false);
-    expect(deltaRes.badgeLevel).toBe('NORMAL');
-    expect(deltaRes.message).toContain('Previous value is zero; delta cannot be calculated');
+    expect(deltaRes.isBreached).toBe(true);
+    expect(deltaRes.badgeLevel).toBe('WARNING');
+    expect(deltaRes.message).toContain('New appearance from zero baseline - clinical review recommended');
   });
 
   test('T5.4.2: Delta check when prior value is negative evaluates safely with non-negative delta percentage', () => {

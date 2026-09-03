@@ -9,32 +9,7 @@ import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import ConfirmModal from '../../components/ConfirmModal';
 import { Patient, Sample, SampleTest } from '../../types';
-import { 
-  Users, 
-  Search, 
-  Plus, 
-  User, 
-  Phone, 
-  Calendar, 
-  Clock, 
-  Activity, 
-  Printer, 
-  Share2, 
-  FileText, 
-  CreditCard, 
-  Trash2, 
-  Edit3, 
-  CheckCircle2, 
-  AlertCircle, 
-  ExternalLink,
-  ChevronLeft,
-  X,
-  UserPlus,
-  ArrowUpRight,
-  Sparkles,
-  FlaskConical,
-  DollarSign
-} from 'lucide-react';
+import { Users, Search, Plus, User, Phone, Calendar, Clock, Activity, Printer, Share2, FileText, CreditCard, Trash2, Edit3, CheckCircle2, AlertCircle, ExternalLink, ChevronLeft, X, UserPlus, ArrowUpRight, Sparkles, FlaskConical, DollarSign, AlertOctagon, AlertTriangle, Check } from 'lucide-react';
 
 function PatientsContent() {
   const router = useRouter();
@@ -287,7 +262,7 @@ function PatientsContent() {
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '3px' }}>
                       <span>{p.phone || 'بدون هاتف'}</span>
-                      <span>{p.age ? `${p.age} سنة` : ''} ({p.gender === 'FEMALE' || (p.gender as string) === 'أنثى' ? '♀ أنثى' : '♂ ذكر'})</span>
+                      <span>{p.age ? `${p.age} سنة` : ''} ({p.gender === 'FEMALE' || (p.gender as string) === 'أنثى' ? '(Female) أنثى' : '(Male) ذكر'})</span>
                     </div>
                   </div>
                 );
@@ -311,7 +286,7 @@ function PatientsContent() {
                       {patientDetails.name}
                     </h2>
                     <span className="badge badge-received" style={{ fontSize: '11px' }}>
-                      {patientDetails.gender === 'FEMALE' || (patientDetails.gender as string) === 'أنثى' ? 'أنثى ♀' : 'ذكر ♂'}
+                      {patientDetails.gender === 'FEMALE' || (patientDetails.gender as string) === 'أنثى' ? 'أنثى (Female)' : 'ذكر (Male)'}
                     </span>
                     {patientDetails.age && (
                       <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>• {patientDetails.age} سنة</span>
@@ -400,7 +375,7 @@ function PatientsContent() {
                           </strong>
                           {sample.isUrgent && <span className="stat-badge">STAT عاجل</span>}
                           <span className={`badge badge-${sample.status.toLowerCase()}`}>
-                            {sample.status === 'RECEIVED' ? '📥 تم أخذ العينة' : sample.status === 'IN_PROGRESS' ? '🔬 جاري الفحص' : sample.status === 'READY' ? '✅ جاهزة للطباعة' : '📤 تم تسليم التقرير'}
+                            {sample.status === 'RECEIVED' ? 'تم استلام العينة' : sample.status === 'IN_PROGRESS' ? 'جاري الفحص المخبري' : sample.status === 'READY' ? 'جاهزة للطباعة والاعتماد' : 'تم تسليم التقرير'}
                           </span>
                           <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                             {new Date(sample.createdAt).toLocaleDateString('ar-IQ')} - {new Date(sample.createdAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' })}
@@ -484,11 +459,11 @@ function PatientsContent() {
                                 <td style={{ color: 'var(--text-dim)', fontSize: '11px' }}>{st.test?.unit || '-'}</td>
                                 <td>
                                   {st.isCritical ? (
-                                    <span className="badge badge-urgent">🚨 حرج (Panic)</span>
+                                    <span className="badge badge-urgent"><AlertOctagon size={12} /> حرج (Panic)</span>
                                   ) : st.isAbnormal ? (
-                                    <span className="badge badge-progress">⚠️ غير طبيعي</span>
+                                    <span className="badge badge-progress"><AlertTriangle size={12} /> غير طبيعي</span>
                                   ) : st.resultValue ? (
-                                    <span className="badge badge-ready">✓ طبيعي</span>
+                                    <span className="badge badge-ready"><Check size={12} /> طبيعي</span>
                                   ) : (
                                     '-'
                                   )}
@@ -505,7 +480,7 @@ function PatientsContent() {
                         {(sample.remainingAmount || 0) > 0 ? (
                           <span style={{ color: 'var(--accent-rose)', fontWeight: 800 }}>متبقي دين: {(sample.remainingAmount || 0).toLocaleString()} د.ع</span>
                         ) : (
-                          <span style={{ color: 'var(--accent-emerald)', fontWeight: 800 }}>✓ واصل بالكامل</span>
+                          <span style={{ color: 'var(--accent-emerald)', fontWeight: 800 }}><Check size={12} /> واصل بالكامل</span>
                         )}
                       </div>
                     </div>
@@ -580,8 +555,8 @@ function PatientsContent() {
                   value={patientGender}
                   onChange={(e) => setPatientGender(e.target.value as 'MALE' | 'FEMALE')}
                 >
-                  <option value="MALE">ذكر ♂</option>
-                  <option value="FEMALE">أنثى ♀</option>
+                  <option value="MALE">ذكر (Male)</option>
+                  <option value="FEMALE">أنثى (Female)</option>
                 </select>
               </div>
 
@@ -650,8 +625,8 @@ function PatientsContent() {
                   value={patientGender}
                   onChange={(e) => setPatientGender(e.target.value as 'MALE' | 'FEMALE')}
                 >
-                  <option value="MALE">ذكر ♂</option>
-                  <option value="FEMALE">أنثى ♀</option>
+                  <option value="MALE">ذكر (Male)</option>
+                  <option value="FEMALE">أنثى (Female)</option>
                 </select>
               </div>
 

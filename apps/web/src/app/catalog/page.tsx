@@ -648,7 +648,7 @@ export default function CatalogPage() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
-                    <label className="input-label">ذكور ♂ (الأدنى - الأعلى)</label>
+                    <label className="input-label">ذكور (Male) (الأدنى - الأعلى)</label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                       <input
                         type="number"
@@ -670,7 +670,7 @@ export default function CatalogPage() {
                   </div>
 
                   <div>
-                    <label className="input-label">إناث ♀ (الأدنى - الأعلى)</label>
+                    <label className="input-label">إناث (Female) (الأدنى - الأعلى)</label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                       <input
                         type="number"
