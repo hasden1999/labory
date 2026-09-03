@@ -30,17 +30,20 @@ model ReferringDoctor {
 }
 
 model Patient {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
   phone     String?
   age       Int?
   gender    String?  // ذكر / أنثى
-  createdAt DateTime @default(now())
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
   samples   Sample[]
 
   @@index([name])
   @@index([phone])
   @@index([createdAt])
+  @@index([isDeleted])
 }
 
 model Sample {
@@ -62,6 +65,8 @@ model Sample {
   createdById     String           @default("single_operator")
   collectionTime  DateTime         @default(now())
   deliveredAt     DateTime?
+  isDeleted       Boolean          @default(false)
+  deletedAt       DateTime?
   createdAt       DateTime         @default(now())
   tests           SampleTest[]
   debtRecords     DebtRecord[]
@@ -70,6 +75,7 @@ model Sample {
   @@index([status])
   @@index([createdAt])
   @@index([doctorId])
+  @@index([isDeleted])
 }
 
 model TestCatalog {
@@ -307,4 +313,20 @@ model Settings {
   reportHeader   String? @default("مختبر الرضا للتحليلات الطبية التخصصية")
   reportFooter   String? @default("هذا التقرير تم إخراجه وتدقيقه إلكترونياً، ويعتبر معتمداً رسمياً دون الحاجة لتوقيع يدوي.")
   reportTemplate String? @default("CLASSIC") // CLASSIC, MODERN, EXECUTIVE, COMPACT
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String   // CREATE, UPDATE, DELETE, RESTORE, STATUS_CHANGE, PAYMENT
+  entity    String   // PATIENT, SAMPLE, TEST, SETTINGS, DEBT
+  entityId  String
+  details   String?
+  userId    String?
+  userName  String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([action])
+  @@index([createdAt])
 }

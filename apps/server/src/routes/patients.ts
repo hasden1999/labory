@@ -9,6 +9,7 @@ export async function patientRoutes(fastify: FastifyInstance) {
 
     if (!searchTerm.trim()) {
       const recentPatients = await prisma.patient.findMany({
+        where: { isDeleted: false },
         take: 15,
         orderBy: { createdAt: 'desc' },
         include: {
@@ -20,6 +21,7 @@ export async function patientRoutes(fastify: FastifyInstance) {
 
     const patients = await prisma.patient.findMany({
       where: {
+        isDeleted: false,
         OR: [
           { name: { contains: searchTerm.trim() } },
           { phone: { contains: searchTerm.trim() } },
@@ -38,7 +40,7 @@ export async function patientRoutes(fastify: FastifyInstance) {
   fastify.get('/patients', async (request, reply) => {
     const { query } = request.query as { query?: string };
 
-    const whereClause: any = {};
+    const whereClause: any = { isDeleted: false };
     if (query) {
       whereClause.OR = [
         { name: { contains: query } },
@@ -180,14 +182,49 @@ export async function patientRoutes(fastify: FastifyInstance) {
     return reply.send(updated);
   });
 
-  // Delete Patient
-  fastify.delete('/patients/:id', async (request, reply) => {
+  // Soft Delete Patient with Audit Trail
+  fastify.delete('/patients/:id', async (request: any, reply) => {
     const { id } = request.params as { id: string };
-    try {
-      await prisma.patient.delete({ where: { id } });
-      return reply.send({ success: true, message: 'تم حذف المريض بنجاح' });
-    } catch (e: any) {
-      return reply.status(400).send({ message: 'لا يمكن حذف المريض لوجود عينات وفحوصات مرتبطة به' });
+    const existing = await prisma.patient.findUnique({ where: { id } });
+    if (!existing) {
+      return reply.status(404).send({ message: 'المريض غير موجود' });
     }
+    await prisma.patient.update({
+      where: { id },
+      data: { isDeleted: true, deletedAt: new Date() },
+    });
+    await prisma.auditLog.create({
+      data: {
+        action: 'DELETE',
+        entity: 'PATIENT',
+        entityId: id,
+        details: `حذف ناعم لسجل المريض: ${existing.name}`,
+        userName: request.user?.name || 'المشغل',
+      },
+    });
+    return reply.send({ success: true, message: 'تم أرشفة وحذف سجل المريض بنجاح مع الحفاظ على سلامة البيانات السريرية' });
+  });
+
+  // Restore Soft-Deleted Patient
+  fastify.post('/patients/:id/restore', async (request: any, reply) => {
+    const { id } = request.params as { id: string };
+    const existing = await prisma.patient.findUnique({ where: { id } });
+    if (!existing) {
+      return reply.status(404).send({ message: 'المريض غير موجود' });
+    }
+    const restored = await prisma.patient.update({
+      where: { id },
+      data: { isDeleted: false, deletedAt: null },
+    });
+    await prisma.auditLog.create({
+      data: {
+        action: 'RESTORE',
+        entity: 'PATIENT',
+        entityId: id,
+        details: `استعادة سجل المريض المؤرشف: ${existing.name}`,
+        userName: request.user?.name || 'المشغل',
+      },
+    });
+    return reply.send({ success: true, patient: restored, message: 'تمت استعادة سجل المريض بنجاح' });
   });
 }

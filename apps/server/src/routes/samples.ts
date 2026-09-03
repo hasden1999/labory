@@ -13,7 +13,7 @@ export async function sampleRoutes(fastify: FastifyInstance) {
   fastify.get('/samples', async (request: any, reply: any) => {
     const { status, unpaidOnly, query, urgentOnly, dateFilter, customDate } = request.query as any;
 
-    const whereClause: any = {};
+    const whereClause: any = { isDeleted: false };
     if (status && status !== 'ALL') {
       whereClause.status = status;
     }
@@ -365,11 +365,49 @@ export async function sampleRoutes(fastify: FastifyInstance) {
     });
   });
 
-  // Delete Sample
+  // Soft Delete Sample with Audit Trail
   fastify.delete('/samples/:id', async (request: any, reply: any) => {
     const { id } = request.params as any;
-    await prisma.sampleTest.deleteMany({ where: { sampleId: id } });
-    await prisma.sample.delete({ where: { id } });
-    return reply.send({ message: 'تم حذف العينة بنجاح' });
+    const existing = await prisma.sample.findUnique({ where: { id } });
+    if (!existing) {
+      return reply.status(404).send({ message: 'العينة غير موجودة' });
+    }
+    await prisma.sample.update({
+      where: { id },
+      data: { isDeleted: true, deletedAt: new Date() },
+    });
+    await prisma.auditLog.create({
+      data: {
+        action: 'DELETE',
+        entity: 'SAMPLE',
+        entityId: id,
+        details: `حذف ناعم للعينة #${existing.sampleNumber}`,
+        userName: request.user?.name || 'المشغل',
+      },
+    });
+    return reply.send({ success: true, message: 'تم أرشفة وحذف العينة بنجاح مع الحفاظ على السجلات السريرية' });
+  });
+
+  // Restore Soft-Deleted Sample
+  fastify.post('/samples/:id/restore', async (request: any, reply: any) => {
+    const { id } = request.params as any;
+    const existing = await prisma.sample.findUnique({ where: { id } });
+    if (!existing) {
+      return reply.status(404).send({ message: 'العينة غير موجودة' });
+    }
+    const restored = await prisma.sample.update({
+      where: { id },
+      data: { isDeleted: false, deletedAt: null },
+    });
+    await prisma.auditLog.create({
+      data: {
+        action: 'RESTORE',
+        entity: 'SAMPLE',
+        entityId: id,
+        details: `استعادة العينة المؤرشفة #${existing.sampleNumber}`,
+        userName: request.user?.name || 'المشغل',
+      },
+    });
+    return reply.send({ success: true, sample: restored, message: 'تمت استعادة العينة بنجاح' });
   });
 }

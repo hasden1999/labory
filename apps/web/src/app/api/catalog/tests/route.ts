@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getStore } from '../../../../lib/serverStore';
 
 export async function GET() {

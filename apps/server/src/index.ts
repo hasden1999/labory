@@ -21,6 +21,7 @@ import { debtRoutes } from './routes/debts';
 import { financialRoutes } from './routes/financials';
 import { archiveRoutes } from './routes/archive';
 import { deviceRoutes } from './routes/devices';
+import { auditRoutes } from './routes/audit';
 
 const server = Fastify({ logger: true });
 
@@ -82,6 +83,7 @@ async function bootstrap() {
   await server.register(financialRoutes);
   await server.register(archiveRoutes);
   await server.register(deviceRoutes);
+  await server.register(auditRoutes);
 
   // Initialize DB WAL mode
   await initDbWAL();
