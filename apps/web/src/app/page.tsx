@@ -71,6 +71,7 @@ function IntakeContent() {
   const [patientSearchQuery, setPatientSearchQuery] = useState('');
   const [patientSuggestions, setPatientSuggestions] = useState<Patient[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState<number>(-1);
   const [selectedPatientHistory, setSelectedPatientHistory] = useState<Patient | null>(null);
 
   // Form States - Sample & Tests
@@ -103,6 +104,14 @@ function IntakeContent() {
   const testSearchInputRef = useRef<HTMLInputElement | null>(null);
   const discountInputRef = useRef<HTMLInputElement | null>(null);
   const inputRefs = useRef<(HTMLInputElement | HTMLSelectElement | null)[]>([]);
+
+  // Initial Autofocus on Patient Name field
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      patientNameInputRef.current?.focus();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Check for existing intake draft in localStorage on mount
   useEffect(() => {
@@ -158,6 +167,7 @@ function IntakeContent() {
     if (!patientSearchQuery.trim() || patientSearchQuery.length < 2) {
       setPatientSuggestions([]);
       setShowSuggestions(false);
+      setHighlightedSuggestionIndex(-1);
       return;
     }
     const delayDebounce = setTimeout(async () => {
@@ -165,6 +175,7 @@ function IntakeContent() {
         const res = await apiRequest(`/patients/search?q=${encodeURIComponent(patientSearchQuery)}`);
         setPatientSuggestions(res || []);
         setShowSuggestions(true);
+        setHighlightedSuggestionIndex(-1);
       } catch (err) {}
     }, 200);
     return () => clearTimeout(delayDebounce);
@@ -179,7 +190,44 @@ function IntakeContent() {
     setSelectedPatientHistory(p);
     setPatientSearchQuery('');
     setShowSuggestions(false);
+    setHighlightedSuggestionIndex(-1);
     toast.success(`تم استرجاع بيانات المريض: ${p.name}`);
+  };
+
+  const handleSelectPatient = (p: Patient) => {
+    selectExistingPatient(p);
+    setShowSuggestions(false);
+    setHighlightedSuggestionIndex(-1);
+    setTimeout(() => {
+      testSearchInputRef.current?.focus();
+      testSearchInputRef.current?.select();
+    }, 50);
+  };
+
+  const handlePatientSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || patientSuggestions.length === 0) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        inputRefs.current[0]?.focus();
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedSuggestionIndex((prev) => (prev + 1) % patientSuggestions.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedSuggestionIndex((prev) => (prev - 1 + patientSuggestions.length) % patientSuggestions.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightedSuggestionIndex >= 0 && patientSuggestions[highlightedSuggestionIndex]) {
+        handleSelectPatient(patientSuggestions[highlightedSuggestionIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setHighlightedSuggestionIndex(-1);
+    }
   };
 
   const handleRepeatLastTests = (p: Patient) => {
@@ -539,9 +587,33 @@ function IntakeContent() {
     toast
   ]);
 
-  // Global & Form Keyboard Navigation (F2, F8, F9, Ctrl+Enter, Arrow Catalog Nav)
+  // Global & Form Keyboard Navigation (F2, F8, F9, Ctrl+Enter, Arrow Catalog Nav, Modal Shortcuts)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // 1. Zero-Click Barcode & Quick Reset within Success Modal
+      if (showSuccessModal && createdSample) {
+        if (e.key === 'Enter' || e.key === 'F9') {
+          e.preventDefault();
+          setDocPreviewUrl(`/api/samples/${createdSample.id}/barcode`);
+          setDocPreviewTitle(`طباعة ملصق الباركود (50x25mm) - عينة #${createdSample.sampleNumber}`);
+          return;
+        }
+        if (e.key === 'Escape' || e.key === 'F2') {
+          e.preventDefault();
+          setShowSuccessModal(false);
+          handleExecuteClearPatient();
+          toast.info('تم بدء استلام مريض جديد (F2)');
+          return;
+        }
+      }
+
+      // 2. Escape closes document preview modal
+      if (docPreviewUrl && e.key === 'Escape') {
+        e.preventDefault();
+        setDocPreviewUrl(null);
+        return;
+      }
+
       // F2: New Intake
       if (e.key === 'F2') {
         e.preventDefault();
@@ -578,33 +650,54 @@ function IntakeContent() {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [handleClearPatient, handleRegisterSample, toast]);
+  }, [handleClearPatient, handleRegisterSample, showSuccessModal, createdSample, docPreviewUrl, handleExecuteClearPatient, toast]);
 
-  // Arrow Key Navigation inside Test Catalog
+  // Arrow Key Navigation inside Test Catalog & Seamless Enter Chain
   const handleCatalogKeyDown = (e: React.KeyboardEvent) => {
-    if (filteredTests.length === 0) return;
-
     if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setHighlightedTestIndex((prev) => (prev + 1) % filteredTests.length);
+      if (filteredTests.length > 0) {
+        e.preventDefault();
+        setHighlightedTestIndex((prev) => (prev + 1) % filteredTests.length);
+      }
     } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setHighlightedTestIndex((prev) => (prev - 1 + filteredTests.length) % filteredTests.length);
+      if (filteredTests.length > 0) {
+        e.preventDefault();
+        setHighlightedTestIndex((prev) => (prev - 1 + filteredTests.length) % filteredTests.length);
+      }
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      const currentTest = filteredTests[highlightedTestIndex];
-      if (currentTest) {
-        handleToggleTest(currentTest);
-        toast.info(`${selectedTests.some(t => t.id === currentTest.id) ? 'إزالة' : 'إضافة'}: ${currentTest.name}`);
+      if (testSearch.trim() && filteredTests.length > 0) {
+        const currentTest = filteredTests[highlightedTestIndex] || filteredTests[0];
+        if (currentTest) {
+          handleToggleTest(currentTest);
+          toast.info(`${selectedTests.some(t => t.id === currentTest.id) ? 'إزالة' : 'إضافة'}: ${currentTest.name}`);
+        }
+      } else {
+        // Seamless Enter chain to custom discount input (index 7)
+        inputRefs.current[7]?.focus();
+        if (inputRefs.current[7] && 'select' in (inputRefs.current[7] as any)) {
+          (inputRefs.current[7] as any)?.select?.();
+        }
       }
     }
   };
 
+  // Seamless Enter Chain across all form fields (0 -> 8 -> Register)
   const handleInputKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      const nextIndex = (index + 1) % inputRefs.current.length;
-      inputRefs.current[nextIndex]?.focus();
+      if (index === 8) {
+        // Final field (Paid Amount) submits and registers sample
+        handleRegisterSample();
+      } else {
+        const nextIndex = index + 1;
+        if (inputRefs.current[nextIndex]) {
+          inputRefs.current[nextIndex]?.focus();
+          if ('select' in (inputRefs.current[nextIndex] as any)) {
+            (inputRefs.current[nextIndex] as any)?.select?.();
+          }
+        }
+      }
     }
   };
 
@@ -772,74 +865,90 @@ function IntakeContent() {
                   className="input-control"
                   style={{ paddingLeft: '30px', fontSize: '12px', height: '34px', background: 'var(--bg-input-deep)' }}
                   value={patientSearchQuery}
-                  onChange={(e) => setPatientSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setPatientSearchQuery(e.target.value);
+                    setHighlightedSuggestionIndex(-1);
+                  }}
+                  onKeyDown={handlePatientSearchKeyDown}
                 />
                 {showSuggestions && patientSuggestions.length > 0 && (
                   <div className="quick-search-dropdown" style={{ zIndex: 100 }}>
-                    <div className="dropdown-header">سجلات المرضى المطابقة ({patientSuggestions.length}):</div>
-                    {patientSuggestions.map((p) => (
-                      <div
-                        key={p.id}
-                        className="dropdown-item"
-                        style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '8px 12px' }}
-                        onClick={() => selectExistingPatient(p)}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
-                            <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>{p.name}</strong>
-                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px' }}>
-                              {p.phone || 'بدون هاتف'} • {p.age ? `${p.age} سنة` : ''} ({p.gender === 'FEMALE' ? 'أنثى' : 'ذكر'})
-                            </span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span className="badge badge-received" style={{ fontSize: '10px' }}>
-                              {p.visitCount || 0} زيارات
-                            </span>
-                            {((p.outstandingDebt || 0) > 0) && (
-                              <span style={{ background: 'rgba(239, 68, 68, 0.2)', color: 'var(--color-danger)', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
-                                <CircleAlert size={12} /> دين: {p.outstandingDebt?.toLocaleString()} د.ع
+                    <div className="dropdown-header">سجلات المرضى المطابقة ({patientSuggestions.length}): (استخدم ↑ ↓ للتنقل و Enter للاختيار)</div>
+                    {patientSuggestions.map((p, idx) => {
+                      const isHighlighted = highlightedSuggestionIndex === idx;
+                      return (
+                        <div
+                          key={p.id}
+                          className="dropdown-item"
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px',
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            background: isHighlighted ? 'var(--bg-card-hover, rgba(0, 210, 211, 0.12))' : 'transparent',
+                            borderRight: isHighlighted ? '3px solid var(--accent-cyan)' : '3px solid transparent',
+                          }}
+                          onMouseEnter={() => setHighlightedSuggestionIndex(idx)}
+                          onClick={() => handleSelectPatient(p)}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <strong style={{ fontSize: '13px', color: isHighlighted ? 'var(--accent-cyan)' : 'var(--text-main)' }}>{p.name}</strong>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px' }}>
+                                {p.phone || 'بدون هاتف'} • {p.age ? `${p.age} سنة` : ''} ({p.gender === 'FEMALE' ? 'أنثى' : 'ذكر'})
                               </span>
-                            )}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span className="badge badge-received" style={{ fontSize: '10px' }}>
+                                {p.visitCount || 0} زيارات
+                              </span>
+                              {((p.outstandingDebt || 0) > 0) && (
+                                <span style={{ background: 'rgba(239, 68, 68, 0.2)', color: 'var(--color-danger)', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                                  <CircleAlert size={12} /> دين: {p.outstandingDebt?.toLocaleString()} د.ع
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
 
-                        {/* Historical abnormal flags preview */}
-                        {p.abnormalFlags && p.abnormalFlags.length > 0 && (
-                          <div style={{ fontSize: '10.5px', color: 'var(--color-warning)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <AlertTriangle size={11} />
-                            <span>فحوصات غير طبيعية سابقة: {p.abnormalFlags.slice(0, 2).join(' | ')}</span>
-                          </div>
-                        )}
-                        {/* Repeat Last Tests Button */}
-                        {p.lastTestIds && p.lastTestIds.length > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px' }}>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRepeatLastTests(p);
-                              }}
-                              style={{
-                                background: 'rgba(0, 210, 211, 0.15)',
-                                border: '1px solid rgba(0, 210, 211, 0.3)',
-                                color: 'var(--accent-cyan)',
-                                fontSize: '10.5px',
-                                fontWeight: 700,
-                                borderRadius: '4px',
-                                padding: '2px 8px',
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}
-                            >
-                              <RotateCcw size={11} />
-                              <span>إعادة نفس فحوصات الزيارة السابقة ({p.lastTestNames?.slice(0, 2).join(', ')}...)</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                          {/* Historical abnormal flags preview */}
+                          {p.abnormalFlags && p.abnormalFlags.length > 0 && (
+                            <div style={{ fontSize: '10.5px', color: 'var(--color-warning)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <AlertTriangle size={11} />
+                              <span>فحوصات غير طبيعية سابقة: {p.abnormalFlags.slice(0, 2).join(' | ')}</span>
+                            </div>
+                          )}
+                          {/* Repeat Last Tests Button */}
+                          {p.lastTestIds && p.lastTestIds.length > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px' }}>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRepeatLastTests(p);
+                                }}
+                                style={{
+                                  background: 'rgba(0, 210, 211, 0.15)',
+                                  border: '1px solid rgba(0, 210, 211, 0.3)',
+                                  color: 'var(--accent-cyan)',
+                                  fontSize: '10.5px',
+                                  fontWeight: 700,
+                                  borderRadius: '4px',
+                                  padding: '2px 8px',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                              >
+                                <RotateCcw size={11} />
+                                <span>إعادة نفس فحوصات الزيارة السابقة ({p.lastTestNames?.slice(0, 2).join(', ')}...)</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -983,6 +1092,8 @@ function IntakeContent() {
               </label>
               <input
                 id="sample-notes-input"
+                ref={(el) => { inputRefs.current[5] = el; }}
+                onKeyDown={(e) => handleInputKeyDown(e, 5)}
                 type="text"
                 placeholder="ملاحظات العينة أو التوجيهات السريرية (مثل: مريض صائم 12 ساعة، عينة دم شرياني، تدقيق إضافي...)"
                 className="input-control"
@@ -1007,7 +1118,10 @@ function IntakeContent() {
                 <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
                 <input
                   id="test-search-input"
-                  ref={testSearchInputRef}
+                  ref={(el) => {
+                    testSearchInputRef.current = el;
+                    inputRefs.current[6] = el;
+                  }}
                   onKeyDown={handleCatalogKeyDown}
                   type="text"
                   placeholder="بحث سريع (F8) بالكود أو الاسم (CBC, TSH, Lipid)..."
@@ -1278,7 +1392,11 @@ function IntakeContent() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <input
                   id="custom-discount-input"
-                  ref={discountInputRef}
+                  ref={(el) => {
+                    discountInputRef.current = el;
+                    inputRefs.current[7] = el;
+                  }}
+                  onKeyDown={(e) => handleInputKeyDown(e, 7)}
                   type="number"
                   min={0}
                   placeholder="خصم مخصص (IQD)..."
@@ -1357,6 +1475,8 @@ function IntakeContent() {
                   </label>
                   <input
                     id="paid-amount-input"
+                    ref={(el) => { inputRefs.current[8] = el; }}
+                    onKeyDown={(e) => handleInputKeyDown(e, 8)}
                     type="number"
                     min={0}
                     className="input-control"
@@ -1427,7 +1547,7 @@ function IntakeContent() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {/* 1. Print Tube Barcode Label 50x25mm (Primary Cyan Button) */}
+              {/* 1. Print Tube Barcode Label 50x25mm (Primary Cyan Button - Enter or F9) */}
               <button
                 type="button"
                 onClick={() => {
@@ -1438,10 +1558,10 @@ function IntakeContent() {
                 style={{ width: '100%', justifyContent: 'center', height: '42px', fontSize: '13px', fontWeight: 800 }}
               >
                 <Printer size={16} />
-                <span><Barcode size={14} /> طباعة ملصق أنبوب التحليل (Print Barcode Label 50x25mm)</span>
+                <span><Barcode size={14} /> طباعة ملصق أنبوب التحليل (Print Barcode Label 50x25mm) <kbd style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', marginRight: '6px' }}>Enter / F9</kbd></span>
               </button>
 
-              {/* 2. + New Patient Intake / استلام عينة جديدة (F2) (Secondary prominent button) */}
+              {/* 2. + New Patient Intake / استلام عينة جديدة (Escape or F2) (Secondary prominent button) */}
               <button
                 type="button"
                 onClick={() => {
@@ -1462,7 +1582,7 @@ function IntakeContent() {
                 }}
               >
                 <Plus size={16} />
-                <span>+ استلام عينة جديدة لمريض آخر (New Patient Intake - F2)</span>
+                <span>+ استلام عينة جديدة لمريض آخر (New Patient Intake) <kbd style={{ background: 'rgba(0, 210, 211, 0.2)', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', marginRight: '6px' }}>Esc / F2</kbd></span>
               </button>
 
               {/* 3. Go to Results Workstation / إدخال النتائج */}

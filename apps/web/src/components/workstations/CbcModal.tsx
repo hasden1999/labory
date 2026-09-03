@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { X, Check, Sparkles, AlertTriangle, RotateCcw, Activity, Calculator, AlertCircle, AlertOctagon } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Check, CheckCircle2, Sparkles, AlertTriangle, RotateCcw, Activity, Calculator, AlertCircle, AlertOctagon } from 'lucide-react';
 import { useToast } from '../Toast';
 import { 
   validateDifferentialSum, 
@@ -174,6 +174,44 @@ export default function CbcModal({
   const toast = useToast();
   const [data, setData] = useState<CbcAnalysisData>(DEFAULT_CBC_DATA);
   const [saving, setSaving] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Keyboard navigation across the 17 parameters
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === 'Enter' || e.key === 'ArrowDown') {
+      if (e.key === 'Enter' && e.shiftKey) {
+        e.preventDefault();
+        const prevIdx = index > 0 ? index - 1 : 16;
+        inputRefs.current[prevIdx]?.focus();
+        inputRefs.current[prevIdx]?.select();
+        return;
+      }
+      e.preventDefault();
+      const nextIdx = index < 16 ? index + 1 : 0;
+      inputRefs.current[nextIdx]?.focus();
+      inputRefs.current[nextIdx]?.select();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prevIdx = index > 0 ? index - 1 : 16;
+      inputRefs.current[prevIdx]?.focus();
+      inputRefs.current[prevIdx]?.select();
+    }
+  };
+
+  // Live Auto-Calculation on Keystroke for Erythroid Indices (MCV, MCH, MCHC)
+  const handleErythroidChange = (field: 'rbc' | 'hgb' | 'hct', val: string) => {
+    const nextData = { ...data, [field]: val };
+    const rbcNum = parseFloat(field === 'rbc' ? val : data.rbc);
+    const hgbNum = parseFloat(field === 'hgb' ? val : data.hgb);
+    const hctNum = parseFloat(field === 'hct' ? val : data.hct);
+
+    if (rbcNum > 0 && hctNum > 0 && hgbNum > 0) {
+      nextData.mcv = ((hctNum * 10) / rbcNum).toFixed(1);
+      nextData.mch = ((hgbNum * 10) / rbcNum).toFixed(1);
+      nextData.mchc = ((hgbNum * 100) / hctNum).toFixed(1);
+    }
+    setData(nextData);
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -390,10 +428,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">R.B.C (10^6/uL)</label>
                 <input
+                  ref={el => { inputRefs.current[0] = el; }}
                   type="text"
                   value={data.rbc}
-                  onChange={e => setData({ ...data, rbc: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-black text-xs"
+                  onChange={e => handleErythroidChange('rbc', e.target.value)}
+                  onKeyDown={e => handleKeyDown(e, 0)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-black text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 4.5 - 5.9</span>
               </div>
@@ -401,10 +442,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">HGB (g/dL)</label>
                 <input
+                  ref={el => { inputRefs.current[1] = el; }}
                   type="text"
                   value={data.hgb}
-                  onChange={e => setData({ ...data, hgb: e.target.value })}
-                  className={`w-full px-3 py-2 rounded-lg border font-black text-xs ${
+                  onChange={e => handleErythroidChange('hgb', e.target.value)}
+                  onKeyDown={e => handleKeyDown(e, 1)}
+                  onFocus={e => e.target.select()}
+                  className={`w-full px-3 py-2 rounded-lg border font-black text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none ${
                     hgbPanic.isPanic 
                       ? 'border-rose-500 bg-rose-50 dark:bg-rose-950 text-rose-700' 
                       : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'
@@ -416,10 +460,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">HCT / PCV (%)</label>
                 <input
+                  ref={el => { inputRefs.current[2] = el; }}
                   type="text"
                   value={data.hct}
-                  onChange={e => setData({ ...data, hct: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onChange={e => handleErythroidChange('hct', e.target.value)}
+                  onKeyDown={e => handleKeyDown(e, 2)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 40 - 52</span>
               </div>
@@ -427,10 +474,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">MCV (fL)</label>
                 <input
+                  ref={el => { inputRefs.current[3] = el; }}
                   type="text"
                   value={data.mcv}
                   onChange={e => setData({ ...data, mcv: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 3)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 80 - 100</span>
               </div>
@@ -438,10 +488,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">MCH (pg)</label>
                 <input
+                  ref={el => { inputRefs.current[4] = el; }}
                   type="text"
                   value={data.mch}
                   onChange={e => setData({ ...data, mch: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 4)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 27 - 33</span>
               </div>
@@ -449,10 +502,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">MCHC (g/dL)</label>
                 <input
+                  ref={el => { inputRefs.current[5] = el; }}
                   type="text"
                   value={data.mchc}
                   onChange={e => setData({ ...data, mchc: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 5)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 32 - 36</span>
               </div>
@@ -460,10 +516,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">RDW-CV (%)</label>
                 <input
+                  ref={el => { inputRefs.current[6] = el; }}
                   type="text"
                   value={data.rdw}
                   onChange={e => setData({ ...data, rdw: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 6)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 11.5 - 14.5</span>
               </div>
@@ -481,10 +540,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">PLT (10^3/uL)</label>
                 <input
+                  ref={el => { inputRefs.current[7] = el; }}
                   type="text"
                   value={data.plt}
                   onChange={e => setData({ ...data, plt: e.target.value })}
-                  className={`w-full px-3 py-2 rounded-lg border font-black text-xs ${
+                  onKeyDown={e => handleKeyDown(e, 7)}
+                  onFocus={e => e.target.select()}
+                  className={`w-full px-3 py-2 rounded-lg border font-black text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none ${
                     pltPanic.isPanic 
                       ? 'border-rose-500 bg-rose-50 dark:bg-rose-950 text-rose-700' 
                       : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'
@@ -496,10 +558,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">MPV (fL)</label>
                 <input
+                  ref={el => { inputRefs.current[8] = el; }}
                   type="text"
                   value={data.mpv}
                   onChange={e => setData({ ...data, mpv: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 8)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 7.4 - 10.4</span>
               </div>
@@ -507,10 +572,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">PDW (%)</label>
                 <input
+                  ref={el => { inputRefs.current[9] = el; }}
                   type="text"
                   value={data.pdw}
                   onChange={e => setData({ ...data, pdw: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 9)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 9.0 - 17.0</span>
               </div>
@@ -518,10 +586,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">PCT (%)</label>
                 <input
+                  ref={el => { inputRefs.current[10] = el; }}
                   type="text"
                   value={data.pct}
                   onChange={e => setData({ ...data, pct: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 10)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 0.10 - 0.28</span>
               </div>
@@ -538,15 +609,22 @@ export default function CbcModal({
 
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-400">مجموع التفريق:</span>
-                <span
-                  className={`px-3 py-1 rounded-lg text-xs font-black border transition-all ${
-                    isDiffValid
-                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border-emerald-300'
-                      : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 border-rose-300 animate-pulse'
-                  }`}
-                >
-                  {diffSum}% {isDiffValid ? '<Check size={12} /> متطابق' : '<AlertTriangle size={12} /> غير متوازن (يجب أن يكون 100%)'}
-                </span>
+                {isDiffValid ? (
+                  <span className="px-3 py-1 rounded-lg text-xs font-black border transition-all bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border-emerald-300 flex items-center gap-1.5 shadow-sm">
+                    <CheckCircle2 size={13} className="shrink-0 text-emerald-600" />
+                    <span>100.0% متطابق</span>
+                  </span>
+                ) : diffSum < 100 ? (
+                  <span className="px-3 py-1 rounded-lg text-xs font-black border transition-all bg-amber-50 dark:bg-amber-950/40 text-amber-600 border-amber-300 flex items-center gap-1.5">
+                    <AlertTriangle size={13} className="shrink-0 text-amber-600" />
+                    <span>{diffSum.toFixed(1)}% (المتبقي: {(100 - diffSum).toFixed(1)}%)</span>
+                  </span>
+                ) : (
+                  <span className="px-3 py-1 rounded-lg text-xs font-black border transition-all bg-rose-50 dark:bg-rose-950/40 text-rose-600 border-rose-300 animate-pulse flex items-center gap-1.5">
+                    <AlertTriangle size={13} className="shrink-0 text-rose-600" />
+                    <span>{diffSum.toFixed(1)}% (زيادة: {(diffSum - 100).toFixed(1)}%)</span>
+                  </span>
+                )}
               </div>
             </div>
 
@@ -554,10 +632,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Total W.B.C (10^3)</label>
                 <input
+                  ref={el => { inputRefs.current[11] = el; }}
                   type="text"
                   value={data.wbc}
                   onChange={e => setData({ ...data, wbc: e.target.value })}
-                  className={`w-full px-3 py-2 rounded-lg border font-black text-xs ${
+                  onKeyDown={e => handleKeyDown(e, 11)}
+                  onFocus={e => e.target.select()}
+                  className={`w-full px-3 py-2 rounded-lg border font-black text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none ${
                     wbcPanic.isPanic 
                       ? 'border-rose-500 bg-rose-50 dark:bg-rose-950 text-rose-700' 
                       : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'
@@ -569,10 +650,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Neutrophils (%)</label>
                 <input
+                  ref={el => { inputRefs.current[12] = el; }}
                   type="text"
                   value={data.neutrophils}
                   onChange={e => setData({ ...data, neutrophils: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 12)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 40 - 75 %</span>
               </div>
@@ -580,10 +664,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Lymphocytes (%)</label>
                 <input
+                  ref={el => { inputRefs.current[13] = el; }}
                   type="text"
                   value={data.lymphocytes}
                   onChange={e => setData({ ...data, lymphocytes: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 13)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 20 - 45 %</span>
               </div>
@@ -591,10 +678,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Monocytes (%)</label>
                 <input
+                  ref={el => { inputRefs.current[14] = el; }}
                   type="text"
                   value={data.monocytes}
                   onChange={e => setData({ ...data, monocytes: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 14)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 2 - 10 %</span>
               </div>
@@ -602,10 +692,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Eosinophils (%)</label>
                 <input
+                  ref={el => { inputRefs.current[15] = el; }}
                   type="text"
                   value={data.eosinophils}
                   onChange={e => setData({ ...data, eosinophils: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 15)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 1 - 6 %</span>
               </div>
@@ -613,10 +706,13 @@ export default function CbcModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Basophils (%)</label>
                 <input
+                  ref={el => { inputRefs.current[16] = el; }}
                   type="text"
                   value={data.basophils}
                   onChange={e => setData({ ...data, basophils: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 16)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 0 - 1 %</span>
               </div>

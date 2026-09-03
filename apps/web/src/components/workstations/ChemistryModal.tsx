@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Check, Sparkles, AlertTriangle, Calculator, Activity, Zap, RotateCcw, AlertOctagon } from 'lucide-react';
 import { useToast } from '../Toast';
 import { 
@@ -22,10 +22,12 @@ export interface ChemistryData {
   triglycerides: string;
   hdl: string;
   ldl: string;
+  vldl: string;
 
   // Liver
   totalBilirubin: string;
   directBilirubin: string;
+  indirectBilirubin: string;
   ast: string;
   alt: string;
   alp: string;
@@ -56,9 +58,11 @@ export const DEFAULT_CHEMISTRY_DATA: ChemistryData = {
   totalCholesterol: '180',
   triglycerides: '130',
   hdl: '48',
-  ldl: '',
+  ldl: '106.0',
+  vldl: '26.0',
   totalBilirubin: '0.8',
   directBilirubin: '0.2',
+  indirectBilirubin: '0.60',
   ast: '24',
   alt: '22',
   alp: '75',
@@ -89,24 +93,30 @@ export function serializeChemistry(data: ChemistryData, calcs: CalculationResult
   }
 
   // Lipids
-  if (data.totalCholesterol || data.triglycerides || data.hdl) {
+  if (data.totalCholesterol || data.triglycerides || data.hdl || data.ldl || data.vldl) {
     let s = `LIPIDS: TC: ${data.totalCholesterol || '-'} | TG: ${data.triglycerides || '-'} | HDL: ${data.hdl || '-'}`;
-    if (calcs.ldl?.value !== undefined && calcs.ldl?.value !== null) {
+    if (data.ldl) {
+      s += ` | LDL: ${data.ldl} mg/dL`;
+    } else if (calcs.ldl?.value !== undefined && calcs.ldl?.value !== null) {
       s += ` | Calc LDL: ${calcs.ldl.value} mg/dL`;
     } else if (calcs.ldl?.invalidReason) {
       s += ` | LDL: Incalculable (${calcs.ldl.invalidReason})`;
-    } else if (data.ldl) {
-      s += ` | Measured LDL: ${data.ldl} mg/dL`;
     }
-    if (calcs.vldl?.value) s += ` | VLDL: ${calcs.vldl.value}`;
+    if (data.vldl) {
+      s += ` | VLDL: ${data.vldl} mg/dL`;
+    } else if (calcs.vldl?.value) {
+      s += ` | VLDL: ${calcs.vldl.value}`;
+    }
     if (calcs.cardiacRiskRatio?.value) s += ` | Cardiac Risk: ${calcs.cardiacRiskRatio.value}`;
     parts.push(s);
   }
 
   // Liver
-  if (data.totalBilirubin || data.directBilirubin || data.ast || data.alt || data.albumin) {
+  if (data.totalBilirubin || data.directBilirubin || data.indirectBilirubin || data.ast || data.alt || data.albumin) {
     let s = `LIVER: TB: ${data.totalBilirubin || '-'} | DB: ${data.directBilirubin || '-'}`;
-    if (calcs.indirectBilirubin?.value !== undefined && calcs.indirectBilirubin?.value !== null) {
+    if (data.indirectBilirubin) {
+      s += ` | Indir Bil: ${data.indirectBilirubin} mg/dL`;
+    } else if (calcs.indirectBilirubin?.value !== undefined && calcs.indirectBilirubin?.value !== null) {
       s += ` | Indir Bil: ${calcs.indirectBilirubin.value} mg/dL`;
     }
     s += ` | AST: ${data.ast || '-'} | ALT: ${data.alt || '-'} | ALP: ${data.alp || '-'} | Alb: ${data.albumin || '-'}`;
@@ -173,11 +183,17 @@ export function parseChemistry(raw: string): ChemistryData {
       if (tgMatch && tgMatch[1] !== '-') parsed.triglycerides = tgMatch[1];
       const hdlMatch = trimmed.match(/HDL:\s*([^\s|]+)/i);
       if (hdlMatch && hdlMatch[1] !== '-') parsed.hdl = hdlMatch[1];
+      const ldlMatch = trimmed.match(/LDL:\s*([^\s|]+)/i);
+      if (ldlMatch && ldlMatch[1] !== '-') parsed.ldl = ldlMatch[1];
+      const vldlMatch = trimmed.match(/VLDL:\s*([^\s|]+)/i);
+      if (vldlMatch && vldlMatch[1] !== '-') parsed.vldl = vldlMatch[1];
     } else if (trimmed.startsWith('LIVER:')) {
       const tbMatch = trimmed.match(/TB:\s*([^\s|]+)/i);
       if (tbMatch && tbMatch[1] !== '-') parsed.totalBilirubin = tbMatch[1];
       const dbMatch = trimmed.match(/DB:\s*([^\s|]+)/i);
       if (dbMatch && dbMatch[1] !== '-') parsed.directBilirubin = dbMatch[1];
+      const indirMatch = trimmed.match(/Indir Bil:\s*([^\s|]+)/i);
+      if (indirMatch && indirMatch[1] !== '-') parsed.indirectBilirubin = indirMatch[1];
       const astMatch = trimmed.match(/AST:\s*([^\s|]+)/i);
       if (astMatch && astMatch[1] !== '-') parsed.ast = astMatch[1];
       const altMatch = trimmed.match(/ALT:\s*([^\s|]+)/i);
@@ -228,6 +244,71 @@ export default function ChemistryModal({
   const toast = useToast();
   const [data, setData] = useState<ChemistryData>(DEFAULT_CHEMISTRY_DATA);
   const [saving, setSaving] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Seamless Numpad Navigation across all 25 chemistry parameters
+  const TOTAL_FIELDS = 25;
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === 'Enter' || e.key === 'ArrowDown') {
+      if (e.key === 'Enter' && e.shiftKey) {
+        e.preventDefault();
+        const prevIdx = index > 0 ? index - 1 : TOTAL_FIELDS - 1;
+        inputRefs.current[prevIdx]?.focus();
+        inputRefs.current[prevIdx]?.select();
+        return;
+      }
+      e.preventDefault();
+      const nextIdx = index < TOTAL_FIELDS - 1 ? index + 1 : 0;
+      inputRefs.current[nextIdx]?.focus();
+      inputRefs.current[nextIdx]?.select();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prevIdx = index > 0 ? index - 1 : TOTAL_FIELDS - 1;
+      inputRefs.current[prevIdx]?.focus();
+      inputRefs.current[prevIdx]?.select();
+    }
+  };
+
+  // Live Auto-Calculation on Keystroke for Lipids (VLDL & LDL)
+  const handleLipidChange = (field: 'totalCholesterol' | 'triglycerides' | 'hdl' | 'ldl' | 'vldl', val: string) => {
+    const nextData = { ...data, [field]: val };
+    const tc = parseFloat(field === 'totalCholesterol' ? val : nextData.totalCholesterol);
+    const tg = parseFloat(field === 'triglycerides' ? val : nextData.triglycerides);
+    const hdl = parseFloat(field === 'hdl' ? val : nextData.hdl);
+
+    // VLDL = TG / 5 (if TG < 400)
+    if (!isNaN(tg) && tg >= 0) {
+      if (tg < 400) {
+        nextData.vldl = (tg / 5).toFixed(1);
+      } else {
+        nextData.vldl = '';
+      }
+    }
+
+    // LDL = Total - HDL - (TG / 5) (if TG < 400 and LDL >= 10)
+    if (!isNaN(tc) && !isNaN(hdl) && !isNaN(tg) && tc >= 0 && hdl >= 0 && tg >= 0) {
+      if (tg < 400) {
+        const calcLdl = tc - hdl - (tg / 5);
+        if (calcLdl >= 10) {
+          nextData.ldl = calcLdl.toFixed(1);
+        }
+      }
+    }
+    setData(nextData);
+  };
+
+  // Live Auto-Calculation on Keystroke for Indirect Bilirubin
+  const handleBilirubinChange = (field: 'totalBilirubin' | 'directBilirubin' | 'indirectBilirubin', val: string) => {
+    const nextData = { ...data, [field]: val };
+    const tb = parseFloat(field === 'totalBilirubin' ? val : nextData.totalBilirubin);
+    const db = parseFloat(field === 'directBilirubin' ? val : nextData.directBilirubin);
+
+    // Indirect Bilirubin = Total - Direct (if Total >= Direct)
+    if (!isNaN(tb) && !isNaN(db) && tb >= 0 && db >= 0 && tb >= db) {
+      nextData.indirectBilirubin = (tb - db).toFixed(2);
+    }
+    setData(nextData);
+  };
 
   const patientAge = sample?.patient?.age ? parseInt(String(sample.patient.age)) : 45;
   const patientGender = (sample?.patient?.gender || 'MALE') as 'MALE' | 'FEMALE';
@@ -393,10 +474,13 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Serum Creatinine (mg/dL)</label>
                 <input
+                  ref={el => { inputRefs.current[0] = el; }}
                   type="text"
                   value={data.creatinine}
                   onChange={e => setData({ ...data, creatinine: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 0)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 0.6 - 1.2 mg/dL</span>
               </div>
@@ -404,10 +488,13 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Blood Urea (mg/dL)</label>
                 <input
+                  ref={el => { inputRefs.current[1] = el; }}
                   type="text"
                   value={data.urea}
                   onChange={e => setData({ ...data, urea: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 1)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 15 - 45 mg/dL</span>
               </div>
@@ -415,10 +502,13 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Uric Acid (mg/dL)</label>
                 <input
+                  ref={el => { inputRefs.current[2] = el; }}
                   type="text"
                   value={data.uricAcid}
                   onChange={e => setData({ ...data, uricAcid: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 2)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 3.5 - 7.2 mg/dL</span>
               </div>
@@ -432,7 +522,11 @@ export default function ChemistryModal({
                 <span className="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center text-xs">2</span>
                 فحص الدهون ومعادلة فرايدفالد (Lipid Profile & Friedewald Equation)
               </h3>
-              {calcs.ldl?.value !== undefined && calcs.ldl?.value !== null ? (
+              {data.ldl ? (
+                <div className="text-xs px-3 py-1 rounded-lg bg-emerald-600 text-white font-bold shadow-sm">
+                  الكوليسترول الضار (LDL): <strong>{data.ldl} mg/dL</strong>
+                </div>
+              ) : calcs.ldl?.value !== undefined && calcs.ldl?.value !== null ? (
                 <div className="text-xs px-3 py-1 rounded-lg bg-emerald-600 text-white font-bold shadow-sm">
                   الكوليسترول الضار المحسوب (Calc LDL): <strong>{calcs.ldl.value} mg/dL</strong>
                 </div>
@@ -443,14 +537,17 @@ export default function ChemistryModal({
               ) : null}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Total Cholesterol (mg/dL)</label>
                 <input
+                  ref={el => { inputRefs.current[3] = el; }}
                   type="text"
                   value={data.totalCholesterol}
-                  onChange={e => setData({ ...data, totalCholesterol: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onChange={e => handleLipidChange('totalCholesterol', e.target.value)}
+                  onKeyDown={e => handleKeyDown(e, 3)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Desirable: &lt; 200</span>
               </div>
@@ -458,10 +555,13 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Triglycerides (mg/dL)</label>
                 <input
+                  ref={el => { inputRefs.current[4] = el; }}
                   type="text"
                   value={data.triglycerides}
-                  onChange={e => setData({ ...data, triglycerides: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onChange={e => handleLipidChange('triglycerides', e.target.value)}
+                  onKeyDown={e => handleKeyDown(e, 4)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Normal: &lt; 150</span>
               </div>
@@ -469,24 +569,45 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">HDL Cholesterol (mg/dL)</label>
                 <input
+                  ref={el => { inputRefs.current[5] = el; }}
                   type="text"
                   value={data.hdl}
-                  onChange={e => setData({ ...data, hdl: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onChange={e => handleLipidChange('hdl', e.target.value)}
+                  onKeyDown={e => handleKeyDown(e, 5)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: &gt; 40 mg/dL</span>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Direct Measured LDL (اختياري)</label>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">LDL (Calc / Measured)</label>
                 <input
+                  ref={el => { inputRefs.current[6] = el; }}
                   type="text"
                   value={data.ldl}
-                  onChange={e => setData({ ...data, ldl: e.target.value })}
-                  placeholder="مباشر"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onChange={e => handleLipidChange('ldl', e.target.value)}
+                  onKeyDown={e => handleKeyDown(e, 6)}
+                  onFocus={e => e.target.select()}
+                  placeholder="محسوب / مباشر"
+                  className="w-full px-3 py-2 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50/30 dark:bg-emerald-950/20 font-bold text-xs text-emerald-800 dark:text-emerald-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Optimal: &lt; 100</span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">VLDL (TG / 5)</label>
+                <input
+                  ref={el => { inputRefs.current[7] = el; }}
+                  type="text"
+                  value={data.vldl}
+                  onChange={e => handleLipidChange('vldl', e.target.value)}
+                  onKeyDown={e => handleKeyDown(e, 7)}
+                  onFocus={e => e.target.select()}
+                  placeholder="TG / 5"
+                  className="w-full px-3 py-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50/30 dark:bg-amber-950/20 font-bold text-xs text-amber-800 dark:text-amber-300 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                />
+                <span className="text-[10px] text-slate-400">Ref: &lt; 30 mg/dL</span>
               </div>
             </div>
           </div>
@@ -509,10 +630,13 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Sodium Na+ (mmol/L)</label>
                 <input
+                  ref={el => { inputRefs.current[8] = el; }}
                   type="text"
                   value={data.sodium}
                   onChange={e => setData({ ...data, sodium: e.target.value })}
-                  className={`w-full px-3 py-2 rounded-lg border font-bold text-xs ${
+                  onKeyDown={e => handleKeyDown(e, 8)}
+                  onFocus={e => e.target.select()}
+                  className={`w-full px-3 py-2 rounded-lg border font-bold text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
                     naPanic.isPanic ? 'border-rose-500 bg-rose-50 text-rose-700 font-black' : 'border-slate-200 bg-white dark:bg-slate-900'
                   }`}
                 />
@@ -522,10 +646,13 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Potassium K+ (mmol/L)</label>
                 <input
+                  ref={el => { inputRefs.current[9] = el; }}
                   type="text"
                   value={data.potassium}
                   onChange={e => setData({ ...data, potassium: e.target.value })}
-                  className={`w-full px-3 py-2 rounded-lg border font-bold text-xs ${
+                  onKeyDown={e => handleKeyDown(e, 9)}
+                  onFocus={e => e.target.select()}
+                  className={`w-full px-3 py-2 rounded-lg border font-bold text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
                     kPanic.isPanic ? 'border-rose-500 bg-rose-50 text-rose-700 font-black' : 'border-slate-200 bg-white dark:bg-slate-900'
                   }`}
                 />
@@ -535,10 +662,13 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Chloride Cl- (mmol/L)</label>
                 <input
+                  ref={el => { inputRefs.current[10] = el; }}
                   type="text"
                   value={data.chloride}
                   onChange={e => setData({ ...data, chloride: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 10)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 98 - 107</span>
               </div>
@@ -546,10 +676,13 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Bicarbonate HCO3-</label>
                 <input
+                  ref={el => { inputRefs.current[11] = el; }}
                   type="text"
                   value={data.bicarbonate}
                   onChange={e => setData({ ...data, bicarbonate: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 11)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 22 - 29</span>
               </div>
@@ -557,10 +690,13 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Calcium Total (mg/dL)</label>
                 <input
+                  ref={el => { inputRefs.current[12] = el; }}
                   type="text"
                   value={data.calcium}
                   onChange={e => setData({ ...data, calcium: e.target.value })}
-                  className={`w-full px-3 py-2 rounded-lg border font-bold text-xs ${
+                  onKeyDown={e => handleKeyDown(e, 12)}
+                  onFocus={e => e.target.select()}
+                  className={`w-full px-3 py-2 rounded-lg border font-bold text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
                     caPanic.isPanic ? 'border-rose-500 bg-rose-50 text-rose-700 font-black' : 'border-slate-200 bg-white dark:bg-slate-900'
                   }`}
                 />
@@ -576,21 +712,24 @@ export default function ChemistryModal({
                 <span className="w-6 h-6 rounded-lg bg-rose-500/10 text-rose-600 flex items-center justify-center text-xs">4</span>
                 وظائف الكبد ونسبة ديريتيس (Liver Function Panel & De Ritis AST/ALT)
               </h3>
-              {calcs.indirectBilirubin?.value !== undefined && (
+              {(data.indirectBilirubin || calcs.indirectBilirubin?.value !== undefined) && (
                 <div className="text-xs px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold border border-slate-200">
-                  البيليروبين غير المباشر: <strong>{calcs.indirectBilirubin.value} mg/dL</strong>
+                  البيليروبين غير المباشر: <strong>{data.indirectBilirubin || calcs.indirectBilirubin?.value} mg/dL</strong>
                 </div>
               )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3">
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Total Bilirubin</label>
                 <input
+                  ref={el => { inputRefs.current[13] = el; }}
                   type="text"
                   value={data.totalBilirubin}
-                  onChange={e => setData({ ...data, totalBilirubin: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onChange={e => handleBilirubinChange('totalBilirubin', e.target.value)}
+                  onKeyDown={e => handleKeyDown(e, 13)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 0.2 - 1.2</span>
               </div>
@@ -598,21 +737,42 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Direct Bilirubin</label>
                 <input
+                  ref={el => { inputRefs.current[14] = el; }}
                   type="text"
                   value={data.directBilirubin}
-                  onChange={e => setData({ ...data, directBilirubin: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onChange={e => handleBilirubinChange('directBilirubin', e.target.value)}
+                  onKeyDown={e => handleKeyDown(e, 14)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 0.0 - 0.3</span>
               </div>
 
               <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Indir Bil (محسوب)</label>
+                <input
+                  ref={el => { inputRefs.current[15] = el; }}
+                  type="text"
+                  value={data.indirectBilirubin}
+                  onChange={e => handleBilirubinChange('indirectBilirubin', e.target.value)}
+                  onKeyDown={e => handleKeyDown(e, 15)}
+                  onFocus={e => e.target.select()}
+                  placeholder="TB - DB"
+                  className="w-full px-3 py-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50/30 dark:bg-amber-950/20 font-bold text-xs text-amber-800 dark:text-amber-300 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                />
+                <span className="text-[10px] text-slate-400">Ref: 0.2 - 0.8</span>
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">AST / GOT (U/L)</label>
                 <input
+                  ref={el => { inputRefs.current[16] = el; }}
                   type="text"
                   value={data.ast}
                   onChange={e => setData({ ...data, ast: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 16)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: &lt; 38</span>
               </div>
@@ -620,10 +780,13 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">ALT / GPT (U/L)</label>
                 <input
+                  ref={el => { inputRefs.current[17] = el; }}
                   type="text"
                   value={data.alt}
                   onChange={e => setData({ ...data, alt: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 17)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: &lt; 41</span>
               </div>
@@ -631,34 +794,43 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">ALP (U/L)</label>
                 <input
+                  ref={el => { inputRefs.current[18] = el; }}
                   type="text"
                   value={data.alp}
                   onChange={e => setData({ ...data, alp: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 18)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 40 - 130</span>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Albumin (g/dL)</label>
-                <input
-                  type="text"
-                  value={data.albumin}
-                  onChange={e => setData({ ...data, albumin: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
-                />
-                <span className="text-[10px] text-slate-400">Ref: 3.5 - 5.0</span>
-              </div>
-
-              <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Total Protein</label>
                 <input
+                  ref={el => { inputRefs.current[19] = el; }}
                   type="text"
                   value={data.totalProtein}
                   onChange={e => setData({ ...data, totalProtein: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 19)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 6.4 - 8.3</span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Albumin (g/dL)</label>
+                <input
+                  ref={el => { inputRefs.current[20] = el; }}
+                  type="text"
+                  value={data.albumin}
+                  onChange={e => setData({ ...data, albumin: e.target.value })}
+                  onKeyDown={e => handleKeyDown(e, 20)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                />
+                <span className="text-[10px] text-slate-400">Ref: 3.5 - 5.0</span>
               </div>
             </div>
           </div>
@@ -681,10 +853,13 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Fasting Blood Sugar (mg/dL)</label>
                 <input
+                  ref={el => { inputRefs.current[21] = el; }}
                   type="text"
                   value={data.fbs}
                   onChange={e => setData({ ...data, fbs: e.target.value })}
-                  className={`w-full px-3 py-2 rounded-lg border font-black text-xs ${
+                  onKeyDown={e => handleKeyDown(e, 21)}
+                  onFocus={e => e.target.select()}
+                  className={`w-full px-3 py-2 rounded-lg border font-black text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none ${
                     fbsPanic.isPanic ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white dark:bg-slate-900'
                   }`}
                 />
@@ -694,10 +869,13 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">HbA1c (%)</label>
                 <input
+                  ref={el => { inputRefs.current[22] = el; }}
                   type="text"
                   value={data.hba1c}
                   onChange={e => setData({ ...data, hba1c: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 22)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Normal: &lt; 5.7 %</span>
               </div>
@@ -705,11 +883,14 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Fasting Insulin (uIU/mL)</label>
                 <input
+                  ref={el => { inputRefs.current[23] = el; }}
                   type="text"
                   value={data.fastingInsulin}
                   onChange={e => setData({ ...data, fastingInsulin: e.target.value })}
+                  onKeyDown={e => handleKeyDown(e, 23)}
+                  onFocus={e => e.target.select()}
                   placeholder="اختياري"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 2.6 - 24.9</span>
               </div>
@@ -717,10 +898,13 @@ export default function ChemistryModal({
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">TSH (uIU/mL)</label>
                 <input
+                  ref={el => { inputRefs.current[24] = el; }}
                   type="text"
                   value={data.tsh}
                   onChange={e => setData({ ...data, tsh: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  onKeyDown={e => handleKeyDown(e, 24)}
+                  onFocus={e => e.target.select()}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
                 />
                 <span className="text-[10px] text-slate-400">Ref: 0.4 - 4.2</span>
               </div>

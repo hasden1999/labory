@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Check, Sparkles, Microscope, Plus, Trash2, Activity, AlertOctagon, AlertTriangle } from 'lucide-react';
 import { useToast } from '../Toast';
 
@@ -161,6 +161,41 @@ export default function GseModal({
   const [selectedOrganism, setSelectedOrganism] = useState(COMMON_PARASITES[0].organism);
   const [selectedStage, setSelectedStage] = useState(COMMON_PARASITES[0].defaultStage);
   const [selectedSeverity, setSelectedSeverity] = useState('+');
+
+  // Keyboard navigation across sections
+  const elementRefs = useRef<(HTMLElement | null)[]>([]);
+  const TOTAL_GSE_FIELDS = 16;
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>, index: number) => {
+    if (e.key === 'Enter') {
+      if (index === 15 && !e.ctrlKey) return; // Allow normal Enter newlines in textarea unless Ctrl+Enter
+      e.preventDefault();
+      const nextIdx = e.shiftKey
+        ? (index > 0 ? index - 1 : TOTAL_GSE_FIELDS - 1)
+        : (index < TOTAL_GSE_FIELDS - 1 ? index + 1 : 0);
+      const target = elementRefs.current[nextIdx];
+      target?.focus();
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+        target.select();
+      }
+    } else if (e.key === 'ArrowDown' && !(e.target instanceof HTMLSelectElement)) {
+      e.preventDefault();
+      const nextIdx = index < TOTAL_GSE_FIELDS - 1 ? index + 1 : 0;
+      const target = elementRefs.current[nextIdx];
+      target?.focus();
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+        target.select();
+      }
+    } else if (e.key === 'ArrowUp' && !(e.target instanceof HTMLSelectElement)) {
+      e.preventDefault();
+      const prevIdx = index > 0 ? index - 1 : TOTAL_GSE_FIELDS - 1;
+      const target = elementRefs.current[prevIdx];
+      target?.focus();
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+        target.select();
+      }
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {

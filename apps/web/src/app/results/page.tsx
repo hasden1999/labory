@@ -17,6 +17,7 @@ import ChemistryModal from '../../components/workstations/ChemistryModal';
 import MicrobiologyModal from '../../components/workstations/MicrobiologyModal';
 import { compareSampleWithHistory, DeltaCheckResult } from '../../lib/deltaCheck';
 import { Sample, SampleTest, Test } from '../../types';
+import ConfirmModal from '../../components/ConfirmModal';
 
 function ResultsContent() {
   const toast = useToast();
@@ -34,9 +35,12 @@ function ResultsContent() {
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'RECEIVED' | 'IN_PROGRESS' | 'READY' | 'DELIVERED' | 'URGENT'>('ALL');
   const [loadingSamples, setLoadingSamples] = useState(true);
 
-  // Results State
+  // Results State & Dirty-State Guard
   const [testResults, setTestResults] = useState<Record<string, { resultValue: string; isAbnormal: boolean; interpretation?: string }>>({});
   const [savingResults, setSavingResults] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [pendingSampleToSelect, setPendingSampleToSelect] = useState<Sample | null>(null);
+  const [showDirtyConfirm, setShowDirtyConfirm] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [deltaChecks, setDeltaChecks] = useState<Record<string, DeltaCheckResult>>({});
 
@@ -109,7 +113,7 @@ function ResultsContent() {
     loadSamples();
   }, [searchParams]);
 
-  // Select Sample
+  // Select Sample with SessionStorage Draft Recovery
   const selectSample = (sample: Sample) => {
     setSelectedSample(sample);
     const initial: Record<string, { resultValue: string; isAbnormal: boolean; interpretation?: string }> = {};
@@ -120,7 +124,30 @@ function ResultsContent() {
         interpretation: st.interpretation || '',
       };
     });
-    setTestResults(initial);
+
+    // Check for sessionStorage draft for this sample
+    let draftLoaded = false;
+    try {
+      const draftKey = `labryo_results_draft_${sample.id}`;
+      const savedDraft = sessionStorage.getItem(draftKey);
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+          const merged = { ...initial, ...parsed };
+          setTestResults(merged);
+          setIsDirty(true);
+          draftLoaded = true;
+          toast.info(`تم استرجاع مسودة غير محفوظة للعينة #${sample.sampleNumber}`);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load results draft from sessionStorage', err);
+    }
+
+    if (!draftLoaded) {
+      setTestResults(initial);
+      setIsDirty(false);
+    }
 
     // Compute Delta Checks against patient's previous visits
     try {
@@ -141,6 +168,43 @@ function ResultsContent() {
       setDeltaChecks({});
     }
   };
+
+  // Guard sample switching when dirty
+  const handleSelectSampleWithGuard = (targetSample: Sample) => {
+    if (selectedSample && targetSample.id === selectedSample.id) return;
+    if (isDirty) {
+      setPendingSampleToSelect(targetSample);
+      setShowDirtyConfirm(true);
+      return;
+    }
+    selectSample(targetSample);
+  };
+
+  const handleConfirmDiscardAndSwitch = () => {
+    if (selectedSample) {
+      try {
+        sessionStorage.removeItem(`labryo_results_draft_${selectedSample.id}`);
+      } catch (e) {}
+    }
+    setIsDirty(false);
+    setShowDirtyConfirm(false);
+    if (pendingSampleToSelect) {
+      selectSample(pendingSampleToSelect);
+      setPendingSampleToSelect(null);
+    }
+  };
+
+  // Dirty state browser unload protection
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
   // Helper to persist workstation results immediately
   const handleSaveWorkstationResult = async (categoryOrCode: string, serialized: string, isAbnormal: boolean) => {
@@ -199,6 +263,14 @@ function ResultsContent() {
         // Refresh sample queue
         const refreshed = await apiRequest('/samples');
         setSamples(refreshed || []);
+
+        // Clear draft & dirty
+        if (selectedSample) {
+          try {
+            sessionStorage.removeItem(`labryo_results_draft_${selectedSample.id}`);
+          } catch (e) {}
+        }
+        setIsDirty(false);
       } catch (err: any) {
         console.error('Error saving workstation results:', err);
       }
@@ -322,6 +394,12 @@ function ResultsContent() {
     }
 
     setTestResults(nextResults);
+    setIsDirty(true);
+    if (selectedSample) {
+      try {
+        sessionStorage.setItem(`labryo_results_draft_${selectedSample.id}`, JSON.stringify(nextResults));
+      } catch (e) {}
+    }
   };
 
   // Save Results
@@ -341,6 +419,14 @@ function ResultsContent() {
         markReady,
       });
 
+      // Clear draft & dirty state upon successful save
+      if (selectedSample) {
+        try {
+          sessionStorage.removeItem(`labryo_results_draft_${selectedSample.id}`);
+        } catch (e) {}
+      }
+      setIsDirty(false);
+
       toast.success(markReady ? 'تم اعتماد وتجهيز التقرير للطباعة!' : 'تم حفظ النتائج كمسودة', 'تم الحفظ');
       
       if (markReady) {
@@ -354,6 +440,92 @@ function ResultsContent() {
       setSavingResults(false);
     }
   };
+
+  // Fast Pathologist Hotkey (Ctrl+Shift+Enter): Save as READY and jump to next pending sample
+  const handleFastPathologistApprove = async () => {
+    if (!selectedSample || savingResults) return;
+    try {
+      setSavingResults(true);
+      const resultsPayload = Object.entries(testResults).map(([sampleTestId, data]: [string, any]) => ({
+        sampleTestId,
+        resultValue: data.resultValue,
+        isAbnormal: data.isAbnormal,
+        interpretation: data.interpretation,
+      }));
+
+      await apiRequest(`/samples/${selectedSample.id}/results`, 'PUT', {
+        results: resultsPayload,
+        markReady: true,
+      });
+
+      // Clear draft & dirty state upon successful save
+      if (selectedSample) {
+        try {
+          sessionStorage.removeItem(`labryo_results_draft_${selectedSample.id}`);
+        } catch (e) {}
+      }
+      setIsDirty(false);
+
+      toast.success(`تم اعتماد العينة #${selectedSample.sampleNumber} كـ READY بنجاح والانتقال للعينة التالية!`, 'اعتماد سريع');
+
+      // Refresh samples and automatically advance to next pending sample
+      const refreshed = await apiRequest('/samples');
+      const sampleList: Sample[] = refreshed || [];
+      setSamples(sampleList);
+
+      const currentIdx = sampleList.findIndex((s) => s.id === selectedSample.id);
+      let nextSample: Sample | null = null;
+
+      // Find next sample that is IN_PROGRESS or RECEIVED
+      for (let i = currentIdx + 1; i < sampleList.length; i++) {
+        if (sampleList[i].status === 'IN_PROGRESS' || sampleList[i].status === 'RECEIVED') {
+          nextSample = sampleList[i];
+          break;
+        }
+      }
+      if (!nextSample) {
+        for (let i = 0; i < currentIdx; i++) {
+          if (sampleList[i].status === 'IN_PROGRESS' || sampleList[i].status === 'RECEIVED') {
+            nextSample = sampleList[i];
+            break;
+          }
+        }
+      }
+      // If none in progress/received, take immediate next if exists
+      if (!nextSample && sampleList.length > 1) {
+        const nextIndex = (currentIdx + 1) % sampleList.length;
+        if (sampleList[nextIndex].id !== selectedSample.id) {
+          nextSample = sampleList[nextIndex];
+        }
+      }
+
+      if (nextSample && nextSample.id !== selectedSample.id) {
+        selectSample(nextSample);
+        setTimeout(() => {
+          resultInputRefs.current[0]?.focus();
+          resultInputRefs.current[0]?.select();
+        }, 100);
+      } else {
+        toast.info('تم إنهاء فحص كافة العينات في قائمة العمل!');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'فشل اعتماد النتائج', 'خطأ');
+    } finally {
+      setSavingResults(false);
+    }
+  };
+
+  // Keyboard shortcut listener for Fast Pathologist Approve (Ctrl+Shift+Enter / Cmd+Shift+Enter)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Enter') {
+        e.preventDefault();
+        handleFastPathologistApprove();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [selectedSample, testResults, savingResults, samples]);
 
   // Milestone M4: WhatsApp Direct Share
   const handleSendWhatsApp = () => {
@@ -586,7 +758,7 @@ function ResultsContent() {
                 return (
                   <div
                     key={s.id}
-                    onClick={() => selectSample(s)}
+                    onClick={() => handleSelectSampleWithGuard(s)}
                     style={{
                       padding: '10px 12px',
                       borderRadius: '8px',
@@ -738,6 +910,30 @@ function ResultsContent() {
                   <span><Barcode size={14} /> طباعة الباركود 50x25mm</span>
                 </button>
 
+                {/* Fast Pathologist Approval Hotkey Button */}
+                <button
+                  type="button"
+                  onClick={handleFastPathologistApprove}
+                  disabled={savingResults}
+                  className="btn-cyan-primary"
+                  style={{
+                    height: '32px',
+                    padding: '0 12px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    background: 'linear-gradient(135deg, #0d9488 0%, #06b6d4 100%)',
+                    borderColor: '#14b8a6',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}
+                  title="اعتماد العينة كـ READY والانتقال التلقائي للعينة التالية (Ctrl+Shift+Enter)"
+                >
+                  <Zap size={13} />
+                  <span>اعتماد سريع</span>
+                  <kbd style={{ background: 'rgba(0,0,0,0.3)', padding: '1px 5px', borderRadius: '3px', fontSize: '10px' }}>Ctrl+Shift+Enter</kbd>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => handleSaveResults(true)}
@@ -748,6 +944,13 @@ function ResultsContent() {
                   <Printer size={13} />
                   <span>SAVE & PRINT <Check size={12} /></span>
                 </button>
+
+                {isDirty && (
+                  <span style={{ fontSize: '11px', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.35)', padding: '3px 8px', borderRadius: '6px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <AlertTriangle size={12} />
+                    <span>مسودة غير محفوظة</span>
+                  </span>
+                )}
 
                 {selectedSample?.patient?.phone && (
                   <button
@@ -1325,6 +1528,21 @@ function ResultsContent() {
           </div>
         </div>
       )}
+
+      {/* DIRTY STATE CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={showDirtyConfirm}
+        title="تنبيه: نتائج غير محفوظة"
+        message="تنبيه: توجد نتائج غير محفوظة للعينة الحالية. هل ترغب بالتجاهل والانتقال؟"
+        type="warning"
+        confirmText="متابعة وإلغاء التعديل"
+        cancelText="البقاء للحفظ"
+        onConfirm={handleConfirmDiscardAndSwitch}
+        onCancel={() => {
+          setShowDirtyConfirm(false);
+          setPendingSampleToSelect(null);
+        }}
+      />
 
     </AppShell>
   );
