@@ -19,6 +19,14 @@ export async function testCatalogRoutes(fastify: FastifyInstance) {
     return reply.send({ tests, panels });
   });
 
+  // Get Catalog Tests directly
+  fastify.get('/catalog/tests', async (request, reply) => {
+    const tests = await prisma.testCatalog.findMany({
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
+    });
+    return reply.send(tests);
+  });
+
   // Create Catalog Test
   fastify.post('/tests', async (request, reply) => {
     const data = request.body as any;

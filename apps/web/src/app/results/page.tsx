@@ -617,8 +617,13 @@ function ResultsContent() {
   const handleOpenAddTestsModal = async () => {
     try {
       if (allAvailableTests.length === 0) {
-        const res = await apiRequest('/catalog/tests');
-        setAllAvailableTests(res || []);
+        const res: any = await apiRequest('/catalog/tests');
+        const list: Test[] = Array.isArray(res)
+          ? res
+          : Array.isArray(res?.tests)
+            ? res.tests
+            : [];
+        setAllAvailableTests(list);
       }
       setSelectedNewTests([]);
       setShowAddTestsModal(true);
@@ -838,7 +843,7 @@ function ResultsContent() {
                   style={{ color: 'var(--accent-cyan)', borderColor: 'rgba(0,210,211,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
                 >
                   <Plus size={13} />
-                  <span><Plus size={14} /> Add Tests</span>
+                  <span>إضافة فحوصات للعينة</span>
                 </button>
 
                 <button
@@ -1435,26 +1440,26 @@ function ResultsContent() {
         <div className="modal-overlay" onClick={() => setShowAddTestsModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <strong style={{ fontSize: '15px', color: 'var(--text-main)' }}>Add Extra Tests to Sample #{selectedSample?.sampleNumber}</strong>
+              <strong style={{ fontSize: '15px', color: 'var(--text-main)' }}>إضافة فحوصات إضافية للعينة #{selectedSample?.sampleNumber}</strong>
               <button type="button" onClick={() => setShowAddTestsModal(false)} className="btn-secondary" style={{ padding: '4px 8px' }}>
                 <X size={14} />
               </button>
             </div>
 
             <div style={{ position: 'relative', marginBottom: '12px' }}>
-              <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+              <Search size={13} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
               <input
                 type="text"
-                placeholder="Search catalog tests..."
+                placeholder="بحث في كتالوج الفحوصات الطبية..."
                 className="input-control"
-                style={{ paddingLeft: '28px' }}
+                style={{ paddingRight: '28px' }}
                 value={addTestSearch}
                 onChange={(e) => setAddTestSearch(e.target.value)}
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px', maxHeight: '260px', overflowY: 'auto', marginBottom: '16px' }}>
-              {allAvailableTests
+              {(Array.isArray(allAvailableTests) ? allAvailableTests : ((allAvailableTests as any)?.tests || []))
                 .filter(t => !addTestSearch || t.name?.toLowerCase().includes(addTestSearch.toLowerCase()) || t.code?.toLowerCase().includes(addTestSearch.toLowerCase()))
                 .map((t) => {
                   const isChecked = selectedNewTests.some(nt => nt.id === t.id);
@@ -1485,10 +1490,15 @@ function ResultsContent() {
 
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
               <button type="button" onClick={() => setShowAddTestsModal(false)} className="btn-secondary">
-                Cancel
+                إلغاء
               </button>
               <button type="button" onClick={handleConfirmAddTests} disabled={addingTests || selectedNewTests.length === 0} className="btn-cyan-primary">
-                {addingTests ? 'Adding...' : `Add ${selectedNewTests.length} Tests <Check size={12} />`}
+                {addingTests ? 'جاري الإضافة...' : (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <Check size={13} />
+                    <span>إضافة {selectedNewTests.length} فحص للعينة</span>
+                  </span>
+                )}
               </button>
             </div>
           </div>
