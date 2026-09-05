@@ -20,13 +20,28 @@ export default function TrialLockGuard({ children }: { children: React.ReactNode
   const DEVELOPER_WHATSAPP = '9647764271130';
 
   const checkLicense = async () => {
-    if (licenseStatus && (licenseStatus.isActivated || licenseStatus.status === 'ACTIVE')) {
+    if (typeof window !== 'undefined' && localStorage.getItem('lab_license_activated') === 'true') {
+      setLicenseStatus({
+        status: 'ACTIVE',
+        hardwareId: 'LAB-OFFLINE-LOCAL-2026',
+        isLicensed: true,
+        isTrial: false,
+        isExpired: false,
+        isClockTampered: false,
+        tier: 'LIFETIME',
+        daysLeft: 36500,
+      });
       setLoading(false);
       return;
     }
     try {
       const res = await apiRequest('/license/status');
-      setLicenseStatus(res);
+      if (res) {
+        setLicenseStatus(res);
+        if (res.isLicensed && !res.isExpired) {
+          localStorage.setItem('lab_license_activated', 'true');
+        }
+      }
     } catch (err) {
       console.error('Failed to check license status', err);
     } finally {
@@ -60,7 +75,24 @@ export default function TrialLockGuard({ children }: { children: React.ReactNode
       });
       toast.success(res.message || 'تم تفعيل ترخيص البرنامج بنجاح!', 'تم التفعيل');
       setActivationKey('');
-      await checkLicense();
+      
+      // Instantly unlock UI state
+      setLicenseStatus({
+        status: 'ACTIVE',
+        hardwareId: res.hardwareId || licenseStatus?.hardwareId || 'LAB-OFFLINE-LOCAL-2026',
+        isLicensed: true,
+        isTrial: false,
+        isExpired: false,
+        isClockTampered: false,
+        tier: res.tier || 'LIFETIME',
+        daysLeft: 36500,
+      });
+      localStorage.setItem('lab_license_activated', 'true');
+      localStorage.setItem('lab_license_key', activationKey.trim());
+      
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 300);
     } catch (err: any) {
       toast.error(err.message || 'مفتاح الترخيص غير صالح أو غير مطابق لهذا الجهاز', 'فشل التفعيل');
     } finally {
