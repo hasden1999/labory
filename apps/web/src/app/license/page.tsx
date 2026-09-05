@@ -6,7 +6,6 @@ import React, { useEffect, useState } from 'react';
 import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
-import Link from 'next/link';
 import { 
   ShieldCheck, 
   Key, 
@@ -18,8 +17,7 @@ import {
   Lock, 
   Sparkles, 
   HelpCircle,
-  KeyRound,
-  FileKey
+  KeyRound
 } from 'lucide-react';
 
 export default function LicensePage() {
@@ -90,13 +88,6 @@ export default function LicensePage() {
             إدارة تراخيص البرنامج وتفعيل النسخة
           </h1>
           <p className="page-subtitle">حالة الاشتراك، كود بصمة الجهاز الفريد (HWID)، وتفعيل مفاتيح الترخيص الأوفلاين</p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <Link href="/license/keygen" className="btn-secondary" style={{ fontSize: '12.5px', textDecoration: 'none', gap: '6px' }}>
-            <FileKey size={15} color="var(--accent-cyan)" />
-            <span>بوابة توليد المفاتيح (للمطور فقط)</span>
-          </Link>
         </div>
       </div>
 

@@ -100,11 +100,6 @@ export default function TrialLockGuard({ children }: { children: React.ReactNode
     }
   };
 
-  // If on keygen page, do not lock so developer can access the generator
-  if (pathname?.startsWith('/license/keygen')) {
-    return <>{children}</>;
-  }
-
   const isLocked = !loading && licenseStatus && (!licenseStatus.isLicensed || licenseStatus.isExpired || licenseStatus.isClockTampered);
 
   if (isLocked) {
