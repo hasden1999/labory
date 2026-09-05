@@ -762,14 +762,11 @@ function IntakeContent() {
         </div>
       </div>
 
-      {/* 2. Main 2-Column Grid (RTL clinical layout: Workspace Right, Financials Left) */}
-      <div className="reception-mockup-grid" style={{ direction: 'rtl' }}>
+      {/* 2. Main 3-Column Grid (Clean Clinical Light 3-Column Layout: Right Patient 320px, Center Test Catalog flex, Left Financials 340px) */}
+      <div className="intake-3col-grid" style={{ direction: 'rtl' }}>
         
-        {/* LEFT / MAIN WORKSPACE */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          
-          {/* A. PATIENT INTAKE & AUTOCOMPLETE CARD */}
-          <div className="glass-card" style={{ padding: '16px 18px' }}>
+        {/* 1. RIGHT COLUMN: PATIENT INTAKE & AUTOCOMPLETE CARD (320px) */}
+        <div className="glass-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
             {/* Draft Persistence Notification Bar */}
             {savedDraft && (
               <div
@@ -998,10 +995,10 @@ function IntakeContent() {
               </div>
             )}
 
-            {/* Patient Form Fields Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.7fr 0.7fr 1.1fr 1.3fr', gap: '8px', alignItems: 'flex-start' }}>
+            {/* Patient Form Fields - Formatted cleanly for 320px column */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
               <div>
-                <label htmlFor="patient-name-input" className="input-label" style={{ fontSize: '10px' }}>Full Name (اسم المريض) *</label>
+                <label htmlFor="patient-name-input" className="input-label" style={{ fontSize: '10.5px' }}>Full Name (اسم المريض) *</label>
                 <input
                   id="patient-name-input"
                   ref={(el) => {
@@ -1020,50 +1017,52 @@ function IntakeContent() {
                 />
               </div>
 
-              <div>
-                <label htmlFor="patient-age-input" className="input-label" style={{ fontSize: '10px' }}>Age (العمر)</label>
-                <input
-                  id="patient-age-input"
-                  ref={(el) => {
-                    patientAgeInputRef.current = el;
-                    inputRefs.current[1] = el;
-                  }}
-                  onKeyDown={(e) => handleInputKeyDown(e, 1)}
-                  type="number"
-                  min={0}
-                  max={150}
-                  maxLength={3}
-                  placeholder="العمر"
-                  className="input-control"
-                  style={{ height: '36px', fontSize: '12.5px' }}
-                  value={patientAge}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val.length <= 3) {
-                      setPatientAge(val);
-                    }
-                  }}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label htmlFor="patient-age-input" className="input-label" style={{ fontSize: '10.5px' }}>Age (العمر)</label>
+                  <input
+                    id="patient-age-input"
+                    ref={(el) => {
+                      patientAgeInputRef.current = el;
+                      inputRefs.current[1] = el;
+                    }}
+                    onKeyDown={(e) => handleInputKeyDown(e, 1)}
+                    type="number"
+                    min={0}
+                    max={150}
+                    maxLength={3}
+                    placeholder="العمر"
+                    className="input-control"
+                    style={{ height: '36px', fontSize: '12.5px' }}
+                    value={patientAge}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.length <= 3) {
+                        setPatientAge(val);
+                      }
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="patient-gender-select" className="input-label" style={{ fontSize: '10.5px' }}>Gender (الجنس)</label>
+                  <select
+                    id="patient-gender-select"
+                    ref={(el) => { inputRefs.current[2] = el; }}
+                    onKeyDown={(e) => handleInputKeyDown(e, 2)}
+                    className="select-control"
+                    style={{ height: '36px', fontSize: '12px' }}
+                    value={patientGender}
+                    onChange={(e) => setPatientGender(e.target.value as any)}
+                  >
+                    <option value="MALE">ذكر (Male)</option>
+                    <option value="FEMALE">أنثى (Female)</option>
+                  </select>
+                </div>
               </div>
 
               <div>
-                <label htmlFor="patient-gender-select" className="input-label" style={{ fontSize: '10px' }}>Gender (الجنس)</label>
-                <select
-                  id="patient-gender-select"
-                  ref={(el) => { inputRefs.current[2] = el; }}
-                  onKeyDown={(e) => handleInputKeyDown(e, 2)}
-                  className="select-control"
-                  style={{ height: '36px', fontSize: '12px' }}
-                  value={patientGender}
-                  onChange={(e) => setPatientGender(e.target.value as any)}
-                >
-                  <option value="MALE">ذكر (Male)</option>
-                  <option value="FEMALE">أنثى (Female)</option>
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="patient-phone-input" className="input-label" style={{ fontSize: '10px' }}>Phone (الهاتف)</label>
+                <label htmlFor="patient-phone-input" className="input-label" style={{ fontSize: '10.5px' }}>Phone (الهاتف)</label>
                 <input
                   id="patient-phone-input"
                   ref={(el) => { inputRefs.current[3] = el; }}
@@ -1081,7 +1080,7 @@ function IntakeContent() {
               </div>
 
               <div>
-                <label htmlFor="patient-doctor-select" className="input-label" style={{ fontSize: '10px' }}>Referring Doctor (الطبيب المحيل)</label>
+                <label htmlFor="patient-doctor-select" className="input-label" style={{ fontSize: '10.5px' }}>Referring Doctor (الطبيب المحيل)</label>
                 <select
                   id="patient-doctor-select"
                   ref={(el) => { inputRefs.current[4] = el; }}
@@ -1099,28 +1098,27 @@ function IntakeContent() {
                   ))}
                 </select>
               </div>
-            </div>
 
-            {/* Sample Notes / Clinical Instructions */}
-            <div style={{ marginTop: '10px' }}>
-              <label htmlFor="sample-notes-input" className="input-label" style={{ fontSize: '10px', display: 'block', marginBottom: '4px' }}>
-                Sample Notes / Clinical Instructions (ملاحظات العينة / التوجيهات السريرية)
-              </label>
-              <input
-                id="sample-notes-input"
-                ref={(el) => { inputRefs.current[5] = el; }}
-                onKeyDown={(e) => handleInputKeyDown(e, 5)}
-                type="text"
-                placeholder="ملاحظات العينة أو التوجيهات السريرية (مثل: مريض صائم 12 ساعة، عينة دم شرياني، تدقيق إضافي...)"
-                className="input-control"
-                style={{ height: '34px', fontSize: '12px', background: 'var(--bg-input-deep)' }}
-                value={sampleNotes}
-                onChange={(e) => setSampleNotes(e.target.value)}
-              />
+              <div>
+                <label htmlFor="sample-notes-input" className="input-label" style={{ fontSize: '10.5px', display: 'block', marginBottom: '4px' }}>
+                  Sample Notes / Clinical Instructions (ملاحظات العينة)
+                </label>
+                <input
+                  id="sample-notes-input"
+                  ref={(el) => { inputRefs.current[5] = el; }}
+                  onKeyDown={(e) => handleInputKeyDown(e, 5)}
+                  type="text"
+                  placeholder="ملاحظات سريرية (مثل: صائم 12 ساعة...)"
+                  className="input-control"
+                  style={{ height: '34px', fontSize: '12px', background: 'var(--bg-input-deep)' }}
+                  value={sampleNotes}
+                  onChange={(e) => setSampleNotes(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
-          {/* B. TEST SELECTION CARD WITH HOTKEY SEARCH & ARROW NAVIGATION */}
+          {/* 2. CENTER COLUMN: TEST SELECTION CARD (Flexible Flex-1) */}
           <div className="glass-card" style={{ padding: '16px 18px', flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1337,9 +1335,7 @@ function IntakeContent() {
             </div>
           </div>
 
-        </div>
-
-        {/* RIGHT COLUMN: INTAKE SUMMARY & FINANCIALS */}
+        {/* 3. LEFT COLUMN: INTAKE SUMMARY & FINANCIALS (340px) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           
           <div className="glass-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', height: '100%' }}>

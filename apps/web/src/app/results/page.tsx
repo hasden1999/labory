@@ -7,7 +7,7 @@ import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useSearchParams } from 'next/navigation';
-import { FileText, Search, Printer, Save, AlertTriangle, Check, User, Clock, CheckCircle2, Share2, History, Calculator, FlaskConical, X, Eye, Cpu, TestTube, Plus, MoreHorizontal, ChevronDown, Microscope, Bug, Activity, Zap, Sparkles, MessageCircle, AlertOctagon, CircleAlert, Barcode } from 'lucide-react';
+import { FileText, Search, Printer, Save, AlertTriangle, Check, User, Clock, CheckCircle2, Share2, History, Calculator, FlaskConical, X, Eye, Cpu, TestTube, Plus, MoreHorizontal, ChevronDown, Microscope, Bug, Activity, Zap, Sparkles, MessageCircle, AlertOctagon, CircleAlert, Barcode, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useLab } from '../../components/LabContext';
 import UrineFormModal, { UrineAnalysisData } from '../../components/UrineFormModal';
@@ -81,6 +81,8 @@ function ResultsContent() {
   const [addTestSearch, setAddTestSearch] = useState('');
   const [selectedNewTests, setSelectedNewTests] = useState<Test[]>([]);
   const [addingTests, setAddingTests] = useState(false);
+  const [testToDelete, setTestToDelete] = useState<any | null>(null);
+  const [deletingTest, setDeletingTest] = useState(false);
 
   // Load Samples
   const loadSamples = async () => {
@@ -650,6 +652,36 @@ function ResultsContent() {
     }
   };
 
+  const handleConfirmDeleteTest = async () => {
+    if (!selectedSample || !testToDelete) return;
+    try {
+      setDeletingTest(true);
+      await apiRequest(`/samples/${selectedSample.id}/tests?sampleTestId=${testToDelete.id}`, 'DELETE');
+      toast.success(`تم حذف فحص ${testToDelete.test?.name || ''} من العينة بنجاح`);
+
+      setTestResults(prev => {
+        const next = { ...prev };
+        delete next[testToDelete.id];
+        return next;
+      });
+
+      setSelectedSample(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          tests: prev.tests.filter((t: any) => t.id !== testToDelete.id),
+        };
+      });
+
+      setTestToDelete(null);
+      loadSamples();
+    } catch (err: any) {
+      toast.error(err.message || 'فشل حذف الفحص');
+    } finally {
+      setDeletingTest(false);
+    }
+  };
+
   return (
     <AppShell>
       {/* Main Mockup Split Layout */}
@@ -948,6 +980,7 @@ function ResultsContent() {
                     <th style={{ padding: '10px 14px', textAlign: 'left' }}>RANGE</th>
                     <th style={{ padding: '10px 14px', textAlign: 'left' }}>UNITS</th>
                     <th style={{ padding: '10px 14px', textAlign: 'left' }}>STATUS</th>
+                    <th style={{ padding: '10px 10px', textAlign: 'center', width: '50px' }}>DEL</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1253,11 +1286,34 @@ function ResultsContent() {
                               })()}
                             </div>
                           </td>
+
+                          <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => setTestToDelete(st)}
+                              title={`حذف فحص ${st.test?.name || ''} من هذه العينة`}
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                color: '#ef4444',
+                                borderRadius: '6px',
+                                width: '28px',
+                                height: '28px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
                         </tr>
 
                         {isPanic && (
                           <tr style={{ background: 'var(--bg-stat-row)' }}>
-                            <td colSpan={5} style={{ padding: '6px 14px', color: 'var(--color-danger)', fontSize: '11.5px', fontWeight: 700 }}>
+                            <td colSpan={6} style={{ padding: '6px 14px', color: 'var(--color-danger)', fontSize: '11.5px', fontWeight: 700 }}>
                               <AlertTriangle size={12} /> PANIC LIMIT WARNING: {st.test?.name} value ({currentVal}) exceeds critical clinical threshold!
                             </td>
                           </tr>
@@ -1512,6 +1568,20 @@ function ResultsContent() {
           setPendingSampleToSelect(null);
         }}
       />
+
+      {/* DELETE TEST CONFIRMATION MODAL */}
+      {testToDelete && (
+        <ConfirmModal
+          isOpen={!!testToDelete}
+          title="تأكيد حذف / استبعاد الفحص"
+          message={`هل أنت متأكد من حذف فحص "${testToDelete.test?.name || ''}" من هذه العينة؟ سيتم استبعاد الفحص فوراً وتعديل ملخص الحسابات.`}
+          type="danger"
+          confirmText={deletingTest ? 'جاري الحذف...' : 'نعم، حذف الفحص'}
+          cancelText="إلغاء"
+          onConfirm={handleConfirmDeleteTest}
+          onCancel={() => setTestToDelete(null)}
+        />
+      )}
 
     </AppShell>
   );

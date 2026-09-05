@@ -1,5 +1,5 @@
-﻿import { NextResponse } from 'next/server';
-import { getStore } from '../../../../../lib/serverStore';
+import { NextResponse } from 'next/server';
+import { getStore, saveStoreToFile } from '../../../../../lib/serverStore';
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -43,9 +43,62 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
     sample.priceTotal = (sample.priceTotal || 0) + addedTotal;
     sample.remainingAmount = Math.max(0, (sample.remainingAmount || 0) + addedTotal);
+    saveStoreToFile();
 
     return NextResponse.json(sample);
   } catch (err: any) {
     return NextResponse.json({ message: err.message || 'فشل إضافة الفحوصات' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const { searchParams } = new URL(request.url);
+    let sampleTestId = searchParams.get('sampleTestId') || searchParams.get('testId');
+
+    if (!sampleTestId) {
+      try {
+        const body = await request.json();
+        sampleTestId = body?.sampleTestId || body?.testId;
+      } catch {}
+    }
+
+    if (!sampleTestId) {
+      return NextResponse.json({ message: 'يرجى تحديد الفحص المراد حذفه' }, { status: 400 });
+    }
+
+    const store = getStore();
+    const sample = store.samples.find(s => s.id === params.id || String(s.sampleNumber) === params.id);
+
+    if (!sample) {
+      return NextResponse.json({ message: 'العينة غير موجودة' }, { status: 404 });
+    }
+
+    const testIndex = sample.tests.findIndex(
+      t => t.id === sampleTestId || t.testId === sampleTestId || t.test?.id === sampleTestId
+    );
+
+    if (testIndex === -1) {
+      return NextResponse.json({ message: 'الفحص غير موجود ضمن هذه العينة' }, { status: 404 });
+    }
+
+    const [removedTest] = sample.tests.splice(testIndex, 1);
+    const testPrice = removedTest.test?.price || 0;
+
+    // Recalculate priceTotal and remainingAmount safely
+    sample.priceTotal = Math.max(0, (sample.priceTotal || 0) - testPrice);
+    const netTotal = Math.max(0, sample.priceTotal - (sample.discount || 0));
+    sample.remainingAmount = Math.max(0, netTotal - (sample.paidAmount || 0));
+
+    saveStoreToFile();
+
+    return NextResponse.json({
+      success: true,
+      message: `تم حذف الفحص ${removedTest.test?.name || ''} بنجاح`,
+      sample,
+    });
+  } catch (err: any) {
+    return NextResponse.json({ message: err.message || 'فشل حذف الفحص' }, { status: 500 });
+  }
+}
+

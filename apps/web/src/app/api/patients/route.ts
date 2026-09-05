@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getStore } from '../../../lib/serverStore';
+import { getStore, addPatient } from '../../../lib/serverStore';
 
 export async function GET() {
   const store = getStore();
@@ -7,16 +7,21 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const store = getStore();
-  const newPatient = {
-    id: `pat-${Date.now()}`,
-    name: body.name,
-    phone: body.phone,
-    age: body.age ? Number(body.age) : null,
-    gender: body.gender || 'MALE',
-    createdAt: new Date().toISOString(),
-  };
-  store.patients.unshift(newPatient);
-  return NextResponse.json(newPatient);
+  try {
+    const body = await request.json();
+    if (!body?.name?.trim()) {
+      return NextResponse.json({ message: 'يرجى إدخال اسم المريض' }, { status: 400 });
+    }
+    const newPatient = addPatient({
+      name: body.name,
+      phone: body.phone,
+      age: body.age,
+      gender: body.gender,
+      address: body.address,
+      notes: body.notes,
+    });
+    return NextResponse.json(newPatient, { status: 201 });
+  } catch (err: any) {
+    return NextResponse.json({ message: err.message || 'فشل حفظ بيانات المريض' }, { status: 500 });
+  }
 }

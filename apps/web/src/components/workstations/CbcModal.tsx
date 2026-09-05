@@ -1,7 +1,23 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Check, CheckCircle2, Sparkles, AlertTriangle, RotateCcw, Activity, Calculator, AlertCircle, AlertOctagon } from 'lucide-react';
+import { 
+  X, 
+  Check, 
+  CheckCircle2, 
+  Sparkles, 
+  AlertTriangle, 
+  RotateCcw, 
+  Activity, 
+  Calculator, 
+  AlertCircle, 
+  AlertOctagon,
+  ChevronLeft,
+  ChevronRight,
+  Droplets,
+  Microscope,
+  FileText
+} from 'lucide-react';
 import { useToast } from '../Toast';
 import { 
   validateDifferentialSum, 
@@ -159,44 +175,46 @@ export function parseCbc(raw: string): CbcAnalysisData {
 interface CbcModalProps {
   isOpen: boolean;
   onClose: () => void;
-  sample: any;
+  sample?: any;
+  patientName?: string;
+  sampleNumber?: number | string;
   initialValue?: string;
-  onSave: (serialized: string, isAbnormal: boolean) => Promise<void>;
+  onSave?: (serialized: string, isAbnormal: boolean) => Promise<void> | void;
+  onApply?: (formattedResult: string, rawData: CbcAnalysisData) => void;
 }
 
 export default function CbcModal({
   isOpen,
   onClose,
   sample,
+  patientName,
+  sampleNumber,
   initialValue,
-  onSave
+  onSave,
+  onApply,
 }: CbcModalProps) {
   const toast = useToast();
+
+  // Tab State: 'ERYTHROID' | 'LEUKOCYTES' | 'PLATELETS'
+  const [activeTab, setActiveTab] = useState<'ERYTHROID' | 'LEUKOCYTES' | 'PLATELETS'>('ERYTHROID');
   const [data, setData] = useState<CbcAnalysisData>(DEFAULT_CBC_DATA);
   const [saving, setSaving] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Keyboard navigation across the 17 parameters
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
-    if (e.key === 'Enter' || e.key === 'ArrowDown') {
-      if (e.key === 'Enter' && e.shiftKey) {
-        e.preventDefault();
-        const prevIdx = index > 0 ? index - 1 : 16;
-        inputRefs.current[prevIdx]?.focus();
-        inputRefs.current[prevIdx]?.select();
-        return;
+  const resolvedPatientName = patientName || sample?.patient?.name || 'مريض غير محدد';
+  const resolvedSampleNumber = sampleNumber || sample?.sampleNumber || sample?.id || '---';
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialValue && initialValue.includes('CBC')) {
+        setData(parseCbc(initialValue));
+      } else {
+        setData({ ...DEFAULT_CBC_DATA });
       }
-      e.preventDefault();
-      const nextIdx = index < 16 ? index + 1 : 0;
-      inputRefs.current[nextIdx]?.focus();
-      inputRefs.current[nextIdx]?.select();
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      const prevIdx = index > 0 ? index - 1 : 16;
-      inputRefs.current[prevIdx]?.focus();
-      inputRefs.current[prevIdx]?.select();
     }
-  };
+  }, [isOpen, initialValue]);
+
+  if (!isOpen) return null;
 
   // Live Auto-Calculation on Keystroke for Erythroid Indices (MCV, MCH, MCHC)
   const handleErythroidChange = (field: 'rbc' | 'hgb' | 'hct', val: string) => {
@@ -213,17 +231,9 @@ export default function CbcModal({
     setData(nextData);
   };
 
-  useEffect(() => {
-    if (isOpen) {
-      if (initialValue && initialValue.includes('CBC')) {
-        setData(parseCbc(initialValue));
-      } else {
-        setData({ ...DEFAULT_CBC_DATA });
-      }
-    }
-  }, [isOpen, initialValue]);
-
-  if (!isOpen) return null;
+  const setField = (field: keyof CbcAnalysisData, value: string) => {
+    setData((prev) => ({ ...prev, [field]: value }));
+  };
 
   // Calculate Differential Sum
   const neutVal = parseFloat(data.neutrophils) || 0;
@@ -231,6 +241,7 @@ export default function CbcModal({
   const monoVal = parseFloat(data.monocytes) || 0;
   const eosVal = parseFloat(data.eosinophils) || 0;
   const basoVal = parseFloat(data.basophils) || 0;
+  const totalWbcNum = parseFloat(data.wbc) || 0;
 
   const diffValidation = validateDifferentialSum(neutVal, lymphVal, monoVal, eosVal, basoVal);
   const diffSum = diffValidation.sum;
@@ -247,73 +258,121 @@ export default function CbcModal({
   const wbcPanic = evaluatePanicFlag('WBC', parseFloat(data.wbc) || 0);
   const hasCriticalPanic = hgbPanic.isPanic || pltPanic.isPanic || wbcPanic.isPanic;
 
-  // Auto calculate MCV, MCH, MCHC
-  const handleAutoComputeIndices = () => {
-    const rbc = parseFloat(data.rbc);
-    const hgb = parseFloat(data.hgb);
-    const hct = parseFloat(data.hct);
-
-    if (rbc > 0 && hct > 0 && hgb > 0) {
-      const indices = calculateCbcIndices(rbc, hgb, hct);
-      setData(prev => ({
-        ...prev,
-        mcv: indices.mcv !== undefined ? indices.mcv.toFixed(1) : prev.mcv,
-        mch: indices.mch !== undefined ? indices.mch.toFixed(1) : prev.mch,
-        mchc: indices.mchc !== undefined ? indices.mchc.toFixed(1) : prev.mchc
-      }));
-      toast.success('تم احتساب المؤشرات (MCV, MCH, MCHC) تلقائياً', 'حساب رياضي');
-    } else {
-      toast.error('يرجى إدخال قيم صالحة لـ RBC و HGB و HCT لحساب المؤشرات', 'نقص بيانات');
-    }
-  };
-
-  const handleQuickNormal = () => {
-    setData({ ...DEFAULT_CBC_DATA });
-    toast.success('تم تطبيق فحص الدم الطبيعي (Normal CBC Preset)', 'نجاح');
-  };
-
-  const handleQuickPancytopenia = () => {
-    setData({
-      rbc: '1.80',
-      hgb: '5.2',
-      hct: '16.0',
-      mcv: '88.9',
-      mch: '28.9',
-      mchc: '32.5',
-      rdw: '18.2',
-      plt: '12',
-      mpv: '11.5',
-      pdw: '16.0',
-      pct: '0.014',
-      wbc: '1.4',
-      neutrophils: '20.0',
-      lymphocytes: '72.0',
-      monocytes: '6.0',
-      eosinophils: '1.5',
-      basophils: '0.5',
-      morphology: 'Severe anisopoikilocytosis, marked leukopenia and thrombocytopenia.',
-      comments: 'CRITICAL VALUE ALERT: Severe acute pancytopenia with critical anemia and thrombocytopenia.'
-    });
-    toast.warning('تم تطبيق حالة نقص خلايا الدم الشامل (Severe Pancytopenia)', 'تطبيق سريع');
-  };
-
-  const isAbnormal = 
+  const isAbnormal =
     hasCriticalPanic ||
-    parseFloat(data.hgb) < 12.0 || parseFloat(data.hgb) > 17.5 ||
-    parseFloat(data.plt) < 150 || parseFloat(data.plt) > 450 ||
-    parseFloat(data.wbc) < 4.0 || parseFloat(data.wbc) > 11.0 ||
-    !isDiffValid;
+    !isDiffValid ||
+    (rbcNum > 0 && (rbcNum < 4.0 || rbcNum > 6.2)) ||
+    (parseFloat(data.hgb) < 11.5 || parseFloat(data.hgb) > 17.5) ||
+    (parseFloat(data.plt) < 140 || parseFloat(data.plt) > 460) ||
+    (totalWbcNum < 4.0 || totalWbcNum > 11.0);
 
-  const handleSave = async () => {
-    if (!isDiffValid) {
-      toast.warning(`تنبيه: مجموع تفريق كريات الدم البيضاء يساوي ${diffSum}% وليس 100%`, 'تنبيه سريري');
+  const applyPreset = (presetName: 'NORMAL' | 'ANEMIA' | 'INFECTION' | 'PANCYTOPENIA') => {
+    if (presetName === 'NORMAL') {
+      setData({ ...DEFAULT_CBC_DATA });
+      toast.success('تم تطبيق صورة الدم الطبيعية (Normal CBC)', 'تم التحميل');
+    } else if (presetName === 'ANEMIA') {
+      setData({
+        rbc: '3.30',
+        hgb: '8.6',
+        hct: '26.2',
+        mcv: '65.2',
+        mch: '20.1',
+        mchc: '30.9',
+        rdw: '18.4',
+        plt: '380',
+        mpv: '9.4',
+        pdw: '11.0',
+        pct: '0.280',
+        wbc: '7.4',
+        neutrophils: '62.0',
+        lymphocytes: '28.0',
+        monocytes: '6.0',
+        eosinophils: '3.0',
+        basophils: '1.0',
+        morphology: 'Microcytic hypochromic red blood cells with anisocytosis. Pencil cells and occasional target cells noted.',
+        comments: 'Microcytic hypochromic anemia picture highly suggestive of Iron Deficiency Anemia (IDA). Mentzer Index > 13.',
+      });
+      toast.warning('تم تطبيق نموذج فقر الدم بعوز الحديد (Microcytic Hypochromic / IDA)', 'تم التحميل');
+    } else if (presetName === 'INFECTION') {
+      setData({
+        rbc: '4.60',
+        hgb: '13.8',
+        hct: '41.5',
+        mcv: '89.5',
+        mch: '29.8',
+        mchc: '33.2',
+        rdw: '13.1',
+        plt: '340',
+        mpv: '10.2',
+        pdw: '12.0',
+        pct: '0.310',
+        wbc: '17.8',
+        neutrophils: '85.0',
+        lymphocytes: '9.0',
+        monocytes: '4.0',
+        eosinophils: '1.5',
+        basophils: '0.5',
+        morphology: 'Marked neutrophilic leukocytosis with left shift. Toxic granulations and occasional band forms observed.',
+        comments: 'Leukocytosis with absolute neutrophilia and toxic changes, suggestive of acute bacterial infection or inflammatory response.',
+      });
+      toast.warning('تم تطبيق نموذج الالتهاب البكتيري الحاد (Leukocytosis / Left Shift)', 'تم التحميل');
+    } else if (presetName === 'PANCYTOPENIA') {
+      setData({
+        rbc: '2.10',
+        hgb: '6.5',
+        hct: '19.8',
+        mcv: '94.2',
+        mch: '31.0',
+        mchc: '32.8',
+        rdw: '15.6',
+        plt: '18',
+        mpv: '8.2',
+        pdw: '15.0',
+        pct: '0.015',
+        wbc: '1.8',
+        neutrophils: '38.0',
+        lymphocytes: '54.0',
+        monocytes: '6.0',
+        eosinophils: '1.5',
+        basophils: '0.5',
+        morphology: 'Normocytic normochromic red cells with severe thrombocytopenia and marked leukopenia.',
+        comments: 'CRITICAL PANIC FINDING: Severe pancytopenia. Immediate clinical notification required. Further bone marrow evaluation recommended.',
+      });
+      toast.error('تم تطبيق نموذج النقص الشامل الحاد (Pancytopenia)', 'قيم حرجة');
     }
+  };
 
+  const handleAutoComputeIndices = () => {
+    const rbcN = parseFloat(data.rbc);
+    const hgbN = parseFloat(data.hgb);
+    const hctN = parseFloat(data.hct);
+    if (rbcN > 0 && hctN > 0 && hgbN > 0) {
+      const indices = calculateCbcIndices(rbcN, hgbN, hctN);
+      if (indices.mcv !== undefined && indices.mch !== undefined && indices.mchc !== undefined) {
+        setData((prev) => ({
+          ...prev,
+          mcv: indices.mcv!.toFixed(1),
+          mch: indices.mch!.toFixed(1),
+          mchc: indices.mchc!.toFixed(1),
+        }));
+        toast.success(`تم حساب المؤشرات: MCV=${indices.mcv.toFixed(1)}, MCH=${indices.mch.toFixed(1)}, MCHC=${indices.mchc.toFixed(1)}`);
+      }
+    } else {
+      toast.warning('يرجى إدخال قيم صالحة لـ RBC و HGB و HCT أولاً');
+    }
+  };
+
+  const handleSaveAndApply = async () => {
     try {
       setSaving(true);
       const serialized = serializeCbc(data);
-      await onSave(serialized, isAbnormal);
-      toast.success('تم حفظ تقرير تعداد الدم الكامل (CBC) بنجاح', 'تم الحفظ');
+      if (onSave) {
+        await onSave(serialized, isAbnormal);
+      }
+      if (onApply) {
+        onApply(serialized, data);
+      }
+      toast.success('تم حفظ وإدراج تقرير فحص الدم الكامل (CBC) بنجاح!', 'تم الحفظ');
       onClose();
     } catch (err: any) {
       toast.error(err.message || 'فشل حفظ النتائج', 'خطأ');
@@ -323,79 +382,237 @@ export default function CbcModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-6xl max-h-[94vh] flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
-        
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center font-bold">
-              <Activity className="w-5 h-5" />
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(15, 23, 42, 0.75)',
+        backdropFilter: 'blur(6px)',
+        zIndex: 99999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+      }}
+    >
+      <div
+        style={{
+          background: '#f8fafc',
+          border: '1px solid #cbd5e1',
+          borderRadius: '16px',
+          width: '100%',
+          maxWidth: '1240px',
+          maxHeight: '94vh',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 25px 60px -12px rgba(15, 23, 42, 0.4)',
+          overflow: 'hidden',
+          fontFamily: 'inherit',
+        }}
+      >
+        {/* ========================================================
+            1. TOP CLINICAL HEADER BAR
+           ======================================================== */}
+        <div
+          style={{
+            padding: '12px 20px',
+            background: '#ffffff',
+            borderBottom: '1px solid #e2e8f0',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
+          {/* Patient Details */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: '#fee2e2',
+                color: '#dc2626',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+              }}
+            >
+              <Droplets size={22} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black tracking-tight">محطة أمراض الدم وتعداد الدم الكامل (CBC Workstation)</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+                  {resolvedPatientName}
+                </span>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    background: '#e2e8f0',
+                    color: '#334155',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontWeight: 700,
+                  }}
+                >
+                  Sample #{resolvedSampleNumber}
+                </span>
                 {hasCriticalPanic ? (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-600 text-white animate-pulse">
-                    <AlertOctagon size={12} /> قيمة حرجة مهددة للحياة (CRITICAL PANIC)
+                  <span style={{ fontSize: '11px', background: '#dc2626', color: '#ffffff', padding: '1px 8px', borderRadius: '4px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <AlertTriangle size={12} /> PANIC CRITICAL
                   </span>
                 ) : isAbnormal ? (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500/10 text-amber-600 border border-amber-200">
-                    <AlertTriangle size={12} /> غير طبيعي (Abnormal)
+                  <span style={{ fontSize: '11px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', padding: '1px 7px', borderRadius: '4px', fontWeight: 800 }}>
+                    غير طبيعي (Abnormal)
                   </span>
                 ) : (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-600 border border-emerald-200">
-                    <Check size={12} /> طبيعي (Normal)
+                  <span style={{ fontSize: '11px', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '1px 7px', borderRadius: '4px', fontWeight: 800 }}>
+                    طبيعي (Normal)
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                المريض: <strong className="text-slate-700 dark:text-slate-200">{sample?.patient?.name || 'غير محدد'}</strong> | 
-                العينة: <strong className="text-slate-700 dark:text-slate-200">#{sample?.sampleNumber || sample?.id}</strong>
-              </p>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                Complete Blood Count (CBC) with 5-Part Differential • Model B Clinical Form
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Clinical Presets */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginRight: '4px' }}>
+              One-Click Presets:
+            </span>
+
             <button
+              type="button"
               onClick={handleAutoComputeIndices}
-              type="button"
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 flex items-center gap-1.5 transition-all"
+              style={{
+                fontSize: '11.5px',
+                padding: '6px 10px',
+                borderRadius: '6px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                border: '1px solid #0284c7',
+                background: '#e0f2fe',
+                color: '#0369a1',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
             >
-              <Calculator className="w-3.5 h-3.5" />
-              حساب المؤشرات (Auto MCV/MCH)
+              <Calculator size={13} />
+              <span>Auto MCV/MCH</span>
             </button>
+
             <button
-              onClick={handleQuickNormal}
               type="button"
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 flex items-center gap-1.5 transition-all"
+              onClick={() => applyPreset('NORMAL')}
+              style={{
+                fontSize: '11.5px',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                border: '1px solid #10b981',
+                background: '#ecfdf5',
+                color: '#047857',
+              }}
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              طبيعي (Normal)
+              [Normal]
             </button>
+
             <button
-              onClick={handleQuickPancytopenia}
               type="button"
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 flex items-center gap-1.5 transition-all"
+              onClick={() => applyPreset('ANEMIA')}
+              style={{
+                fontSize: '11.5px',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                border: '1px solid #f59e0b',
+                background: '#fffbeb',
+                color: '#b45309',
+              }}
             >
-              <AlertTriangle className="w-3.5 h-3.5" />
-              نقص شامل (Pancytopenia)
+              [IDA Anemia]
             </button>
+
             <button
+              type="button"
+              onClick={() => applyPreset('INFECTION')}
+              style={{
+                fontSize: '11.5px',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                border: '1px solid #8b5cf6',
+                background: '#f5f3ff',
+                color: '#6d28d9',
+              }}
+            >
+              [Leukocytosis]
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyPreset('PANCYTOPENIA')}
+              style={{
+                fontSize: '11.5px',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                border: '1px solid #ef4444',
+                background: '#fef2f2',
+                color: '#b91c1c',
+              }}
+            >
+              [Pancytopenia]
+            </button>
+
+            <button
+              type="button"
               onClick={onClose}
-              type="button"
-              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+              style={{
+                background: '#f1f5f9',
+                border: '1px solid #cbd5e1',
+                color: '#475569',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                padding: '6px',
+                marginLeft: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
-              <X className="w-5 h-5" />
+              <X size={18} />
             </button>
           </div>
         </div>
 
         {/* Panic Alert Banner */}
         {hasCriticalPanic && (
-          <div className="bg-rose-600 text-white px-6 py-2.5 flex items-center justify-between text-xs font-bold shadow-inner">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-300 animate-bounce" />
+          <div
+            style={{
+              background: '#dc2626',
+              color: '#ffffff',
+              padding: '8px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '12px',
+              fontWeight: 800,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertTriangle size={16} />
               <span>
                 تنبيه سريري فوري (Critical Panic Value): تم رصد قيم حرجة تستوجب إبلاغ الطبيب المعالج فوراً!
                 {hgbPanic.isPanic && ` [Hb: ${data.hgb} g/dL < 6.0]`}
@@ -403,380 +620,983 @@ export default function CbcModal({
                 {wbcPanic.isPanic && ` [Wbc: ${data.wbc} x10^3 < 2.0]`}
               </span>
             </div>
-            <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] tracking-wider uppercase">High Priority</span>
+            <span style={{ background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '4px', fontSize: '10px' }}>
+              HIGH PRIORITY
+            </span>
           </div>
         )}
 
-        {/* Form Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1 text-sm">
-          
-          {/* Top Section: Red Cells & Erythroid Parameters */}
-          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-              <h3 className="font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 text-sm">
-                <span className="w-6 h-6 rounded-lg bg-rose-500/10 text-rose-600 flex items-center justify-center text-xs">1</span>
-                سلسلة كريات الدم الحمراء والهيموجلوبين (Erythroid Parameters)
-              </h3>
-              {mentzer && (
-                <div className="text-xs px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-bold">
-                  مؤشر منتزر (Mentzer Index): <strong>{mentzer.value}</strong> - {mentzer.interpretation}
+        {/* ========================================================
+            2. MAIN BODY: 2 COLUMNS (LEFT: TABBED ENTRY | RIGHT: LIVE PRINT PREVIEW)
+           ======================================================== */}
+        <div
+          style={{
+            flex: 1,
+            display: 'grid',
+            gridTemplateColumns: '1.4fr 1fr',
+            gap: '16px',
+            padding: '16px 20px',
+            overflowY: 'auto',
+          }}
+        >
+          {/* ----------------------------------------------------
+              LEFT PANEL: STRUCTURED TABBED FORM (MODEL B)
+             ---------------------------------------------------- */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {/* Tab Navigation Header */}
+            <div
+              style={{
+                display: 'flex',
+                background: '#e2e8f0',
+                padding: '4px',
+                borderRadius: '10px',
+                gap: '4px',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setActiveTab('ERYTHROID')}
+                style={{
+                  flex: 1,
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: activeTab === 'ERYTHROID' ? 800 : 600,
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: activeTab === 'ERYTHROID' ? '#ffffff' : 'transparent',
+                  color: activeTab === 'ERYTHROID' ? '#dc2626' : '#64748b',
+                  boxShadow: activeTab === 'ERYTHROID' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Droplets size={16} />
+                <span>1. ERYTHROID & RBCs</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('LEUKOCYTES')}
+                style={{
+                  flex: 1,
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: activeTab === 'LEUKOCYTES' ? 800 : 600,
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: activeTab === 'LEUKOCYTES' ? '#ffffff' : 'transparent',
+                  color: activeTab === 'LEUKOCYTES' ? '#0284c7' : '#64748b',
+                  boxShadow: activeTab === 'LEUKOCYTES' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Activity size={16} />
+                <span>2. LEUKOCYTES & 5-PART DIFF</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('PLATELETS')}
+                style={{
+                  flex: 1,
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: activeTab === 'PLATELETS' ? 800 : 600,
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: activeTab === 'PLATELETS' ? '#ffffff' : 'transparent',
+                  color: activeTab === 'PLATELETS' ? '#d97706' : '#64748b',
+                  boxShadow: activeTab === 'PLATELETS' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Microscope size={16} />
+                <span>3. PLATELETS & MORPHOLOGY</span>
+              </button>
+            </div>
+
+            {/* TAB 1: ERYTHROID & RBC INDICES */}
+            {activeTab === 'ERYTHROID' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Mentzer Index Diagnostic Banner */}
+                {mentzer && (
+                  <div
+                    style={{
+                      background: mentzer.interpretation.includes('Thalassemia') ? '#eff6ff' : '#fefce8',
+                      border: `1px solid ${mentzer.interpretation.includes('Thalassemia') ? '#bfdbfe' : '#fef08a'}`,
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>Mentzer Index (MCV / RBC): </span>
+                      <strong style={{ fontSize: '13px', color: '#0f172a' }}>{mentzer.value}</strong>
+                    </div>
+                    <span style={{ fontSize: '11.5px', fontWeight: 800, color: mentzer.interpretation.includes('Thalassemia') ? '#1d4ed8' : '#854d0e' }}>
+                      {mentzer.interpretation}
+                    </span>
+                  </div>
+                )}
+
+                {/* Primary RBC, HGB, HCT Trio */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', marginBottom: '10px' }}>
+                    Primary Erythroid Parameters (البارامترات الأساسية مع الحساب التلقائي):
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        R.B.C (10^6/uL):
+                      </label>
+                      <input
+                        type="text"
+                        value={data.rbc}
+                        onChange={(e) => handleErythroidChange('rbc', e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '13px',
+                          fontWeight: 800,
+                          color: '#0f172a',
+                        }}
+                      />
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 4.50 - 5.90</span>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        HGB (Hemoglobin g/dL):
+                      </label>
+                      <input
+                        type="text"
+                        value={data.hgb}
+                        onChange={(e) => handleErythroidChange('hgb', e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          borderRadius: '6px',
+                          border: hgbPanic.isPanic ? '2px solid #dc2626' : '1px solid #cbd5e1',
+                          background: hgbPanic.isPanic ? '#fee2e2' : '#ffffff',
+                          fontSize: '13px',
+                          fontWeight: 800,
+                          color: hgbPanic.isPanic ? '#b91c1c' : '#0f172a',
+                        }}
+                      />
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 13.0 - 17.5</span>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        HCT / PCV (%):
+                      </label>
+                      <input
+                        type="text"
+                        value={data.hct}
+                        onChange={(e) => handleErythroidChange('hct', e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '13px',
+                          fontWeight: 800,
+                          color: '#0f172a',
+                        }}
+                      />
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 40.0 - 52.0</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Red Cell Calculated Indices (MCV, MCH, MCHC, RDW) */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>
+                      Calculated Red Cell Indices (مؤشرات الكريات الحمر):
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 700 }}>
+                      ✓ تحسب آلياً بناء على RBC/Hb/Hct
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        MCV (fL):
+                      </label>
+                      <input
+                        type="text"
+                        value={data.mcv}
+                        onChange={(e) => setField('mcv', e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '7px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '12.5px',
+                          fontWeight: 700,
+                          background: '#f8fafc',
+                        }}
+                      />
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 80 - 100</span>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        MCH (pg):
+                      </label>
+                      <input
+                        type="text"
+                        value={data.mch}
+                        onChange={(e) => setField('mch', e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '7px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '12.5px',
+                          fontWeight: 700,
+                          background: '#f8fafc',
+                        }}
+                      />
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 27 - 33</span>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        MCHC (g/dL):
+                      </label>
+                      <input
+                        type="text"
+                        value={data.mchc}
+                        onChange={(e) => setField('mchc', e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '7px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '12.5px',
+                          fontWeight: 700,
+                          background: '#f8fafc',
+                        }}
+                      />
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 32 - 36</span>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        RDW-CV (%):
+                      </label>
+                      <input
+                        type="text"
+                        value={data.rdw}
+                        onChange={(e) => setField('rdw', e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '7px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '12.5px',
+                          fontWeight: 700,
+                        }}
+                      />
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 11.5 - 14.5</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: LEUKOCYTES & 5-PART DIFFERENTIAL */}
+            {activeTab === 'LEUKOCYTES' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Total WBC Card */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <div>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', display: 'block' }}>
+                      Total Leukocyte Count (W.B.C):
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>
+                      Reference Range: <strong style={{ color: '#0284c7' }}>4.0 - 11.0 x10^3/uL</strong>
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="text"
+                      value={data.wbc}
+                      onChange={(e) => setField('wbc', e.target.value)}
+                      style={{
+                        width: '120px',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: wbcPanic.isPanic ? '2px solid #dc2626' : '1px solid #cbd5e1',
+                        background: wbcPanic.isPanic ? '#fee2e2' : '#ffffff',
+                        fontSize: '15px',
+                        fontWeight: 900,
+                        color: wbcPanic.isPanic ? '#b91c1c' : '#0f172a',
+                        textAlign: 'center',
+                      }}
+                    />
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>10^3/uL</span>
+                  </div>
+                </div>
+
+                {/* 5-Part Differential Form with Live Sum & Absolute Counts */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div>
+                      <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>
+                        5-Part Differential Count (التفريق الخماسي):
+                      </span>
+                      <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>
+                        يتم حساب العدد المطلق (Abs. Count) تلقائياً لكل نوع
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569' }}>المجموع الكلي:</span>
+                      <span
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 900,
+                          background: isDiffValid ? '#ecfdf5' : '#fef2f2',
+                          color: isDiffValid ? '#047857' : '#b91c1c',
+                          border: `1px solid ${isDiffValid ? '#a7f3d0' : '#fca5a5'}`,
+                        }}
+                      >
+                        {diffSum}% {isDiffValid ? '✓ (متوازن)' : '⚠️ (يجب أن يساوي 100%)'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Differential 5 Rows */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {[
+                      { key: 'neutrophils', label: 'Neutrophils (العدلات)', ref: '40 - 75%', val: data.neutrophils, abs: totalWbcNum > 0 ? ((totalWbcNum * neutVal) / 100).toFixed(2) : '0.00' },
+                      { key: 'lymphocytes', label: 'Lymphocytes (اللمفاويات)', ref: '20 - 45%', val: data.lymphocytes, abs: totalWbcNum > 0 ? ((totalWbcNum * lymphVal) / 100).toFixed(2) : '0.00' },
+                      { key: 'monocytes', label: 'Monocytes (وحيدات النواة)', ref: '2 - 10%', val: data.monocytes, abs: totalWbcNum > 0 ? ((totalWbcNum * monoVal) / 100).toFixed(2) : '0.00' },
+                      { key: 'eosinophils', label: 'Eosinophils (الحمضيات)', ref: '1 - 6%', val: data.eosinophils, abs: totalWbcNum > 0 ? ((totalWbcNum * eosVal) / 100).toFixed(2) : '0.00' },
+                      { key: 'basophils', label: 'Basophils (القعدات)', ref: '0 - 1%', val: data.basophils, abs: totalWbcNum > 0 ? ((totalWbcNum * basoVal) / 100).toFixed(2) : '0.00' },
+                    ].map((row) => (
+                      <div
+                        key={row.key}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '6px 10px',
+                          background: '#f8fafc',
+                          borderRadius: '6px',
+                          border: '1px solid #f1f5f9',
+                        }}
+                      >
+                        <div style={{ width: '220px' }}>
+                          <strong style={{ fontSize: '12px', color: '#1e293b' }}>{row.label}</strong>
+                          <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block' }}>Ref: {row.ref}</span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{ fontSize: '11px', color: '#64748b' }}>
+                            Abs: <strong style={{ color: '#0284c7' }}>{row.abs}</strong> x10^3
+                          </span>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <input
+                              type="text"
+                              value={row.val}
+                              onChange={(e) => setField(row.key as keyof CbcAnalysisData, e.target.value)}
+                              style={{
+                                width: '70px',
+                                padding: '6px 8px',
+                                borderRadius: '6px',
+                                border: '1px solid #cbd5e1',
+                                fontSize: '13px',
+                                fontWeight: 800,
+                                textAlign: 'center',
+                                background: '#ffffff',
+                              }}
+                            />
+                            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>%</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: PLATELETS & MORPHOLOGY */}
+            {activeTab === 'PLATELETS' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Platelets Indices */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', marginBottom: '10px' }}>
+                    Platelet Indices (مؤشرات الصفائح الدموية):
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        PLT (Platelets 10^3/uL):
+                      </label>
+                      <input
+                        type="text"
+                        value={data.plt}
+                        onChange={(e) => setField('plt', e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '7px 8px',
+                          borderRadius: '6px',
+                          border: pltPanic.isPanic ? '2px solid #dc2626' : '1px solid #cbd5e1',
+                          background: pltPanic.isPanic ? '#fee2e2' : '#ffffff',
+                          fontSize: '13px',
+                          fontWeight: 800,
+                          color: pltPanic.isPanic ? '#b91c1c' : '#0f172a',
+                        }}
+                      />
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 150 - 450</span>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        MPV (Mean Vol fL):
+                      </label>
+                      <input
+                        type="text"
+                        value={data.mpv}
+                        onChange={(e) => setField('mpv', e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '7px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '12.5px',
+                          fontWeight: 700,
+                        }}
+                      />
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 7.4 - 10.4</span>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        PDW (Dist Width %):
+                      </label>
+                      <input
+                        type="text"
+                        value={data.pdw}
+                        onChange={(e) => setField('pdw', e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '7px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '12.5px',
+                          fontWeight: 700,
+                        }}
+                      />
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 9.0 - 17.0</span>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        PCT (Plateletcrit %):
+                      </label>
+                      <input
+                        type="text"
+                        value={data.pct}
+                        onChange={(e) => setField('pct', e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '7px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '12.5px',
+                          fontWeight: 700,
+                        }}
+                      />
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 0.15 - 0.40</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Morphology Pills & Textarea */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>
+                    Blood Film Morphology (فحص اللطاخة والمجهري):
+                  </div>
+
+                  {/* Quick Pills */}
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                    {[
+                      'Normocytic Normochromic',
+                      'Microcytic Hypochromic',
+                      'Macrocytic',
+                      'Anisopoikilocytosis',
+                      'Target Cells',
+                      'Pencil Cells',
+                      'Toxic Granulations',
+                      'Hypochromia +',
+                      'Thrombocytopenia',
+                    ].map((pill) => (
+                      <button
+                        key={pill}
+                        type="button"
+                        onClick={() => {
+                          if (!data.morphology || data.morphology.includes('Normocytic')) {
+                            setField('morphology', pill);
+                          } else if (!data.morphology.includes(pill)) {
+                            setField('morphology', `${data.morphology}, ${pill}`);
+                          }
+                        }}
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          border: '1px solid #cbd5e1',
+                          background: '#f8fafc',
+                          color: '#334155',
+                        }}
+                      >
+                        + {pill}
+                      </button>
+                    ))}
+                  </div>
+
+                  <textarea
+                    rows={2}
+                    value={data.morphology}
+                    onChange={(e) => setField('morphology', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '12px',
+                      fontFamily: 'inherit',
+                      resize: 'none',
+                    }}
+                    placeholder="وصف لطاخة الدم المحيطية..."
+                  />
+                </div>
+
+                {/* Physician Remarks & Comments */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>
+                      Clinical Remarks & Interpretation (ملاحظات الطبيب):
+                    </span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setField('comments', 'Normal hematological profile.')}
+                        style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer' }}
+                      >
+                        [Normal]
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setField('comments', 'Picture suggestive of Iron Deficiency Anemia (IDA).')}
+                        style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer' }}
+                      >
+                        [IDA]
+                      </button>
+                    </div>
+                  </div>
+
+                  <textarea
+                    rows={2}
+                    value={data.comments}
+                    onChange={(e) => setField('comments', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '12px',
+                      fontFamily: 'inherit',
+                      resize: 'none',
+                    }}
+                    placeholder="اكتب التوصيات الطبية أو الملاحظات الاستشارية..."
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ----------------------------------------------------
+              RIGHT PANEL: DEDICATED A4 CLINICAL REPORT PREVIEW
+             ---------------------------------------------------- */}
+          <div
+            style={{
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
+              borderRadius: '12px',
+              padding: '18px',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+              position: 'sticky',
+              top: 0,
+            }}
+          >
+            {/* Header of Preview */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '2px solid #dc2626',
+                paddingBottom: '10px',
+                marginBottom: '12px',
+              }}
+            >
+              <div>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    background: '#dc2626',
+                    color: '#ffffff',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontWeight: 800,
+                  }}
+                >
+                  A4 REPORT PREVIEW
+                </span>
+                <h4 style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a', margin: '4px 0 0 0' }}>
+                  Complete Blood Count (CBC)
+                </h4>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                  Sample #{resolvedSampleNumber}
+                </span>
+              </div>
+            </div>
+
+            {/* Preview Tables */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '11px' }}>
+              {/* Section 1: Erythroid */}
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#dc2626', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', marginBottom: '4px' }}>
+                  ERYTHROID SERIES (RBCs)
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <tbody>
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '2px 0' }}>RBC:</td>
+                      <td style={{ fontWeight: 700, color: rbcNum < 4.0 || rbcNum > 6.2 ? '#dc2626' : '#0f172a' }}>{data.rbc} 10^6</td>
+                      <td style={{ color: '#64748b', padding: '2px 0' }}>HGB:</td>
+                      <td style={{ fontWeight: 800, color: parseFloat(data.hgb) < 12.0 ? '#dc2626' : '#0f172a' }}>{data.hgb} g/dL</td>
+                    </tr>
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '2px 0' }}>HCT:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.hct} %</td>
+                      <td style={{ color: '#64748b', padding: '2px 0' }}>MCV:</td>
+                      <td style={{ fontWeight: 700, color: parseFloat(data.mcv) < 80 ? '#dc2626' : '#0f172a' }}>{data.mcv} fL</td>
+                    </tr>
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '2px 0' }}>MCH:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.mch} pg</td>
+                      <td style={{ color: '#64748b', padding: '2px 0' }}>MCHC:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.mchc} g/dL</td>
+                    </tr>
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '2px 0' }}>RDW-CV:</td>
+                      <td colSpan={3} style={{ fontWeight: 700, color: parseFloat(data.rdw) > 15 ? '#dc2626' : '#0f172a' }}>{data.rdw} %</td>
+                    </tr>
+                  </tbody>
+                </table>
+                {mentzer && (
+                  <div style={{ fontSize: '10px', color: '#0369a1', background: '#f0f9ff', padding: '2px 6px', borderRadius: '4px', marginTop: '3px' }}>
+                    Mentzer: {mentzer.value} ({mentzer.interpretation})
+                  </div>
+                )}
+              </div>
+
+              {/* Section 2: Leukocytes & Differential */}
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#0284c7', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', marginBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>LEUKOCYTES & 5-PART DIFF</span>
+                  <span style={{ color: isDiffValid ? '#047857' : '#dc2626' }}>Sum: {diffSum}%</span>
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <tbody>
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '2px 0' }}>Total WBC:</td>
+                      <td colSpan={3} style={{ fontWeight: 800, color: totalWbcNum < 4.0 || totalWbcNum > 11.0 ? '#dc2626' : '#0f172a' }}>
+                        {data.wbc} x10^3/uL
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '1px 0' }}>Neut:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.neutrophils}%</td>
+                      <td style={{ color: '#64748b', padding: '1px 0' }}>Lymph:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.lymphocytes}%</td>
+                    </tr>
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '1px 0' }}>Mono:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.monocytes}%</td>
+                      <td style={{ color: '#64748b', padding: '1px 0' }}>Eos:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.eosinophils}%</td>
+                    </tr>
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '1px 0' }}>Baso:</td>
+                      <td colSpan={3} style={{ fontWeight: 700, color: '#0f172a' }}>{data.basophils}%</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Section 3: Platelets */}
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#d97706', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', marginBottom: '4px' }}>
+                  PLATELETS & INDICES
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <tbody>
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '2px 0' }}>PLT:</td>
+                      <td style={{ fontWeight: 800, color: parseFloat(data.plt) < 150 ? '#dc2626' : '#0f172a' }}>{data.plt} x10^3</td>
+                      <td style={{ color: '#64748b', padding: '2px 0' }}>MPV:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.mpv} fL</td>
+                    </tr>
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '2px 0' }}>PDW:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.pdw} %</td>
+                      <td style={{ color: '#64748b', padding: '2px 0' }}>PCT:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.pct} %</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Section 4: Morphology & Comments */}
+              {data.morphology && (
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '6px 8px', borderRadius: '4px', fontSize: '10.5px' }}>
+                  <strong>Morphology:</strong> {data.morphology}
+                </div>
+              )}
+              {data.comments && (
+                <div style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '6px 8px', borderRadius: '4px', fontSize: '10.5px', color: '#334155' }}>
+                  <strong>Comments:</strong> {data.comments}
                 </div>
               )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">R.B.C (10^6/uL)</label>
-                <input
-                  ref={el => { inputRefs.current[0] = el; }}
-                  type="text"
-                  value={data.rbc}
-                  onChange={e => handleErythroidChange('rbc', e.target.value)}
-                  onKeyDown={e => handleKeyDown(e, 0)}
-                  onFocus={e => e.target.select()}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-black text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
-                />
-                <span className="text-[10px] text-slate-400">Ref: 4.5 - 5.9</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">HGB (g/dL)</label>
-                <input
-                  ref={el => { inputRefs.current[1] = el; }}
-                  type="text"
-                  value={data.hgb}
-                  onChange={e => handleErythroidChange('hgb', e.target.value)}
-                  onKeyDown={e => handleKeyDown(e, 1)}
-                  onFocus={e => e.target.select()}
-                  className={`w-full px-3 py-2 rounded-lg border font-black text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none ${
-                    hgbPanic.isPanic 
-                      ? 'border-rose-500 bg-rose-50 dark:bg-rose-950 text-rose-700' 
-                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'
-                  }`}
-                />
-                <span className="text-[10px] text-slate-400">Ref: 13.0 - 17.5</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">HCT / PCV (%)</label>
-                <input
-                  ref={el => { inputRefs.current[2] = el; }}
-                  type="text"
-                  value={data.hct}
-                  onChange={e => handleErythroidChange('hct', e.target.value)}
-                  onKeyDown={e => handleKeyDown(e, 2)}
-                  onFocus={e => e.target.select()}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
-                />
-                <span className="text-[10px] text-slate-400">Ref: 40 - 52</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">MCV (fL)</label>
-                <input
-                  ref={el => { inputRefs.current[3] = el; }}
-                  type="text"
-                  value={data.mcv}
-                  onChange={e => setData({ ...data, mcv: e.target.value })}
-                  onKeyDown={e => handleKeyDown(e, 3)}
-                  onFocus={e => e.target.select()}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
-                />
-                <span className="text-[10px] text-slate-400">Ref: 80 - 100</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">MCH (pg)</label>
-                <input
-                  ref={el => { inputRefs.current[4] = el; }}
-                  type="text"
-                  value={data.mch}
-                  onChange={e => setData({ ...data, mch: e.target.value })}
-                  onKeyDown={e => handleKeyDown(e, 4)}
-                  onFocus={e => e.target.select()}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
-                />
-                <span className="text-[10px] text-slate-400">Ref: 27 - 33</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">MCHC (g/dL)</label>
-                <input
-                  ref={el => { inputRefs.current[5] = el; }}
-                  type="text"
-                  value={data.mchc}
-                  onChange={e => setData({ ...data, mchc: e.target.value })}
-                  onKeyDown={e => handleKeyDown(e, 5)}
-                  onFocus={e => e.target.select()}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
-                />
-                <span className="text-[10px] text-slate-400">Ref: 32 - 36</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">RDW-CV (%)</label>
-                <input
-                  ref={el => { inputRefs.current[6] = el; }}
-                  type="text"
-                  value={data.rdw}
-                  onChange={e => setData({ ...data, rdw: e.target.value })}
-                  onKeyDown={e => handleKeyDown(e, 6)}
-                  onFocus={e => e.target.select()}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
-                />
-                <span className="text-[10px] text-slate-400">Ref: 11.5 - 14.5</span>
-              </div>
+            {/* Stamp / verification text */}
+            <div
+              style={{
+                marginTop: 'auto',
+                paddingTop: '10px',
+                borderTop: '1px dashed #cbd5e1',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '9.5px',
+                color: '#94a3b8',
+              }}
+            >
+              <span>Labryo Diagnostic System • Verified</span>
+              <span>100% Medical Standard</span>
             </div>
           </div>
-
-          {/* Middle Section: Platelets */}
-          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-3">
-            <h3 className="font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 text-sm border-b border-slate-200 dark:border-slate-700 pb-2">
-              <span className="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center text-xs">2</span>
-              سلسلة الصفائح الدموية (Platelet Indices)
-            </h3>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">PLT (10^3/uL)</label>
-                <input
-                  ref={el => { inputRefs.current[7] = el; }}
-                  type="text"
-                  value={data.plt}
-                  onChange={e => setData({ ...data, plt: e.target.value })}
-                  onKeyDown={e => handleKeyDown(e, 7)}
-                  onFocus={e => e.target.select()}
-                  className={`w-full px-3 py-2 rounded-lg border font-black text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none ${
-                    pltPanic.isPanic 
-                      ? 'border-rose-500 bg-rose-50 dark:bg-rose-950 text-rose-700' 
-                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'
-                  }`}
-                />
-                <span className="text-[10px] text-slate-400">Ref: 150 - 450</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">MPV (fL)</label>
-                <input
-                  ref={el => { inputRefs.current[8] = el; }}
-                  type="text"
-                  value={data.mpv}
-                  onChange={e => setData({ ...data, mpv: e.target.value })}
-                  onKeyDown={e => handleKeyDown(e, 8)}
-                  onFocus={e => e.target.select()}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                />
-                <span className="text-[10px] text-slate-400">Ref: 7.4 - 10.4</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">PDW (%)</label>
-                <input
-                  ref={el => { inputRefs.current[9] = el; }}
-                  type="text"
-                  value={data.pdw}
-                  onChange={e => setData({ ...data, pdw: e.target.value })}
-                  onKeyDown={e => handleKeyDown(e, 9)}
-                  onFocus={e => e.target.select()}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                />
-                <span className="text-[10px] text-slate-400">Ref: 9.0 - 17.0</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">PCT (%)</label>
-                <input
-                  ref={el => { inputRefs.current[10] = el; }}
-                  type="text"
-                  value={data.pct}
-                  onChange={e => setData({ ...data, pct: e.target.value })}
-                  onKeyDown={e => handleKeyDown(e, 10)}
-                  onFocus={e => e.target.select()}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                />
-                <span className="text-[10px] text-slate-400">Ref: 0.10 - 0.28</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Section: Leukocytes & 5-Part Differential with Balance Validator */}
-          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-              <h3 className="font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 text-sm">
-                <span className="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center text-xs">3</span>
-                كريات الدم البيضاء والتفريق الخماسي (WBC & 5-Part Differential)
-              </h3>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">مجموع التفريق:</span>
-                {isDiffValid ? (
-                  <span className="px-3 py-1 rounded-lg text-xs font-black border transition-all bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border-emerald-300 flex items-center gap-1.5 shadow-sm">
-                    <CheckCircle2 size={13} className="shrink-0 text-emerald-600" />
-                    <span>100.0% متطابق</span>
-                  </span>
-                ) : diffSum < 100 ? (
-                  <span className="px-3 py-1 rounded-lg text-xs font-black border transition-all bg-amber-50 dark:bg-amber-950/40 text-amber-600 border-amber-300 flex items-center gap-1.5">
-                    <AlertTriangle size={13} className="shrink-0 text-amber-600" />
-                    <span>{diffSum.toFixed(1)}% (المتبقي: {(100 - diffSum).toFixed(1)}%)</span>
-                  </span>
-                ) : (
-                  <span className="px-3 py-1 rounded-lg text-xs font-black border transition-all bg-rose-50 dark:bg-rose-950/40 text-rose-600 border-rose-300 animate-pulse flex items-center gap-1.5">
-                    <AlertTriangle size={13} className="shrink-0 text-rose-600" />
-                    <span>{diffSum.toFixed(1)}% (زيادة: {(diffSum - 100).toFixed(1)}%)</span>
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Total W.B.C (10^3)</label>
-                <input
-                  ref={el => { inputRefs.current[11] = el; }}
-                  type="text"
-                  value={data.wbc}
-                  onChange={e => setData({ ...data, wbc: e.target.value })}
-                  onKeyDown={e => handleKeyDown(e, 11)}
-                  onFocus={e => e.target.select()}
-                  className={`w-full px-3 py-2 rounded-lg border font-black text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none ${
-                    wbcPanic.isPanic 
-                      ? 'border-rose-500 bg-rose-50 dark:bg-rose-950 text-rose-700' 
-                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'
-                  }`}
-                />
-                <span className="text-[10px] text-slate-400">Ref: 4.0 - 11.0</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Neutrophils (%)</label>
-                <input
-                  ref={el => { inputRefs.current[12] = el; }}
-                  type="text"
-                  value={data.neutrophils}
-                  onChange={e => setData({ ...data, neutrophils: e.target.value })}
-                  onKeyDown={e => handleKeyDown(e, 12)}
-                  onFocus={e => e.target.select()}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                />
-                <span className="text-[10px] text-slate-400">Ref: 40 - 75 %</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Lymphocytes (%)</label>
-                <input
-                  ref={el => { inputRefs.current[13] = el; }}
-                  type="text"
-                  value={data.lymphocytes}
-                  onChange={e => setData({ ...data, lymphocytes: e.target.value })}
-                  onKeyDown={e => handleKeyDown(e, 13)}
-                  onFocus={e => e.target.select()}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                />
-                <span className="text-[10px] text-slate-400">Ref: 20 - 45 %</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Monocytes (%)</label>
-                <input
-                  ref={el => { inputRefs.current[14] = el; }}
-                  type="text"
-                  value={data.monocytes}
-                  onChange={e => setData({ ...data, monocytes: e.target.value })}
-                  onKeyDown={e => handleKeyDown(e, 14)}
-                  onFocus={e => e.target.select()}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                />
-                <span className="text-[10px] text-slate-400">Ref: 2 - 10 %</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Eosinophils (%)</label>
-                <input
-                  ref={el => { inputRefs.current[15] = el; }}
-                  type="text"
-                  value={data.eosinophils}
-                  onChange={e => setData({ ...data, eosinophils: e.target.value })}
-                  onKeyDown={e => handleKeyDown(e, 15)}
-                  onFocus={e => e.target.select()}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                />
-                <span className="text-[10px] text-slate-400">Ref: 1 - 6 %</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Basophils (%)</label>
-                <input
-                  ref={el => { inputRefs.current[16] = el; }}
-                  type="text"
-                  value={data.basophils}
-                  onChange={e => setData({ ...data, basophils: e.target.value })}
-                  onKeyDown={e => handleKeyDown(e, 16)}
-                  onFocus={e => e.target.select()}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                />
-                <span className="text-[10px] text-slate-400">Ref: 0 - 1 %</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Morphology & Comments */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-                الفحص المورفولوجي لشريحة الدم (Blood Film Morphology)
-              </label>
-              <textarea
-                rows={2}
-                value={data.morphology}
-                onChange={e => setData({ ...data, morphology: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium"
-                placeholder="Normocytic normochromic red cells, no abnormal blasts seen..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-                التعليق السريري للمختبر (Clinical Comments)
-              </label>
-              <textarea
-                rows={2}
-                value={data.comments}
-                onChange={e => setData({ ...data, comments: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium"
-                placeholder="Write any doctor recommendations or remarks..."
-              />
-            </div>
-          </div>
-
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 flex items-center justify-between">
-          <div className="text-xs text-slate-500">
-            توازن الـ Differential: <strong className={isDiffValid ? 'text-emerald-600' : 'text-rose-600'}>{diffSum}%</strong> | 
-            الحالة: <strong className={isAbnormal ? 'text-rose-600 font-bold' : 'text-emerald-600 font-bold'}>{isAbnormal ? 'غير طبيعي (Abnormal)' : 'طبيعي (Normal)'}</strong>
+        {/* ========================================================
+            3. FOOTER ACTION BAR
+           ======================================================== */}
+        <div
+          style={{
+            padding: '12px 20px',
+            background: '#ffffff',
+            borderTop: '1px solid #e2e8f0',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          {/* Previous / Next Tab buttons */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {activeTab !== 'ERYTHROID' && (
+              <button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'PLATELETS' ? 'LEUKOCYTES' : 'ERYTHROID')}
+                style={{
+                  fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  height: '38px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  color: '#475569',
+                }}
+              >
+                <ChevronLeft size={16} />
+                <span>التبويب السابق (Previous)</span>
+              </button>
+            )}
+            {activeTab !== 'PLATELETS' && (
+              <button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'ERYTHROID' ? 'LEUKOCYTES' : 'PLATELETS')}
+                style={{
+                  fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  height: '38px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  color: '#475569',
+                }}
+              >
+                <span>التبويب التالي (Next)</span>
+                <ChevronRight size={16} />
+              </button>
+            )}
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Cancel & Main Save & Apply Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              style={{
+                fontSize: '12.5px',
+                height: '38px',
+                padding: '0 18px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                background: '#ffffff',
+                cursor: 'pointer',
+                fontWeight: 700,
+                color: '#475569',
+              }}
             >
-              إلغاء
+              إلغاء (Cancel)
             </button>
+
             <button
               type="button"
-              onClick={handleSave}
+              onClick={handleSaveAndApply}
               disabled={saving}
-              className="px-5 py-2 rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-500/20 flex items-center gap-1.5 transition-all disabled:opacity-50"
+              style={{
+                background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 800,
+                fontSize: '13px',
+                padding: '0 28px',
+                height: '40px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(220, 38, 38, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.15s ease',
+                opacity: saving ? 0.6 : 1,
+              }}
             >
-              <Check className="w-4 h-4" />
-              {saving ? 'جارٍ الحفظ...' : 'حفظ نتائج فحص الدم (Save CBC)'}
+              <Check size={18} strokeWidth={2.5} />
+              <span>{saving ? 'جارٍ الحفظ...' : 'حفظ وتطبيق نتيجة التحليل (SAVE & APPLY)'}</span>
             </button>
           </div>
         </div>
-
       </div>
     </div>
   );

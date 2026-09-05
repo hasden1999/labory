@@ -227,8 +227,30 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Right: Global Search Bar & Quick Tools (Accessible across all screens) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <GlobalQuickBar />
+
+          {/* Theme Toggle Button (Light / Dark) */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'التبديل إلى الوضع الفاتح السريري (Light Mode)' : 'التبديل إلى الوضع الداكن (Dark Mode)'}
+            style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '8px',
+              background: 'var(--bg-input)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-main)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {theme === 'dark' ? <Sun size={17} color="#f59e0b" /> : <Moon size={17} color="#0284c7" />}
+          </button>
 
           {/* User Role Badge */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '20px', padding: '4px 10px', fontSize: '11px', color: 'var(--text-main)', fontWeight: 700 }}>

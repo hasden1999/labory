@@ -1,4 +1,9 @@
 import { INITIAL_TESTS_CATALOG, INITIAL_PANELS, INITIAL_DOCTORS } from './catalogData';
+import fs from 'fs';
+import path from 'path';
+
+const DATA_DIR = path.resolve(process.cwd().includes('apps') ? process.cwd() : path.join(process.cwd(), 'apps', 'web'), 'data');
+const DATA_FILE = path.join(DATA_DIR, 'lab_store.json');
 
 export interface LabSettings {
   labName: string;
@@ -264,9 +269,43 @@ function initStore(): ServerStore {
   };
 }
 
+export function saveStoreToFile(): void {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (global.__labStore) {
+      fs.writeFileSync(DATA_FILE, JSON.stringify(global.__labStore, null, 2), 'utf-8');
+    }
+  } catch (err) {
+    console.error('Failed to save store to file:', err);
+  }
+}
+
+export function loadStoreFromFile(): ServerStore | null {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const content = fs.readFileSync(DATA_FILE, 'utf-8');
+      const parsed = JSON.parse(content);
+      if (parsed && Array.isArray(parsed.patients) && Array.isArray(parsed.samples)) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load store from file:', err);
+  }
+  return null;
+}
+
 export function getStore(): ServerStore {
   if (!global.__labStore) {
-    global.__labStore = initStore();
+    const fromFile = loadStoreFromFile();
+    if (fromFile) {
+      global.__labStore = fromFile;
+    } else {
+      global.__labStore = initStore();
+      saveStoreToFile();
+    }
   }
   return global.__labStore;
 }
@@ -294,6 +333,7 @@ export function addPatient(data: Partial<PatientRecord> & { name: string; gender
     updatedAt: new Date().toISOString(),
   };
   store.patients.unshift(newPatient);
+  saveStoreToFile();
   return newPatient;
 }
 
@@ -315,6 +355,7 @@ export function updatePatient(id: string, data: Partial<PatientRecord>): Patient
     }
   });
 
+  saveStoreToFile();
   return updated;
 }
 
@@ -323,20 +364,22 @@ export function deletePatient(id: string): boolean {
   const index = store.patients.findIndex(p => p.id === id);
   if (index === -1) return false;
   store.patients.splice(index, 1);
+  saveStoreToFile();
   return true;
 }
 
 export function searchPatients(q: string) {
   const store = getStore();
   const query = q.trim().toLowerCase();
-  if (!query) return [];
 
-  const matched = store.patients.filter(p => {
-    const nameMatch = p.name?.toLowerCase().includes(query);
-    const phoneMatch = p.phone && p.phone.includes(query);
-    const idMatch = p.id?.toLowerCase().includes(query);
-    return nameMatch || phoneMatch || idMatch;
-  });
+  const matched = !query
+    ? store.patients.slice(0, 15)
+    : store.patients.filter(p => {
+        const nameMatch = p.name?.toLowerCase().includes(query);
+        const phoneMatch = p.phone && p.phone.includes(query);
+        const idMatch = p.id?.toLowerCase().includes(query);
+        return nameMatch || phoneMatch || idMatch;
+      });
 
   return matched.map(p => {
     // Find all samples for this patient
@@ -420,6 +463,7 @@ export function addDoctor(data: Partial<DoctorRecord> & { name: string }): Docto
     createdAt: new Date().toISOString(),
   };
   store.doctors.push(newDoctor);
+  saveStoreToFile();
   return newDoctor;
 }
 
@@ -440,6 +484,7 @@ export function updateDoctor(id: string, data: Partial<DoctorRecord>): DoctorRec
     }
   });
 
+  saveStoreToFile();
   return updated;
 }
 
@@ -448,6 +493,7 @@ export function deleteDoctor(id: string): boolean {
   const index = store.doctors.findIndex(d => d.id === id);
   if (index === -1) return false;
   store.doctors.splice(index, 1);
+  saveStoreToFile();
   return true;
 }
 
@@ -529,6 +575,7 @@ export function addSample(data: any): SampleRecord {
   };
 
   store.samples.unshift(newSample);
+  saveStoreToFile();
   return newSample;
 }
 
@@ -546,6 +593,7 @@ export function updateSample(id: string, data: Partial<SampleRecord>): SampleRec
     ...data,
   };
   store.samples[index] = updated;
+  saveStoreToFile();
   return updated;
 }
 
@@ -554,6 +602,7 @@ export function deleteSample(id: string): boolean {
   const index = store.samples.findIndex(s => s.id === id || String(s.sampleNumber) === id);
   if (index === -1) return false;
   store.samples.splice(index, 1);
+  saveStoreToFile();
   return true;
 }
 
@@ -591,5 +640,6 @@ export function updateSettings(data: Partial<LabSettings>): LabSettings {
     ...store.settings,
     ...sanitized,
   };
+  saveStoreToFile();
   return store.settings;
 }

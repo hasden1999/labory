@@ -305,6 +305,28 @@ body {
   }
 }
 
+/* Clean 3-Column Intake Clinical Layout */
+.intake-3col-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr 340px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .intake-3col-grid {
+    grid-template-columns: 300px 1fr 320px;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 992px) {
+  .intake-3col-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
 /* Unified Stat Cards */
 .stat-card {
   background: var(--bg-card);

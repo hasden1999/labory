@@ -18,13 +18,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     setMounted(true);
-    const savedTheme = localStorage.getItem('lab_theme') as Theme | null;
-    if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
+    const savedTheme = localStorage.getItem('lab_theme_v2') as Theme | null;
+    if (savedTheme === 'light' || savedTheme === 'dark') {
       setThemeState(savedTheme);
       document.documentElement.setAttribute('data-theme', savedTheme);
       document.body.setAttribute('data-theme', savedTheme);
     } else {
-      // Default to clean clinical light
+      // Force default to the new Clean Clinical Light theme and clear old legacy dark theme
+      localStorage.removeItem('lab_theme');
+      localStorage.setItem('lab_theme_v2', 'light');
+      setThemeState('light');
       document.documentElement.setAttribute('data-theme', 'light');
       document.body.setAttribute('data-theme', 'light');
     }
@@ -32,7 +35,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem('lab_theme', newTheme);
+    localStorage.setItem('lab_theme_v2', newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
     document.body.setAttribute('data-theme', newTheme);
   };
