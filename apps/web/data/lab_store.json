@@ -1218,6 +1218,39 @@
   ],
   "patients": [
     {
+      "id": "pat-1788622084702",
+      "name": "ماطق",
+      "phone": "",
+      "age": null,
+      "gender": "MALE",
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-09-05T15:28:04.702Z",
+      "updatedAt": "2026-09-05T15:28:04.702Z"
+    },
+    {
+      "id": "pat-1788622077264",
+      "name": "كاظظظظم",
+      "phone": "",
+      "age": null,
+      "gender": "MALE",
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-09-05T15:27:57.264Z",
+      "updatedAt": "2026-09-05T15:27:57.264Z"
+    },
+    {
+      "id": "pat-1788622066703",
+      "name": "محم",
+      "phone": "",
+      "age": null,
+      "gender": "MALE",
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-09-05T15:27:46.703Z",
+      "updatedAt": "2026-09-05T15:27:46.703Z"
+    },
+    {
       "id": "pat-1",
       "name": "حيدر عبد الحسين الخفاجي",
       "phone": "07701239988",
@@ -1243,6 +1276,175 @@
     }
   ],
   "samples": [
+    {
+      "id": "s-1006",
+      "sampleNumber": 1006,
+      "patientId": "pat-1788622084702",
+      "patient": {
+        "id": "pat-1788622084702",
+        "name": "ماطق",
+        "phone": "",
+        "age": null,
+        "gender": "MALE",
+        "address": "",
+        "notes": "",
+        "createdAt": "2026-09-05T15:28:04.702Z",
+        "updatedAt": "2026-09-05T15:28:04.702Z"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "doctorCommission": 0,
+      "status": "RECEIVED",
+      "isUrgent": false,
+      "priceTotal": 18000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 18000,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": "",
+      "createdAt": "2026-09-05T15:28:04.704Z",
+      "tests": [
+        {
+          "id": "st-1788622084704-0",
+          "sampleId": "s-1006",
+          "testId": "t-fer",
+          "test": {
+            "id": "t-fer",
+            "code": "FER",
+            "name": "Serum Ferritin",
+            "arabicName": "مخزون الحديد (الفيريتين)",
+            "category": "أمراض الدم والتخثر",
+            "price": 18000,
+            "costEstimate": 3500,
+            "refRangeLow": 15,
+            "refRangeHigh": 200,
+            "normalMaleLow": 30,
+            "normalMaleHigh": 400,
+            "normalFemaleLow": 15,
+            "normalFemaleHigh": 150,
+            "criticalLow": 5,
+            "refRangeText": "15 - 200",
+            "unit": "ng/mL",
+            "sampleType": "مصل الدم (Serum)"
+          },
+          "resultValue": null,
+          "isAbnormal": false,
+          "status": "PENDING"
+        }
+      ]
+    },
+    {
+      "id": "s-1005",
+      "sampleNumber": 1005,
+      "patientId": "pat-1788622077264",
+      "patient": {
+        "id": "pat-1788622077264",
+        "name": "كاظظظظم",
+        "phone": "",
+        "age": null,
+        "gender": "MALE",
+        "address": "",
+        "notes": "",
+        "createdAt": "2026-09-05T15:27:57.264Z",
+        "updatedAt": "2026-09-05T15:27:57.264Z"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "doctorCommission": 0,
+      "status": "RECEIVED",
+      "isUrgent": false,
+      "priceTotal": 12000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 12000,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": "",
+      "createdAt": "2026-09-05T15:27:57.266Z",
+      "tests": [
+        {
+          "id": "st-1788622077266-0",
+          "sampleId": "s-1005",
+          "testId": "t-tibc",
+          "test": {
+            "id": "t-tibc",
+            "code": "TIBC",
+            "name": "Total Iron Binding Capacity (TIBC)",
+            "arabicName": "السعة الكلية الرابطة للحديد",
+            "category": "أمراض الدم والتخثر",
+            "price": 12000,
+            "costEstimate": 2000,
+            "refRangeLow": 250,
+            "refRangeHigh": 450,
+            "refRangeText": "250 - 450",
+            "unit": "ug/dL",
+            "sampleType": "مصل الدم (Serum)"
+          },
+          "resultValue": null,
+          "isAbnormal": false,
+          "status": "PENDING"
+        }
+      ]
+    },
+    {
+      "id": "s-1004",
+      "sampleNumber": 1004,
+      "patientId": "pat-1788622066703",
+      "patient": {
+        "id": "pat-1788622066703",
+        "name": "محم",
+        "phone": "",
+        "age": null,
+        "gender": "MALE",
+        "address": "",
+        "notes": "",
+        "createdAt": "2026-09-05T15:27:46.703Z",
+        "updatedAt": "2026-09-05T15:27:46.703Z"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "doctorCommission": 0,
+      "status": "RECEIVED",
+      "isUrgent": false,
+      "priceTotal": 18000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 18000,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": "",
+      "createdAt": "2026-09-05T15:27:46.705Z",
+      "tests": [
+        {
+          "id": "st-1788622066705-0",
+          "sampleId": "s-1004",
+          "testId": "t-fer",
+          "test": {
+            "id": "t-fer",
+            "code": "FER",
+            "name": "Serum Ferritin",
+            "arabicName": "مخزون الحديد (الفيريتين)",
+            "category": "أمراض الدم والتخثر",
+            "price": 18000,
+            "costEstimate": 3500,
+            "refRangeLow": 15,
+            "refRangeHigh": 200,
+            "normalMaleLow": 30,
+            "normalMaleHigh": 400,
+            "normalFemaleLow": 15,
+            "normalFemaleHigh": 150,
+            "criticalLow": 5,
+            "refRangeText": "15 - 200",
+            "unit": "ng/mL",
+            "sampleType": "مصل الدم (Serum)"
+          },
+          "resultValue": null,
+          "isAbnormal": false,
+          "status": "PENDING"
+        }
+      ]
+    },
     {
       "id": "s-1001",
       "sampleNumber": 1001,
@@ -1349,7 +1551,7 @@
         "commissionPercent": 15
       },
       "doctorCommission": 1500,
-      "status": "IN_PROGRESS",
+      "status": "READY",
       "isUrgent": true,
       "priceTotal": 15000,
       "discount": 0,
@@ -1380,9 +1582,10 @@
             "unit": "mg/dL",
             "sampleType": "مصل الدم (Serum)"
           },
-          "resultValue": null,
-          "isAbnormal": false,
-          "status": "PENDING"
+          "resultValue": "9",
+          "isAbnormal": true,
+          "status": "COMPLETED",
+          "interpretation": null
         },
         {
           "id": "st-4",
@@ -1400,9 +1603,10 @@
             "unit": "",
             "sampleType": "إدرار صباحي"
           },
-          "resultValue": null,
+          "resultValue": "",
           "isAbnormal": false,
-          "status": "PENDING"
+          "status": "COMPLETED",
+          "interpretation": null
         }
       ]
     },
@@ -1462,7 +1666,8 @@
           "resultValue": "215",
           "isAbnormal": true,
           "status": "COMPLETED",
-          "notes": "سكر صائم مرتفع"
+          "notes": "سكر صائم مرتفع",
+          "interpretation": null
         },
         {
           "id": "st-6",
@@ -1489,7 +1694,8 @@
           },
           "resultValue": "240",
           "isAbnormal": true,
-          "status": "COMPLETED"
+          "status": "COMPLETED",
+          "interpretation": null
         }
       ]
     }

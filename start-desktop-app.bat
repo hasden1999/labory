@@ -1,12 +1,12 @@
 @echo off
-title مختبر الرضا - تشغيل تطبيق سطح المكتب (Desktop Edition)
-color 0b
-echo ========================================================
-echo        تشغيل نظام المختبر الطبي - النسخة المكتبية
-echo ========================================================
-echo.
-echo 1. جاري فحص وتشغيل الخدمات وقاعدة البيانات المحلية...
+chcp 65001 >nul
+title نظام لابريو الطبي - النسخة المكتبية
 cd /d "%~dp0"
-npm run desktop:dev
 
-pause
+if exist ".\apps\desktop\dist\win-unpacked\Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية.exe" (
+    start "" ".\apps\desktop\dist\win-unpacked\Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية.exe"
+) else (
+    npm run desktop
+)
+
+exit

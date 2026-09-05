@@ -1,17 +1,18 @@
 @echo off
 chcp 65001 >nul
-title Labryo LIMS Pro - نظام لابريو لإدارة المختبرات الطبية (النسخة المكتبية)
-echo ========================================================
-echo   جاري تشغيل نظام لابريو الطبي Labryo LIMS Pro (النسخة المحلية Offline)...
-echo ========================================================
+title Labryo LIMS Pro - تشغيل نظام لابريو الطبي (النسخة المكتبية)
 cd /d "%~dp0"
 
-echo [1/2] التحقق من تشغيل الخدمات المحلية...
-start /b cmd /c "npm run dev"
+echo ========================================================
+echo   تشغيل نظام لابريو لإدارة المختبرات الطبية (Labryo LIMS Pro)
+echo ========================================================
+echo.
+echo جاري فتح برنامج سطح المكتب...
 
-timeout /t 3 /nobreak >nul
-
-echo [2/2] فتح نافذة برنامج سطح المكتب...
-start "" ".\apps\desktop\dist\win-unpacked\Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية.exe" || start "" ".\apps\desktop\dist\win-unpacked\مختبر الرضا - إدارة المختبرات الطبية.exe" || start http://localhost:8080
+if exist ".\apps\desktop\dist\win-unpacked\Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية.exe" (
+    start "" ".\apps\desktop\dist\win-unpacked\Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية.exe"
+) else (
+    npm run desktop
+)
 
 exit
