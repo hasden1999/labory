@@ -20,6 +20,10 @@ export default function TrialLockGuard({ children }: { children: React.ReactNode
   const DEVELOPER_WHATSAPP = '9647764271130';
 
   const checkLicense = async () => {
+    if (licenseStatus && (licenseStatus.isActivated || licenseStatus.status === 'ACTIVE')) {
+      setLoading(false);
+      return;
+    }
     try {
       const res = await apiRequest('/license/status');
       setLicenseStatus(res);

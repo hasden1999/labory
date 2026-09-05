@@ -10,14 +10,17 @@ import { useSearchParams } from 'next/navigation';
 import { FileText, Search, Printer, Save, AlertTriangle, Check, User, Clock, CheckCircle2, Share2, History, Calculator, FlaskConical, X, Eye, Cpu, TestTube, Plus, MoreHorizontal, ChevronDown, Microscope, Bug, Activity, Zap, Sparkles, MessageCircle, AlertOctagon, CircleAlert, Barcode, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useLab } from '../../components/LabContext';
-import UrineFormModal, { UrineAnalysisData } from '../../components/UrineFormModal';
-import GseModal from '../../components/workstations/GseModal';
-import CbcModal from '../../components/workstations/CbcModal';
-import ChemistryModal from '../../components/workstations/ChemistryModal';
-import MicrobiologyModal from '../../components/workstations/MicrobiologyModal';
+import nextDynamic from 'next/dynamic';
+import type { UrineAnalysisData } from '../../components/UrineFormModal';
 import { compareSampleWithHistory, DeltaCheckResult } from '../../lib/deltaCheck';
 import { Sample, SampleTest, Test } from '../../types';
 import ConfirmModal from '../../components/ConfirmModal';
+
+const UrineFormModal = nextDynamic(() => import('../../components/UrineFormModal'), { ssr: false });
+const GseModal = nextDynamic(() => import('../../components/workstations/GseModal'), { ssr: false });
+const CbcModal = nextDynamic(() => import('../../components/workstations/CbcModal'), { ssr: false });
+const ChemistryModal = nextDynamic(() => import('../../components/workstations/ChemistryModal'), { ssr: false });
+const MicrobiologyModal = nextDynamic(() => import('../../components/workstations/MicrobiologyModal'), { ssr: false });
 
 function ResultsContent() {
   const toast = useToast();

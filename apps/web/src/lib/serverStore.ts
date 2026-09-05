@@ -275,7 +275,12 @@ export function saveStoreToFile(): void {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
     if (global.__labStore) {
-      fs.writeFileSync(DATA_FILE, JSON.stringify(global.__labStore, null, 2), 'utf-8');
+      const payload = JSON.stringify(global.__labStore, null, 2);
+      fs.writeFile(DATA_FILE, payload, 'utf-8', (err) => {
+        if (err) {
+          console.error('Failed to save store to file:', err);
+        }
+      });
     }
   } catch (err) {
     console.error('Failed to save store to file:', err);

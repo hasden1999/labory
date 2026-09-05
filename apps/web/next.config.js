@@ -6,6 +6,9 @@ const nextConfig = {
   swcMinify: true,
   poweredByHeader: false,
   compress: true,
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
   async rewrites() {
     if (API_URL) {
       return [
