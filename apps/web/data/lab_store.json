@@ -1218,6 +1218,19 @@
   ],
   "patients": [
     {
+      "id": "pat-1788639622387",
+      "name": "ها",
+      "phone": "",
+      "age": null,
+      "gender": "MALE",
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-09-05T20:20:22.387Z",
+      "updatedAt": "2026-09-05T20:20:22.387Z",
+      "visitsCount": 1,
+      "visitCount": 1
+    },
+    {
       "id": "pat-1788622084702",
       "name": "ماطق",
       "phone": "",
@@ -1226,7 +1239,9 @@
       "address": "",
       "notes": "",
       "createdAt": "2026-09-05T15:28:04.702Z",
-      "updatedAt": "2026-09-05T15:28:04.702Z"
+      "updatedAt": "2026-09-05T15:28:04.702Z",
+      "visitsCount": 2,
+      "visitCount": 2
     },
     {
       "id": "pat-1788622077264",
@@ -1237,7 +1252,9 @@
       "address": "",
       "notes": "",
       "createdAt": "2026-09-05T15:27:57.264Z",
-      "updatedAt": "2026-09-05T15:27:57.264Z"
+      "updatedAt": "2026-09-05T15:27:57.264Z",
+      "visitsCount": 1,
+      "visitCount": 1
     },
     {
       "id": "pat-1788622066703",
@@ -1248,7 +1265,9 @@
       "address": "",
       "notes": "",
       "createdAt": "2026-09-05T15:27:46.703Z",
-      "updatedAt": "2026-09-05T15:27:46.703Z"
+      "updatedAt": "2026-09-05T15:27:46.703Z",
+      "visitsCount": 1,
+      "visitCount": 1
     },
     {
       "id": "pat-1",
@@ -1256,7 +1275,9 @@
       "phone": "07701239988",
       "age": 48,
       "gender": "MALE",
-      "createdAt": "2026-09-02T14:32:48.882Z"
+      "createdAt": "2026-09-02T14:32:48.882Z",
+      "visitsCount": 1,
+      "visitCount": 1
     },
     {
       "id": "pat-2",
@@ -1264,7 +1285,9 @@
       "phone": "07804445566",
       "age": 29,
       "gender": "FEMALE",
-      "createdAt": "2026-09-03T14:32:48.885Z"
+      "createdAt": "2026-09-03T14:32:48.885Z",
+      "visitsCount": 1,
+      "visitCount": 1
     },
     {
       "id": "pat-3",
@@ -1272,10 +1295,188 @@
       "phone": "07707778899",
       "age": 62,
       "gender": "MALE",
-      "createdAt": "2026-09-04T14:32:48.885Z"
+      "createdAt": "2026-09-04T14:32:48.885Z",
+      "visitsCount": 1,
+      "visitCount": 1
     }
   ],
   "samples": [
+    {
+      "id": "s-1008",
+      "sampleNumber": 1008,
+      "patientId": "pat-1788639622387",
+      "patient": {
+        "id": "pat-1788639622387",
+        "name": "ها",
+        "phone": "",
+        "age": null,
+        "gender": "MALE",
+        "address": "",
+        "notes": "",
+        "createdAt": "2026-09-05T20:20:22.387Z",
+        "updatedAt": "2026-09-05T20:20:22.387Z"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "doctorCommission": 0,
+      "status": "READY",
+      "isUrgent": false,
+      "priceTotal": 15000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 15000,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": "",
+      "createdAt": "2026-09-05T20:20:22.389Z",
+      "tests": [
+        {
+          "id": "st-1788639622389-0",
+          "sampleId": "s-1008",
+          "testId": "t-gse",
+          "test": {
+            "id": "t-gse",
+            "code": "GSE",
+            "name": "General Stool Examination (GSE)",
+            "arabicName": "فحص الخروج العام الشامل",
+            "category": "الفحص المجهري العام",
+            "price": 5000,
+            "costEstimate": 800,
+            "refRangeText": "Normal (No Parasites / FOBT: Negative)",
+            "unit": "",
+            "sampleType": "عينة خروج"
+          },
+          "resultValue": "99.5 - QUICK APPROVE VERIFIED",
+          "isAbnormal": false,
+          "status": "COMPLETED"
+        },
+        {
+          "id": "st-1788639622389-1",
+          "sampleId": "s-1008",
+          "testId": "t-fobt",
+          "test": {
+            "id": "t-fobt",
+            "code": "FOBT",
+            "name": "Fecal Occult Blood Test (FOBT)",
+            "arabicName": "فحص الدم الخفي في الخروج",
+            "category": "الفحص المجهري العام",
+            "price": 10000,
+            "costEstimate": 2000,
+            "refRangeText": "Negative",
+            "unit": "",
+            "sampleType": "عينة خروج"
+          },
+          "resultValue": null,
+          "isAbnormal": false,
+          "status": "PENDING"
+        }
+      ]
+    },
+    {
+      "id": "s-1007",
+      "sampleNumber": 1007,
+      "patientId": "pat-1788622084702",
+      "patient": {
+        "id": "pat-1788622084702",
+        "name": "ماطق",
+        "phone": "",
+        "age": null,
+        "gender": "MALE",
+        "address": "",
+        "notes": "",
+        "createdAt": "2026-09-05T15:28:04.702Z",
+        "updatedAt": "2026-09-05T15:28:04.702Z"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "doctorCommission": 0,
+      "status": "READY",
+      "isUrgent": false,
+      "priceTotal": 28000,
+      "discount": 1400,
+      "discountPercent": 5,
+      "paidAmount": 26600,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": "",
+      "createdAt": "2026-09-05T20:13:41.035Z",
+      "tests": [
+        {
+          "id": "st-1788639221035-0",
+          "sampleId": "s-1007",
+          "testId": "t-bg",
+          "test": {
+            "id": "t-bg",
+            "code": "BG",
+            "name": "Blood Group & Rh Factor",
+            "arabicName": "فصيلة الدم والعامل الريسي",
+            "category": "أمراض الدم والتخثر",
+            "price": 5000,
+            "costEstimate": 800,
+            "refRangeText": "A / B / AB / O (Pos/Neg)",
+            "unit": "",
+            "sampleType": "دم كامل (EDTA)"
+          },
+          "resultValue": "32",
+          "isAbnormal": false,
+          "status": "COMPLETED",
+          "interpretation": null
+        },
+        {
+          "id": "st-1788639221035-1",
+          "sampleId": "s-1007",
+          "testId": "t-fer",
+          "test": {
+            "id": "t-fer",
+            "code": "FER",
+            "name": "Serum Ferritin",
+            "arabicName": "مخزون الحديد (الفيريتين)",
+            "category": "أمراض الدم والتخثر",
+            "price": 18000,
+            "costEstimate": 3500,
+            "refRangeLow": 15,
+            "refRangeHigh": 200,
+            "normalMaleLow": 30,
+            "normalMaleHigh": 400,
+            "normalFemaleLow": 15,
+            "normalFemaleHigh": 150,
+            "criticalLow": 5,
+            "refRangeText": "15 - 200",
+            "unit": "ng/mL",
+            "sampleType": "مصل الدم (Serum)"
+          },
+          "resultValue": "4",
+          "isAbnormal": true,
+          "status": "COMPLETED",
+          "interpretation": null
+        },
+        {
+          "id": "st-1788639221035-2",
+          "sampleId": "s-1007",
+          "testId": "t-fbs",
+          "test": {
+            "id": "t-fbs",
+            "code": "FBS",
+            "name": "Fasting Blood Sugar (FBS)",
+            "arabicName": "سكر الدم الصائم",
+            "category": "الكيمياء السريرية والسكري",
+            "price": 5000,
+            "costEstimate": 800,
+            "refRangeLow": 70,
+            "refRangeHigh": 100,
+            "criticalLow": 45,
+            "criticalHigh": 400,
+            "refRangeText": "70 - 100 (Normal)",
+            "unit": "mg/dL",
+            "sampleType": "مصل الدم (Serum)"
+          },
+          "resultValue": "43",
+          "isAbnormal": true,
+          "status": "COMPLETED",
+          "interpretation": null
+        }
+      ]
+    },
     {
       "id": "s-1006",
       "sampleNumber": 1006,
@@ -1724,5 +1925,6 @@
     "enableQrCode": true,
     "qrCodePosition": "FOOTER",
     "defaultDiscountPercent": 0
-  }
+  },
+  "expenses": []
 }

@@ -298,19 +298,19 @@ export default function UrineFormModal({
   }) => {
     return (
       <div style={{
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-color)',
         borderRadius: '8px',
         padding: '10px 14px',
         boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>
+          <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
             {label}
           </span>
           {refRange && (
-            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-              Ref: <span style={{ color: '#0284c7' }}>{refRange}</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+              Ref: <span style={{ color: 'var(--accent-cyan)' }}>{refRange}</span>
             </span>
           )}
         </div>
@@ -330,15 +330,15 @@ export default function UrineFormModal({
                   fontWeight: isSelected ? 800 : 600,
                   cursor: 'pointer',
                   border: isSelected 
-                    ? isAbnormal ? '1.5px solid #dc2626' : '1.5px solid #0284c7'
-                    : '1px solid #cbd5e1',
+                    ? isAbnormal ? '1.5px solid #dc2626' : '1.5px solid var(--accent-cyan)'
+                    : '1px solid var(--border-color)',
                   background: isSelected 
-                    ? isAbnormal ? '#fee2e2' : '#e0f2fe'
-                    : '#f8fafc',
+                    ? isAbnormal ? 'rgba(239, 68, 68, 0.2)' : 'var(--accent-cyan-subtle)'
+                    : 'var(--bg-input)',
                   color: isSelected 
-                    ? isAbnormal ? '#b91c1c' : '#0369a1'
-                    : '#475569',
-                  boxShadow: isSelected ? '0 1px 4px rgba(2, 132, 199, 0.2)' : 'none',
+                    ? isAbnormal ? '#ef4444' : 'var(--accent-cyan)'
+                    : 'var(--text-main)',
+                  boxShadow: isSelected ? '0 1px 4px rgba(37, 99, 235, 0.2)' : 'none',
                   transition: 'all 0.12s ease',
                 }}
               >
@@ -374,13 +374,12 @@ export default function UrineFormModal({
         justifyContent: 'space-between',
         gap: '8px',
         padding: '5px 0',
-        borderBottom: '1px dashed #f1f5f9'
+        borderBottom: '1px dashed var(--border-color)'
       }}>
         <div style={{ minWidth: '150px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: isPositive ? (isSevere ? '#dc2626' : '#0284c7') : '#334155' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: isPositive ? (isSevere ? '#dc2626' : 'var(--accent-cyan)') : 'var(--text-main)' }}>
             • {name} {isPositive && <span style={{ fontWeight: 800 }}>({value})</span>}
           </span>
-          {arabicName && <span style={{ fontSize: '11px', color: '#64748b', marginRight: '4px' }}>- {arabicName}</span>}
         </div>
         <div style={{ display: 'flex', gap: '4px', flex: 1, maxWidth: '340px' }}>
           {levels.map((lvl) => {
@@ -399,15 +398,15 @@ export default function UrineFormModal({
                   fontWeight: isSelected ? 800 : 600,
                   cursor: 'pointer',
                   border: isSelected 
-                    ? (isLvlHeavy ? '1.5px solid #dc2626' : '1.5px solid #0284c7')
-                    : '1px solid #cbd5e1',
+                    ? (isLvlHeavy ? '1.5px solid #dc2626' : '1.5px solid var(--accent-cyan)')
+                    : '1px solid var(--border-color)',
                   background: isSelected 
-                    ? (lvl === 'Nil' ? '#0284c7' : isLvlHeavy ? '#fee2e2' : '#e0f2fe') 
-                    : '#ffffff',
+                    ? (lvl === 'Nil' ? 'var(--accent-cyan)' : isLvlHeavy ? 'rgba(239, 68, 68, 0.2)' : 'var(--accent-cyan-subtle)') 
+                    : 'var(--bg-input)',
                   color: isSelected 
-                    ? (lvl === 'Nil' ? '#ffffff' : isLvlHeavy ? '#b91c1c' : '#0369a1') 
-                    : '#475569',
-                  boxShadow: isSelected ? '0 1px 3px rgba(2,132,199,0.2)' : 'none',
+                    ? (lvl === 'Nil' ? 'var(--text-inverse)' : isLvlHeavy ? '#ef4444' : 'var(--accent-cyan)') 
+                    : 'var(--text-main)',
+                  boxShadow: isSelected ? '0 1px 3px rgba(37,99,235,0.2)' : 'none',
                   whiteSpace: 'nowrap',
                   transition: 'all 0.12s ease',
                 }}
@@ -445,8 +444,8 @@ export default function UrineFormModal({
       padding: '16px',
     }}>
       <div style={{
-        background: '#f8fafc',
-        border: '1px solid #cbd5e1',
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-color)',
         borderRadius: '16px',
         width: '100%',
         maxWidth: '1220px',
@@ -463,8 +462,8 @@ export default function UrineFormModal({
            ======================================================== */}
         <div style={{
           padding: '12px 20px',
-          background: '#ffffff',
-          borderBottom: '1px solid #e2e8f0',
+          background: 'var(--bg-card-subtle)',
+          borderBottom: '1px solid var(--border-color)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -476,8 +475,8 @@ export default function UrineFormModal({
               width: '40px',
               height: '40px',
               borderRadius: '10px',
-              background: '#e0f2fe',
-              color: '#0284c7',
+              background: 'var(--accent-cyan-subtle)',
+              color: 'var(--accent-cyan)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -487,15 +486,15 @@ export default function UrineFormModal({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
                   {patientName}
                 </span>
-                <span style={{ fontSize: '11px', background: '#e2e8f0', color: '#334155', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                <span style={{ fontSize: '11px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
                   Sample #{sampleNumber}
                 </span>
               </div>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                General Urine Examination (G.U.E) • Model B Clinical Form
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                General Urine Examination (G.U.E) • Clinical Workstation
               </div>
             </div>
           </div>
@@ -702,18 +701,18 @@ export default function UrineFormModal({
                 
                 {/* Color Swatch Selector */}
                 <div style={{
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '8px',
                   padding: '12px 14px',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>
-                      Color (اللون)
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      Color
                     </span>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>
-                      Ref: <strong style={{ color: '#0284c7' }}>Yellow / Pale Yellow</strong>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      Ref: <strong style={{ color: 'var(--accent-cyan)' }}>Yellow / Pale Yellow</strong>
                     </span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
@@ -731,12 +730,12 @@ export default function UrineFormModal({
                             padding: '8px 10px',
                             borderRadius: '8px',
                             cursor: 'pointer',
-                            border: isSelected ? '2px solid #0284c7' : '1px solid #cbd5e1',
-                            background: isSelected ? '#e0f2fe' : '#ffffff',
+                            border: isSelected ? '2px solid var(--accent-cyan)' : '1px solid var(--border-color)',
+                            background: isSelected ? 'var(--accent-cyan-subtle)' : 'var(--bg-input)',
                             fontWeight: isSelected ? 800 : 600,
                             fontSize: '11.5px',
-                            color: '#1e293b',
-                            boxShadow: isSelected ? '0 2px 6px rgba(2,132,199,0.2)' : 'none',
+                            color: 'var(--text-main)',
+                            boxShadow: isSelected ? '0 2px 6px rgba(37,99,235,0.2)' : 'none',
                           }}
                         >
                           <span style={{
@@ -758,7 +757,7 @@ export default function UrineFormModal({
 
                 {/* Clarity / Appearance */}
                 <PillSelector
-                  label="Clarity / Appearance (المظهر والشفافية)"
+                  label="Clarity / Appearance"
                   refRange="Clear"
                   value={data.appearance}
                   onChange={(v) => setField('appearance', v)}
@@ -769,7 +768,7 @@ export default function UrineFormModal({
                 {/* Specific Gravity & pH */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <PillSelector
-                    label="Specific Gravity (الكثافة النوعية)"
+                    label="Specific Gravity"
                     refRange="1.005 - 1.030"
                     value={data.spGravity}
                     onChange={(v) => setField('spGravity', v)}
@@ -777,7 +776,7 @@ export default function UrineFormModal({
                   />
 
                   <PillSelector
-                    label="Reaction / pH (درجة الحموضة)"
+                    label="Reaction / pH"
                     refRange="4.5 - 8.0 (Normal: ~6.0)"
                     value={data.reactionPh}
                     onChange={(v) => setField('reactionPh', v)}
@@ -788,7 +787,7 @@ export default function UrineFormModal({
                 {/* Volume & Odor */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <PillSelector
-                    label="Volume (الحجم)"
+                    label="Volume"
                     refRange="Random"
                     value={data.volume}
                     onChange={(v) => setField('volume', v)}
@@ -796,7 +795,7 @@ export default function UrineFormModal({
                   />
 
                   <PillSelector
-                    label="Odor (الرائحة)"
+                    label="Odor"
                     refRange="Normal"
                     value={data.odor}
                     onChange={(v) => setField('odor', v)}
@@ -815,7 +814,7 @@ export default function UrineFormModal({
                 {/* Protein & Glucose */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <PillSelector
-                    label="Protein / Albumin (الزلال)"
+                    label="Protein / Albumin"
                     refRange="Nil (Negative)"
                     value={data.protein}
                     onChange={(v) => setField('protein', v)}
@@ -824,7 +823,7 @@ export default function UrineFormModal({
                   />
 
                   <PillSelector
-                    label="Glucose / Sugar (السكر)"
+                    label="Glucose / Sugar"
                     refRange="Nil (Negative)"
                     value={data.glucose}
                     onChange={(v) => setField('glucose', v)}
@@ -836,7 +835,7 @@ export default function UrineFormModal({
                 {/* Ketones & Blood */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <PillSelector
-                    label="Ketones / Acetone (الأسيتون)"
+                    label="Ketones / Acetone"
                     refRange="Nil (Negative)"
                     value={data.ketones}
                     onChange={(v) => setField('ketones', v)}
@@ -845,7 +844,7 @@ export default function UrineFormModal({
                   />
 
                   <PillSelector
-                    label="Blood / Hemoglobin (الدم)"
+                    label="Blood / Hemoglobin"
                     refRange="Negative"
                     value={data.blood}
                     onChange={(v) => setField('blood', v)}
@@ -857,7 +856,7 @@ export default function UrineFormModal({
                 {/* Nitrite & Leukocytes */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <PillSelector
-                    label="Nitrite (النتريت)"
+                    label="Nitrite"
                     refRange="Negative"
                     value={data.nitrite}
                     onChange={(v) => setField('nitrite', v)}
@@ -866,7 +865,7 @@ export default function UrineFormModal({
                   />
 
                   <PillSelector
-                    label="Leukocyte Esterase (إنزيم الكريات)"
+                    label="Leukocyte Esterase"
                     refRange="Negative"
                     value={data.leukocyteEsterase}
                     onChange={(v) => setField('leukocyteEsterase', v)}
@@ -878,7 +877,7 @@ export default function UrineFormModal({
                 {/* Bilirubin & Urobilinogen */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <PillSelector
-                    label="Bilirubin (الصفراء)"
+                    label="Bilirubin"
                     refRange="Negative"
                     value={data.bilirubin}
                     onChange={(v) => setField('bilirubin', v)}
@@ -887,7 +886,7 @@ export default function UrineFormModal({
                   />
 
                   <PillSelector
-                    label="Urobilinogen (اليوروبيلينوجين)"
+                    label="Urobilinogen"
                     refRange="Normal"
                     value={data.urobilinogen}
                     onChange={(v) => setField('urobilinogen', v)}
@@ -906,7 +905,7 @@ export default function UrineFormModal({
                 {/* Pus & RBCs */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <PillSelector
-                    label="Pus Cells / WBCs (خلايا الصديد)"
+                    label="Pus Cells / WBCs"
                     refRange="0 - 5 /HPF"
                     value={data.pusCells}
                     onChange={(v) => setField('pusCells', v)}
@@ -915,7 +914,7 @@ export default function UrineFormModal({
                   />
 
                   <PillSelector
-                    label="RBCs / Erythrocytes (كريات الدم)"
+                    label="RBCs / Erythrocytes"
                     refRange="0 - 2 /HPF"
                     value={data.rbcs}
                     onChange={(v) => setField('rbcs', v)}
@@ -926,7 +925,7 @@ export default function UrineFormModal({
 
                 {/* Epithelial Cells */}
                 <PillSelector
-                  label="Epithelial Cells (الخلايا الظهارية)"
+                  label="Epithelial Cells"
                   refRange="Few /HPF"
                   value={data.epithelialCells}
                   onChange={(v) => setField('epithelialCells', v)}
@@ -936,8 +935,8 @@ export default function UrineFormModal({
 
                 {/* Crystals & Amorphous Multi-Selector Grid */}
                 <div style={{
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '8px',
                   padding: '12px 14px',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
@@ -946,18 +945,17 @@ export default function UrineFormModal({
                   gap: '8px',
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>
-                      Crystals & Amorphous (الأملاح والبلورات - اختيار متعدد)
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      Crystals & Amorphous
                     </span>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>
-                      يمكن تحديد أكثر من نوع في نفس العينة
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      Multi-select enabled
                     </span>
                   </div>
 
                   {/* Crystal 1: Calcium Oxalate */}
                   <CrystalSelectorRow
                     name="Ca. Oxalate"
-                    arabicName="أوكزالات الكالسيوم"
                     value={data.calciumOxalate}
                     onChange={(lvl) => setField('calciumOxalate', lvl)}
                   />
@@ -965,7 +963,6 @@ export default function UrineFormModal({
                   {/* Crystal 2: Uric Acid */}
                   <CrystalSelectorRow
                     name="Uric Acid"
-                    arabicName="حامض اليوريك"
                     value={data.uricAcid}
                     onChange={(lvl) => setField('uricAcid', lvl)}
                   />
@@ -973,7 +970,6 @@ export default function UrineFormModal({
                   {/* Crystal 3: Triple Phosphate */}
                   <CrystalSelectorRow
                     name="Triple Phos"
-                    arabicName="فوسفات ثلاثي"
                     value={data.triplePhosphate}
                     onChange={(lvl) => setField('triplePhosphate', lvl)}
                   />
@@ -981,7 +977,6 @@ export default function UrineFormModal({
                   {/* Crystal 4: Amorphous Urates / Phosphates */}
                   <CrystalSelectorRow
                     name="Amorphous"
-                    arabicName="أملاح غير متبلورة"
                     value={data.amorphous}
                     onChange={(lvl) => setField('amorphous', lvl)}
                   />
@@ -990,7 +985,7 @@ export default function UrineFormModal({
                 {/* Microorganisms & Casts Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <PillSelector
-                    label="Bacteria (البكتيريا)"
+                    label="Bacteria"
                     refRange="Nil"
                     value={data.bacteria}
                     onChange={(v) => setField('bacteria', v)}
@@ -999,7 +994,7 @@ export default function UrineFormModal({
                   />
 
                   <PillSelector
-                    label="Mucus Threads (المخاط)"
+                    label="Mucus Threads"
                     refRange="Nil"
                     value={data.mucus}
                     onChange={(v) => setField('mucus', v)}
@@ -1010,13 +1005,13 @@ export default function UrineFormModal({
 
                 {/* Yeast, Trichomonas, Casts */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px' }}>
-                    <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>Yeast (الفطريات)</div>
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 10px' }}>
+                    <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>Yeast</div>
                     <select
                       value={data.yeast}
                       onChange={(e) => setField('yeast', e.target.value)}
                       className="select-control"
-                      style={{ height: '32px', fontSize: '11.5px', width: '100%', background: '#f8fafc', borderColor: '#cbd5e1' }}
+                      style={{ height: '32px', fontSize: '11.5px', width: '100%', background: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
                     >
                       <option value="Not Seen">Not Seen</option>
                       <option value="Few (+)">Few (+)</option>
@@ -1027,13 +1022,13 @@ export default function UrineFormModal({
                     </select>
                   </div>
 
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px' }}>
-                    <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>Trichomonas (المشعرات)</div>
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 10px' }}>
+                    <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>Trichomonas</div>
                     <select
                       value={data.trichomonas}
                       onChange={(e) => setField('trichomonas', e.target.value)}
                       className="select-control"
-                      style={{ height: '32px', fontSize: '11.5px', width: '100%', background: '#f8fafc', borderColor: '#cbd5e1' }}
+                      style={{ height: '32px', fontSize: '11.5px', width: '100%', background: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
                     >
                       <option value="Not Seen">Not Seen</option>
                       <option value="Seen (+)">Seen (+)</option>
@@ -1043,13 +1038,13 @@ export default function UrineFormModal({
                     </select>
                   </div>
 
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px' }}>
-                    <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>Casts (الأسطوانات)</div>
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 10px' }}>
+                    <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>Casts</div>
                     <select
                       value={data.casts}
                       onChange={(e) => setField('casts', e.target.value)}
                       className="select-control"
-                      style={{ height: '32px', fontSize: '11.5px', width: '100%', background: '#f8fafc', borderColor: '#cbd5e1' }}
+                      style={{ height: '32px', fontSize: '11.5px', width: '100%', background: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
                     >
                       <option value="None">None</option>
                       <option value="Hyaline (+)">Hyaline (+)</option>
@@ -1064,9 +1059,9 @@ export default function UrineFormModal({
                 </div>
 
                 {/* Additional Clinical Notes */}
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>
-                    Diagnostic Notes / Impression (ملاحظات تشخيصية)
+                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '10px 12px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
+                    Diagnostic Notes / Impression
                   </div>
                   <input
                     type="text"
@@ -1074,7 +1069,7 @@ export default function UrineFormModal({
                     onChange={(e) => setField('otherNotes', e.target.value)}
                     placeholder="e.g. UTI pattern, Calcium Oxalate crystals, Normal findings..."
                     className="input-control"
-                    style={{ height: '34px', fontSize: '12px', width: '100%', background: '#f8fafc', borderColor: '#cbd5e1', color: '#0f172a' }}
+                    style={{ height: '34px', fontSize: '12px', width: '100%', background: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
                   />
                 </div>
 
@@ -1301,8 +1296,8 @@ export default function UrineFormModal({
            ======================================================== */}
         <div style={{
           padding: '12px 20px',
-          background: '#ffffff',
-          borderTop: '1px solid #e2e8f0',
+          background: 'var(--bg-card)',
+          borderTop: '1px solid var(--border-color)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',

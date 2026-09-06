@@ -74,6 +74,12 @@ function IntakeContent() {
   const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState<number>(-1);
   const [selectedPatientHistory, setSelectedPatientHistory] = useState<Patient | null>(null);
 
+  // Typeahead Autocomplete directly on patientName Input
+  const [nameSuggestions, setNameSuggestions] = useState<Patient[]>([]);
+  const [showNameSuggestions, setShowNameSuggestions] = useState(false);
+  const [highlightedNameIndex, setHighlightedNameIndex] = useState<number>(-1);
+  const nameSuggestionsRef = useRef<HTMLDivElement | null>(null);
+
   // Form States - Sample & Tests
   const [selectedTests, setSelectedTests] = useState<Test[]>([]);
   const [isUrgent, setIsUrgent] = useState(false);
@@ -181,6 +187,51 @@ function IntakeContent() {
     return () => clearTimeout(delayDebounce);
   }, [patientSearchQuery]);
 
+  // Typeahead Autocomplete directly on patientName input
+  useEffect(() => {
+    if (!patientName.trim() || patientName.length < 2) {
+      setNameSuggestions([]);
+      setShowNameSuggestions(false);
+      setHighlightedNameIndex(-1);
+      return;
+    }
+    // If the patientName matches the already-selected patient, do not show suggestions
+    if (selectedPatientHistory && selectedPatientHistory.name === patientName.trim()) {
+      setShowNameSuggestions(false);
+      return;
+    }
+    const delayDebounce = setTimeout(async () => {
+      try {
+        const res = await apiRequest(`/patients/search?q=${encodeURIComponent(patientName.trim())}`);
+        if (res && res.length > 0) {
+          setNameSuggestions(res);
+          setShowNameSuggestions(true);
+          setHighlightedNameIndex(-1);
+        } else {
+          setNameSuggestions([]);
+          setShowNameSuggestions(false);
+        }
+      } catch (err) {}
+    }, 180);
+    return () => clearTimeout(delayDebounce);
+  }, [patientName, selectedPatientHistory]);
+
+  // Dismiss suggestions on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        nameSuggestionsRef.current &&
+        !nameSuggestionsRef.current.contains(e.target as Node) &&
+        patientNameInputRef.current &&
+        !patientNameInputRef.current.contains(e.target as Node)
+      ) {
+        setShowNameSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const selectExistingPatient = (p: Patient) => {
     setPatientId(p.id);
     setPatientName(p.name);
@@ -191,6 +242,9 @@ function IntakeContent() {
     setPatientSearchQuery('');
     setShowSuggestions(false);
     setHighlightedSuggestionIndex(-1);
+    setNameSuggestions([]);
+    setShowNameSuggestions(false);
+    setHighlightedNameIndex(-1);
     toast.success(`تم استرجاع بيانات المريض: ${p.name}`);
   };
 
@@ -244,6 +298,51 @@ function IntakeContent() {
       toast.info('لا توجد فحوصات سابقة مسجلة لهذا المريض');
     }
   };
+
+  const handlePatientNameChange = (val: string) => {
+    setPatientName(val);
+    if (selectedPatientHistory && selectedPatientHistory.name !== val.trim()) {
+      setPatientId(null);
+      setSelectedPatientHistory(null);
+    }
+  };
+
+  const handlePatientNameKeyDown = (e: React.KeyboardEvent) => {
+    if (showNameSuggestions && nameSuggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlightedNameIndex((prev) => (prev + 1) % nameSuggestions.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlightedNameIndex((prev) => (prev - 1 + nameSuggestions.length) % nameSuggestions.length);
+        return;
+      }
+      if (e.key === 'Enter') {
+        if (highlightedNameIndex >= 0 && nameSuggestions[highlightedNameIndex]) {
+          e.preventDefault();
+          const chosen = nameSuggestions[highlightedNameIndex];
+          selectExistingPatient(chosen);
+          setTimeout(() => {
+            patientAgeInputRef.current?.focus();
+            patientAgeInputRef.current?.select();
+          }, 50);
+          return;
+        }
+        setShowNameSuggestions(false);
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowNameSuggestions(false);
+        setHighlightedNameIndex(-1);
+        return;
+      }
+    }
+    // Default seamless enter chain behavior to field 1 (Age)
+    handleInputKeyDown(e, 0);
+  };
+
 
   const handleExecuteClearPatient = useCallback(() => {
     try {
@@ -997,24 +1096,108 @@ function IntakeContent() {
 
             {/* Patient Form Fields - Formatted cleanly for 320px column */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
-              <div>
-                <label htmlFor="patient-name-input" className="input-label" style={{ fontSize: '10.5px' }}>Full Name (اسم المريض) *</label>
+              <div style={{ position: 'relative' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                  <label htmlFor="patient-name-input" className="input-label" style={{ fontSize: '10.5px', marginBottom: 0 }}>Full Name (اسم المريض) *</label>
+                  {patientId && (
+                    <span style={{ fontSize: '10px', color: 'var(--accent-cyan)', fontWeight: 700 }}>
+                      (مريض سابق مسجل ✓)
+                    </span>
+                  )}
+                </div>
                 <input
                   id="patient-name-input"
                   ref={(el) => {
                     patientNameInputRef.current = el;
                     inputRefs.current[0] = el;
                   }}
-                  onKeyDown={(e) => handleInputKeyDown(e, 0)}
+                  onKeyDown={handlePatientNameKeyDown}
                   type="text"
                   maxLength={80}
                   placeholder="اسم المريض الثلاثي..."
                   className="input-control"
-                  style={{ height: '36px', fontSize: '12.5px' }}
+                  style={{
+                    height: '36px',
+                    fontSize: '12.5px',
+                    borderColor: patientId ? 'var(--accent-cyan)' : undefined,
+                  }}
                   value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
+                  onChange={(e) => handlePatientNameChange(e.target.value)}
+                  autoComplete="off"
                   required
                 />
+
+                {/* Typeahead Suggestions Dropdown */}
+                {showNameSuggestions && nameSuggestions.length > 0 && (
+                  <div
+                    ref={nameSuggestionsRef}
+                    className="quick-search-dropdown"
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      zIndex: 110,
+                      marginTop: '4px',
+                      background: 'var(--bg-card)',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+                      maxHeight: '260px',
+                      overflowY: 'auto'
+                    }}
+                  >
+                    <div className="dropdown-header" style={{ padding: '6px 10px', fontSize: '10.5px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                      مرضى مطابقون ({nameSuggestions.length}) - اضغط Enter أو انقر للاختيار:
+                    </div>
+                    {nameSuggestions.map((p, idx) => {
+                      const isHighlighted = highlightedNameIndex === idx;
+                      return (
+                        <div
+                          key={p.id}
+                          className="dropdown-item"
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '3px',
+                            padding: '7px 10px',
+                            cursor: 'pointer',
+                            background: isHighlighted ? 'var(--bg-card-hover, rgba(0, 210, 211, 0.12))' : 'transparent',
+                            borderRight: isHighlighted ? '3px solid var(--accent-cyan)' : '3px solid transparent',
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                          }}
+                          onMouseEnter={() => setHighlightedNameIndex(idx)}
+                          onClick={() => {
+                            selectExistingPatient(p);
+                            setTimeout(() => {
+                              patientAgeInputRef.current?.focus();
+                              patientAgeInputRef.current?.select();
+                            }, 50);
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <strong style={{ fontSize: '12.5px', color: isHighlighted ? 'var(--accent-cyan)' : 'var(--text-main)' }}>
+                                {p.name}
+                              </strong>
+                              <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginRight: '6px' }}>
+                                {p.phone || 'بلا هاتف'} • {p.age ? `${p.age} سنة` : ''} ({p.gender === 'FEMALE' ? 'أنثى' : 'ذكر'})
+                              </span>
+                            </div>
+                            <span className="badge badge-received" style={{ fontSize: '10px' }}>
+                              {p.visitCount || 0} زيارات
+                            </span>
+                          </div>
+                          {((p.outstandingDebt || 0) > 0) && (
+                            <div style={{ fontSize: '10px', color: 'var(--color-danger)', fontWeight: 700 }}>
+                              ديون سابقة: {p.outstandingDebt?.toLocaleString()} د.ع
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getStore } from '../../../../../lib/serverStore';
+import { getStore, saveStoreToFile } from '../../../../../lib/serverStore';
 
 async function handleSaveResults(request: Request, params: { id: string }) {
   let body: any;
@@ -62,6 +62,8 @@ async function handleSaveResults(request: Request, params: { id: string }) {
   if (body.markReady !== false) {
     sample.status = 'READY';
   }
+
+  saveStoreToFile();
 
   return NextResponse.json(sample);
 }

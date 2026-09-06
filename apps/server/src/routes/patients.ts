@@ -63,7 +63,13 @@ export async function patientRoutes(fastify: FastifyInstance) {
       },
     });
 
-    return reply.send(patients);
+    const formatted = patients.map((p) => ({
+      ...p,
+      visitsCount: p.samples?.length || 0,
+      visitCount: p.samples?.length || 0,
+    }));
+
+    return reply.send(formatted);
   });
 
   // Get Single Patient with Full History

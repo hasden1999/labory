@@ -400,8 +400,8 @@ export default function CbcModal({
     >
       <div
         style={{
-          background: '#f8fafc',
-          border: '1px solid #cbd5e1',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
           borderRadius: '16px',
           width: '100%',
           maxWidth: '1240px',
@@ -419,8 +419,8 @@ export default function CbcModal({
         <div
           style={{
             padding: '12px 20px',
-            background: '#ffffff',
-            borderBottom: '1px solid #e2e8f0',
+            background: 'var(--bg-card)',
+            borderBottom: '1px solid var(--border-color)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -446,14 +446,14 @@ export default function CbcModal({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
                   {resolvedPatientName}
                 </span>
                 <span
                   style={{
                     fontSize: '11px',
-                    background: '#e2e8f0',
-                    color: '#334155',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-muted)',
                     padding: '2px 8px',
                     borderRadius: '4px',
                     fontWeight: 700,
@@ -647,7 +647,7 @@ export default function CbcModal({
             <div
               style={{
                 display: 'flex',
-                background: '#e2e8f0',
+                background: 'var(--bg-input)',
                 padding: '4px',
                 borderRadius: '10px',
                 gap: '4px',
@@ -664,8 +664,8 @@ export default function CbcModal({
                   fontWeight: activeTab === 'ERYTHROID' ? 800 : 600,
                   cursor: 'pointer',
                   border: 'none',
-                  background: activeTab === 'ERYTHROID' ? '#ffffff' : 'transparent',
-                  color: activeTab === 'ERYTHROID' ? '#dc2626' : '#64748b',
+                  background: activeTab === 'ERYTHROID' ? 'var(--bg-card)' : 'transparent',
+                  color: activeTab === 'ERYTHROID' ? '#dc2626' : 'var(--text-muted)',
                   boxShadow: activeTab === 'ERYTHROID' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
                   display: 'flex',
                   alignItems: 'center',
@@ -689,8 +689,8 @@ export default function CbcModal({
                   fontWeight: activeTab === 'LEUKOCYTES' ? 800 : 600,
                   cursor: 'pointer',
                   border: 'none',
-                  background: activeTab === 'LEUKOCYTES' ? '#ffffff' : 'transparent',
-                  color: activeTab === 'LEUKOCYTES' ? '#0284c7' : '#64748b',
+                  background: activeTab === 'LEUKOCYTES' ? 'var(--bg-card)' : 'transparent',
+                  color: activeTab === 'LEUKOCYTES' ? '#0284c7' : 'var(--text-muted)',
                   boxShadow: activeTab === 'LEUKOCYTES' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
                   display: 'flex',
                   alignItems: 'center',
@@ -714,8 +714,8 @@ export default function CbcModal({
                   fontWeight: activeTab === 'PLATELETS' ? 800 : 600,
                   cursor: 'pointer',
                   border: 'none',
-                  background: activeTab === 'PLATELETS' ? '#ffffff' : 'transparent',
-                  color: activeTab === 'PLATELETS' ? '#d97706' : '#64748b',
+                  background: activeTab === 'PLATELETS' ? 'var(--bg-card)' : 'transparent',
+                  color: activeTab === 'PLATELETS' ? '#d97706' : 'var(--text-muted)',
                   boxShadow: activeTab === 'PLATELETS' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
                   display: 'flex',
                   alignItems: 'center',
@@ -758,19 +758,19 @@ export default function CbcModal({
                 {/* Primary RBC, HGB, HCT Trio */}
                 <div
                   style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
                     padding: '14px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                   }}
                 >
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', marginBottom: '10px' }}>
-                    Primary Erythroid Parameters (البارامترات الأساسية مع الحساب التلقائي):
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '10px' }}>
+                    Primary Erythroid Parameters:
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
                         R.B.C (10^6/uL):
                       </label>
                       <input
@@ -781,17 +781,18 @@ export default function CbcModal({
                           width: '100%',
                           padding: '8px 10px',
                           borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-input)',
                           fontSize: '13px',
                           fontWeight: 800,
-                          color: '#0f172a',
+                          color: 'var(--text-main)',
                         }}
                       />
-                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 4.50 - 5.90</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Ref: 4.50 - 5.90</span>
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
                         HGB (Hemoglobin g/dL):
                       </label>
                       <input
@@ -802,18 +803,18 @@ export default function CbcModal({
                           width: '100%',
                           padding: '8px 10px',
                           borderRadius: '6px',
-                          border: hgbPanic.isPanic ? '2px solid #dc2626' : '1px solid #cbd5e1',
-                          background: hgbPanic.isPanic ? '#fee2e2' : '#ffffff',
+                          border: hgbPanic.isPanic ? '2px solid #dc2626' : '1px solid var(--border-color)',
+                          background: hgbPanic.isPanic ? '#fee2e2' : 'var(--bg-input)',
                           fontSize: '13px',
                           fontWeight: 800,
-                          color: hgbPanic.isPanic ? '#b91c1c' : '#0f172a',
+                          color: hgbPanic.isPanic ? '#b91c1c' : 'var(--text-main)',
                         }}
                       />
-                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 13.0 - 17.5</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Ref: 13.0 - 17.5</span>
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
                         HCT / PCV (%):
                       </label>
                       <input
@@ -824,13 +825,14 @@ export default function CbcModal({
                           width: '100%',
                           padding: '8px 10px',
                           borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-input)',
                           fontSize: '13px',
                           fontWeight: 800,
-                          color: '#0f172a',
+                          color: 'var(--text-main)',
                         }}
                       />
-                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 40.0 - 52.0</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Ref: 40.0 - 52.0</span>
                     </div>
                   </div>
                 </div>
@@ -838,25 +840,25 @@ export default function CbcModal({
                 {/* Red Cell Calculated Indices (MCV, MCH, MCHC, RDW) */}
                 <div
                   style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
                     padding: '14px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>
-                      Calculated Red Cell Indices (مؤشرات الكريات الحمر):
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      Calculated Red Cell Indices:
                     </span>
                     <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 700 }}>
-                      ✓ تحسب آلياً بناء على RBC/Hb/Hct
+                      ✓ Auto-calculated from RBC/Hb/Hct
                     </span>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
                         MCV (fL):
                       </label>
                       <input
@@ -867,17 +869,18 @@ export default function CbcModal({
                           width: '100%',
                           padding: '7px 8px',
                           borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
+                          border: '1px solid var(--border-color)',
                           fontSize: '12.5px',
                           fontWeight: 700,
-                          background: '#f8fafc',
+                          background: 'var(--bg-input)',
+                          color: 'var(--text-main)',
                         }}
                       />
-                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 80 - 100</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Ref: 80 - 100</span>
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
                         MCH (pg):
                       </label>
                       <input
@@ -888,17 +891,18 @@ export default function CbcModal({
                           width: '100%',
                           padding: '7px 8px',
                           borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
+                          border: '1px solid var(--border-color)',
                           fontSize: '12.5px',
                           fontWeight: 700,
-                          background: '#f8fafc',
+                          background: 'var(--bg-input)',
+                          color: 'var(--text-main)',
                         }}
                       />
-                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 27 - 33</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Ref: 27 - 33</span>
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
                         MCHC (g/dL):
                       </label>
                       <input
@@ -909,17 +913,18 @@ export default function CbcModal({
                           width: '100%',
                           padding: '7px 8px',
                           borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
+                          border: '1px solid var(--border-color)',
                           fontSize: '12.5px',
                           fontWeight: 700,
-                          background: '#f8fafc',
+                          background: 'var(--bg-input)',
+                          color: 'var(--text-main)',
                         }}
                       />
-                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 32 - 36</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Ref: 32 - 36</span>
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
                         RDW-CV (%):
                       </label>
                       <input
@@ -930,12 +935,14 @@ export default function CbcModal({
                           width: '100%',
                           padding: '7px 8px',
                           borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
+                          border: '1px solid var(--border-color)',
                           fontSize: '12.5px',
                           fontWeight: 700,
+                          background: 'var(--bg-input)',
+                          color: 'var(--text-main)',
                         }}
                       />
-                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 11.5 - 14.5</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Ref: 11.5 - 14.5</span>
                     </div>
                   </div>
                 </div>
@@ -948,8 +955,8 @@ export default function CbcModal({
                 {/* Total WBC Card */}
                 <div
                   style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
                     padding: '14px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
@@ -959,10 +966,10 @@ export default function CbcModal({
                   }}
                 >
                   <div>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', display: 'block' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', display: 'block' }}>
                       Total Leukocyte Count (W.B.C):
                     </span>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                       Reference Range: <strong style={{ color: '#0284c7' }}>4.0 - 11.0 x10^3/uL</strong>
                     </span>
                   </div>
@@ -976,23 +983,23 @@ export default function CbcModal({
                         width: '120px',
                         padding: '8px 12px',
                         borderRadius: '6px',
-                        border: wbcPanic.isPanic ? '2px solid #dc2626' : '1px solid #cbd5e1',
-                        background: wbcPanic.isPanic ? '#fee2e2' : '#ffffff',
+                        border: wbcPanic.isPanic ? '2px solid #dc2626' : '1px solid var(--border-color)',
+                        background: wbcPanic.isPanic ? '#fee2e2' : 'var(--bg-input)',
                         fontSize: '15px',
                         fontWeight: 900,
-                        color: wbcPanic.isPanic ? '#b91c1c' : '#0f172a',
+                        color: wbcPanic.isPanic ? '#b91c1c' : 'var(--text-main)',
                         textAlign: 'center',
                       }}
                     />
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>10^3/uL</span>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>10^3/uL</span>
                   </div>
                 </div>
 
                 {/* 5-Part Differential Form with Live Sum & Absolute Counts */}
                 <div
                   style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
                     padding: '14px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
@@ -1000,16 +1007,16 @@ export default function CbcModal({
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <div>
-                      <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>
-                        5-Part Differential Count (التفريق الخماسي):
+                      <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                        5-Part Differential Count:
                       </span>
-                      <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>
-                        يتم حساب العدد المطلق (Abs. Count) تلقائياً لكل نوع
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>
+                        Absolute counts are automatically computed
                       </span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569' }}>المجموع الكلي:</span>
+                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>المجموع:</span>
                       <span
                         style={{
                           padding: '4px 10px',
@@ -1021,7 +1028,7 @@ export default function CbcModal({
                           border: `1px solid ${isDiffValid ? '#a7f3d0' : '#fca5a5'}`,
                         }}
                       >
-                        {diffSum}% {isDiffValid ? '✓ (متوازن)' : '⚠️ (يجب أن يساوي 100%)'}
+                        {diffSum}% {isDiffValid ? '✓' : '⚠️'}
                       </span>
                     </div>
                   </div>
@@ -1029,11 +1036,11 @@ export default function CbcModal({
                   {/* Differential 5 Rows */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {[
-                      { key: 'neutrophils', label: 'Neutrophils (العدلات)', ref: '40 - 75%', val: data.neutrophils, abs: totalWbcNum > 0 ? ((totalWbcNum * neutVal) / 100).toFixed(2) : '0.00' },
-                      { key: 'lymphocytes', label: 'Lymphocytes (اللمفاويات)', ref: '20 - 45%', val: data.lymphocytes, abs: totalWbcNum > 0 ? ((totalWbcNum * lymphVal) / 100).toFixed(2) : '0.00' },
-                      { key: 'monocytes', label: 'Monocytes (وحيدات النواة)', ref: '2 - 10%', val: data.monocytes, abs: totalWbcNum > 0 ? ((totalWbcNum * monoVal) / 100).toFixed(2) : '0.00' },
-                      { key: 'eosinophils', label: 'Eosinophils (الحمضيات)', ref: '1 - 6%', val: data.eosinophils, abs: totalWbcNum > 0 ? ((totalWbcNum * eosVal) / 100).toFixed(2) : '0.00' },
-                      { key: 'basophils', label: 'Basophils (القعدات)', ref: '0 - 1%', val: data.basophils, abs: totalWbcNum > 0 ? ((totalWbcNum * basoVal) / 100).toFixed(2) : '0.00' },
+                      { key: 'neutrophils', label: 'Neutrophils', ref: '40 - 75%', val: data.neutrophils, abs: totalWbcNum > 0 ? ((totalWbcNum * neutVal) / 100).toFixed(2) : '0.00' },
+                      { key: 'lymphocytes', label: 'Lymphocytes', ref: '20 - 45%', val: data.lymphocytes, abs: totalWbcNum > 0 ? ((totalWbcNum * lymphVal) / 100).toFixed(2) : '0.00' },
+                      { key: 'monocytes', label: 'Monocytes', ref: '2 - 10%', val: data.monocytes, abs: totalWbcNum > 0 ? ((totalWbcNum * monoVal) / 100).toFixed(2) : '0.00' },
+                      { key: 'eosinophils', label: 'Eosinophils', ref: '1 - 6%', val: data.eosinophils, abs: totalWbcNum > 0 ? ((totalWbcNum * eosVal) / 100).toFixed(2) : '0.00' },
+                      { key: 'basophils', label: 'Basophils', ref: '0 - 1%', val: data.basophils, abs: totalWbcNum > 0 ? ((totalWbcNum * basoVal) / 100).toFixed(2) : '0.00' },
                     ].map((row) => (
                       <div
                         key={row.key}
@@ -1042,18 +1049,18 @@ export default function CbcModal({
                           justifyContent: 'space-between',
                           alignItems: 'center',
                           padding: '6px 10px',
-                          background: '#f8fafc',
+                          background: 'var(--bg-input)',
                           borderRadius: '6px',
-                          border: '1px solid #f1f5f9',
+                          border: '1px solid var(--border-color)',
                         }}
                       >
                         <div style={{ width: '220px' }}>
-                          <strong style={{ fontSize: '12px', color: '#1e293b' }}>{row.label}</strong>
-                          <span style={{ fontSize: '10.5px', color: '#64748b', display: 'block' }}>Ref: {row.ref}</span>
+                          <strong style={{ fontSize: '12px', color: 'var(--text-main)' }}>{row.label}</strong>
+                          <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', display: 'block' }}>Ref: {row.ref}</span>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span style={{ fontSize: '11px', color: '#64748b' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                             Abs: <strong style={{ color: '#0284c7' }}>{row.abs}</strong> x10^3
                           </span>
 
@@ -1066,14 +1073,15 @@ export default function CbcModal({
                                 width: '70px',
                                 padding: '6px 8px',
                                 borderRadius: '6px',
-                                border: '1px solid #cbd5e1',
+                                border: '1px solid var(--border-color)',
                                 fontSize: '13px',
                                 fontWeight: 800,
                                 textAlign: 'center',
-                                background: '#ffffff',
+                                background: 'var(--bg-card)',
+                                color: 'var(--text-main)',
                               }}
                             />
-                            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>%</span>
+                            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>%</span>
                           </div>
                         </div>
                       </div>
@@ -1089,20 +1097,20 @@ export default function CbcModal({
                 {/* Platelets Indices */}
                 <div
                   style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
                     padding: '14px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                   }}
                 >
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', marginBottom: '10px' }}>
-                    Platelet Indices (مؤشرات الصفائح الدموية):
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '10px' }}>
+                    Platelet Indices:
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
                         PLT (Platelets 10^3/uL):
                       </label>
                       <input
@@ -1113,18 +1121,18 @@ export default function CbcModal({
                           width: '100%',
                           padding: '7px 8px',
                           borderRadius: '6px',
-                          border: pltPanic.isPanic ? '2px solid #dc2626' : '1px solid #cbd5e1',
-                          background: pltPanic.isPanic ? '#fee2e2' : '#ffffff',
+                          border: pltPanic.isPanic ? '2px solid #dc2626' : '1px solid var(--border-color)',
+                          background: pltPanic.isPanic ? '#fee2e2' : 'var(--bg-input)',
                           fontSize: '13px',
                           fontWeight: 800,
-                          color: pltPanic.isPanic ? '#b91c1c' : '#0f172a',
+                          color: pltPanic.isPanic ? '#b91c1c' : 'var(--text-main)',
                         }}
                       />
-                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 150 - 450</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Ref: 150 - 450</span>
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
                         MPV (Mean Vol fL):
                       </label>
                       <input
@@ -1135,16 +1143,18 @@ export default function CbcModal({
                           width: '100%',
                           padding: '7px 8px',
                           borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-input)',
+                          color: 'var(--text-main)',
                           fontSize: '12.5px',
                           fontWeight: 700,
                         }}
                       />
-                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 7.4 - 10.4</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Ref: 7.4 - 10.4</span>
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
                         PDW (Dist Width %):
                       </label>
                       <input
@@ -1155,16 +1165,18 @@ export default function CbcModal({
                           width: '100%',
                           padding: '7px 8px',
                           borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-input)',
+                          color: 'var(--text-main)',
                           fontSize: '12.5px',
                           fontWeight: 700,
                         }}
                       />
-                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 9.0 - 17.0</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Ref: 9.0 - 17.0</span>
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
                         PCT (Plateletcrit %):
                       </label>
                       <input
@@ -1175,12 +1187,14 @@ export default function CbcModal({
                           width: '100%',
                           padding: '7px 8px',
                           borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-input)',
+                          color: 'var(--text-main)',
                           fontSize: '12.5px',
                           fontWeight: 700,
                         }}
                       />
-                      <span style={{ fontSize: '10px', color: '#64748b' }}>Ref: 0.15 - 0.40</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Ref: 0.15 - 0.40</span>
                     </div>
                   </div>
                 </div>
@@ -1188,15 +1202,15 @@ export default function CbcModal({
                 {/* Morphology Pills & Textarea */}
                 <div
                   style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
                     padding: '14px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                   }}
                 >
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>
-                    Blood Film Morphology (فحص اللطاخة والمجهري):
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px' }}>
+                    Blood Film Morphology:
                   </div>
 
                   {/* Quick Pills */}
@@ -1228,9 +1242,9 @@ export default function CbcModal({
                           fontSize: '11px',
                           fontWeight: 700,
                           cursor: 'pointer',
-                          border: '1px solid #cbd5e1',
-                          background: '#f8fafc',
-                          color: '#334155',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-input)',
+                          color: 'var(--text-main)',
                         }}
                       >
                         + {pill}
@@ -1246,41 +1260,43 @@ export default function CbcModal({
                       width: '100%',
                       padding: '8px 10px',
                       borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-input)',
+                      color: 'var(--text-main)',
                       fontSize: '12px',
                       fontFamily: 'inherit',
                       resize: 'none',
                     }}
-                    placeholder="وصف لطاخة الدم المحيطية..."
+                    placeholder="Blood film morphology description..."
                   />
                 </div>
 
                 {/* Physician Remarks & Comments */}
                 <div
                   style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
                     padding: '14px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>
-                      Clinical Remarks & Interpretation (ملاحظات الطبيب):
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      Clinical Remarks & Interpretation:
                     </span>
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button
                         type="button"
                         onClick={() => setField('comments', 'Normal hematological profile.')}
-                        style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer' }}
+                        style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-input)', color: 'var(--text-main)', cursor: 'pointer' }}
                       >
                         [Normal]
                       </button>
                       <button
                         type="button"
                         onClick={() => setField('comments', 'Picture suggestive of Iron Deficiency Anemia (IDA).')}
-                        style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer' }}
+                        style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-input)', color: 'var(--text-main)', cursor: 'pointer' }}
                       >
                         [IDA]
                       </button>
@@ -1295,12 +1311,14 @@ export default function CbcModal({
                       width: '100%',
                       padding: '8px 10px',
                       borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-input)',
+                      color: 'var(--text-main)',
                       fontSize: '12px',
                       fontFamily: 'inherit',
                       resize: 'none',
                     }}
-                    placeholder="اكتب التوصيات الطبية أو الملاحظات الاستشارية..."
+                    placeholder="Recommendations or remarks..."
                   />
                 </div>
               </div>
@@ -1493,8 +1511,8 @@ export default function CbcModal({
         <div
           style={{
             padding: '12px 20px',
-            background: '#ffffff',
-            borderTop: '1px solid #e2e8f0',
+            background: 'var(--bg-card)',
+            borderTop: '1px solid var(--border-color)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -1514,11 +1532,11 @@ export default function CbcModal({
                   height: '38px',
                   padding: '0 14px',
                   borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  background: '#f8fafc',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-input)',
                   cursor: 'pointer',
                   fontWeight: 700,
-                  color: '#475569',
+                  color: 'var(--text-main)',
                 }}
               >
                 <ChevronLeft size={16} />
@@ -1537,11 +1555,11 @@ export default function CbcModal({
                   height: '38px',
                   padding: '0 14px',
                   borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  background: '#f8fafc',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-input)',
                   cursor: 'pointer',
                   fontWeight: 700,
-                  color: '#475569',
+                  color: 'var(--text-main)',
                 }}
               >
                 <span>التبويب التالي (Next)</span>
@@ -1560,11 +1578,11 @@ export default function CbcModal({
                 height: '38px',
                 padding: '0 18px',
                 borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                background: '#ffffff',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-input)',
                 cursor: 'pointer',
                 fontWeight: 700,
-                color: '#475569',
+                color: 'var(--text-main)',
               }}
             >
               إلغاء (Cancel)

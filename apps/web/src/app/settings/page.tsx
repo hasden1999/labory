@@ -460,7 +460,7 @@ export default function SettingsPage() {
                 </label>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-                  <div style={{ background: '#090d15', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ background: 'var(--bg-input-deep)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                       <label className="input-label" style={{ margin: 0 }}>الهامش العلوي (Top Margin)</label>
                       <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--accent-cyan)' }}>{topMarginMm} mm</span>
@@ -478,7 +478,7 @@ export default function SettingsPage() {
                     </span>
                   </div>
 
-                  <div style={{ background: '#090d15', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ background: 'var(--bg-input-deep)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                       <label className="input-label" style={{ margin: 0 }}>الهامش السفلي (Bottom Margin)</label>
                       <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--accent-cyan)' }}>{bottomMarginMm} mm</span>
@@ -496,7 +496,7 @@ export default function SettingsPage() {
                     </span>
                   </div>
 
-                  <div style={{ background: '#090d15', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ background: 'var(--bg-input-deep)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                       <label className="input-label" style={{ margin: 0 }}>الهامش الأيمن (Right Margin)</label>
                       <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--accent-cyan)' }}>{rightMarginMm} mm</span>
@@ -511,7 +511,7 @@ export default function SettingsPage() {
                     />
                   </div>
 
-                  <div style={{ background: '#090d15', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ background: 'var(--bg-input-deep)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                       <label className="input-label" style={{ margin: 0 }}>الهامش الأيسر (Left Margin)</label>
                       <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--accent-cyan)' }}>{leftMarginMm} mm</span>

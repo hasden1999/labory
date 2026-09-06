@@ -58,7 +58,7 @@ export default function FinancialsPage() {
     setProfitLoading(true);
     try {
       const res = await apiRequest('/financials/test-profitability?timeframe=' + timeframe);
-      setProfitabilityData(res);
+      setProfitabilityData(Array.isArray(res) ? res : (res?.breakdown || []));
     } catch (err: any) {
       toast.error(err.message || 'فشل في جلب تحليل الربحية', 'خطأ');
     } finally {
@@ -360,7 +360,7 @@ export default function FinancialsPage() {
                 ) : (
                   summary.expensesList?.map((ex: any) => (
                     <tr key={ex.id}>
-                      <td>{new Date(ex.createdAt).toLocaleDateString('ar-IQ')}</td>
+                      <td>{new Date(ex.createdAt || ex.date || Date.now()).toLocaleDateString('ar-IQ')}</td>
                       <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>{ex.description}</td>
                       <td>
                         <span className="badge badge-received" style={{ fontSize: '10.5px' }}>{ex.category}</span>

@@ -58,6 +58,25 @@ function handleClientFallback(endpoint: string) {
     return [];
   }
 
+  if (clean.includes('/financials/summary')) {
+    return {
+      totalRevenue: 0,
+      totalPaid: 0,
+      totalExpenses: 0,
+      totalDoctorCommissions: 0,
+      netProfit: 0,
+      todayRevenue: 0,
+      totalDiscounts: 0,
+      totalRemainingDebts: 0,
+      recentExpenses: [],
+      expensesList: [],
+    };
+  }
+
+  if (clean.includes('/financials/test-profitability')) {
+    return [];
+  }
+
   return null;
 }
 

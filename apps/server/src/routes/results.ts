@@ -11,7 +11,7 @@ export const SampleStatus = {
 
 export async function resultRoutes(fastify: FastifyInstance) {
   // Batch Save Results for a Sample with Smart Evaluations & Auto-Calculations
-  fastify.post('/samples/:sampleId/results', { onRequest: [fastify.authenticate] }, async (request, reply) => {
+  const saveResultsHandler = async (request: any, reply: any) => {
     const user = request.user as { id: string };
     const { sampleId } = request.params as { sampleId: string };
     const body = request.body as any || {};
@@ -231,7 +231,7 @@ export async function resultRoutes(fastify: FastifyInstance) {
 
     const completedCount = finalTests.filter((t) => t.resultValue && t.resultValue.trim() !== '').length;
     let newStatus: string = SampleStatus.IN_PROGRESS;
-    if (completedCount === finalTests.length && finalTests.length > 0) {
+    if ((completedCount === finalTests.length && finalTests.length > 0) || body.markReady === true) {
       newStatus = SampleStatus.READY;
     }
 
@@ -239,6 +239,12 @@ export async function resultRoutes(fastify: FastifyInstance) {
       where: { id: sampleId },
       data: { status: newStatus },
     });
+
+    try {
+      await prisma.$queryRawUnsafe('PRAGMA wal_checkpoint(PASSIVE);');
+    } catch (e) {
+      // WAL checkpoint passive fallback
+    }
 
     const updatedSample = await prisma.sample.findUnique({
       where: { id: sampleId },
@@ -250,7 +256,11 @@ export async function resultRoutes(fastify: FastifyInstance) {
     });
 
     return reply.send(updatedSample);
-  });
+  };
+
+  fastify.post('/samples/:sampleId/results', { onRequest: [fastify.authenticate] }, saveResultsHandler);
+  fastify.put('/samples/:sampleId/results', { onRequest: [fastify.authenticate] }, saveResultsHandler);
+  fastify.patch('/samples/:sampleId/results', { onRequest: [fastify.authenticate] }, saveResultsHandler);
 
   // Official A4 Medical Diagnostic Report HTML
   fastify.get('/samples/:sampleId/print', async (request, reply) => {

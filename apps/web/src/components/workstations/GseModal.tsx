@@ -372,17 +372,17 @@ export default function GseModal({
     return (
       <div
         style={{
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
           borderRadius: '8px',
           padding: '10px 14px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>{label}</span>
+          <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>{label}</span>
           {refRange && (
-            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
               Ref: <span style={{ color: '#0284c7' }}>{refRange}</span>
             </span>
           )}
@@ -406,17 +406,17 @@ export default function GseModal({
                     ? isAbn
                       ? '1.5px solid #dc2626'
                       : '1.5px solid #0284c7'
-                    : '1px solid #cbd5e1',
+                    : '1px solid var(--border-color)',
                   background: isSelected
                     ? isAbn
                       ? '#fee2e2'
                       : '#e0f2fe'
-                    : '#f8fafc',
+                    : 'var(--bg-input)',
                   color: isSelected
                     ? isAbn
                       ? '#b91c1c'
                       : '#0369a1'
-                    : '#475569',
+                    : 'var(--text-main)',
                   boxShadow: isSelected ? '0 1px 4px rgba(2, 132, 199, 0.2)' : 'none',
                   transition: 'all 0.12s ease',
                 }}
@@ -433,12 +433,10 @@ export default function GseModal({
   // Helper Component for Stool Element Row Selector with Nil, +, ++, +++, ++++, Full Field
   const StoolElementRow = ({
     name,
-    arabicName,
     value,
     onChange,
   }: {
     name: string;
-    arabicName?: string;
     value: string;
     onChange: (val: string) => void;
   }) => {
@@ -454,14 +452,13 @@ export default function GseModal({
           justifyContent: 'space-between',
           gap: '8px',
           padding: '6px 0',
-          borderBottom: '1px dashed #f1f5f9',
+          borderBottom: '1px dashed var(--border-color)',
         }}
       >
         <div style={{ minWidth: '150px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: isPositive ? (isSevere ? '#dc2626' : '#0284c7') : '#334155' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: isPositive ? (isSevere ? '#dc2626' : '#0284c7') : 'var(--text-main)' }}>
             • {name} {isPositive && <span style={{ fontWeight: 800 }}>({value})</span>}
           </span>
-          {arabicName && <span style={{ fontSize: '11px', color: '#64748b', marginRight: '4px' }}>- {arabicName}</span>}
         </div>
         <div style={{ display: 'flex', gap: '4px', flex: 1, maxWidth: '340px' }}>
           {levels.map((lvl) => {
@@ -483,21 +480,21 @@ export default function GseModal({
                     ? isLvlHeavy
                       ? '1.5px solid #dc2626'
                       : '1.5px solid #0284c7'
-                    : '1px solid #cbd5e1',
+                    : '1px solid var(--border-color)',
                   background: isSelected
                     ? lvl === 'Nil'
                       ? '#0284c7'
                       : isLvlHeavy
                       ? '#fee2e2'
                       : '#e0f2fe'
-                    : '#ffffff',
+                    : 'var(--bg-input)',
                   color: isSelected
                     ? lvl === 'Nil'
                       ? '#ffffff'
                       : isLvlHeavy
                       ? '#b91c1c'
                       : '#0369a1'
-                    : '#475569',
+                    : 'var(--text-main)',
                   boxShadow: isSelected ? '0 1px 3px rgba(2,132,199,0.2)' : 'none',
                   whiteSpace: 'nowrap',
                   transition: 'all 0.12s ease',
@@ -535,8 +532,8 @@ export default function GseModal({
     >
       <div
         style={{
-          background: '#f8fafc',
-          border: '1px solid #cbd5e1',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
           borderRadius: '16px',
           width: '100%',
           maxWidth: '1240px',
@@ -554,8 +551,8 @@ export default function GseModal({
         <div
           style={{
             padding: '12px 20px',
-            background: '#ffffff',
-            borderBottom: '1px solid #e2e8f0',
+            background: 'var(--bg-card)',
+            borderBottom: '1px solid var(--border-color)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -581,14 +578,14 @@ export default function GseModal({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
                   {resolvedPatientName}
                 </span>
                 <span
                   style={{
                     fontSize: '11px',
-                    background: '#e2e8f0',
-                    color: '#334155',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-muted)',
                     padding: '2px 8px',
                     borderRadius: '4px',
                     fontWeight: 700,
@@ -711,7 +708,7 @@ export default function GseModal({
             <div
               style={{
                 display: 'flex',
-                background: '#e2e8f0',
+                background: 'var(--bg-input)',
                 padding: '4px',
                 borderRadius: '10px',
                 gap: '4px',
@@ -728,8 +725,8 @@ export default function GseModal({
                   fontWeight: activeTab === 'PHYSICAL' ? 800 : 600,
                   cursor: 'pointer',
                   border: 'none',
-                  background: activeTab === 'PHYSICAL' ? '#ffffff' : 'transparent',
-                  color: activeTab === 'PHYSICAL' ? '#0284c7' : '#64748b',
+                  background: activeTab === 'PHYSICAL' ? 'var(--bg-card)' : 'transparent',
+                  color: activeTab === 'PHYSICAL' ? '#0284c7' : 'var(--text-muted)',
                   boxShadow: activeTab === 'PHYSICAL' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
                   display: 'flex',
                   alignItems: 'center',
@@ -753,8 +750,8 @@ export default function GseModal({
                   fontWeight: activeTab === 'MICROSCOPIC' ? 800 : 600,
                   cursor: 'pointer',
                   border: 'none',
-                  background: activeTab === 'MICROSCOPIC' ? '#ffffff' : 'transparent',
-                  color: activeTab === 'MICROSCOPIC' ? '#0284c7' : '#64748b',
+                  background: activeTab === 'MICROSCOPIC' ? 'var(--bg-card)' : 'transparent',
+                  color: activeTab === 'MICROSCOPIC' ? '#0284c7' : 'var(--text-muted)',
                   boxShadow: activeTab === 'MICROSCOPIC' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
                   display: 'flex',
                   alignItems: 'center',
@@ -778,8 +775,8 @@ export default function GseModal({
                   fontWeight: activeTab === 'PARASITOLOGY' ? 800 : 600,
                   cursor: 'pointer',
                   border: 'none',
-                  background: activeTab === 'PARASITOLOGY' ? '#ffffff' : 'transparent',
-                  color: activeTab === 'PARASITOLOGY' ? '#0284c7' : '#64748b',
+                  background: activeTab === 'PARASITOLOGY' ? 'var(--bg-card)' : 'transparent',
+                  color: activeTab === 'PARASITOLOGY' ? '#0284c7' : 'var(--text-muted)',
                   boxShadow: activeTab === 'PARASITOLOGY' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
                   display: 'flex',
                   alignItems: 'center',
@@ -799,18 +796,18 @@ export default function GseModal({
                 {/* Color Swatch Selector */}
                 <div
                   style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
                     padding: '12px 14px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>
-                      Color (اللون)
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      Color
                     </span>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                       Ref: <strong style={{ color: '#0284c7' }}>Brown / Light Brown</strong>
                     </span>
                   </div>
@@ -829,11 +826,11 @@ export default function GseModal({
                             padding: '8px 10px',
                             borderRadius: '8px',
                             cursor: 'pointer',
-                            border: isSelected ? '2px solid #0284c7' : '1px solid #cbd5e1',
-                            background: isSelected ? '#e0f2fe' : '#ffffff',
+                            border: isSelected ? '2px solid #0284c7' : '1px solid var(--border-color)',
+                            background: isSelected ? '#e0f2fe' : 'var(--bg-input)',
                             fontWeight: isSelected ? 800 : 600,
                             fontSize: '11.5px',
-                            color: '#1e293b',
+                            color: 'var(--text-main)',
                             boxShadow: isSelected ? '0 2px 6px rgba(2,132,199,0.2)' : 'none',
                           }}
                         >
@@ -858,7 +855,7 @@ export default function GseModal({
 
                 {/* Consistency Pills */}
                 <PillSelector
-                  label="Consistency (القوام)"
+                  label="Consistency"
                   refRange="Formed"
                   value={data.consistency}
                   onChange={(val) => setField('consistency', val)}
@@ -876,7 +873,7 @@ export default function GseModal({
 
                 {/* Occult Blood (FOBT) Pills */}
                 <PillSelector
-                  label="Occult Blood / FOBT (فحص الدم الخفي في البراز)"
+                  label="Occult Blood (FOBT)"
                   refRange="Negative"
                   value={data.fobt}
                   onChange={(val) => setField('fobt', val)}
@@ -892,18 +889,18 @@ export default function GseModal({
                 {/* Pus Cells */}
                 <div
                   style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
                     padding: '10px 14px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>
-                      Pus Cells (خلايا الصديد /HPF)
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      Pus Cells (/HPF)
                     </span>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                       Ref: <strong style={{ color: '#0284c7' }}>0 - 5 /HPF</strong>
                     </span>
                   </div>
@@ -926,17 +923,17 @@ export default function GseModal({
                               ? isAbn
                                 ? '1.5px solid #dc2626'
                                 : '1.5px solid #0284c7'
-                              : '1px solid #cbd5e1',
+                              : '1px solid var(--border-color)',
                             background: isSelected
                               ? isAbn
                                 ? '#fee2e2'
                                 : '#e0f2fe'
-                              : '#f8fafc',
+                              : 'var(--bg-input)',
                             color: isSelected
                               ? isAbn
                                 ? '#b91c1c'
                                 : '#0369a1'
-                              : '#475569',
+                              : 'var(--text-main)',
                           }}
                         >
                           {opt}
@@ -945,14 +942,16 @@ export default function GseModal({
                     })}
                     <input
                       type="text"
-                      placeholder="أو اكتب قيمة..."
+                      placeholder="Or enter value..."
                       value={data.pusCells}
                       onChange={(e) => setField('pusCells', e.target.value)}
                       style={{
                         width: '100px',
                         padding: '4px 8px',
                         borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-input)',
+                        color: 'var(--text-main)',
                         fontSize: '11.5px',
                         fontWeight: 700,
                       }}
@@ -963,18 +962,18 @@ export default function GseModal({
                 {/* RBCs */}
                 <div
                   style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
                     padding: '10px 14px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>
-                      R.B.Cs (كريات الدم الحمراء /HPF)
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      R.B.Cs (/HPF)
                     </span>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                       Ref: <strong style={{ color: '#0284c7' }}>0 - 2 /HPF</strong>
                     </span>
                   </div>
@@ -997,17 +996,17 @@ export default function GseModal({
                               ? isAbn
                                 ? '1.5px solid #dc2626'
                                 : '1.5px solid #0284c7'
-                              : '1px solid #cbd5e1',
+                              : '1px solid var(--border-color)',
                             background: isSelected
                               ? isAbn
                                 ? '#fee2e2'
                                 : '#e0f2fe'
-                              : '#f8fafc',
+                              : 'var(--bg-input)',
                             color: isSelected
                               ? isAbn
                                 ? '#b91c1c'
                                 : '#0369a1'
-                              : '#475569',
+                              : 'var(--text-main)',
                           }}
                         >
                           {opt}
@@ -1016,14 +1015,16 @@ export default function GseModal({
                     })}
                     <input
                       type="text"
-                      placeholder="أو اكتب قيمة..."
+                      placeholder="Or enter value..."
                       value={data.rbcs}
                       onChange={(e) => setField('rbcs', e.target.value)}
                       style={{
                         width: '100px',
                         padding: '4px 8px',
                         borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-input)',
+                        color: 'var(--text-main)',
                         fontSize: '11.5px',
                         fontWeight: 700,
                       }}
@@ -1034,37 +1035,33 @@ export default function GseModal({
                 {/* Stool Microscopic Elements Box */}
                 <div
                   style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
                     padding: '12px 14px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                   }}
                 >
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>
-                    Microscopic Findings (موجودات الهضم والمجهري)
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px' }}>
+                    Microscopic Findings
                   </div>
                   <StoolElementRow
                     name="Muscle Fibers"
-                    arabicName="ألياف العضلات غير المهضومة"
                     value={data.muscleFibers}
                     onChange={(val) => setField('muscleFibers', val)}
                   />
                   <StoolElementRow
                     name="Starch Granules"
-                    arabicName="حبيبات النشا"
                     value={data.starchGranules}
                     onChange={(val) => setField('starchGranules', val)}
                   />
                   <StoolElementRow
                     name="Fat Globules"
-                    arabicName="قطيرات الدهون (سوء الامتصاص)"
                     value={data.fatGlobules}
                     onChange={(val) => setField('fatGlobules', val)}
                   />
                   <StoolElementRow
                     name="Vegetable Cells"
-                    arabicName="خلايا وبقايا نباتية"
                     value={data.vegetableCells}
                     onChange={(val) => setField('vegetableCells', val)}
                   />
@@ -1078,21 +1075,21 @@ export default function GseModal({
                 {/* Add Parasite Card */}
                 <div
                   style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
                     padding: '12px 14px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                   }}
                 >
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Plus size={15} color="#0284c7" />
                     <span>إضافة طفيلي مكتشف (Add Parasite Entry)</span>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '10px', marginBottom: '10px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
                         الكائن الطفيلي (Organism):
                       </label>
                       <select
@@ -1106,10 +1103,11 @@ export default function GseModal({
                           width: '100%',
                           padding: '7px 10px',
                           borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
+                          border: '1px solid var(--border-color)',
                           fontSize: '12px',
                           fontWeight: 700,
-                          background: '#fff',
+                          background: 'var(--bg-input)',
+                          color: 'var(--text-main)',
                         }}
                       >
                         {COMMON_PARASITES.map((p, i) => (
@@ -1121,7 +1119,7 @@ export default function GseModal({
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
                         الطور المكتشف (Stage):
                       </label>
                       <select
@@ -1131,20 +1129,21 @@ export default function GseModal({
                           width: '100%',
                           padding: '7px 10px',
                           borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
+                          border: '1px solid var(--border-color)',
                           fontSize: '12px',
                           fontWeight: 700,
-                          background: '#fff',
+                          background: 'var(--bg-input)',
+                          color: 'var(--text-main)',
                         }}
                       >
-                        <option value="Cyst">Cyst (أكياس متكيسة)</option>
-                        <option value="Trophozoite">Trophozoite (طور نشط متحرك)</option>
-                        <option value="Trophozoite (Hematophagous)">Trophozoite (Hematophagous بلع دموي)</option>
-                        <option value="Ova">Ova (بيوض)</option>
-                        <option value="Fertilized Ova">Fertilized Ova (بيوض مخصبة)</option>
-                        <option value="Larva">Larva (يرقة)</option>
-                        <option value="Vacuolar">Vacuolar (فجوي)</option>
-                        <option value="Observed">Observed (مشاهد)</option>
+                        <option value="Cyst">Cyst</option>
+                        <option value="Trophozoite">Trophozoite</option>
+                        <option value="Trophozoite (Hematophagous)">Trophozoite (Hematophagous)</option>
+                        <option value="Ova">Ova</option>
+                        <option value="Fertilized Ova">Fertilized Ova</option>
+                        <option value="Larva">Larva</option>
+                        <option value="Vacuolar">Vacuolar</option>
+                        <option value="Observed">Observed</option>
                       </select>
                     </div>
                   </div>
@@ -1152,7 +1151,7 @@ export default function GseModal({
                   {/* Severity Pills & Add Button */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569' }}>الكثافة (Severity):</span>
+                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>الكثافة (Severity):</span>
                       {['+', '++', '+++', '++++'].map((s) => {
                         const isSel = selectedSeverity === s;
                         return (
@@ -1166,9 +1165,9 @@ export default function GseModal({
                               fontSize: '12px',
                               fontWeight: 800,
                               cursor: 'pointer',
-                              border: isSel ? '1.5px solid #dc2626' : '1px solid #cbd5e1',
-                              background: isSel ? '#fee2e2' : '#ffffff',
-                              color: isSel ? '#b91c1c' : '#475569',
+                              border: isSel ? '1.5px solid #dc2626' : '1px solid var(--border-color)',
+                              background: isSel ? '#fee2e2' : 'var(--bg-input)',
+                              color: isSel ? '#b91c1c' : 'var(--text-main)',
                             }}
                           >
                             {s}
@@ -1203,13 +1202,13 @@ export default function GseModal({
                 {/* Added Parasites List */}
                 <div
                   style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
                     padding: '10px 14px',
                   }}
                 >
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '6px' }}>
                     الطفيليات المسجلة في العينة:
                   </div>
                   {data.parasites.length === 0 ? (
@@ -1257,28 +1256,28 @@ export default function GseModal({
                 {/* Clinical Notes */}
                 <div
                   style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
                     padding: '10px 14px',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>
                       الملاحظات السريرية (Clinical Notes)
                     </span>
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button
                         type="button"
                         onClick={() => setField('notes', 'No parasites, cysts, or ova seen in direct saline and iodine wet mounts.')}
-                        style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer' }}
+                        style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-input)', color: 'var(--text-main)', cursor: 'pointer' }}
                       >
                         [No Parasites]
                       </button>
                       <button
                         type="button"
                         onClick={() => setField('notes', 'Active amoebic dysentery picture with presence of RBCs.')}
-                        style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer' }}
+                        style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-input)', color: 'var(--text-main)', cursor: 'pointer' }}
                       >
                         [Dysentery]
                       </button>
@@ -1292,7 +1291,9 @@ export default function GseModal({
                       width: '100%',
                       padding: '8px 10px',
                       borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-input)',
+                      color: 'var(--text-main)',
                       fontSize: '12px',
                       fontFamily: 'inherit',
                       resize: 'none',
@@ -1487,8 +1488,8 @@ export default function GseModal({
         <div
           style={{
             padding: '12px 20px',
-            background: '#ffffff',
-            borderTop: '1px solid #e2e8f0',
+            background: 'var(--bg-card)',
+            borderTop: '1px solid var(--border-color)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -1508,11 +1509,11 @@ export default function GseModal({
                   height: '38px',
                   padding: '0 14px',
                   borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  background: '#f8fafc',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-input)',
                   cursor: 'pointer',
                   fontWeight: 700,
-                  color: '#475569',
+                  color: 'var(--text-main)',
                 }}
               >
                 <ChevronLeft size={16} />
@@ -1531,11 +1532,11 @@ export default function GseModal({
                   height: '38px',
                   padding: '0 14px',
                   borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  background: '#f8fafc',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-input)',
                   cursor: 'pointer',
                   fontWeight: 700,
-                  color: '#475569',
+                  color: 'var(--text-main)',
                 }}
               >
                 <span>التبويب التالي (Next)</span>
@@ -1554,11 +1555,11 @@ export default function GseModal({
                 height: '38px',
                 padding: '0 18px',
                 borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                background: '#ffffff',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-input)',
                 cursor: 'pointer',
                 fontWeight: 700,
-                color: '#475569',
+                color: 'var(--text-main)',
               }}
             >
               إلغاء (Cancel)

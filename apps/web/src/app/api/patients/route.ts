@@ -3,7 +3,18 @@ import { getStore, addPatient } from '../../../lib/serverStore';
 
 export async function GET() {
   const store = getStore();
-  return NextResponse.json(store.patients);
+  const enriched = store.patients.map((p) => {
+    const patientSamples = store.samples.filter(
+      (s) => s.patientId === p.id || s.patient?.id === p.id
+    );
+    return {
+      ...p,
+      samples: patientSamples,
+      visitsCount: patientSamples.length,
+      visitCount: patientSamples.length,
+    };
+  });
+  return NextResponse.json(enriched);
 }
 
 export async function POST(request: Request) {

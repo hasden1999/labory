@@ -252,11 +252,11 @@ function PatientsContent() {
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <strong style={{ fontSize: '12.5px', color: isSelected ? 'var(--accent-cyan)' : '#fff' }}>
+                      <strong style={{ fontSize: '12.5px', color: isSelected ? 'var(--accent-cyan)' : 'var(--text-main)' }}>
                         {p.name}
                       </strong>
                       <span className="badge badge-received" style={{ fontSize: '9.5px', padding: '1px 5px' }}>
-                        {p.samples?.length || 0} زيارات
+                        {p.visitsCount ?? p.samples?.length ?? 0} زيارات
                       </span>
                     </div>
 

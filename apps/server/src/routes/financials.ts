@@ -6,16 +6,27 @@ export async function financialRoutes(fastify: FastifyInstance) {
   fastify.get('/financials/summary', async (request, reply) => {
     // 1. Calculate Auto Revenues (الواردات التلقائية)
     const samples = await prisma.sample.findMany({
+      where: { isDeleted: false },
       select: {
         paidAmount: true,
         remainingAmount: true,
         priceTotal: true,
+        discount: true,
         createdAt: true,
       },
     });
 
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
     const samplePaidTotal = samples.reduce((sum, s) => sum + (s.paidAmount || 0), 0);
     const sampleRemainingDebts = samples.reduce((sum, s) => sum + (s.remainingAmount || 0), 0);
+    const totalGrossRevenue = samples.reduce((sum, s) => sum + (s.priceTotal || 0), 0);
+    const totalDiscounts = samples.reduce((sum, s) => sum + (s.discount || 0), 0);
+
+    const todaySamplePaid = samples
+      .filter(s => new Date(s.createdAt).getTime() >= todayStart)
+      .reduce((sum, s) => sum + (s.paidAmount || 0), 0);
 
     // B. Debt Ledger Payments (استلام الدفعات من قائمة الديون)
     const debtPayments = await prisma.debtRecord.findMany({
@@ -24,25 +35,32 @@ export async function financialRoutes(fastify: FastifyInstance) {
     });
 
     const debtPaymentsTotal = debtPayments.reduce((sum, d) => sum + d.amount, 0);
+    const todayDebtPaid = debtPayments
+      .filter(d => new Date(d.createdAt).getTime() >= todayStart)
+      .reduce((sum, d) => sum + d.amount, 0);
+
     const totalRevenues = samplePaidTotal + debtPaymentsTotal;
+    const todayRevenue = todaySamplePaid + todayDebtPaid;
 
     // 2. Calculate Costs & Expenses (الصادرات والتكاليف)
-    const expenses = await prisma.expense.findMany({
+    const rawExpenses = await prisma.expense.findMany({
       orderBy: { date: 'desc' },
     });
 
-    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const expenses = rawExpenses.map(e => ({
+      ...e,
+      createdAt: e.date.toISOString(),
+    }));
 
-    // Inventory Purchases & Stock Cost
-    const inventoryItems = await prisma.inventoryItem.findMany({
-      select: { quantity: true, costPerUnit: true },
-    });
-    const inventoryStockCost = inventoryItems.reduce((sum, item) => sum + (item.quantity * item.costPerUnit), 0);
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
 
     // Doctor Commissions
     const doctors = await prisma.referringDoctor.findMany({
       include: {
-        samples: { select: { priceTotal: true } },
+        samples: {
+          where: { isDeleted: false },
+          select: { priceTotal: true },
+        },
       },
     });
 
@@ -52,16 +70,19 @@ export async function financialRoutes(fastify: FastifyInstance) {
       totalDoctorCommissions += (docSampleRevenue * (doc.commissionPercent || 0)) / 100;
     });
 
-    // Total actual cost of executed tests
-    const allExecutedTests = await prisma.sampleTest.findMany({
-      select: { priceAtTime: true, costAtTime: true },
-    });
-    const totalTestCosts = allExecutedTests.reduce((sum, t) => sum + (t.costAtTime || 0), 0);
-
-    const totalOutgoings = totalExpenses + totalDoctorCommissions + totalTestCosts;
-    const netProfit = totalRevenues - totalOutgoings;
+    const netProfit = totalRevenues - (totalExpenses + totalDoctorCommissions);
 
     return {
+      totalRevenue: totalGrossRevenue,
+      totalPaid: totalRevenues,
+      totalExpenses,
+      totalDoctorCommissions,
+      netProfit,
+      todayRevenue,
+      totalDiscounts,
+      totalRemainingDebts: sampleRemainingDebts,
+      recentExpenses: expenses.slice(0, 8),
+      expensesList: expenses,
       autoRevenues: {
         samplePaidTotal,
         debtPaymentsTotal,
@@ -71,12 +92,10 @@ export async function financialRoutes(fastify: FastifyInstance) {
       outgoings: {
         operationalExpenses: totalExpenses,
         doctorCommissions: totalDoctorCommissions,
-        inventoryStockCost,
-        totalTestCosts,
-        totalOutgoings,
+        inventoryStockCost: 0,
+        totalTestCosts: 0,
+        totalOutgoings: totalExpenses + totalDoctorCommissions,
       },
-      netProfit,
-      expensesList: expenses,
     };
   });
 
@@ -138,15 +157,19 @@ export async function financialRoutes(fastify: FastifyInstance) {
 
       return {
         testId: ct.id,
+        testName: ct.name,
         name: ct.name,
         category: ct.category,
+        price: unitPrice,
         unitPrice,
+        costEstimate: unitCost,
         unitCost,
         unitProfit,
         profitMargin,
         count: stats.count,
         totalRevenue: stats.totalRevenue,
         totalCost: stats.totalCost,
+        netProfit: totalProfit,
         totalProfit,
       };
     });
@@ -154,21 +177,7 @@ export async function financialRoutes(fastify: FastifyInstance) {
     // Sort by count descending so most conducted tests appear first
     breakdown.sort((a, b) => b.count - a.count);
 
-    const overallTotalCount = breakdown.reduce((sum, b) => sum + b.count, 0);
-    const overallTotalRevenue = breakdown.reduce((sum, b) => sum + b.totalRevenue, 0);
-    const overallTotalCost = breakdown.reduce((sum, b) => sum + b.totalCost, 0);
-    const overallTotalProfit = overallTotalRevenue - overallTotalCost;
-
-    return {
-      timeframe: timeframe || 'all',
-      overallSummary: {
-        totalExecutedTests: overallTotalCount,
-        totalRevenue: overallTotalRevenue,
-        totalCost: overallTotalCost,
-        totalProfit: overallTotalProfit,
-      },
-      breakdown,
-    };
+    return breakdown;
   });
 
   // Create new operating expense
@@ -179,7 +188,7 @@ export async function financialRoutes(fastify: FastifyInstance) {
       category?: string;
     };
 
-    if (!description || !amount || amount <= 0) {
+    if (!description || !amount || Number(amount) <= 0) {
       return reply.code(400).send({ error: 'الرجاء إدخال تفاصيل ومبلغ المصروف بشكل صحيح' });
     }
 
@@ -191,7 +200,10 @@ export async function financialRoutes(fastify: FastifyInstance) {
       },
     });
 
-    return expense;
+    return {
+      ...expense,
+      createdAt: expense.date.toISOString(),
+    };
   });
 
   // Delete expense record

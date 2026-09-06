@@ -24,6 +24,9 @@ build/
 *.sqlite-journal
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
+*.db.backup
 
 # Debug and Logs
 npm-debug.log*

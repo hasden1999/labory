@@ -90,12 +90,23 @@ export interface SampleRecord {
   tests: SampleTestRecord[];
 }
 
+export interface ExpenseRecord {
+  id: string;
+  description: string;
+  amount: number;
+  category: string;
+  createdAt: string;
+  date?: string;
+  staff?: { name: string };
+}
+
 export interface ServerStore {
   tests: any[];
   panels: any[];
   doctors: DoctorRecord[];
   patients: PatientRecord[];
   samples: SampleRecord[];
+  expenses: ExpenseRecord[];
   settings: LabSettings;
 }
 
@@ -241,6 +252,24 @@ function initStore(): ServerStore {
     doctors: [...INITIAL_DOCTORS],
     patients: [patient1, patient2, patient3],
     samples: [sample1, sample2, sample3],
+    expenses: [
+      {
+        id: 'exp-1',
+        description: 'شراء أشرطة فحص وكواشف مخبرية',
+        amount: 85000,
+        category: 'كواشف ومواد',
+        createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+        date: new Date(Date.now() - 86400000 * 2).toISOString(),
+      },
+      {
+        id: 'exp-2',
+        description: 'وقود مولدة سحب كهربائي إضافي',
+        amount: 35000,
+        category: 'كهرباء ووقود',
+        createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+        date: new Date(Date.now() - 86400000 * 1).toISOString(),
+      },
+    ],
     settings: {
       labName: 'مختبر الرضا للتحليلات الطبية التخصصية',
       labSubtitle: 'فحوصات مرضية وتطبيقية دقيقة - تشخيص إلكتروني متكامل ومعتمد',
@@ -276,11 +305,7 @@ export function saveStoreToFile(): void {
     }
     if (global.__labStore) {
       const payload = JSON.stringify(global.__labStore, null, 2);
-      fs.writeFile(DATA_FILE, payload, 'utf-8', (err) => {
-        if (err) {
-          console.error('Failed to save store to file:', err);
-        }
-      });
+      fs.writeFileSync(DATA_FILE, payload, 'utf-8');
     }
   } catch (err) {
     console.error('Failed to save store to file:', err);
@@ -293,6 +318,9 @@ export function loadStoreFromFile(): ServerStore | null {
       const content = fs.readFileSync(DATA_FILE, 'utf-8');
       const parsed = JSON.parse(content);
       if (parsed && Array.isArray(parsed.patients) && Array.isArray(parsed.samples)) {
+        if (!Array.isArray(parsed.expenses)) {
+          parsed.expenses = [];
+        }
         return parsed;
       }
     }
@@ -311,6 +339,9 @@ export function getStore(): ServerStore {
       global.__labStore = initStore();
       saveStoreToFile();
     }
+  }
+  if (!Array.isArray(global.__labStore.expenses)) {
+    global.__labStore.expenses = [];
   }
   return global.__labStore;
 }
@@ -648,3 +679,162 @@ export function updateSettings(data: Partial<LabSettings>): LabSettings {
   saveStoreToFile();
   return store.settings;
 }
+
+// -------------------------------------------------------------
+// Expenses & Financials Helpers
+// -------------------------------------------------------------
+
+export function addExpense(data: { description: string; amount: number; category?: string; staffName?: string }): ExpenseRecord {
+  const store = getStore();
+  const now = new Date().toISOString();
+  const newExp: ExpenseRecord = {
+    id: 'exp-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+    description: data.description.trim(),
+    amount: Number(data.amount),
+    category: data.category || 'مصاريف تشغيلية',
+    createdAt: now,
+    date: now,
+    staff: { name: data.staffName || 'مدير المختبر' },
+  };
+  store.expenses = [newExp, ...(store.expenses || [])];
+  saveStoreToFile();
+  return newExp;
+}
+
+export function deleteExpense(id: string): boolean {
+  const store = getStore();
+  const initialLen = store.expenses.length;
+  store.expenses = store.expenses.filter((e) => e.id !== id);
+  if (store.expenses.length !== initialLen) {
+    saveStoreToFile();
+    return true;
+  }
+  return false;
+}
+
+export function getFinancialSummary() {
+  const store = getStore();
+  const samples = store.samples || [];
+  const expenses = store.expenses || [];
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
+
+  let totalGrossRevenue = 0;
+  let totalPaid = 0;
+  let totalDiscounts = 0;
+  let totalRemainingDebts = 0;
+  let todayRevenue = 0;
+  let totalDoctorCommissions = 0;
+
+  samples.forEach((s) => {
+    totalGrossRevenue += s.priceTotal || 0;
+    totalPaid += s.paidAmount || 0;
+    totalDiscounts += s.discount || 0;
+    totalRemainingDebts += s.remainingAmount || 0;
+    totalDoctorCommissions += s.doctorCommission || 0;
+
+    const t = new Date(s.createdAt).getTime();
+    if (t >= todayStart && t <= todayEnd) {
+      todayRevenue += s.paidAmount || 0;
+    }
+  });
+
+  const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const netProfit = totalPaid - (totalExpenses + totalDoctorCommissions);
+
+  return {
+    totalRevenue: totalGrossRevenue,
+    totalPaid,
+    totalExpenses,
+    totalDoctorCommissions,
+    netProfit,
+    todayRevenue,
+    totalDiscounts,
+    totalRemainingDebts,
+    recentExpenses: expenses.slice(0, 8),
+    expensesList: expenses,
+    autoRevenues: {
+      samplePaidTotal: totalPaid,
+      debtPaymentsTotal: 0,
+      totalRevenues: totalPaid,
+      sampleRemainingDebts: totalRemainingDebts,
+    },
+    outgoings: {
+      operationalExpenses: totalExpenses,
+      doctorCommissions: totalDoctorCommissions,
+      inventoryStockCost: 0,
+      totalTestCosts: 0,
+      totalOutgoings: totalExpenses + totalDoctorCommissions,
+    },
+  };
+}
+
+export function getTestProfitability(timeframe?: string) {
+  const store = getStore();
+  const samples = store.samples || [];
+  const catalogTests = store.tests || [];
+
+  const now = new Date();
+  let startTime: number | null = null;
+
+  if (timeframe === 'today') {
+    startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+  } else if (timeframe === 'week') {
+    startTime = now.getTime() - 7 * 86400000;
+  } else if (timeframe === 'month') {
+    startTime = now.getTime() - 30 * 86400000;
+  }
+
+  const testMap: Record<string, { count: number; totalRevenue: number; totalCost: number }> = {};
+
+  samples.forEach((s) => {
+    const sTime = new Date(s.createdAt).getTime();
+    if (startTime && sTime < startTime) return;
+
+    (s.tests || []).forEach((st) => {
+      const tid = st.testId || st.test?.id;
+      if (!tid) return;
+      if (!testMap[tid]) {
+        testMap[tid] = { count: 0, totalRevenue: 0, totalCost: 0 };
+      }
+      const unitPrice = st.test?.price || 0;
+      const unitCost = st.test?.costEstimate || (unitPrice * 0.25);
+      testMap[tid].count += 1;
+      testMap[tid].totalRevenue += unitPrice;
+      testMap[tid].totalCost += unitCost;
+    });
+  });
+
+  const breakdown = catalogTests.map((ct) => {
+    const stats = testMap[ct.id] || { count: 0, totalRevenue: 0, totalCost: 0 };
+    const unitPrice = ct.price || 0;
+    const unitCost = ct.costEstimate || Math.round(unitPrice * 0.25);
+    const unitProfit = unitPrice - unitCost;
+    const profitMargin = unitPrice > 0 ? Math.round((unitProfit / unitPrice) * 100) : 0;
+    const totalProfit = stats.totalRevenue - stats.totalCost;
+
+    return {
+      testId: ct.id,
+      testName: ct.name,
+      name: ct.name,
+      category: ct.category || 'عام',
+      price: unitPrice,
+      unitPrice,
+      costEstimate: unitCost,
+      unitCost,
+      unitProfit,
+      profitMargin,
+      count: stats.count,
+      totalRevenue: stats.totalRevenue,
+      totalCost: stats.totalCost,
+      netProfit: totalProfit,
+      totalProfit,
+    };
+  });
+
+  breakdown.sort((a, b) => b.count - a.count);
+  return breakdown;
+}
+
