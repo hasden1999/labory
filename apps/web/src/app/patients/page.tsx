@@ -7,6 +7,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
+import { useLab } from '../../components/LabContext';
+import { getShareableUrl } from '../../lib/urlHelper';
 import ConfirmModal from '../../components/ConfirmModal';
 import { Patient, Sample, SampleTest } from '../../types';
 import { Users, Search, Plus, User, Phone, Calendar, Clock, Activity, Printer, Share2, FileText, CreditCard, Trash2, Edit3, CheckCircle2, AlertCircle, ExternalLink, ChevronLeft, X, UserPlus, ArrowUpRight, Sparkles, FlaskConical, DollarSign, AlertOctagon, AlertTriangle, Check } from 'lucide-react';
@@ -15,6 +17,7 @@ function PatientsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
+  const { labProfile } = useLab();
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,9 +162,10 @@ function PatientsContent() {
     const formattedPhone = cleanPhone.startsWith('0') ? `964${cleanPhone.slice(1)}` : cleanPhone;
     setWhatsappPhone(formattedPhone);
 
-    const reportUrl = `${window.location.origin}/api/samples/${sample.id}/print`;
+    const reportUrl = getShareableUrl(`/api/samples/${sample.id}/print`, labProfile);
+    const currentLabName = labProfile?.labName || 'المختبر للتحليلات الطبية';
     setWhatsappText(
-      `مرحباً ${patientDetails?.name}،\nيسر مختبر الرضا للتحليلات الطبية إعلامكم بصدور نتائج فحصكم رقم (#${sample.sampleNumber}).\nيمكنكم الاطلاع على التقرير المعتمد وتحميله مباشرة من الرابط:\n${reportUrl}\n\nنتمنى لكم دوام الصحة والعافية.`
+      `مرحباً ${patientDetails?.name || ''}،\nيسر ${currentLabName} إعلامكم بصدور نتائج فحصكم رقم (#${sample.sampleNumber}).\nيمكنكم الاطلاع على التقرير المعتمد وتحميله مباشرة من الرابط:\n${reportUrl}\n\nنتمنى لكم دوام الصحة والعافية.`
     );
     setShowWhatsAppModal(true);
   };

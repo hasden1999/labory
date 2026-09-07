@@ -27,20 +27,24 @@ export interface LabProfile {
   accreditationBadge?: string;
   logoPath?: string;
   isConfigured: boolean;
+  serverBaseUrl?: string;
+  detectedLanIp?: string;
+  detectedPort?: number;
+  detectedLanUrl?: string;
 }
 
 const DEFAULT_LAB_PROFILE: LabProfile = {
-  labName: 'مختبر الرضا للتحليلات الطبية التخصصية',
-  labSubtitle: 'فحوصات مرضية وتطبيقية دقيقة - تشخيص إلكتروني متكامل',
-  doctorName: 'د. أحمد الرضا',
-  doctorTitle: 'استشاري التحليلات المرضية والمناعة السريرية',
-  labLicense: 'MOH-IQ-2026-8842',
-  whatsappNumber: '07701234567',
+  labName: '',
+  labSubtitle: '',
+  doctorName: '',
+  doctorTitle: 'استشاري التحليلات المرضية والمخبرية',
+  labLicense: '',
+  whatsappNumber: '',
   currency: 'د.ع',
-  address: 'بغداد - شارع الأطباء - مقابل المجمع الطبي الرئيسي',
-  phone: '07701234567 / 07801234567',
-  reportHeader: 'مختبر الرضا للتحليلات الطبية التخصصية',
-  reportFooter: 'هذا التقرير تم إخراجه وتدقيقه إلكترونياً، ويعتبر معتمداً رسمياً دون الحاجة لتوقيع يدوي.',
+  address: '',
+  phone: '',
+  reportHeader: '',
+  reportFooter: 'هذا التقرير تم إخراجه وتدقيقه إلكترونياً، ويعتبر معتمداً رسمياً ومطابقاً لمواصفات الجودة المخبرية.',
   reportTemplate: 'CLASSIC',
   headerMode: 'DIGITAL',
   topMarginMm: 15,
@@ -52,6 +56,7 @@ const DEFAULT_LAB_PROFILE: LabProfile = {
   qrCodePosition: 'HEADER',
   accreditationBadge: 'ISO 15189 Certified Lab',
   isConfigured: false,
+  serverBaseUrl: '',
 };
 
 interface LabContextType {
@@ -77,12 +82,13 @@ export function LabProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // 1. Check local storage first
+    let localConfigured = false;
     try {
       const savedProfile = localStorage.getItem('lab_profile_settings');
-
       if (savedProfile) {
         const parsed = JSON.parse(savedProfile);
-        setLabProfile({ ...DEFAULT_LAB_PROFILE, ...parsed, isConfigured: true });
+        localConfigured = parsed.isConfigured || localStorage.getItem('lab_setup_completed') === 'true';
+        setLabProfile({ ...DEFAULT_LAB_PROFILE, ...parsed, isConfigured: localConfigured });
       }
     } catch (e) {
       console.warn('Could not read lab profile from localStorage:', e);
@@ -91,7 +97,9 @@ export function LabProvider({ children }: { children: React.ReactNode }) {
     // 2. Sync from backend settings API
     apiRequest('/settings')
       .then((remote) => {
-        if (remote && remote.labName) {
+        if (remote) {
+          const isConfig = remote.isConfigured ?? (localConfigured || !!remote.labName);
+          
           setLabProfile((prev) => {
             const merged: LabProfile = {
               ...prev,
@@ -107,9 +115,28 @@ export function LabProvider({ children }: { children: React.ReactNode }) {
               reportHeader: remote.reportHeader || prev.reportHeader,
               reportFooter: remote.reportFooter || prev.reportFooter,
               reportTemplate: (remote.reportTemplate || prev.reportTemplate || 'CLASSIC') as any,
+              headerMode: remote.headerMode || prev.headerMode,
+              topMarginMm: remote.topMarginMm ?? prev.topMarginMm,
+              bottomMarginMm: remote.bottomMarginMm ?? prev.bottomMarginMm,
+              leftMarginMm: remote.leftMarginMm ?? prev.leftMarginMm,
+              rightMarginMm: remote.rightMarginMm ?? prev.rightMarginMm,
+              primaryColor: remote.primaryColor || prev.primaryColor,
+              enableQrCode: remote.enableQrCode ?? prev.enableQrCode,
+              qrCodePosition: remote.qrCodePosition || prev.qrCodePosition,
+              accreditationBadge: remote.accreditationBadge || prev.accreditationBadge,
+              isConfigured: isConfig,
+              serverBaseUrl: remote.serverBaseUrl !== undefined ? remote.serverBaseUrl : prev.serverBaseUrl,
+              detectedLanIp: remote.detectedLanIp,
+              detectedPort: remote.detectedPort,
+              detectedLanUrl: remote.detectedLanUrl,
             };
             return merged;
           });
+
+          // Auto open Onboarding Setup Wizard if not yet configured!
+          if (!isConfig) {
+            setShowSetupModal(true);
+          }
         }
       })
       .catch(() => {})
@@ -117,6 +144,7 @@ export function LabProvider({ children }: { children: React.ReactNode }) {
         setIsInitialized(true);
       });
   }, []);
+
 
   const updateLabProfile = async (newFields: Partial<LabProfile>, syncRemote = true) => {
     const updated: LabProfile = {

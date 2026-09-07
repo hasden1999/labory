@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getStore, clampMargin } from '../../../../../lib/serverStore';
+import { getStore, clampMargin, getLocalIpAddress } from '../../../../../lib/serverStore';
 
 function escapeHtml(str: any): string {
   if (str === null || str === undefined) return '';
@@ -69,7 +69,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const qrEnabled = settings.enableQrCode !== false;
   const qrPosition = settings.qrCodePosition || 'HEADER';
 
-  const verifyUrl = `http://localhost:3000/verify/${sample.id}`;
+  const rawBase = settings.serverBaseUrl?.trim();
+  const baseDomain = rawBase || `http://${getLocalIpAddress()}:8080`;
+  const cleanBase = baseDomain.replace(/\/+$/, '');
+  const verifyUrl = `${cleanBase}/verify/${sample.id}`;
   const qrSvg = generateQrSvg(verifyUrl, 64);
 
   // Tests Categorization

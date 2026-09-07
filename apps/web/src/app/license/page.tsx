@@ -76,7 +76,7 @@ export default function LicensePage() {
   };
 
   const whatsappMessage = encodeURIComponent(
-    `مرحباً، أود تفعيل ترخيص برنامج مختبر الرضا الطبي (LIMS).\nكود بصمة جهازي هو:\n${licenseInfo?.hardwareId || ''}\nنوع الباقة المطلوبة: (شهري / سنوي / مدى الحياة)`
+    `مرحباً، أود تفعيل ترخيص برنامج إدارة المختبرات الطبية (Labryo LIMS).\nكود بصمة جهازي هو:\n${licenseInfo?.hardwareId || ''}\nنوع الباقة المطلوبة: (شهري / سنوي / مدى الحياة)`
   );
 
   return (

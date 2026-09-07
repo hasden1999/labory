@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server';
-import { getStore, updateSettings } from '../../../lib/serverStore';
+import { getStore, updateSettings, getLocalIpAddress } from '../../../lib/serverStore';
 
 export async function GET() {
   const store = getStore();
-  return NextResponse.json(store.settings);
+  const localIp = getLocalIpAddress();
+  const port = 8080;
+  const detectedLanUrl = `http://${localIp}:${port}`;
+
+  return NextResponse.json({
+    ...store.settings,
+    detectedLanIp: localIp,
+    detectedPort: port,
+    detectedLanUrl,
+    activeBaseUrl: store.settings.serverBaseUrl?.trim() || detectedLanUrl,
+  });
 }
 
 export async function POST(request: Request) {

@@ -7,7 +7,7 @@ import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useLab } from '../../components/LabContext';
-import { Settings as SettingsIcon, Save, Sparkles, Printer, CheckCircle2, Award, Phone, DollarSign, Building2, Layout, FileText, Maximize2, QrCode, Sliders, Palette, Eye, ShieldCheck, Check, TestTube, Zap } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Sparkles, Printer, CheckCircle2, Award, Phone, DollarSign, Building2, Layout, FileText, Maximize2, QrCode, Sliders, Palette, Eye, ShieldCheck, Check, TestTube, Zap, Database, Download, Upload, RefreshCw, HardDrive, AlertCircle, History, Share2, ExternalLink, Plus } from 'lucide-react';
 
 export default function SettingsPage() {
   const toast = useToast();
@@ -41,9 +41,20 @@ export default function SettingsPage() {
   const [enableQrCode, setEnableQrCode] = useState<boolean>(labProfile.enableQrCode ?? true);
   const [qrCodePosition, setQrCodePosition] = useState<'HEADER' | 'FOOTER'>(labProfile.qrCodePosition || 'HEADER');
   const [accreditationBadge, setAccreditationBadge] = useState<string>(labProfile.accreditationBadge || 'ISO 15189 Certified Lab');
+  const [serverBaseUrl, setServerBaseUrl] = useState<string>(labProfile.serverBaseUrl || '');
 
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'IDENTITY' | 'DESIGNER' | 'MARGINS'>('DESIGNER');
+  const [activeTab, setActiveTab] = useState<'IDENTITY' | 'DESIGNER' | 'MARGINS' | 'BACKUP' | 'NETWORK'>('DESIGNER');
+
+  // Backup & Restore States
+  const [backupSnapshots, setBackupSnapshots] = useState<any[]>([]);
+  const [loadingBackups, setLoadingBackups] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [selectedFileContent, setSelectedFileContent] = useState<string | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string>('');
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [restoreSummary, setRestoreSummary] = useState<{ patients: number; samples: number; labName: string } | null>(null);
+
 
   useEffect(() => {
     if (labProfile) {
@@ -68,6 +79,7 @@ export default function SettingsPage() {
       setEnableQrCode(labProfile.enableQrCode ?? true);
       setQrCodePosition(labProfile.qrCodePosition || 'HEADER');
       setAccreditationBadge(labProfile.accreditationBadge || 'ISO 15189 Certified Lab');
+      setServerBaseUrl(labProfile.serverBaseUrl || '');
     }
   }, [labProfile]);
 
@@ -98,6 +110,7 @@ export default function SettingsPage() {
         enableQrCode,
         qrCodePosition,
         accreditationBadge,
+        serverBaseUrl: serverBaseUrl.trim(),
       };
 
       await updateLabProfile(payload as any);
@@ -106,6 +119,81 @@ export default function SettingsPage() {
       toast.error(err.message || 'خطأ في حفظ الإعدادات', 'خطأ');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Backup & Restore Handlers
+  const loadBackups = async () => {
+    setLoadingBackups(true);
+    try {
+      const res = await apiRequest('/backup/list');
+      setBackupSnapshots(res || []);
+    } catch (err) {
+      console.warn('Failed to load backup snapshots', err);
+    } finally {
+      setLoadingBackups(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'BACKUP') {
+      loadBackups();
+    }
+  }, [activeTab]);
+
+  const handleExportBackup = () => {
+    window.open('/api/backup/export', '_blank');
+    toast.success('جاري تنزيل ملف النسخة الاحتياطية الكاملة...', 'تصدير البيانات');
+  };
+
+  const handleCreateSnapshot = async () => {
+    try {
+      const res = await apiRequest('/backup/snapshot', 'POST', { label: 'manual' });
+      toast.success(res.message || 'تم إنشاء نقطة استرجاع احتياطية بنجاح!', 'تم الحفظ');
+      loadBackups();
+    } catch (err: any) {
+      toast.error(err.message || 'فشل إنشاء نقطة الاسترجاع', 'خطأ');
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        setSelectedFileContent(content);
+        const parsed = JSON.parse(content);
+        setRestoreSummary({
+          patients: parsed.patients?.length || 0,
+          samples: parsed.samples?.length || 0,
+          labName: parsed.settings?.labName || 'غير محدد',
+        });
+        setShowRestoreModal(true);
+      } catch {
+        toast.error('ملف النسخة الاحتياطية غير صالح (ليس ملف JSON سليم)', 'ملف تالف');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleConfirmRestore = async () => {
+    if (!selectedFileContent) return;
+    setRestoring(true);
+    try {
+      const res = await apiRequest('/backup/restore', 'POST', selectedFileContent);
+      toast.success(res.message || 'تم استعادة النسخة الاحتياطية بنجاح!', 'تمت الاستعادة');
+      setShowRestoreModal(false);
+      setTimeout(() => {
+        window.location.reload();
+      }, 800);
+    } catch (err: any) {
+      toast.error(err.message || 'فشل استرجاع النسخة الاحتياطية', 'خطأ');
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -242,6 +330,48 @@ export default function SettingsPage() {
         >
           <Building2 size={14} />
           <span>🏛️ هوية المختبر والتراخيص</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('BACKUP')}
+          style={{
+            padding: '8px 16px',
+            borderRadius: '6px',
+            fontSize: '12.5px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            border: 'none',
+            background: activeTab === 'BACKUP' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
+            color: activeTab === 'BACKUP' ? 'var(--accent-cyan)' : 'var(--text-muted)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          <Database size={14} />
+          <span>💾 النسخ الاحتياطي واستعادة البيانات</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('NETWORK')}
+          style={{
+            padding: '8px 16px',
+            borderRadius: '6px',
+            fontSize: '12.5px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            border: 'none',
+            background: activeTab === 'NETWORK' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
+            color: activeTab === 'NETWORK' ? 'var(--accent-cyan)' : 'var(--text-muted)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          <Share2 size={14} />
+          <span>🌐 الربط الشبكي وبوابة المرضى (Network & Web)</span>
         </button>
       </div>
 
@@ -634,6 +764,220 @@ export default function SettingsPage() {
             </div>
           )}
 
+          {/* TAB 4: BACKUP & RESTORE */}
+          {activeTab === 'BACKUP' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }} dir="rtl">
+              {/* Quick Actions Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                
+                {/* Export Card */}
+                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-cyan)', fontWeight: 800, fontSize: '14px', marginBottom: '8px' }}>
+                      <Download size={18} />
+                      <span>تصدير نسخة احتياطية فورية (Export)</span>
+                    </div>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '14px' }}>
+                      تنزيل ملف كامل بنقرة واحدة يحتوي على كافة بيانات المرضى، الفحوصات، العينات، الحسابات المالية، وقوالب وهوية المختبر لحفظها بأمان على فلاش ميموري (USB) أو قرص خارجي.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleExportBackup}
+                    className="btn-primary"
+                    style={{ padding: '10px 18px', fontSize: '13px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  >
+                    <Download size={16} />
+                    <span>تحميل ملف النسخة الاحتياطية (.json)</span>
+                  </button>
+                </div>
+
+                {/* Restore Card */}
+                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontWeight: 800, fontSize: '14px', marginBottom: '8px' }}>
+                      <Upload size={18} />
+                      <span>استرجاع نسخة احتياطية (Restore)</span>
+                    </div>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '14px' }}>
+                      استعادة قاعدة بيانات المختبر من ملف نسخة احتياطية سابق (.json). يقوم النظام تلقائياً بأخذ لقطة أمان وقائية قبل الاسترجاع لضمان عدم ضياع أي بيانات.
+                    </p>
+                  </div>
+
+                  <label
+                    className="btn-secondary"
+                    style={{
+                      padding: '10px 18px',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      background: 'rgba(16, 185, 129, 0.1)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      color: '#10b981',
+                    }}
+                  >
+                    <Upload size={16} />
+                    <span>اختيار ملف واسترجاع البيانات</span>
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleFileSelect}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Automatic Rolling Snapshots Section */}
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <HardDrive size={18} color="var(--accent-teal)" />
+                    <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      النسخ الاحتياطية التلقائية المخزنة محلياً (Auto-Snapshots):
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={handleCreateSnapshot}
+                      className="btn-secondary"
+                      style={{ padding: '6px 12px', fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <Plus size={13} />
+                      <span>أخذ نقطة استرجاع الآن</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={loadBackups}
+                      className="btn-secondary"
+                      style={{ padding: '6px 10px', fontSize: '11.5px' }}
+                      title="تحديث القائمة"
+                    >
+                      <RefreshCw size={13} className={loadingBackups ? 'animate-spin' : ''} />
+                    </button>
+                  </div>
+                </div>
+
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                  يقوم محرك النظام بحفظ لقطات يومية تلقائية مع الكتابة الذرية الآمنة لمنع التلف عند انقطاع الكهرباء، ويحتفظ بآخر 30 لقطة في مجلد الأمان الداخلي.
+                </p>
+
+                {loadingBackups ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12.5px' }}>
+                    جاري فحص النسخ الاحتياطية...
+                  </div>
+                ) : backupSnapshots.length === 0 ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12.5px', background: 'var(--bg-surface)', borderRadius: '8px' }}>
+                    لا توجد لقطات محفوظة حالياً. يمكنك الضغط على "أخذ نقطة استرجاع الآن" لإنشاء أول نسخة.
+                  </div>
+                ) : (
+                  <div style={{ maxHeight: '240px', overflowY: 'auto', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>
+                          <th style={{ padding: '10px 12px' }}>اسم ملف النسخة</th>
+                          <th style={{ padding: '10px 12px' }}>تاريخ الإنشاء</th>
+                          <th style={{ padding: '10px 12px' }}>حجم الملف</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {backupSnapshots.map((b, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td style={{ padding: '8px 12px', fontFamily: 'monospace', direction: 'ltr', textAlign: 'right' }}>
+                              {b.fileName}
+                            </td>
+                            <td style={{ padding: '8px 12px', color: 'var(--text-muted)' }}>
+                              {new Date(b.createdAt).toLocaleString('ar-IQ')}
+                            </td>
+                            <td style={{ padding: '8px 12px', color: 'var(--accent-cyan)', fontWeight: 700 }}>
+                              {(b.sizeBytes / 1024).toFixed(1)} KB
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: NETWORK & PATIENT PORTAL */}
+          {activeTab === 'NETWORK' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }} dir="rtl">
+              
+              {/* Local Network Info Card */}
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-cyan)', fontWeight: 800, fontSize: '15px', marginBottom: '8px' }}>
+                  <Share2 size={20} />
+                  <span>الربط عبر الشبكة المحلية (Local Wi-Fi & LAN)</span>
+                </div>
+                <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '16px' }}>
+                  يمكنك فتح النظام واستعراض التقارير وإدخال النتائج من أي جهاز كمبيوتر، هاتف ذكي، أو جهاز لوحي (تابلت) متصل بنفس شبكة الراوتر أو الواي فاي الخاصة بالمختبر دون الحاجة إلى تثبيت أي برامج على ذلك الجهاز.
+                </p>
+
+                <div style={{ background: 'rgba(6, 182, 212, 0.08)', border: '1px solid rgba(6, 182, 212, 0.25)', borderRadius: '10px', padding: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                  <div>
+                    <span style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'block' }}>عنوان الآي بي المحلي المكتشف للجهاز الحالي (LAN IP):</span>
+                    <strong style={{ fontSize: '16px', fontFamily: 'monospace', color: 'var(--accent-cyan)', direction: 'ltr', display: 'inline-block' }}>
+                      {labProfile.detectedLanUrl || 'http://192.168.0.122:8080'}
+                    </strong>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const url = labProfile.detectedLanUrl || 'http://192.168.0.122:8080';
+                      navigator.clipboard.writeText(url);
+                      toast.success('تم نسخ رابط الشبكة المحلية بنجاح!', 'تم النسخ');
+                    }}
+                    className="btn-cyan-primary"
+                    style={{ padding: '6px 14px', fontSize: '12px' }}
+                  >
+                    <span>نسخ رابط الشبكة المحلية 📋</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Public Portal / Domain Card */}
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-emerald)', fontWeight: 800, fontSize: '15px', marginBottom: '8px' }}>
+                  <ExternalLink size={20} />
+                  <span>رابط البوابة العامة / النطاق المخصص للمرضى (Public Portal / Tunnel)</span>
+                </div>
+                <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '14px' }}>
+                  إذا كنت ترغب بتمكين المرضى من فتح تقاريرهم من منازلهم عبر شبكة الإنترنت الخارجية (باقة الهاتف 4G/5G)، يمكنك ربط خادمك بنطاق مخصص أو نفق إنترنت (مثل Cloudflare Tunnel أو No-IP أو دومين المختبر) وكتابته هنا. سيتم اعتماده تلقائياً في كافة رسائل الواتساب وأكواد الـ QR.
+                </p>
+
+                <div>
+                  <label className="input-label" style={{ fontWeight: 700, marginBottom: '6px', display: 'block' }}>
+                    رابط الخادم العام / دومين المختبر (Server Base URL):
+                  </label>
+                  <input
+                    type="text"
+                    className="input-control"
+                    placeholder="مثال: https://results.mylab.com أو http://192.168.0.122:8080"
+                    value={serverBaseUrl}
+                    onChange={(e) => setServerBaseUrl(e.target.value)}
+                    style={{ fontFamily: 'monospace', direction: 'ltr', textAlign: 'left', width: '100%', padding: '9px 12px' }}
+                  />
+                  <span style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px', display: 'block' }}>
+                    * اتركه فارغاً إذا كنت تريد اعتماد عنوان الآي بي المحلي التلقائي.
+                  </span>
+                </div>
+              </div>
+
+            </div>
+          )}
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '18px', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
             <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
               جميع التغييرات تُطبق فوراً على محرك الطباعة وشاشات النتائج
@@ -838,8 +1182,57 @@ export default function SettingsPage() {
 
           </div>
         </div>
-
       </div>
+
+      {/* Restore Confirmation Modal */}
+      {showRestoreModal && (
+        <div className="modal-overlay" style={{ zIndex: 99999 }}>
+          <div className="modal-content" dir="rtl" style={{ maxWidth: '480px', padding: '24px', textAlign: 'center', borderRadius: '16px' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'rgba(245, 158, 11, 0.15)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b', marginBottom: '14px' }}>
+              <AlertCircle size={32} />
+            </div>
+            <h3 style={{ fontSize: '17px', fontWeight: 900, marginBottom: '8px', color: 'var(--text-main)' }}>
+              تأكيد استرجاع النسخة الاحتياطية
+            </h3>
+            <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '16px' }}>
+              أنت على وشك استرجاع البيانات من الملف: <strong style={{ color: 'var(--accent-cyan)' }}>{selectedFileName}</strong>
+            </p>
+
+            {restoreSummary && (
+              <div style={{ background: 'var(--bg-surface)', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-color)', marginBottom: '18px', textAlign: 'right', fontSize: '12px' }}>
+                <div style={{ marginBottom: '4px' }}>اسم المختبر: <strong>{restoreSummary.labName}</strong></div>
+                <div style={{ marginBottom: '4px' }}>عدد المرضى: <strong style={{ color: 'var(--accent-cyan)' }}>{restoreSummary.patients}</strong></div>
+                <div>عدد العينات والفحوصات: <strong style={{ color: 'var(--accent-emerald)' }}>{restoreSummary.samples}</strong></div>
+              </div>
+            )}
+
+            <div style={{ fontSize: '11px', color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '8px', borderRadius: '6px', marginBottom: '18px' }}>
+              🛡️ سيقوم النظام تلقائياً بأخذ نقطة أمان وقائية للبيانات الحالية قبل الاسترجاع.
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setShowRestoreModal(false)}
+                disabled={restoring}
+                className="btn-secondary"
+                style={{ padding: '8px 20px', fontSize: '13px' }}
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRestore}
+                disabled={restoring}
+                className="btn-primary"
+                style={{ padding: '8px 24px', fontSize: '13px', fontWeight: 800, background: '#10b981' }}
+              >
+                {restoring ? 'جاري الاسترجاع...' : 'تأكيد واسترجاع البيانات'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

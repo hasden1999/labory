@@ -1,9 +1,42 @@
 import { INITIAL_TESTS_CATALOG, INITIAL_PANELS, INITIAL_DOCTORS } from './catalogData';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
 const DATA_DIR = path.resolve(process.cwd().includes('apps') ? process.cwd() : path.join(process.cwd(), 'apps', 'web'), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'lab_store.json');
+
+export function getLocalIpAddress(): string {
+  try {
+    const interfaces = os.networkInterfaces();
+    const fallbackIps: string[] = [];
+
+    for (const name of Object.keys(interfaces)) {
+      const lowerName = name.toLowerCase();
+      const isVirtual = lowerName.includes('vethernet') || lowerName.includes('virtual') || lowerName.includes('wsl');
+
+      for (const iface of interfaces[name] || []) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          if (!isVirtual && (iface.address.startsWith('192.168.') || iface.address.startsWith('10.') || iface.address.startsWith('172.16.'))) {
+            return iface.address;
+          }
+          if (!isVirtual) {
+            fallbackIps.unshift(iface.address);
+          } else {
+            fallbackIps.push(iface.address);
+          }
+        }
+      }
+    }
+
+    if (fallbackIps.length > 0) {
+      return fallbackIps[0];
+    }
+  } catch (e) {
+    console.warn('[ServerStore] Error detecting local IP:', e);
+  }
+  return '127.0.0.1';
+}
 
 export interface LabSettings {
   labName: string;
@@ -30,6 +63,18 @@ export interface LabSettings {
   enableQrCode: boolean;
   qrCodePosition?: 'HEADER' | 'FOOTER';
   defaultDiscountPercent?: number;
+  isConfigured?: boolean;
+  serverBaseUrl?: string; // Optional custom public URL or specific LAN address
+}
+
+export interface LicenseStore {
+  isActivated: boolean;
+  hardwareId: string;
+  licenseKey?: string;
+  tier?: 'TRIAL' | 'MONTHLY' | 'YEARLY' | 'LIFETIME';
+  expiryDate?: string;
+  activatedAt?: string;
+  labName?: string;
 }
 
 export interface PatientRecord {
@@ -43,6 +88,7 @@ export interface PatientRecord {
   createdAt: string;
   updatedAt?: string;
 }
+
 
 export interface DoctorRecord {
   id: string;
@@ -108,6 +154,7 @@ export interface ServerStore {
   samples: SampleRecord[];
   expenses: ExpenseRecord[];
   settings: LabSettings;
+  license?: LicenseStore;
 }
 
 declare global {
@@ -271,17 +318,17 @@ function initStore(): ServerStore {
       },
     ],
     settings: {
-      labName: 'مختبر الرضا للتحليلات الطبية التخصصية',
+      labName: '',
       labSubtitle: 'فحوصات مرضية وتطبيقية دقيقة - تشخيص إلكتروني متكامل ومعتمد',
-      doctorName: 'د. أحمد الرضا',
+      doctorName: '',
       doctorTitle: 'استشاري التحليلات المرضية والمناعة السريرية',
-      doctorLicense: 'MOH-IQ-2026-8842',
-      labLicense: 'MOH-IQ-2026-8842',
-      whatsappNumber: '07701234567',
+      doctorLicense: '',
+      labLicense: '',
+      whatsappNumber: '',
       currency: 'د.ع',
-      address: 'بغداد - شارع الأطباء - مقابل المجمع الطبي المركزي',
-      phone: '07701234567 / 07801234567',
-      reportHeader: 'مختبر الرضا للتحليلات الطبية التخصصية',
+      address: '',
+      phone: '',
+      reportHeader: '',
       reportFooter: 'هذا التقرير تم إخراجه وتدقيقه إلكترونياً، ويعتبر معتمداً رسمياً ومطابقاً لمواصفات الجودة المخبرية الدولية (ISO 15189).',
       headerMode: 'DIGITAL',
       reportTemplate: 'CLASSIC',
@@ -294,39 +341,147 @@ function initStore(): ServerStore {
       enableQrCode: true,
       qrCodePosition: 'FOOTER',
       defaultDiscountPercent: 0,
-    }
+      isConfigured: false,
+      serverBaseUrl: '',
+    },
+    license: undefined,
   };
 }
 
+const BACKUP_DIR = path.join(DATA_DIR, 'backups');
+
+// Atomic write to prevent file corruption on sudden power outages
 export function saveStoreToFile(): void {
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
+    if (!fs.existsSync(BACKUP_DIR)) {
+      fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    }
+
     if (global.__labStore) {
       const payload = JSON.stringify(global.__labStore, null, 2);
-      fs.writeFileSync(DATA_FILE, payload, 'utf-8');
+      const tempFile = `${DATA_FILE}.tmp`;
+      const bakFile = `${DATA_FILE}.bak`;
+
+      // 1. Write to temporary file first
+      fs.writeFileSync(tempFile, payload, 'utf-8');
+
+      // 2. Keep previous working copy as .bak
+      if (fs.existsSync(DATA_FILE)) {
+        try {
+          fs.copyFileSync(DATA_FILE, bakFile);
+        } catch {}
+      }
+
+      // 3. Atomically replace data file
+      fs.renameSync(tempFile, DATA_FILE);
+
+      // 4. Auto Daily Snapshot Rotation (keep max 30 snapshots)
+      rotateDailySnapshot(payload);
     }
   } catch (err) {
-    console.error('Failed to save store to file:', err);
+    console.error('[ServerStore] Failed to save store to file:', err);
   }
 }
 
-export function loadStoreFromFile(): ServerStore | null {
+// Helper: automatic daily snapshot rotation
+function rotateDailySnapshot(payload: string) {
   try {
-    if (fs.existsSync(DATA_FILE)) {
-      const content = fs.readFileSync(DATA_FILE, 'utf-8');
-      const parsed = JSON.parse(content);
-      if (parsed && Array.isArray(parsed.patients) && Array.isArray(parsed.samples)) {
-        if (!Array.isArray(parsed.expenses)) {
-          parsed.expenses = [];
-        }
-        return parsed;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todaySnapshot = path.join(BACKUP_DIR, `auto_snapshot_${todayStr}.json`);
+
+    if (!fs.existsSync(todaySnapshot)) {
+      fs.writeFileSync(todaySnapshot, payload, 'utf-8');
+      console.log(`[ServerStore] Daily auto-snapshot created: ${todaySnapshot}`);
+
+      // Prune snapshots if count > 30
+      const files = fs.readdirSync(BACKUP_DIR)
+        .filter(f => f.endsWith('.json'))
+        .map(f => ({
+          name: f,
+          path: path.join(BACKUP_DIR, f),
+          time: fs.statSync(path.join(BACKUP_DIR, f)).mtime.getTime(),
+        }))
+        .sort((a, b) => b.time - a.time);
+
+      if (files.length > 30) {
+        files.slice(30).forEach(f => {
+          try { fs.unlinkSync(f.path); } catch {}
+        });
       }
     }
-  } catch (err) {
-    console.error('Failed to load store from file:', err);
+  } catch (e) {
+    console.warn('[ServerStore] Snapshot rotation warning:', e);
   }
+}
+
+// Multi-layered recovery: Primary -> .bak -> Backups folder -> Never wipe data
+export function loadStoreFromFile(): ServerStore | null {
+  // Step 1: Try reading primary DATA_FILE
+  if (fs.existsSync(DATA_FILE)) {
+    try {
+      const content = fs.readFileSync(DATA_FILE, 'utf-8');
+      if (content && content.trim().length > 0) {
+        const parsed = JSON.parse(content);
+        if (parsed && Array.isArray(parsed.patients) && Array.isArray(parsed.samples)) {
+          if (!Array.isArray(parsed.expenses)) parsed.expenses = [];
+          return parsed;
+        }
+      }
+    } catch (err: any) {
+      console.error('[ServerStore] Primary DATA_FILE corrupted! Initiating emergency recovery...', err?.message);
+      try {
+        const corruptArchive = path.join(DATA_DIR, `lab_store_corrupt_${Date.now()}.json`);
+        fs.copyFileSync(DATA_FILE, corruptArchive);
+        console.log(`[ServerStore] Corrupted file preserved at: ${corruptArchive}`);
+      } catch {}
+    }
+  }
+
+  // Step 2: Emergency fallback to .bak file
+  const bakFile = `${DATA_FILE}.bak`;
+  if (fs.existsSync(bakFile)) {
+    try {
+      console.warn('[ServerStore] Attempting restore from .bak file...');
+      const bakContent = fs.readFileSync(bakFile, 'utf-8');
+      const parsed = JSON.parse(bakContent);
+      if (parsed && Array.isArray(parsed.patients) && Array.isArray(parsed.samples)) {
+        if (!Array.isArray(parsed.expenses)) parsed.expenses = [];
+        fs.writeFileSync(DATA_FILE, bakContent, 'utf-8');
+        console.log('[ServerStore] Successfully recovered database from .bak!');
+        return parsed;
+      }
+    } catch (e) {}
+  }
+
+  // Step 3: Emergency fallback to latest snapshot in backups/
+  if (fs.existsSync(BACKUP_DIR)) {
+    try {
+      const snapshots = fs.readdirSync(BACKUP_DIR)
+        .filter(f => f.endsWith('.json'))
+        .map(f => ({
+          path: path.join(BACKUP_DIR, f),
+          time: fs.statSync(path.join(BACKUP_DIR, f)).mtime.getTime(),
+        }))
+        .sort((a, b) => b.time - a.time);
+
+      for (const snap of snapshots) {
+        try {
+          const snapContent = fs.readFileSync(snap.path, 'utf-8');
+          const parsed = JSON.parse(snapContent);
+          if (parsed && Array.isArray(parsed.patients) && Array.isArray(parsed.samples)) {
+            if (!Array.isArray(parsed.expenses)) parsed.expenses = [];
+            fs.writeFileSync(DATA_FILE, snapContent, 'utf-8');
+            console.log(`[ServerStore] Successfully recovered database from snapshot: ${snap.path}`);
+            return parsed;
+          }
+        } catch {}
+      }
+    } catch (e) {}
+  }
+
   return null;
 }
 
@@ -345,6 +500,91 @@ export function getStore(): ServerStore {
   }
   return global.__labStore;
 }
+
+// -------------------------------------------------------------
+// Backup & Restore Engine
+// -------------------------------------------------------------
+
+export function createBackupSnapshot(label?: string): string {
+  if (!fs.existsSync(BACKUP_DIR)) {
+    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+  }
+  const store = getStore();
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const cleanLabel = label ? `_${label.replace(/[^a-zA-Z0-9_-]/g, '')}` : '';
+  const fileName = `manual_backup_${timestamp}${cleanLabel}.json`;
+  const destPath = path.join(BACKUP_DIR, fileName);
+
+  const payload = JSON.stringify(store, null, 2);
+  fs.writeFileSync(destPath, payload, 'utf-8');
+  return fileName;
+}
+
+export function listBackupSnapshots() {
+  if (!fs.existsSync(BACKUP_DIR)) {
+    return [];
+  }
+  return fs.readdirSync(BACKUP_DIR)
+    .filter(f => f.endsWith('.json'))
+    .map(f => {
+      const fullPath = path.join(BACKUP_DIR, f);
+      const stat = fs.statSync(fullPath);
+      return {
+        fileName: f,
+        sizeBytes: stat.size,
+        createdAt: stat.mtime.toISOString(),
+      };
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+export function restoreBackupFromFile(jsonContent: string): { success: boolean; message: string } {
+  try {
+    const parsed = JSON.parse(jsonContent);
+    if (!parsed || !Array.isArray(parsed.patients) || !Array.isArray(parsed.samples) || !parsed.settings) {
+      return { success: false, message: 'ملف النسخة الاحتياطية غير صالح أو بنيته غير مطابقة للنظام' };
+    }
+
+    // Safety snapshot of current state before overwrite
+    createBackupSnapshot('pre_restore_safety');
+
+    // Apply restored store
+    global.__labStore = parsed;
+    saveStoreToFile();
+
+    return {
+      success: true,
+      message: `تم استعادة النسخة الاحتياطية بنجاح! تم استرجاع (${parsed.patients.length}) مريض و(${parsed.samples.length}) عينة فحص.`,
+    };
+  } catch (err: any) {
+    return { success: false, message: 'فشل استرجاع النسخة الاحتياطية: ' + (err?.message || 'خطأ غير معروف') };
+  }
+}
+
+// -------------------------------------------------------------
+// License Store Helpers
+// -------------------------------------------------------------
+
+export function getLicenseStore(): LicenseStore | null {
+  const store = getStore();
+  return store.license || null;
+}
+
+export function updateLicenseStore(lic: Partial<LicenseStore>): LicenseStore {
+  const store = getStore();
+  const current = store.license || {
+    isActivated: false,
+    hardwareId: '',
+  };
+  const updated: LicenseStore = {
+    ...current,
+    ...lic,
+  };
+  store.license = updated;
+  saveStoreToFile();
+  return updated;
+}
+
 
 // -------------------------------------------------------------
 // Patients CRUD Helpers
@@ -404,18 +644,32 @@ export function deletePatient(id: string): boolean {
   return true;
 }
 
+export function normalizeArabic(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/[أإآء]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/[\u064B-\u065F]/g, '') // remove Arabic diacritics / tashkeel
+    .toLowerCase()
+    .trim();
+}
+
 export function searchPatients(q: string) {
   const store = getStore();
   const query = q.trim().toLowerCase();
+  const normQ = normalizeArabic(q);
 
   const matched = !query
     ? store.patients.slice(0, 15)
     : store.patients.filter(p => {
-        const nameMatch = p.name?.toLowerCase().includes(query);
-        const phoneMatch = p.phone && p.phone.includes(query);
+        const normName = normalizeArabic(p.name || '');
+        const nameMatch = normName.includes(normQ) || (p.name && p.name.toLowerCase().includes(query));
+        const phoneMatch = p.phone && p.phone.replace(/[^0-9]/g, '').includes(query.replace(/[^0-9]/g, ''));
         const idMatch = p.id?.toLowerCase().includes(query);
         return nameMatch || phoneMatch || idMatch;
       });
+
 
   return matched.map(p => {
     // Find all samples for this patient

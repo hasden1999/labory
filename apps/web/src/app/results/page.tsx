@@ -10,6 +10,7 @@ import { useSearchParams } from 'next/navigation';
 import { FileText, Search, Printer, Save, AlertTriangle, Check, User, Clock, CheckCircle2, Share2, History, Calculator, FlaskConical, X, Eye, Cpu, TestTube, Plus, MoreHorizontal, ChevronDown, Microscope, Bug, Activity, Zap, Sparkles, MessageCircle, AlertOctagon, CircleAlert, Barcode, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useLab } from '../../components/LabContext';
+import { getShareableUrl } from '../../lib/urlHelper';
 import nextDynamic from 'next/dynamic';
 import type { UrineAnalysisData } from '../../components/UrineFormModal';
 import { compareSampleWithHistory, DeltaCheckResult } from '../../lib/deltaCheck';
@@ -542,8 +543,7 @@ function ResultsContent() {
     }
     const cleanPhone = patientPhone.replace(/[^0-9]/g, '');
     const fullPhone = cleanPhone.startsWith('0') ? '964' + cleanPhone.substring(1) : cleanPhone.startsWith('964') ? cleanPhone : '964' + cleanPhone;
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080';
-    const verifyUrl = `${origin}/verify/${selectedSample.id}`;
+    const verifyUrl = getShareableUrl(`/verify/${selectedSample.id}`, labProfile);
     const rawMessage = `مرحباً ${selectedSample.patient?.name}، تقرير التحليلات الطبية الخاص بك جاهز في ${labProfile?.labName || 'المختبر'}. رقم العينة: #${selectedSample.sampleNumber}. يمكنك الاطلاع على التقرير وتدقيقه عبر الرابط: ${verifyUrl}`;
     const whatsappLink = `https://wa.me/${fullPhone}?text=${encodeURIComponent(rawMessage)}`;
     window.open(whatsappLink, '_blank');

@@ -7,6 +7,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
+import { useLab } from '../../components/LabContext';
+import { getShareableUrl } from '../../lib/urlHelper';
 import ConfirmModal from '../../components/ConfirmModal';
 import { Activity, Search, Plus, FileText, Printer, Share2, CheckCircle2, Clock, FlaskConical, AlertCircle, X, ChevronLeft, Send, RefreshCw, Eye, Calendar, Filter, User, History, Check, AlertOctagon, Zap } from 'lucide-react';
 
@@ -14,6 +16,7 @@ function SamplesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
+  const { labProfile } = useLab();
 
   const [samples, setSamples] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,9 +84,10 @@ function SamplesContent() {
     const formattedPhone = cleanPhone.startsWith('0') ? `964${cleanPhone.slice(1)}` : cleanPhone;
     setWhatsappPhone(formattedPhone);
 
-    const reportUrl = `${window.location.origin}/api/samples/${sample.id}/print`;
+    const reportUrl = getShareableUrl(`/api/samples/${sample.id}/print`, labProfile);
+    const currentLabName = labProfile?.labName || 'المختبر للتحليلات الطبية';
     setWhatsappText(
-      `مرحباً ${sample.patient?.name}،\nيسر مختبر الرضا للتحليلات الطبية إعلامكم بصدور نتائج فحصكم رقم (#${sample.sampleNumber}).\nيمكنكم الاطلاع على التقرير المعتمد وتحميله مباشرة من الرابط:\n${reportUrl}\n\nنتمنى لكم دوام الصحة والعافية.`
+      `مرحباً ${sample.patient?.name || ''}،\nيسر ${currentLabName} إعلامكم بصدور نتائج فحصكم رقم (#${sample.sampleNumber}).\nيمكنكم الاطلاع على التقرير المعتمد وتحميله مباشرة من الرابط:\n${reportUrl}\n\nنتمنى لكم دوام الصحة والعافية.`
     );
     setShowWhatsAppModal(true);
   };
@@ -364,10 +368,18 @@ function SamplesContent() {
                     <span style={{ fontSize: '11.5px', color: 'var(--text-dim)' }}>
                       {dateFilter === 'TODAY' ? 'اضغط على زر "تسجيل عينة جديدة (F2)" للبدء في استقبال المرضى' : 'يمكنك التبديل إلى عينات اليوم أو الأرشيف الشامل'}
                     </span>
-                    <button onClick={() => router.push('/')} className="btn-primary" style={{ marginTop: '8px' }}>
-                      <Plus size={13} />
-                      <span>تسجيل عينة أولى اليوم</span>
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                      <button onClick={() => router.push('/')} className="btn-primary">
+                        <Plus size={13} />
+                        <span>تسجيل عينة أولى اليوم</span>
+                      </button>
+                      {dateFilter === 'TODAY' && (
+                        <button onClick={() => setDateFilter('ALL')} className="btn-secondary" style={{ fontSize: '11.5px' }}>
+                          <History size={13} />
+                          <span>عرض الأرشيف الشامل (كل العينات السابقة)</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </td>
               </tr>

@@ -97,7 +97,7 @@ function getLoadingHtml() {
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>نظام مختبر الرضا الطبي</title>
+  <title>نظام إدارة المختبرات الطبية والتشخيص الذكي - Labryo LIMS</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {

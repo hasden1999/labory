@@ -7,12 +7,15 @@ import { useRouter } from 'next/navigation';
 import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
+import { useLab } from '../../components/LabContext';
+import { getShareableUrl } from '../../lib/urlHelper';
 import { LayoutDashboard, Plus, FileText, FlaskConical, Users, Search, Printer, Share2, Clock, AlertCircle, CheckCircle2, TrendingUp, DollarSign, CreditCard, Receipt, ChevronLeft, Activity, Flame, RefreshCw, Eye, Send, X, UserPlus, FileSearch, Check, AlertOctagon, AlertTriangle } from 'lucide-react';
 import { DashboardData, DashboardSummary, Sample } from '../../types';
 
 export default function DashboardPage() {
   const router = useRouter();
   const toast = useToast();
+  const { labProfile } = useLab();
   
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [recentSamples, setRecentSamples] = useState<Sample[]>([]);
@@ -56,9 +59,10 @@ export default function DashboardPage() {
     const formattedPhone = cleanPhone.startsWith('0') ? `964${cleanPhone.slice(1)}` : cleanPhone;
     setWhatsappPhone(formattedPhone);
 
-    const reportUrl = `${window.location.origin}/api/samples/${sample.id}/print`;
+    const reportUrl = getShareableUrl(`/api/samples/${sample.id}/print`, labProfile);
+    const currentLabName = labProfile?.labName || 'المختبر للتحليلات الطبية';
     setWhatsappText(
-      `مرحباً ${sample.patient?.name}،\nيسر مختبر الرضا للتحليلات الطبية إعلامكم بصدور نتائج فحصكم رقم (#${sample.sampleNumber}).\nيمكنكم الاطلاع على التقرير المعتمد وتحميله مباشرة من الرابط:\n${reportUrl}\n\nنتمنى لكم دوام الصحة والعافية.`
+      `مرحباً ${sample.patient?.name || ''}،\nيسر ${currentLabName} إعلامكم بصدور نتائج فحصكم رقم (#${sample.sampleNumber}).\nيمكنكم الاطلاع على التقرير المعتمد وتحميله مباشرة من الرابط:\n${reportUrl}\n\nنتمنى لكم دوام الصحة والعافية.`
     );
     setShowWhatsAppModal(true);
   };

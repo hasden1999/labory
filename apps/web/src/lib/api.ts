@@ -1,15 +1,16 @@
 import { INITIAL_TESTS_CATALOG, INITIAL_PANELS, INITIAL_DOCTORS } from './catalogData';
 
 const DEFAULT_SETTINGS = {
-  labName: 'مختبر الرضا للتحليلات الطبية التخصصية',
+  labName: '',
   labSubtitle: 'فحوصات مرضية وتطبيقية دقيقة - تشخيص إلكتروني متكامل',
-  doctorName: 'د. أحمد الرضا',
-  doctorTitle: 'استشاري التحليلات المرضية والمناعة السريرية',
-  labLicense: 'MOH-IQ-2026-8842',
+  doctorName: '',
+  doctorTitle: 'استشاري التحليلات المرضية والمخبرية',
+  labLicense: '',
   currency: 'د.ع',
-  address: 'بغداد - شارع الأطباء - مقابل المجمع الطبي المركزي',
-  phone: '07701234567 / 07801234567',
-  whatsappNumber: '07701234567',
+  address: '',
+  phone: '',
+  whatsappNumber: '',
+  isConfigured: false,
 };
 
 function handleClientFallback(endpoint: string) {

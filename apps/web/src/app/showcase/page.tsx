@@ -40,8 +40,8 @@ export default function ShowcasePage() {
             <FlaskConical size={24} />
           </div>
           <div>
-            <h1 style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '-0.3px', margin: 0 }}>مختبر الرضا التخصصي</h1>
-            <span style={{ fontSize: '11px', color: '#06b6d4', fontWeight: 700 }}>نظام إدارة المختبرات الطبية والتحاليل المرضية (LIMS)</span>
+            <h1 style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '-0.3px', margin: 0 }}>نظام لابريو الطبي (Labryo LIMS)</h1>
+            <span style={{ fontSize: '11px', color: '#06b6d4', fontWeight: 700 }}>نظام إدارة المختبرات الطبية والتحاليل المرضية المتكامل</span>
           </div>
         </div>
 
@@ -248,7 +248,7 @@ export default function ShowcasePage() {
 
       {/* Footer */}
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.08)', padding: '24px', textAlign: 'center', fontSize: '12.5px', color: '#64748b' }}>
-        جميع الحقوق محفوظة © {new Date().getFullYear()} - نظام مختبر الرضا للتحليلات الطبية (LIMS)
+        جميع الحقوق محفوظة © {new Date().getFullYear()} - نظام إدارة المختبرات الطبية والتشخيص الذكي (Labryo LIMS)
       </footer>
 
     </div>

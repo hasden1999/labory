@@ -1924,7 +1924,8 @@
     "accreditationBadge": "ISO 15189 CERTIFIED",
     "enableQrCode": true,
     "qrCodePosition": "FOOTER",
-    "defaultDiscountPercent": 0
+    "defaultDiscountPercent": 0,
+    "isConfigured": false
   },
   "expenses": []
 }
