@@ -8,4 +8,5 @@ contextBridge.exposeInMainWorld('electronDesktop', {
   printDocument: (url, printOptions) => ipcRenderer.invoke('print-document', { url, printOptions }),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   openExternal: (url) => ipcRenderer.send('open-external', url),
+  exitApp: () => ipcRenderer.send('app-exit'),
 });

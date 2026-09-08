@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn, execSync } = require('child_process');
@@ -13,6 +13,9 @@ if (!gotTheLock) {
 
 let mainWindow = null;
 let backendProcess = null;
+let tray = null;
+let isQuitting = false;
+let hasShownTrayNotice = false;
 const WEB_PORT = 8080;
 
 // Resolve project root reliably across dev and packaged modes
@@ -398,21 +401,21 @@ async function startAndLoadApp(targetWindow) {
 
   let ready = false;
   let attempts = 0;
-  const maxAttempts = 90; // 90 * 500ms = 45 seconds buffer
+  const maxAttempts = 180; // 180 * 200ms = 36 seconds buffer
 
   while (attempts < maxAttempts) {
     ready = await isServerReady(WEB_PORT);
     if (ready) break;
 
-    if (attempts === 4) {
+    if (attempts === 5) {
       updateLoadingStatus(targetWindow, 'جاري تشغيل محرك النظام وقاعدة البيانات المحلية...');
-    } else if (attempts === 14) {
+    } else if (attempts === 20) {
       updateLoadingStatus(targetWindow, 'جاري تهيئة خدمات المختبر والتحقق من الجاهزية...');
-    } else if (attempts === 28) {
-      updateLoadingStatus(targetWindow, 'جاري إتمام إقلاع النظام، يرجى الانتظار بضع ثوانٍ...');
+    } else if (attempts === 45) {
+      updateLoadingStatus(targetWindow, 'جاري إتمام إقلاع النظام، يرجى الانتظار ثوانٍ معدودة...');
     }
 
-    await new Promise((r) => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 200));
     attempts++;
   }
 
@@ -425,7 +428,133 @@ async function startAndLoadApp(targetWindow) {
   }
 }
 
+// Resolve tray icon reliably
+function getTrayIcon() {
+  const projectRoot = findProjectRoot();
+  const candidates = [
+    path.join(__dirname, 'assets', 'tray-icon.png'),
+    path.join(__dirname, 'assets', 'icon.png'),
+    path.join(projectRoot, 'apps', 'desktop', 'assets', 'tray-icon.png'),
+    path.join(projectRoot, 'apps', 'desktop', 'assets', 'icon.png'),
+    path.join(projectRoot, 'apps', 'web', 'public', 'logo.png'),
+  ];
+
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      try {
+        const img = nativeImage.createFromPath(p);
+        if (!img.isEmpty()) {
+          return img.resize({ width: 16, height: 16 });
+        }
+      } catch (e) {}
+    }
+  }
+  return nativeImage.createEmpty();
+}
+
+// Show or restore main window instantly (0.01s)
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createMainWindow();
+    return;
+  }
+  if (!mainWindow.isVisible()) {
+    mainWindow.show();
+  }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  mainWindow.focus();
+}
+
+// Initialize system tray with Arabic controls
+function createTray() {
+  if (tray) return;
+
+  try {
+    const icon = getTrayIcon();
+    tray = new Tray(icon);
+    tray.setToolTip('Labryo LIMS - نظام إدارة المختبرات الطبية والتشخيص الذكي');
+
+    const updateContextMenu = () => {
+      let autoLaunch = false;
+      try {
+        autoLaunch = app.getLoginItemSettings().openAtLogin;
+      } catch (e) {}
+
+      const contextMenu = Menu.buildFromTemplate([
+        {
+          label: 'نظام لابريو الطبي (قيد العمل في الخلفية)',
+          enabled: false,
+        },
+        { type: 'separator' },
+        {
+          label: '⚡ فتح واجهة النظام (إظهار فوري)',
+          click: () => showMainWindow(),
+        },
+        {
+          label: '🌐 فتح في المتصفح (للأجهزة المتصلة بالشبكة)',
+          click: () => shell.openExternal(`http://localhost:${WEB_PORT}`),
+        },
+        { type: 'separator' },
+        {
+          label: '🚀 التشغيل التلقائي مع بدء الويندوز',
+          type: 'checkbox',
+          checked: autoLaunch,
+          click: (menuItem) => {
+            try {
+              app.setLoginItemSettings({
+                openAtLogin: menuItem.checked,
+                openAsHidden: true,
+              });
+            } catch (err) {
+              console.error('[Desktop] Failed to update login settings:', err);
+            }
+          },
+        },
+        {
+          label: '🔄 إعادة تشغيل محرك النظام',
+          click: async () => {
+            killBackendProcess();
+            await ensureServerStarted();
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              startAndLoadApp(mainWindow);
+            }
+          },
+        },
+        { type: 'separator' },
+        {
+          label: '❌ خروج نهائي وإيقاف الخدمات (Exit)',
+          click: () => {
+            isQuitting = true;
+            killBackendProcess();
+            app.quit();
+          },
+        },
+      ]);
+
+      tray.setContextMenu(contextMenu);
+    };
+
+    updateContextMenu();
+
+    tray.on('click', () => {
+      showMainWindow();
+    });
+
+    tray.on('double-click', () => {
+      showMainWindow();
+    });
+  } catch (err) {
+    console.error('[Desktop] Failed to create system tray:', err);
+  }
+}
+
 function createMainWindow() {
+  const projectRoot = findProjectRoot();
+  const winIconPath = path.join(projectRoot, 'apps', 'desktop', 'assets', 'icon.png');
+  const winIcon = fs.existsSync(winIconPath) ? winIconPath : undefined;
+
   mainWindow = new BrowserWindow({
     width: 1360,
     height: 860,
@@ -435,6 +564,7 @@ function createMainWindow() {
     backgroundColor: '#090d16',
     autoHideMenuBar: true,
     show: false,
+    icon: winIcon,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -456,6 +586,24 @@ function createMainWindow() {
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
+  });
+
+  // Intercept window close: hide to system tray instead of exiting
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+
+      if (!hasShownTrayNotice && tray) {
+        try {
+          tray.displayBalloon({
+            title: 'نظام لابريو الطبي (Labryo LIMS)',
+            content: 'النظام مستمر في العمل في الخلفية لخدمة الأجهزة والمحطات المتصلة. انقر على أيقونة البرنامج لفتحه فوراً.',
+          });
+          hasShownTrayNotice = true;
+        } catch (e) {}
+      }
+    }
   });
 
   mainWindow.on('closed', () => {
@@ -480,6 +628,12 @@ ipcMain.on('window-maximize', () => {
 
 ipcMain.on('window-close', () => {
   if (mainWindow) mainWindow.close();
+});
+
+ipcMain.on('app-exit', () => {
+  isQuitting = true;
+  killBackendProcess();
+  app.quit();
 });
 
 ipcMain.on('open-external', (event, url) => {
@@ -519,26 +673,28 @@ ipcMain.handle('print-document', async (event, { url, printOptions }) => {
 
 // App Lifecycle
 app.whenReady().then(() => {
+  createTray();
   createMainWindow();
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createMainWindow();
-    }
+    showMainWindow();
   });
 });
 
 app.on('second-instance', () => {
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.focus();
-  }
+  showMainWindow();
 });
 
-app.on('before-quit', killBackendProcess);
-app.on('window-all-closed', () => {
+app.on('before-quit', () => {
+  isQuitting = true;
   killBackendProcess();
-  if (process.platform !== 'darwin') {
-    app.quit();
+});
+
+app.on('window-all-closed', () => {
+  if (isQuitting) {
+    killBackendProcess();
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
   }
 });
