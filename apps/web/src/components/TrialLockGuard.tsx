@@ -22,6 +22,7 @@ export default function TrialLockGuard({ children }: { children: React.ReactNode
   const pathname = usePathname();
   const toast = useToast();
 
+  const [isDesktop, setIsDesktop] = useState(false);
   const [licenseStatus, setLicenseStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activationKey, setActivationKey] = useState('');
@@ -45,6 +46,20 @@ export default function TrialLockGuard({ children }: { children: React.ReactNode
   };
 
   useEffect(() => {
+    // 1. Detect if running inside Electron Desktop App
+    const desktopDetected = typeof window !== 'undefined' && (
+      !!(window as any).electronDesktop?.isDesktop ||
+      /electron/i.test(navigator.userAgent || '')
+    );
+    setIsDesktop(desktopDetected);
+
+    // 2. If NOT desktop app (running via web browser link, mobile, patient portal, etc.), skip license check completely!
+    if (!desktopDetected) {
+      setLoading(false);
+      return;
+    }
+
+    // 3. For desktop app only, check license status
     checkLicense();
   }, [pathname]);
 
@@ -92,6 +107,12 @@ export default function TrialLockGuard({ children }: { children: React.ReactNode
       setActivating(false);
     }
   };
+
+  // If NOT running in Electron desktop app, or if it's a public verification route -> NEVER lock!
+  const isPublicRoute = pathname?.startsWith('/verify') || pathname?.startsWith('/showcase');
+  if (!isDesktop || isPublicRoute) {
+    return <>{children}</>;
+  }
 
   const isLocked = !loading && licenseStatus && (!licenseStatus.isLicensed || licenseStatus.isExpired || licenseStatus.isClockTampered);
 

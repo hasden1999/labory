@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { useLab } from './LabContext';
 import { useToast } from './Toast';
 import { Building2, Sparkles, CheckCircle2, Layout, Phone, MapPin, UserCheck, Printer, ShieldCheck, FileText, X, ArrowLeft, TestTube, Zap } from 'lucide-react';
@@ -34,7 +35,8 @@ export default function LabOnboardingModal() {
     }
   }, [labProfile, showSetupModal]);
 
-  if (!showSetupModal) return null;
+  const pathname = usePathname();
+  if (!showSetupModal || pathname?.startsWith('/verify')) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
