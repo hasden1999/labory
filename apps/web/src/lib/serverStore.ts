@@ -1,4 +1,6 @@
 import { INITIAL_TESTS_CATALOG, INITIAL_PANELS, INITIAL_DOCTORS } from './catalogData';
+import { DEVICE_PRESETS, DevicePreset } from './devicePresets';
+import { parseDeviceMessage, ParsedAnalyzerMessage, ParsedItem } from './deviceEngine';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -65,6 +67,28 @@ export interface LabSettings {
   defaultDiscountPercent?: number;
   isConfigured?: boolean;
   serverBaseUrl?: string; // Optional custom public URL or specific LAN address
+
+  // Sheet Elements & Watermark Customization
+  showLabName?: boolean;
+  labNameFontSize?: number;
+  labNameColor?: string;
+  labNameAlignment?: 'RIGHT' | 'CENTER' | 'LEFT';
+  labNameStyle?: 'DEFAULT' | 'BOLD' | 'MODERN_BADGE' | 'ELEGANT_BORDER';
+  showLabSubtitle?: boolean;
+  showContactInfo?: boolean;
+  showDoctorInfo?: boolean;
+  showPatientBox?: boolean;
+  showReportBorder?: boolean;
+  showFooter?: boolean;
+  showFooterSignature?: boolean;
+  enableWatermark?: boolean;
+  watermarkType?: 'TEXT' | 'IMAGE';
+  watermarkText?: string;
+  watermarkImage?: string;
+  watermarkOpacity?: number;
+  watermarkAngle?: number;
+  watermarkSize?: number;
+  watermarkColor?: string;
 }
 
 export interface LicenseStore {
@@ -146,6 +170,76 @@ export interface ExpenseRecord {
   staff?: { name: string };
 }
 
+export interface DeviceMappingRecord {
+  id: string;
+  deviceId: string;
+  deviceTestCode: string;
+  deviceTestName: string;
+  testCatalogId: string;
+  testCatalogCode?: string;
+  testCatalogName?: string;
+  unit?: string;
+  multiplier?: number;
+  createdAt: string;
+}
+
+export interface DeviceRecord {
+  id: string;
+  name: string;
+  brand: string;
+  model: string;
+  category: 'CBC' | 'CHEMISTRY' | 'IMMUNOLOGY' | 'URINE' | 'ELECTROLYTES' | 'OTHER';
+  connectionType: 'TCP_IP' | 'SERIAL_PORT' | 'FILE_WATCHER';
+  protocol: 'ASTM_1394' | 'HL7_V2' | 'CSV_DELIMITED' | 'CUSTOM_TEXT';
+  ipAddress?: string | null;
+  port?: number | null;
+  comPort?: string | null;
+  baudRate?: number | null;
+  dataBits?: number | null;
+  stopBits?: number | null;
+  parity?: string | null;
+  apiKey: string;
+  status: 'ONLINE' | 'OFFLINE' | 'BUSY' | 'ERROR';
+  autoMatchSample: boolean;
+  notes?: string;
+  lastCommunication?: string;
+  mappings: DeviceMappingRecord[];
+  createdAt: string;
+}
+
+export interface IncomingResultRecord {
+  id: string;
+  deviceId: string;
+  deviceName: string;
+  protocol: string;
+  sampleBarcode?: string;
+  sampleNumber?: number;
+  patientName?: string;
+  testCode: string;
+  testName?: string;
+  value: string;
+  unit?: string;
+  flags?: string;
+  isAbnormal: boolean;
+  status: 'APPLIED' | 'PENDING' | 'REJECTED' | 'UNMATCHED';
+  matchedSampleId?: string;
+  matchedSampleNumber?: number;
+  matchedTestCatalogId?: string;
+  appliedAt?: string;
+  createdAt: string;
+}
+
+export interface DeviceRawLogRecord {
+  id: string;
+  deviceId: string;
+  direction: 'INBOUND' | 'OUTBOUND';
+  protocol: string;
+  rawPayload: string;
+  summary: string;
+  parsedCount: number;
+  createdAt: string;
+}
+
 export interface ServerStore {
   tests: any[];
   panels: any[];
@@ -155,6 +249,141 @@ export interface ServerStore {
   expenses: ExpenseRecord[];
   settings: LabSettings;
   license?: LicenseStore;
+  devices?: DeviceRecord[];
+  deviceMappings?: DeviceMappingRecord[];
+  incomingResults?: IncomingResultRecord[];
+  deviceRawLogs?: DeviceRawLogRecord[];
+}
+
+export function getInitialDevices(): DeviceRecord[] {
+  const now = new Date().toISOString();
+  
+  // 1. Mindray BC-5000 (CBC)
+  const mindrayPreset = DEVICE_PRESETS.find(p => p.id === 'mindray_bc5000');
+  const mindrayMappings: DeviceMappingRecord[] = (mindrayPreset?.defaultMappings || []).map((m, idx) => ({
+    id: `map-bc5000-${idx + 1}`,
+    deviceId: 'dev-mindray-bc5000',
+    deviceTestCode: m.deviceTestCode,
+    deviceTestName: m.deviceTestName,
+    testCatalogId: m.testCatalogCode === 'HB' ? 't-hb' : (m.testCatalogCode === 'PLT' ? 't-plt' : 't-cbc'),
+    testCatalogCode: m.testCatalogCode,
+    testCatalogName: m.testCatalogName,
+    unit: m.unit,
+    multiplier: 1.0,
+    createdAt: now,
+  }));
+
+  const devMindray: DeviceRecord = {
+    id: 'dev-mindray-bc5000',
+    name: 'Mindray BC-5000 (5-Part CBC)',
+    brand: 'Mindray',
+    model: 'BC-5000 Auto Hematology',
+    category: 'CBC',
+    connectionType: 'TCP_IP',
+    protocol: 'HL7_V2',
+    ipAddress: '192.168.1.150',
+    port: 5100,
+    apiKey: 'dev_mindray_bc5000_live',
+    status: 'ONLINE',
+    autoMatchSample: true,
+    notes: 'موصول عبر كابل شبكة LAN مخصص - بروتوكول HL7 v2.3.1 السريع مع تفريق خماسي كريات الدم',
+    lastCommunication: now,
+    mappings: mindrayMappings,
+    createdAt: now,
+  };
+
+  // 2. Roche Cobas c311 (Chemistry)
+  const cobasPreset = DEVICE_PRESETS.find(p => p.id === 'roche_cobas_c111');
+  const cobasMappings: DeviceMappingRecord[] = (cobasPreset?.defaultMappings || []).map((m, idx) => {
+    let catId = 't-fbs';
+    if (m.deviceTestCode.includes('UREA')) catId = 't-urea';
+    else if (m.deviceTestCode.includes('CRE')) catId = 't-creat';
+    else if (m.deviceTestCode.includes('ALT')) catId = 't-gpt';
+    else if (m.deviceTestCode.includes('AST')) catId = 't-got';
+    else if (m.deviceTestCode.includes('CHOL')) catId = 't-chol';
+    else if (m.deviceTestCode.includes('TRIG')) catId = 't-tg';
+    else if (m.deviceTestCode.includes('ALB')) catId = 't-alb';
+
+    return {
+      id: `map-cobas-${idx + 1}`,
+      deviceId: 'dev-roche-cobas-c311',
+      deviceTestCode: m.deviceTestCode,
+      deviceTestName: m.deviceTestName,
+      testCatalogId: catId,
+      testCatalogCode: m.testCatalogCode,
+      testCatalogName: m.testCatalogName,
+      unit: m.unit,
+      multiplier: 1.0,
+      createdAt: now,
+    };
+  });
+
+  const devCobas: DeviceRecord = {
+    id: 'dev-roche-cobas-c311',
+    name: 'Roche Cobas c311 (Clinical Chemistry)',
+    brand: 'Roche Diagnostics',
+    model: 'Cobas c311 Auto Analyzer',
+    category: 'CHEMISTRY',
+    connectionType: 'SERIAL_PORT',
+    protocol: 'ASTM_1394',
+    comPort: 'COM1',
+    baudRate: 9600,
+    dataBits: 8,
+    stopBits: 1,
+    parity: 'none',
+    apiKey: 'dev_roche_cobas311_live',
+    status: 'ONLINE',
+    autoMatchSample: true,
+    notes: 'موصول عبر كابل سيريال تسلسلي RS-232 COM1 - بروتوكول ASTM E1381/E1394 القياسي لكيمياء الدم',
+    lastCommunication: now,
+    mappings: cobasMappings,
+    createdAt: now,
+  };
+
+  // 3. Biolyte 2000 (Electrolytes)
+  const bioPreset = DEVICE_PRESETS.find(p => p.id === 'biolyte_2000');
+  const bioMappings: DeviceMappingRecord[] = (bioPreset?.defaultMappings || []).map((m, idx) => {
+    let catId = 't-na';
+    if (m.deviceTestCode === 'K') catId = 't-k';
+    else if (m.deviceTestCode === 'Cl') catId = 't-cl';
+
+    return {
+      id: `map-biolyte-${idx + 1}`,
+      deviceId: 'dev-biolyte-2000',
+      deviceTestCode: m.deviceTestCode,
+      deviceTestName: m.deviceTestName,
+      testCatalogId: catId,
+      testCatalogCode: m.testCatalogCode,
+      testCatalogName: m.testCatalogName,
+      unit: m.unit,
+      multiplier: 1.0,
+      createdAt: now,
+    };
+  });
+
+  const devBiolyte: DeviceRecord = {
+    id: 'dev-biolyte-2000',
+    name: 'Biolyte 2000 (Electrolytes ISE)',
+    brand: 'Biolyte',
+    model: 'Biolyte 2000 ISE Analyzer',
+    category: 'ELECTROLYTES',
+    connectionType: 'SERIAL_PORT',
+    protocol: 'ASTM_1394',
+    comPort: 'COM2',
+    baudRate: 9600,
+    dataBits: 8,
+    stopBits: 1,
+    parity: 'none',
+    apiKey: 'dev_biolyte_2000_live',
+    status: 'ONLINE',
+    autoMatchSample: true,
+    notes: 'محلل شوارد وأملاح الدم الإلكترولايتية (الصوديوم، البوتاسيوم، والكلورايد) عبر COM2',
+    lastCommunication: now,
+    mappings: bioMappings,
+    createdAt: now,
+  };
+
+  return [devMindray, devCobas, devBiolyte];
 }
 
 declare global {
@@ -343,8 +572,30 @@ function initStore(): ServerStore {
       defaultDiscountPercent: 0,
       isConfigured: false,
       serverBaseUrl: '',
+      showLabName: true,
+      labNameFontSize: 22,
+      labNameColor: '#0284c7',
+      labNameAlignment: 'RIGHT',
+      labNameStyle: 'DEFAULT',
+      showLabSubtitle: true,
+      showContactInfo: true,
+      showDoctorInfo: true,
+      showPatientBox: true,
+      showReportBorder: true,
+      showFooter: true,
+      showFooterSignature: true,
+      enableWatermark: false,
+      watermarkType: 'TEXT',
+      watermarkText: '',
+      watermarkOpacity: 0.08,
+      watermarkAngle: -30,
+      watermarkSize: 46,
+      watermarkColor: '#0f172a',
     },
     license: undefined,
+    devices: getInitialDevices(),
+    incomingResults: [],
+    deviceRawLogs: [],
   };
 }
 
@@ -489,6 +740,11 @@ export function getStore(): ServerStore {
   if (!global.__labStore) {
     const fromFile = loadStoreFromFile();
     if (fromFile) {
+      if (fromFile.settings) {
+        if (fromFile.settings.labName && fromFile.settings.labName.trim().length > 0) {
+          fromFile.settings.isConfigured = true;
+        }
+      }
       global.__labStore = fromFile;
     } else {
       global.__labStore = initStore();
@@ -497,6 +753,15 @@ export function getStore(): ServerStore {
   }
   if (!Array.isArray(global.__labStore.expenses)) {
     global.__labStore.expenses = [];
+  }
+  if (!Array.isArray(global.__labStore.devices) || global.__labStore.devices.length === 0) {
+    global.__labStore.devices = getInitialDevices();
+  }
+  if (!Array.isArray(global.__labStore.incomingResults)) {
+    global.__labStore.incomingResults = [];
+  }
+  if (!Array.isArray(global.__labStore.deviceRawLogs)) {
+    global.__labStore.deviceRawLogs = [];
   }
   return global.__labStore;
 }
@@ -657,21 +922,57 @@ export function normalizeArabic(text: string): string {
 
 export function searchPatients(q: string) {
   const store = getStore();
-  const query = q.trim().toLowerCase();
-  const normQ = normalizeArabic(q);
+  const query = (q || '').trim().toLowerCase();
+  const normQ = normalizeArabic(query);
 
-  const matched = !query
-    ? store.patients.slice(0, 15)
-    : store.patients.filter(p => {
-        const normName = normalizeArabic(p.name || '');
-        const nameMatch = normName.includes(normQ) || (p.name && p.name.toLowerCase().includes(query));
-        const phoneMatch = p.phone && p.phone.replace(/[^0-9]/g, '').includes(query.replace(/[^0-9]/g, ''));
-        const idMatch = p.id?.toLowerCase().includes(query);
-        return nameMatch || phoneMatch || idMatch;
-      });
+  // If query is empty or less than 2 chars, NEVER return all patients; return empty array
+  if (!query || query.length < 2) {
+    return [];
+  }
 
+  const queryDigits = query.replace(/[^0-9]/g, '');
 
-  return matched.map(p => {
+  const matched = store.patients.filter(p => {
+    const normName = normalizeArabic(p.name || '');
+    const rawName = (p.name || '').toLowerCase();
+
+    // Match name (either normalized Arabic or raw text)
+    const nameMatch = normName.includes(normQ) || rawName.includes(query);
+
+    // Match phone only if the query has at least 3 digits
+    const phoneDigits = (p.phone || '').replace(/[^0-9]/g, '');
+    const phoneMatch = queryDigits.length >= 3 && phoneDigits.includes(queryDigits);
+
+    // ID match ONLY if user typed 'pat-' or explicit exact ID
+    const idMatch = query.startsWith('pat-') && (p.id?.toLowerCase().includes(query) || false);
+
+    return nameMatch || phoneMatch || idMatch;
+  });
+
+  // Sort strictly by relevance:
+  // 1. Name starts with query
+  // 2. Sub-words start with query
+  // 3. Alphabetical
+  matched.sort((a, b) => {
+    const normA = normalizeArabic(a.name || '');
+    const normB = normalizeArabic(b.name || '');
+    const aStarts = normA.startsWith(normQ);
+    const bStarts = normB.startsWith(normQ);
+    if (aStarts && !bStarts) return -1;
+    if (!aStarts && bStarts) return 1;
+
+    const aWord = normA.split(/\s+/).some(w => w.startsWith(normQ));
+    const bWord = normB.split(/\s+/).some(w => w.startsWith(normQ));
+    if (aWord && !bWord) return -1;
+    if (!aWord && bWord) return 1;
+
+    return normA.localeCompare(normB);
+  });
+
+  // Limit suggestions to max 7 most relevant patients
+  const topMatches = matched.slice(0, 7);
+
+  return topMatches.map(p => {
     // Find all samples for this patient
     const patientSamples = store.samples
       .filter(s => s.patientId === p.id)
@@ -803,10 +1104,55 @@ export function findSample(idOrNumber: string): SampleRecord | undefined {
 export function addSample(data: any): SampleRecord {
   const store = getStore();
 
+  const candidateName = (data.patientName || data.name || '').trim();
+  const normCandidateName = normalizeArabic(candidateName);
+  const testIds: string[] = data.testIds || (data.tests ? data.tests.map((t: any) => t.id || t.testId) : []);
+  const sortedTestIds = [...testIds].sort().join(',');
+
+  // Duplicate Prevention Check (Protection Window: 3 minutes = 180,000 ms)
+  if (!data.forceDuplicate) {
+    const now = Date.now();
+    const duplicate = store.samples.find(s => {
+      const createdTime = new Date(s.createdAt).getTime();
+      const diffMs = now - createdTime;
+      if (isNaN(diffMs) || diffMs > 180000) return false;
+
+      // Same patient check: either patientId matches or normalized name matches
+      const samePatientId = data.patientId && s.patientId === data.patientId;
+      const samePatientName = normCandidateName && normalizeArabic(s.patient?.name || '') === normCandidateName;
+      if (!samePatientId && !samePatientName) return false;
+
+      // Same tests check
+      const sTestIds = (s.tests || []).map(t => t.testId).sort().join(',');
+      return sTestIds === sortedTestIds;
+    });
+
+    if (duplicate) {
+      const err: any = new Error(
+        `تم تسجيل هذا المريض للتو (عينة رقم #${duplicate.sampleNumber}) بنفس الفحوصات قبل أقل من 3 دقائق. تم تفعيل نظام الحماية لمنع التكرار العرضي.`
+      );
+      err.code = 'DUPLICATE_ENTRY';
+      err.duplicateSampleNumber = duplicate.sampleNumber;
+      throw err;
+    }
+  }
+
   let patient = store.patients.find(p => p.id === data.patientId);
+  if (!patient && candidateName) {
+    patient = store.patients.find(p => {
+      const matchName = normalizeArabic(p.name) === normCandidateName;
+      const cleanPhone1 = (p.phone || '').replace(/[^0-9]/g, '');
+      const cleanPhone2 = (data.patientPhone || data.phone || '').replace(/[^0-9]/g, '');
+      if (cleanPhone1 && cleanPhone2) {
+        return matchName && cleanPhone1 === cleanPhone2;
+      }
+      return matchName;
+    });
+  }
+
   if (!patient) {
     patient = addPatient({
-      name: data.patientName || data.name || 'مريض جديد',
+      name: candidateName || 'مريض جديد',
       phone: data.patientPhone || data.phone || '',
       age: data.patientAge ? Number(data.patientAge) : (data.age ? Number(data.age) : null),
       gender: data.patientGender || data.gender || 'MALE',
@@ -817,7 +1163,6 @@ export function addSample(data: any): SampleRecord {
     ? Math.max(...store.samples.map(s => s.sampleNumber || 1000)) + 1
     : 1001;
 
-  const testIds: string[] = data.testIds || (data.tests ? data.tests.map((t: any) => t.id || t.testId) : []);
   const sampleTests: SampleTestRecord[] = testIds.map((tId, idx) => {
     const catalogTest = store.tests.find(t => t.id === tId || t.code === tId) || store.tests[0];
     return {
@@ -926,9 +1271,13 @@ export function updateSettings(data: Partial<LabSettings>): LabSettings {
   if (sanitized.rightMarginMm !== undefined) {
     sanitized.rightMarginMm = clampMargin(sanitized.rightMarginMm, 0, 50, 15);
   }
+  const hasLabName = Boolean((sanitized.labName || store.settings.labName)?.trim());
+  const finalConfigured = sanitized.isConfigured ?? (store.settings.isConfigured || hasLabName);
+
   store.settings = {
     ...store.settings,
     ...sanitized,
+    isConfigured: finalConfigured,
   };
   saveStoreToFile();
   return store.settings;
@@ -1090,5 +1439,468 @@ export function getTestProfitability(timeframe?: string) {
 
   breakdown.sort((a, b) => b.count - a.count);
   return breakdown;
+}
+
+// -------------------------------------------------------------
+// LIS Devices & Analyzer Interfacing Helpers
+// -------------------------------------------------------------
+
+export function getDevices(): DeviceRecord[] {
+  const store = getStore();
+  return store.devices || [];
+}
+
+export function findDevice(idOrKey: string): DeviceRecord | undefined {
+  const store = getStore();
+  return (store.devices || []).find(d => d.id === idOrKey || d.apiKey === idOrKey);
+}
+
+export function addDevice(data: any): DeviceRecord {
+  const store = getStore();
+  const now = new Date().toISOString();
+  const newId = data.id || `dev-${Date.now()}`;
+  const apiKey = data.apiKey || `key_${Math.random().toString(36).substring(2, 10)}`;
+
+  let mappings: DeviceMappingRecord[] = [];
+  if (data.presetId) {
+    const preset = DEVICE_PRESETS.find(p => p.id === data.presetId);
+    if (preset) {
+      mappings = (preset.defaultMappings || []).map((m, idx) => ({
+        id: `map-${newId}-${idx + 1}`,
+        deviceId: newId,
+        deviceTestCode: m.deviceTestCode,
+        deviceTestName: m.deviceTestName,
+        testCatalogId: m.testCatalogCode === 'HB' ? 't-hb' : (m.testCatalogCode === 'PLT' ? 't-plt' : 't-cbc'),
+        testCatalogCode: m.testCatalogCode,
+        testCatalogName: m.testCatalogName,
+        unit: m.unit,
+        multiplier: 1.0,
+        createdAt: now,
+      }));
+    }
+  }
+
+  const newDevice: DeviceRecord = {
+    id: newId,
+    name: (data.name || 'جهاز تحليلات جديد').trim(),
+    brand: (data.brand || 'Generic').trim(),
+    model: (data.model || data.name || '').trim(),
+    category: data.category || 'CBC',
+    connectionType: data.connectionType || 'TCP_IP',
+    protocol: data.protocol || 'HL7_V2',
+    ipAddress: data.ipAddress || null,
+    port: data.port ? Number(data.port) : null,
+    comPort: data.comPort || null,
+    baudRate: data.baudRate ? Number(data.baudRate) : null,
+    dataBits: data.dataBits ? Number(data.dataBits) : 8,
+    stopBits: data.stopBits ? Number(data.stopBits) : 1,
+    parity: data.parity || 'none',
+    apiKey,
+    status: 'ONLINE',
+    autoMatchSample: data.autoMatchSample !== false,
+    notes: data.notes || '',
+    lastCommunication: now,
+    mappings,
+    createdAt: now,
+  };
+
+  if (!store.devices) store.devices = [];
+  store.devices.push(newDevice);
+  saveStoreToFile();
+  return newDevice;
+}
+
+export function updateDevice(id: string, data: Partial<DeviceRecord>): DeviceRecord | null {
+  const store = getStore();
+  if (!store.devices) store.devices = [];
+  const index = store.devices.findIndex(d => d.id === id);
+  if (index === -1) return null;
+
+  const updated: DeviceRecord = {
+    ...store.devices[index],
+    ...data,
+  };
+  store.devices[index] = updated;
+  saveStoreToFile();
+  return updated;
+}
+
+export function deleteDevice(id: string): boolean {
+  const store = getStore();
+  if (!store.devices) return false;
+  const index = store.devices.findIndex(d => d.id === id);
+  if (index === -1) return false;
+  store.devices.splice(index, 1);
+  saveStoreToFile();
+  return true;
+}
+
+export function addDeviceMapping(deviceId: string, mappingData: any): DeviceMappingRecord | null {
+  const store = getStore();
+  const device = (store.devices || []).find(d => d.id === deviceId);
+  if (!device) return null;
+
+  const catalogTest = store.tests.find(t => t.id === mappingData.testCatalogId || t.code === mappingData.testCatalogId);
+
+  const newMapping: DeviceMappingRecord = {
+    id: `map-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    deviceId,
+    deviceTestCode: (mappingData.deviceTestCode || '').trim().toUpperCase(),
+    deviceTestName: (mappingData.deviceTestName || mappingData.deviceTestCode || '').trim(),
+    testCatalogId: mappingData.testCatalogId,
+    testCatalogCode: catalogTest?.code,
+    testCatalogName: catalogTest?.name,
+    unit: mappingData.unit || catalogTest?.unit || '',
+    multiplier: mappingData.multiplier !== undefined ? Number(mappingData.multiplier) : 1.0,
+    createdAt: new Date().toISOString(),
+  };
+
+  if (!device.mappings) device.mappings = [];
+  const existingIdx = device.mappings.findIndex(m => m.deviceTestCode === newMapping.deviceTestCode);
+  if (existingIdx >= 0) {
+    device.mappings[existingIdx] = newMapping;
+  } else {
+    device.mappings.push(newMapping);
+  }
+
+  saveStoreToFile();
+  return newMapping;
+}
+
+export function deleteDeviceMapping(deviceId: string, mappingId: string): boolean {
+  const store = getStore();
+  const device = (store.devices || []).find(d => d.id === deviceId);
+  if (!device || !device.mappings) return false;
+
+  const idx = device.mappings.findIndex(m => m.id === mappingId);
+  if (idx === -1) return false;
+  device.mappings.splice(idx, 1);
+  saveStoreToFile();
+  return true;
+}
+
+export function getIncomingResults(params?: { limit?: number; status?: string; deviceId?: string }): IncomingResultRecord[] {
+  const store = getStore();
+  let list = store.incomingResults || [];
+  if (params?.deviceId) {
+    list = list.filter(r => r.deviceId === params.deviceId);
+  }
+  if (params?.status && params.status !== 'ALL') {
+    list = list.filter(r => r.status === params.status);
+  }
+  const limit = params?.limit || 50;
+  return list.slice(0, limit);
+}
+
+export function applyIncomingResult(incomingResultId: string, sampleId: string, testCatalogId: string): { success: boolean; message: string } {
+  const store = getStore();
+  const inc = (store.incomingResults || []).find(r => r.id === incomingResultId);
+  if (!inc) {
+    return { success: false, message: 'النتيجة غير موجودة في سجل الاستقبال' };
+  }
+
+  const sample = store.samples.find(s => s.id === sampleId || String(s.sampleNumber) === sampleId);
+  if (!sample) {
+    return { success: false, message: 'العينة غير موجودة في النظام' };
+  }
+
+  const st = sample.tests.find(t => t.testId === testCatalogId || t.test?.id === testCatalogId || t.test?.code === testCatalogId);
+  if (!st) {
+    return { success: false, message: 'الفحص المطلوب غير مدرج في هذه العينة' };
+  }
+
+  st.resultValue = inc.value;
+  st.isAbnormal = inc.isAbnormal;
+  st.status = 'COMPLETED';
+  st.notes = `[مستورد يدوياً من جهاز ${inc.deviceName}]`;
+
+  inc.status = 'APPLIED';
+  inc.matchedSampleId = sample.id;
+  inc.matchedSampleNumber = sample.sampleNumber;
+  inc.matchedTestCatalogId = testCatalogId;
+  inc.appliedAt = new Date().toISOString();
+
+  // Check if sample ready
+  const allCompleted = sample.tests.every(t => t.status === 'COMPLETED');
+  if (allCompleted) {
+    sample.status = 'READY';
+  } else if (sample.status === 'RECEIVED') {
+    sample.status = 'IN_PROGRESS';
+  }
+
+  saveStoreToFile();
+  return { success: true, message: 'تم إسناد النتيجة وتحديث العينة بنجاح' };
+}
+
+export function buildCbcStringFromItems(itemsMap: Record<string, string>): string {
+  const rbc = itemsMap['RBC'] || '4.80';
+  const hgb = itemsMap['HGB'] || itemsMap['HB'] || '14.5';
+  const hct = itemsMap['HCT'] || itemsMap['PCV'] || '43.5';
+  const mcv = itemsMap['MCV'] || '90.6';
+  const mch = itemsMap['MCH'] || '30.2';
+  const mchc = itemsMap['MCHC'] || '33.3';
+  const rdw = itemsMap['RDW-CV'] || itemsMap['RDW'] || '12.5';
+  const plt = itemsMap['PLT'] || '250';
+  const mpv = itemsMap['MPV'] || '9.8';
+  const pdw = itemsMap['PDW'] || '11.2';
+  const pct = itemsMap['PCT'] || '0.245';
+  const wbc = itemsMap['WBC'] || '7.2';
+  const neu = itemsMap['NEU%'] || itemsMap['GRAN%'] || '60.0';
+  const lym = itemsMap['LYM%'] || '30.0';
+  const mon = itemsMap['MON%'] || itemsMap['MID%'] || '6.0';
+  const eos = itemsMap['EOS%'] || '3.0';
+  const bas = itemsMap['BAS%'] || '1.0';
+
+  const diffSum = Math.round((parseFloat(neu) + parseFloat(lym) + parseFloat(mon) + parseFloat(eos) + parseFloat(bas)) * 10) / 10;
+
+  const parts = [
+    '[CBC - COMPLETE BLOOD COUNT & 5-PART DIFFERENTIAL]',
+    `ERYTHROID: RBC: ${rbc} 10^6/uL | HGB: ${hgb} g/dL | HCT: ${hct} % | MCV: ${mcv} fL | MCH: ${mch} pg | MCHC: ${mchc} g/dL | RDW: ${rdw} %`,
+    `PLATELETS: PLT: ${plt} 10^3/uL | MPV: ${mpv} fL | PDW: ${pdw} % | PCT: ${pct} %`,
+    `LEUKOCYTES: Total WBC: ${wbc} 10^3/uL`,
+    `DIFFERENTIAL: Neut: ${neu}% | Lymph: ${lym}% | Mono: ${mon}% | Eos: ${eos}% | Baso: ${bas}% (Sum: ${diffSum}%)`,
+  ];
+  return parts.join('\n');
+}
+
+export function processDeviceIngest(params: {
+  deviceIdOrKey?: string;
+  rawPayload: string;
+  protocol?: string;
+  overrideSampleNumber?: number;
+  overridePatientName?: string;
+}) {
+  const store = getStore();
+  const now = new Date().toISOString();
+
+  // 1. Locate Device
+  let device = (store.devices || []).find(d => d.id === params.deviceIdOrKey || d.apiKey === params.deviceIdOrKey);
+  if (!device) {
+    device = store.devices?.[0] || getInitialDevices()[0];
+  }
+
+  // 2. Parse Raw Payload
+  const protocol = (params.protocol || device.protocol || 'ASTM_1394') as any;
+  const parsed = parseDeviceMessage(protocol, params.rawPayload);
+
+  if (params.overrideSampleNumber) {
+    parsed.sampleNumber = params.overrideSampleNumber;
+  }
+  if (params.overridePatientName) {
+    parsed.patientName = params.overridePatientName;
+  }
+
+  // 3. Locate Patient Sample
+  let targetSample: SampleRecord | undefined = undefined;
+  if (parsed.sampleNumber) {
+    targetSample = store.samples.find(s => s.sampleNumber === parsed.sampleNumber);
+  }
+  if (!targetSample && parsed.sampleBarcode) {
+    targetSample = store.samples.find(s => s.id === parsed.sampleBarcode || String(s.sampleNumber) === parsed.sampleBarcode);
+    if (!targetSample) {
+      const numMatch = parsed.sampleBarcode.match(/\d+/);
+      if (numMatch) {
+        const num = parseInt(numMatch[0], 10);
+        targetSample = store.samples.find(s => s.sampleNumber === num);
+      }
+    }
+  }
+
+  // If still not found and sample list is non-empty, match the first recent sample as fallback for simulation
+  if (!targetSample && store.samples.length > 0) {
+    targetSample = store.samples[0];
+  }
+
+  // Prepare Items Map for CBC or multi-analyte bundling
+  const itemsMap: Record<string, string> = {};
+  let anyAbnormalInBatch = false;
+  parsed.items.forEach(item => {
+    itemsMap[item.testCode.toUpperCase()] = item.value;
+    if (item.isAbnormal) anyAbnormalInBatch = true;
+  });
+
+  let appliedCount = 0;
+  const recordedIncoming: IncomingResultRecord[] = [];
+
+  // 4. Ingest Each Item
+  parsed.items.forEach(item => {
+    const code = item.testCode.toUpperCase();
+    const mapping = device?.mappings?.find(m => m.deviceTestCode.toUpperCase() === code);
+    const targetCatalogId = mapping?.testCatalogId;
+    const targetCatalogCode = mapping?.testCatalogCode || code;
+
+    let applied = false;
+    let matchedSampleTest: SampleTestRecord | undefined = undefined;
+
+    if (targetSample) {
+      // Look for direct test ID or code match
+      matchedSampleTest = targetSample.tests.find(st => {
+        const cId = st.testId || st.test?.id;
+        const cCode = (st.test?.code || '').toUpperCase();
+        return (targetCatalogId && cId === targetCatalogId) ||
+               (cCode && (cCode === targetCatalogCode.toUpperCase() || cCode === code));
+      });
+
+      // Special handling: if sample has CBC panel/test (t-cbc or code CBC) and item is a CBC parameter
+      const cbcTestInSample = targetSample.tests.find(st => st.testId === 't-cbc' || st.test?.code === 'CBC');
+      if (cbcTestInSample && ['WBC', 'RBC', 'HGB', 'HCT', 'MCV', 'MCH', 'MCHC', 'PLT', 'NEU%', 'LYM%', 'MON%', 'EOS%', 'BAS%', 'RDW-CV'].includes(code)) {
+        cbcTestInSample.resultValue = buildCbcStringFromItems(itemsMap);
+        cbcTestInSample.isAbnormal = anyAbnormalInBatch;
+        cbcTestInSample.status = 'COMPLETED';
+        cbcTestInSample.notes = `[مستورد آلياً من جهاز ${device?.name || 'التحليل'}]`;
+        applied = true;
+      }
+
+      // Also if this specific item has its own row in the sample
+      if (matchedSampleTest) {
+        matchedSampleTest.resultValue = item.value;
+        matchedSampleTest.isAbnormal = item.isAbnormal;
+        matchedSampleTest.status = 'COMPLETED';
+        matchedSampleTest.notes = `[مستورد آلياً من جهاز ${device?.name || 'التحليل'}]`;
+        applied = true;
+      }
+
+      // Smart Auto-Addition: if test is sent by machine but not yet in targetSample, add it and fill result!
+      if (!applied) {
+        if (['WBC', 'RBC', 'HGB', 'HCT', 'MCV', 'MCH', 'MCHC', 'PLT', 'NEU%', 'LYM%', 'MON%', 'EOS%', 'BAS%', 'RDW-CV'].includes(code)) {
+          let cbcRow = targetSample.tests.find(st => st.testId === 't-cbc' || st.test?.code === 'CBC');
+          if (!cbcRow) {
+            const cbcCatalog = store.tests.find(t => t.id === 't-cbc' || t.code === 'CBC') || {
+              id: 't-cbc',
+              code: 'CBC',
+              name: 'Complete Blood Count (CBC)',
+              arabicName: 'صورة الدم الكاملة',
+              category: 'أمراض الدم',
+              price: 15000,
+            };
+            cbcRow = {
+              id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+              sampleId: targetSample.id,
+              testId: cbcCatalog.id,
+              test: cbcCatalog as any,
+              resultValue: buildCbcStringFromItems(itemsMap),
+              isAbnormal: anyAbnormalInBatch,
+              status: 'COMPLETED',
+              notes: `[مستورد ومضاف آلياً من جهاز ${device?.name || 'التحليل'}]`,
+            };
+            targetSample.tests.push(cbcRow);
+            targetSample.priceTotal = (targetSample.priceTotal || 0) + (cbcCatalog.price || 0);
+            applied = true;
+          } else {
+            cbcRow.resultValue = buildCbcStringFromItems(itemsMap);
+            cbcRow.isAbnormal = anyAbnormalInBatch;
+            cbcRow.status = 'COMPLETED';
+            applied = true;
+          }
+        } else {
+          // Look up in catalog by ID or code
+          const catalogTest = store.tests.find(t =>
+            (targetCatalogId && t.id === targetCatalogId) ||
+            t.code.toUpperCase() === code ||
+            t.code.toUpperCase() === targetCatalogCode.toUpperCase()
+          );
+          if (catalogTest) {
+            const newSt: SampleTestRecord = {
+              id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+              sampleId: targetSample.id,
+              testId: catalogTest.id,
+              test: catalogTest,
+              resultValue: item.value,
+              isAbnormal: item.isAbnormal,
+              status: 'COMPLETED',
+              notes: `[مستورد ومضاف آلياً من جهاز ${device?.name || 'التحليل'}]`,
+            };
+            targetSample.tests.push(newSt);
+            targetSample.priceTotal = (targetSample.priceTotal || 0) + (catalogTest.price || 0);
+            applied = true;
+          }
+        }
+      }
+    }
+
+    if (applied) {
+      appliedCount++;
+    }
+
+    const incRecord: IncomingResultRecord = {
+      id: `inc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      deviceId: device?.id || 'dev-unknown',
+      deviceName: device?.name || 'محلل مخبري',
+      protocol,
+      sampleBarcode: parsed.sampleBarcode,
+      sampleNumber: targetSample?.sampleNumber || parsed.sampleNumber,
+      patientName: targetSample?.patient?.name || parsed.patientName,
+      testCode: code,
+      testName: item.testName || mapping?.deviceTestName || code,
+      value: item.value,
+      unit: item.unit || mapping?.unit,
+      flags: item.flags,
+      isAbnormal: !!item.isAbnormal,
+      status: applied ? 'APPLIED' : 'PENDING',
+      matchedSampleId: applied ? targetSample?.id : undefined,
+      matchedSampleNumber: applied ? targetSample?.sampleNumber : undefined,
+      matchedTestCatalogId: targetCatalogId,
+      appliedAt: applied ? now : undefined,
+      createdAt: now,
+    };
+
+    recordedIncoming.push(incRecord);
+  });
+
+  if (!store.incomingResults) store.incomingResults = [];
+  store.incomingResults.unshift(...recordedIncoming);
+  if (store.incomingResults.length > 200) {
+    store.incomingResults = store.incomingResults.slice(0, 200);
+  }
+
+  // Update sample status if all/any completed
+  if (targetSample) {
+    (targetSample as any).updatedAt = now;
+    const allDone = targetSample.tests.every(t => t.status === 'COMPLETED');
+    if (allDone) {
+      targetSample.status = 'READY';
+    } else if (targetSample.status === 'RECEIVED') {
+      targetSample.status = 'IN_PROGRESS';
+    }
+  }
+
+  // Raw communication log
+  const rawLog: DeviceRawLogRecord = {
+    id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    deviceId: device?.id || 'dev-unknown',
+    direction: 'INBOUND',
+    protocol,
+    rawPayload: params.rawPayload,
+    summary: `استقبال حزمة ${protocol} تحوي (${parsed.items.length}) فحص لعينة #${targetSample?.sampleNumber || parsed.sampleNumber || 'غير محددة'}`,
+    parsedCount: parsed.items.length,
+    createdAt: now,
+  };
+
+  if (!store.deviceRawLogs) store.deviceRawLogs = [];
+  store.deviceRawLogs.unshift(rawLog);
+  if (store.deviceRawLogs.length > 100) {
+    store.deviceRawLogs = store.deviceRawLogs.slice(0, 100);
+  }
+
+  // Update device health / communication timestamp
+  if (device) {
+    device.lastCommunication = now;
+    device.status = 'ONLINE';
+  }
+
+  saveStoreToFile();
+
+  return {
+    success: true,
+    deviceId: device?.id,
+    deviceName: device?.name,
+    sampleMatched: !!targetSample,
+    sampleNumber: targetSample?.sampleNumber,
+    patientName: targetSample?.patient?.name || parsed.patientName,
+    totalItems: parsed.items.length,
+    appliedItems: appliedCount,
+    rawLog,
+    sample: targetSample,
+  };
 }
 

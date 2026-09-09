@@ -31,6 +31,28 @@ export interface LabProfile {
   detectedLanIp?: string;
   detectedPort?: number;
   detectedLanUrl?: string;
+
+  // Sheet Elements & Watermark Customization
+  showLabName?: boolean;
+  labNameFontSize?: number;
+  labNameColor?: string;
+  labNameAlignment?: 'RIGHT' | 'CENTER' | 'LEFT';
+  labNameStyle?: 'DEFAULT' | 'BOLD' | 'MODERN_BADGE' | 'ELEGANT_BORDER';
+  showLabSubtitle?: boolean;
+  showContactInfo?: boolean;
+  showDoctorInfo?: boolean;
+  showPatientBox?: boolean;
+  showReportBorder?: boolean;
+  showFooter?: boolean;
+  showFooterSignature?: boolean;
+  enableWatermark?: boolean;
+  watermarkType?: 'TEXT' | 'IMAGE';
+  watermarkText?: string;
+  watermarkImage?: string;
+  watermarkOpacity?: number;
+  watermarkAngle?: number;
+  watermarkSize?: number;
+  watermarkColor?: string;
 }
 
 const DEFAULT_LAB_PROFILE: LabProfile = {
@@ -57,6 +79,25 @@ const DEFAULT_LAB_PROFILE: LabProfile = {
   accreditationBadge: 'ISO 15189 Certified Lab',
   isConfigured: false,
   serverBaseUrl: '',
+  showLabName: true,
+  labNameFontSize: 22,
+  labNameColor: '#0284c7',
+  labNameAlignment: 'RIGHT',
+  labNameStyle: 'DEFAULT',
+  showLabSubtitle: true,
+  showContactInfo: true,
+  showDoctorInfo: true,
+  showPatientBox: true,
+  showReportBorder: true,
+  showFooter: true,
+  showFooterSignature: true,
+  enableWatermark: false,
+  watermarkType: 'TEXT',
+  watermarkText: '',
+  watermarkOpacity: 0.08,
+  watermarkAngle: -30,
+  watermarkSize: 46,
+  watermarkColor: '#0f172a',
 };
 
 interface LabContextType {
@@ -65,6 +106,7 @@ interface LabContextType {
   showSetupModal: boolean;
   setShowSetupModal: (show: boolean) => void;
   openSetupWizard: () => void;
+  dismissSetupWizard: () => Promise<void>;
 }
 
 const LabContext = createContext<LabContextType>({
@@ -73,6 +115,7 @@ const LabContext = createContext<LabContextType>({
   showSetupModal: false,
   setShowSetupModal: () => {},
   openSetupWizard: () => {},
+  dismissSetupWizard: async () => {},
 });
 
 export function LabProvider({ children }: { children: React.ReactNode }) {
@@ -85,10 +128,13 @@ export function LabProvider({ children }: { children: React.ReactNode }) {
     let localConfigured = false;
     try {
       const savedProfile = localStorage.getItem('lab_profile_settings');
+      const setupCompleted = localStorage.getItem('lab_setup_completed') === 'true';
       if (savedProfile) {
         const parsed = JSON.parse(savedProfile);
-        localConfigured = parsed.isConfigured || localStorage.getItem('lab_setup_completed') === 'true';
+        localConfigured = Boolean(parsed.isConfigured || setupCompleted || (parsed.labName && parsed.labName.trim().length > 0));
         setLabProfile({ ...DEFAULT_LAB_PROFILE, ...parsed, isConfigured: localConfigured });
+      } else if (setupCompleted) {
+        localConfigured = true;
       }
     } catch (e) {
       console.warn('Could not read lab profile from localStorage:', e);
@@ -98,7 +144,18 @@ export function LabProvider({ children }: { children: React.ReactNode }) {
     apiRequest('/settings')
       .then((remote) => {
         if (remote) {
-          const isConfig = remote.isConfigured ?? (localConfigured || !!remote.labName);
+          const isConfig = Boolean(
+            remote.isConfigured === true ||
+            localConfigured ||
+            (typeof window !== 'undefined' && localStorage.getItem('lab_setup_completed') === 'true') ||
+            (remote.labName && remote.labName.trim().length > 0)
+          );
+          
+          if (isConfig && typeof window !== 'undefined') {
+            try {
+              localStorage.setItem('lab_setup_completed', 'true');
+            } catch (e) {}
+          }
           
           setLabProfile((prev) => {
             const merged: LabProfile = {
@@ -167,22 +224,32 @@ export function LabProvider({ children }: { children: React.ReactNode }) {
     if (syncRemote) {
       try {
         await apiRequest('/settings', 'POST', {
-          labName: updated.labName,
-          labSubtitle: updated.labSubtitle,
-          doctorName: updated.doctorName,
-          doctorTitle: updated.doctorTitle,
-          labLicense: updated.labLicense,
-          whatsappNumber: updated.whatsappNumber,
-          currency: updated.currency,
-          address: updated.address,
-          phone: updated.phone,
-          reportHeader: updated.reportHeader,
-          reportFooter: updated.reportFooter,
-          reportTemplate: updated.reportTemplate,
+          ...updated,
+          isConfigured: true,
         });
       } catch (err) {
         console.warn('Failed to sync settings to server:', err);
       }
+    }
+  };
+
+  const dismissSetupWizard = async () => {
+    setShowSetupModal(false);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lab_setup_completed', 'true');
+        const saved = localStorage.getItem('lab_profile_settings');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          localStorage.setItem('lab_profile_settings', JSON.stringify({ ...parsed, isConfigured: true }));
+        }
+      }
+      setLabProfile((prev) => ({ ...prev, isConfigured: true }));
+      await apiRequest('/settings', 'POST', {
+        isConfigured: true,
+      });
+    } catch (e) {
+      console.warn('Failed to dismiss setup wizard cleanly:', e);
     }
   };
 
@@ -196,6 +263,7 @@ export function LabProvider({ children }: { children: React.ReactNode }) {
         showSetupModal,
         setShowSetupModal,
         openSetupWizard,
+        dismissSetupWizard,
       }}
     >
       {children}

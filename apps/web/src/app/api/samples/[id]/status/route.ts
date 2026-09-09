@@ -1,5 +1,5 @@
-﻿import { NextResponse } from 'next/server';
-import { getStore } from '../../../../../lib/serverStore';
+import { NextResponse } from 'next/server';
+import { getStore, saveStoreToFile } from '../../../../../lib/serverStore';
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const body = await request.json();
@@ -10,6 +10,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
   if (body.status) {
     sample.status = body.status;
+    (sample as any).updatedAt = new Date().toISOString();
+    saveStoreToFile();
   }
   return NextResponse.json(sample);
 }

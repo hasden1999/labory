@@ -43,6 +43,24 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
     sample.priceTotal = (sample.priceTotal || 0) + addedTotal;
     sample.remainingAmount = Math.max(0, (sample.remainingAmount || 0) + addedTotal);
+    
+    // If sample was previously ready or delivered, revert to IN_PROGRESS since new pending tests were added
+    if (sample.status === 'READY' || sample.status === 'DELIVERED') {
+      sample.status = 'IN_PROGRESS';
+    }
+    (sample as any).updatedAt = new Date().toISOString();
+
+    // Sync patient recent test metadata
+    if (sample.patientId) {
+      const patient = store.patients.find(p => p.id === sample.patientId);
+      if (patient) {
+        const allTestIds = sample.tests.map(t => t.testId);
+        const allTestNames = sample.tests.map(t => t.test?.name || '').filter(Boolean);
+        (patient as any).lastTestIds = Array.from(new Set([...((patient as any).lastTestIds || []), ...allTestIds]));
+        (patient as any).lastTestNames = Array.from(new Set([...((patient as any).lastTestNames || []), ...allTestNames]));
+      }
+    }
+
     saveStoreToFile();
 
     return NextResponse.json(sample);

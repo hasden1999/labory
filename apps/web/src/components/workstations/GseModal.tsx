@@ -549,7 +549,9 @@ export default function GseModal({
             1. TOP CLINICAL HEADER BAR
            ======================================================== */}
         <div
+          dir="ltr"
           style={{
+            direction: 'ltr',
             padding: '12px 20px',
             background: 'var(--bg-card)',
             borderBottom: '1px solid var(--border-color)',
@@ -703,15 +705,17 @@ export default function GseModal({
           {/* ----------------------------------------------------
               LEFT PANEL: STRUCTURED TABBED FORM (MODEL B)
              ---------------------------------------------------- */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div dir="ltr" style={{ display: 'flex', flexDirection: 'column', gap: '12px', direction: 'ltr', textAlign: 'left' }}>
             {/* Tab Navigation Header */}
             <div
+              dir="ltr"
               style={{
                 display: 'flex',
                 background: 'var(--bg-input)',
                 padding: '4px',
                 borderRadius: '10px',
                 gap: '4px',
+                direction: 'ltr',
               }}
             >
               <button
@@ -1309,7 +1313,10 @@ export default function GseModal({
               RIGHT PANEL: DEDICATED A4 CLINICAL REPORT PREVIEW
              ---------------------------------------------------- */}
           <div
+            dir="ltr"
             style={{
+              direction: 'ltr',
+              textAlign: 'left',
               background: '#ffffff',
               border: '1px solid #cbd5e1',
               borderRadius: '12px',
@@ -1323,16 +1330,19 @@ export default function GseModal({
           >
             {/* Header of Preview */}
             <div
+              dir="ltr"
               style={{
+                direction: 'ltr',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 borderBottom: '2px solid #d97706',
                 paddingBottom: '10px',
                 marginBottom: '12px',
+                textAlign: 'left',
               }}
             >
-              <div>
+              <div style={{ textAlign: 'left' }}>
                 <span
                   style={{
                     fontSize: '10px',
@@ -1345,34 +1355,34 @@ export default function GseModal({
                 >
                   A4 REPORT PREVIEW
                 </span>
-                <h4 style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a', margin: '4px 0 0 0' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a', margin: '4px 0 0 0', textAlign: 'left' }}>
                   General Stool Examination (G.S.E)
                 </h4>
-              <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                  Sample #{resolvedSampleNumber}
-                </span>
-              </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                    Sample #{resolvedSampleNumber}
+                  </span>
+                </div>
             </div>
 
             {/* Preview Tables */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '11px' }}>
+            <div dir="ltr" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '11px', direction: 'ltr', textAlign: 'left' }}>
               {/* Section 1: Physical */}
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: 800, color: '#d97706', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px' }}>
+              <div dir="ltr" style={{ direction: 'ltr', textAlign: 'left' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#d97706', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px', textAlign: 'left' }}>
                   PHYSICAL & OCCULT BLOOD
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table dir="ltr" style={{ width: '100%', borderCollapse: 'collapse', direction: 'ltr', textAlign: 'left' }}>
                   <tbody>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0', width: '25%' }}>Color:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a', width: '25%' }}>{data.color}</td>
-                      <td style={{ color: '#64748b', padding: '2px 0', width: '25%' }}>Consistency:</td>
-                      <td style={{ fontWeight: 700, color: data.consistency.includes('Loose') || data.consistency.includes('Watery') ? '#dc2626' : '#0f172a', width: '25%' }}>{data.consistency}</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Color:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', width: '25%', textAlign: 'left' }}>{data.color}</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Consistency:</td>
+                      <td style={{ fontWeight: 700, color: data.consistency.includes('Loose') || data.consistency.includes('Watery') ? '#dc2626' : '#0f172a', width: '25%', textAlign: 'left' }}>{data.consistency}</td>
                     </tr>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>FOBT:</td>
-                      <td colSpan={3} style={{ fontWeight: 800, color: isFobtAbnormal ? '#dc2626' : '#047857' }}>
+                      <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>FOBT:</td>
+                      <td colSpan={3} style={{ fontWeight: 800, color: isFobtAbnormal ? '#dc2626' : '#047857', textAlign: 'left' }}>
                         {data.fobt}
                       </td>
                     </tr>
@@ -1381,44 +1391,44 @@ export default function GseModal({
               </div>
 
               {/* Section 2: Microscopic */}
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: 800, color: '#d97706', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px' }}>
+              <div dir="ltr" style={{ direction: 'ltr', textAlign: 'left' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#d97706', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px', textAlign: 'left' }}>
                   MICROSCOPIC EXAMINATION (HPF)
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table dir="ltr" style={{ width: '100%', borderCollapse: 'collapse', direction: 'ltr', textAlign: 'left' }}>
                   <tbody>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0', width: '25%' }}>Pus Cells:</td>
-                      <td style={{ fontWeight: 700, color: isPusAbnormal ? '#dc2626' : '#0f172a', width: '25%' }}>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Pus Cells:</td>
+                      <td style={{ fontWeight: 700, color: isPusAbnormal ? '#dc2626' : '#0f172a', width: '25%', textAlign: 'left' }}>
                         {data.pusCells} /HPF
                       </td>
-                      <td style={{ color: '#64748b', padding: '2px 0', width: '25%' }}>RBCs:</td>
-                      <td style={{ fontWeight: 700, color: isRbcAbnormal ? '#dc2626' : '#0f172a', width: '25%' }}>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>RBCs:</td>
+                      <td style={{ fontWeight: 700, color: isRbcAbnormal ? '#dc2626' : '#0f172a', width: '25%', textAlign: 'left' }}>
                         {data.rbcs} /HPF
                       </td>
                     </tr>
                     {data.muscleFibers && data.muscleFibers !== 'Nil' && (
                       <tr>
-                        <td style={{ color: '#64748b', padding: '2px 0' }}>Muscle Fibers:</td>
-                        <td colSpan={3} style={{ fontWeight: 700, color: '#0284c7' }}>{data.muscleFibers}</td>
+                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>Muscle Fibers:</td>
+                        <td colSpan={3} style={{ fontWeight: 700, color: '#0284c7', textAlign: 'left' }}>{data.muscleFibers}</td>
                       </tr>
                     )}
                     {data.starchGranules && data.starchGranules !== 'Nil' && (
                       <tr>
-                        <td style={{ color: '#64748b', padding: '2px 0' }}>Starch Granules:</td>
-                        <td colSpan={3} style={{ fontWeight: 700, color: '#0284c7' }}>{data.starchGranules}</td>
+                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>Starch Granules:</td>
+                        <td colSpan={3} style={{ fontWeight: 700, color: '#0284c7', textAlign: 'left' }}>{data.starchGranules}</td>
                       </tr>
                     )}
                     {data.fatGlobules && data.fatGlobules !== 'Nil' && (
                       <tr>
-                        <td style={{ color: '#64748b', padding: '2px 0' }}>Fat Globules:</td>
-                        <td colSpan={3} style={{ fontWeight: 700, color: '#dc2626' }}>{data.fatGlobules}</td>
+                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>Fat Globules:</td>
+                        <td colSpan={3} style={{ fontWeight: 700, color: '#dc2626', textAlign: 'left' }}>{data.fatGlobules}</td>
                       </tr>
                     )}
                     {data.vegetableCells && data.vegetableCells !== 'Nil' && (
                       <tr>
-                        <td style={{ color: '#64748b', padding: '2px 0' }}>Vegetable:</td>
-                        <td colSpan={3} style={{ fontWeight: 600, color: '#0f172a' }}>{data.vegetableCells}</td>
+                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>Vegetable:</td>
+                        <td colSpan={3} style={{ fontWeight: 600, color: '#0f172a', textAlign: 'left' }}>{data.vegetableCells}</td>
                       </tr>
                     )}
                   </tbody>
@@ -1426,18 +1436,18 @@ export default function GseModal({
               </div>
 
               {/* Section 3: Parasitology */}
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: 800, color: '#d97706', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px' }}>
+              <div dir="ltr" style={{ direction: 'ltr', textAlign: 'left' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#d97706', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px', textAlign: 'left' }}>
                   PARASITOLOGY
                 </div>
                 {data.parasites.length === 0 ? (
-                  <div style={{ color: '#047857', fontWeight: 700, padding: '2px 0' }}>
+                  <div style={{ color: '#047857', fontWeight: 700, padding: '2px 0', textAlign: 'left' }}>
                     Nil (No ova, cysts, or parasites seen)
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', textAlign: 'left' }}>
                     {data.parasites.map((p, idx) => (
-                      <div key={idx} style={{ fontWeight: 800, color: '#b91c1c' }}>
+                      <div key={idx} style={{ fontWeight: 800, color: '#b91c1c', textAlign: 'left' }}>
                         • {p.organism} [{p.stage}] ({p.severity})
                       </div>
                     ))}
@@ -1448,6 +1458,7 @@ export default function GseModal({
               {/* Section 4: Notes */}
               {data.notes && (
                 <div
+                  dir="ltr"
                   style={{
                     background: '#f8fafc',
                     border: '1px solid #e2e8f0',
@@ -1455,6 +1466,8 @@ export default function GseModal({
                     borderRadius: '6px',
                     fontSize: '10.5px',
                     color: '#334155',
+                    direction: 'ltr',
+                    textAlign: 'left',
                   }}
                 >
                   <strong>Note:</strong> {data.notes}
@@ -1464,6 +1477,7 @@ export default function GseModal({
 
             {/* Stamp / verification text */}
             <div
+              dir="ltr"
               style={{
                 marginTop: 'auto',
                 paddingTop: '10px',
@@ -1473,6 +1487,7 @@ export default function GseModal({
                 alignItems: 'center',
                 fontSize: '9.5px',
                 color: '#94a3b8',
+                direction: 'ltr',
               }}
             >
               <span>Labryo Diagnostic System • Verified</span>

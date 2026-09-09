@@ -89,35 +89,113 @@ function ResultsContent() {
   const [deletingTest, setDeletingTest] = useState(false);
 
   // Load Samples
-  const loadSamples = async () => {
+  const loadSamples = async (silent = false) => {
     try {
-      setLoadingSamples(true);
+      if (!silent) setLoadingSamples(true);
       const res = await apiRequest('/samples');
-      setSamples(res || []);
+      const samplesList: Sample[] = res || [];
+      setSamples(samplesList);
       
       const currentSelectedId = selectedSampleRef.current?.id;
       const targetId = searchParams.get('sampleId') || currentSelectedId;
-      if (targetId && res && res.length > 0) {
-        const found = res.find((s: Sample) => s.id === targetId);
-        if (found) {
-          selectSample(found);
-          return;
+      
+      if (!silent) {
+        if (targetId && samplesList.length > 0) {
+          const found = samplesList.find((s: Sample) => s.id === targetId);
+          if (found) {
+            selectSample(found);
+            return;
+          }
+        }
+        
+        if (samplesList.length > 0 && !selectedSampleRef.current) {
+          selectSample(samplesList[0]);
+        }
+      } else {
+        // Silent background sync from LAN devices (mobile/tablet/other stations)
+        if (selectedSampleRef.current && samplesList.length > 0) {
+          const updatedCurrent = samplesList.find((s: Sample) => s.id === selectedSampleRef.current?.id);
+          if (updatedCurrent) {
+            const currentTestIds = new Set((selectedSampleRef.current.tests || []).map(t => t.id));
+            const newTests = (updatedCurrent.tests || []).filter(t => !currentTestIds.has(t.id));
+            
+            const testsChanged = newTests.length > 0 || (updatedCurrent.tests || []).length !== (selectedSampleRef.current.tests || []).length;
+            const statusChanged = updatedCurrent.status !== selectedSampleRef.current.status;
+            const priceChanged = updatedCurrent.priceTotal !== selectedSampleRef.current.priceTotal;
+            
+            // Check if server test results were updated!
+            let serverResultsChanged = false;
+            (updatedCurrent.tests || []).forEach((st: any) => {
+              const currentVal = selectedSampleRef.current?.tests?.find((t: any) => t.id === st.id)?.resultValue;
+              if (st.resultValue && st.resultValue !== currentVal) {
+                serverResultsChanged = true;
+              }
+            });
+
+            if (testsChanged || statusChanged || priceChanged || serverResultsChanged) {
+              setSelectedSample(updatedCurrent);
+              selectedSampleRef.current = updatedCurrent;
+              
+              setTestResults(prev => {
+                const copy = { ...prev };
+                (updatedCurrent.tests || []).forEach((st: any) => {
+                  const localVal = copy[st.id]?.resultValue || '';
+                  if (st.resultValue && (!localVal || localVal.trim() === '' || !isDirty)) {
+                    copy[st.id] = {
+                      resultValue: st.resultValue,
+                      isAbnormal: st.isAbnormal || false,
+                      interpretation: st.interpretation || ''
+                    };
+                  } else if (!copy[st.id]) {
+                    copy[st.id] = {
+                      resultValue: st.resultValue || '',
+                      isAbnormal: st.isAbnormal || false,
+                      interpretation: st.interpretation || ''
+                    };
+                  }
+                });
+                return copy;
+              });
+
+              if (newTests.length > 0) {
+                toast.info(`تم تحديث العينة (#${updatedCurrent.sampleNumber}) بإضافة فحوصات جديدة من جهاز آخر!`, 'مزامنة حية');
+              } else if (serverResultsChanged) {
+                toast.success(`تم استلام وتحديث نتائج الفحص للعينة (#${updatedCurrent.sampleNumber}) آلياً من الجهاز!`, 'استيراد آلي');
+              }
+            }
+          }
         }
       }
-      
-      if (res && res.length > 0 && !selectedSampleRef.current) {
-        selectSample(res[0]);
-      }
     } catch (err: any) {
-      toast.error(err.message || 'فشل تحميل العينات', 'خطأ');
+      if (!silent) toast.error(err.message || 'فشل تحميل العينات', 'خطأ');
     } finally {
-      setLoadingSamples(false);
+      if (!silent) setLoadingSamples(false);
     }
   };
 
   useEffect(() => {
     loadSamples();
   }, [searchParams]);
+
+  // Live Auto-Polling & Focus Sync across LAN devices (Phones / Tablets / Other PCs)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadSamples(true);
+    }, 4000);
+
+    const handleFocus = () => {
+      loadSamples(true);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('visibilitychange', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('visibilitychange', handleFocus);
+    };
+  }, []);
 
   // Select Sample with SessionStorage Draft Recovery
   const selectSample = (sample: Sample) => {
@@ -139,11 +217,27 @@ function ResultsContent() {
       if (savedDraft) {
         const parsed = JSON.parse(savedDraft);
         if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
-          const merged = { ...initial, ...parsed };
-          setTestResults(merged);
-          setIsDirty(true);
-          draftLoaded = true;
-          toast.info(`تم استرجاع مسودة غير محفوظة للعينة #${sample.sampleNumber}`);
+          const merged = { ...initial };
+          let hasRealDraftEdits = false;
+          Object.keys(parsed).forEach(k => {
+            const draftItem = parsed[k];
+            const serverItem = initial[k];
+            // Only restore if draft has actual non-empty content and server is empty
+            if (draftItem?.resultValue && draftItem.resultValue.trim() !== '') {
+              if (!serverItem?.resultValue || serverItem.resultValue.trim() === '') {
+                merged[k] = draftItem;
+                hasRealDraftEdits = true;
+              }
+            }
+          });
+          if (hasRealDraftEdits) {
+            setTestResults(merged);
+            setIsDirty(true);
+            draftLoaded = true;
+            toast.info(`تم استرجاع مسودة غير محفوظة للعينة #${sample.sampleNumber}`);
+          } else {
+            sessionStorage.removeItem(draftKey);
+          }
         }
       }
     } catch (err) {

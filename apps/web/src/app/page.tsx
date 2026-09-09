@@ -94,8 +94,16 @@ function IntakeContent() {
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [highlightedTestIndex, setHighlightedTestIndex] = useState<number>(0);
 
-  // Submission State
+  // Submission State & Duplicate Protection
   const [submitting, setSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
+  const lastSubmissionRef = useRef<{
+    patientName: string;
+    testIds: string;
+    timestamp: number;
+    sampleNumber: number | string;
+  } | null>(null);
+
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [createdSample, setCreatedSample] = useState<any | null>(null);
@@ -110,6 +118,18 @@ function IntakeContent() {
   const testSearchInputRef = useRef<HTMLInputElement | null>(null);
   const discountInputRef = useRef<HTMLInputElement | null>(null);
   const inputRefs = useRef<(HTMLInputElement | HTMLSelectElement | null)[]>([]);
+
+  // Arabic normalizer for similarity matching
+  const cleanArabic = (text: string) => {
+    if (!text) return '';
+    return text
+      .replace(/[أإآء]/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/ى/g, 'ي')
+      .replace(/[\u064B-\u065F]/g, '')
+      .toLowerCase()
+      .trim();
+  };
 
   // Initial Autofocus on Patient Name field
   useEffect(() => {
@@ -189,24 +209,38 @@ function IntakeContent() {
 
   // Typeahead Autocomplete directly on patientName input
   useEffect(() => {
-    if (!patientName.trim() || patientName.length < 2) {
+    const trimmed = patientName.trim();
+    if (!trimmed || trimmed.length < 2) {
       setNameSuggestions([]);
       setShowNameSuggestions(false);
       setHighlightedNameIndex(-1);
       return;
     }
     // If the patientName matches the already-selected patient, do not show suggestions
-    if (selectedPatientHistory && selectedPatientHistory.name === patientName.trim()) {
+    if (selectedPatientHistory && cleanArabic(selectedPatientHistory.name) === cleanArabic(trimmed)) {
       setShowNameSuggestions(false);
       return;
     }
     const delayDebounce = setTimeout(async () => {
       try {
-        const res = await apiRequest(`/patients/search?q=${encodeURIComponent(patientName.trim())}`);
+        const res = await apiRequest(`/patients/search?q=${encodeURIComponent(trimmed)}`);
         if (res && res.length > 0) {
-          setNameSuggestions(res);
-          setShowNameSuggestions(true);
-          setHighlightedNameIndex(-1);
+          const normQ = cleanArabic(trimmed);
+          // Strict similar-name filtering only
+          const strictlySimilar = res.filter((p: Patient) => {
+            const pNorm = cleanArabic(p.name || '');
+            const rawLower = (p.name || '').toLowerCase();
+            return pNorm.includes(normQ) || rawLower.includes(trimmed.toLowerCase());
+          });
+
+          if (strictlySimilar.length > 0) {
+            setNameSuggestions(strictlySimilar);
+            setShowNameSuggestions(true);
+            setHighlightedNameIndex(-1);
+          } else {
+            setNameSuggestions([]);
+            setShowNameSuggestions(false);
+          }
         } else {
           setNameSuggestions([]);
           setShowNameSuggestions(false);
@@ -591,6 +625,11 @@ function IntakeContent() {
 
   // Submit Sample
   const handleRegisterSample = useCallback(async () => {
+    // Immediate lock against rapid multi-clicking
+    if (isSubmittingRef.current || submitting) {
+      return;
+    }
+
     if (!patientName.trim()) {
       toast.error('يرجى إدخال اسم المريض', 'بيانات ناقصة');
       patientNameInputRef.current?.focus();
@@ -623,7 +662,26 @@ function IntakeContent() {
       return;
     }
 
+    // Duplicate Check: Protection against registering the same patient with same tests within 3 minutes
+    const currentTestsKey = selectedTests.map((t) => t.id).sort().join(',');
+    const normCurrentName = cleanArabic(patientName.trim());
+    if (lastSubmissionRef.current) {
+      const timeDiff = Date.now() - lastSubmissionRef.current.timestamp;
+      const isSameName = cleanArabic(lastSubmissionRef.current.patientName) === normCurrentName;
+      const isSameTests = lastSubmissionRef.current.testIds === currentTestsKey;
+
+      if (timeDiff < 180000 && isSameName && isSameTests) {
+        const remainingSec = Math.ceil((180000 - timeDiff) / 1000);
+        toast.warning(
+          `تم تسجيل هذا المريض قبل قليل (عينة رقم #${lastSubmissionRef.current.sampleNumber}) بنفس الفحوصات. تم تفعيل نظام الحماية لمنع التكرار (انتظر ${remainingSec} ثانية أو اضغط F2 لاستلام مريض جديد).`,
+          'حماية من التكرار'
+        );
+        return;
+      }
+    }
+
     try {
+      isSubmittingRef.current = true;
       setSubmitting(true);
       const sanitizedPhone = patientPhone.trim().replace(/[^0-9+\-\s]/g, '') || undefined;
       const parsedAge = patientAge.trim() ? parseInt(patientAge, 10) : undefined;
@@ -653,6 +711,14 @@ function IntakeContent() {
       const result = await apiRequest('/samples', 'POST', payload);
       toast.success(`تم تسجيل العينة #${result.sampleNumber} بنجاح!`, 'تم الحفظ');
       
+      // Update last submission ref for duplicate protection
+      lastSubmissionRef.current = {
+        patientName: patientName.trim(),
+        testIds: currentTestsKey,
+        timestamp: Date.now(),
+        sampleNumber: result.sampleNumber,
+      };
+
       // Clear draft on successful sample registration
       try {
         localStorage.removeItem(INTAKE_DRAFT_KEY);
@@ -662,9 +728,14 @@ function IntakeContent() {
       setCreatedSample(result);
       setShowSuccessModal(true);
     } catch (err: any) {
-      toast.error(err.message || 'فشل تسجيل العينة', 'خطأ');
+      if (err?.duplicate || err?.message?.includes('الحماية') || err?.message?.includes('تكرار')) {
+        toast.warning(err.message || 'تم منع تسجيل العينة لتطابقها مع عينة مسجلة للتو', 'حماية من التكرار');
+      } else {
+        toast.error(err.message || 'فشل تسجيل العينة', 'خطأ');
+      }
     } finally {
       setSubmitting(false);
+      isSubmittingRef.current = false;
     }
   }, [
     patientName,
@@ -683,7 +754,8 @@ function IntakeContent() {
     remainingBalance,
     paymentMethod,
     sampleNotes,
-    toast
+    toast,
+    submitting
   ]);
 
   // Global & Form Keyboard Navigation (F2, F8, F9, Ctrl+Enter, Arrow Catalog Nav, Modal Shortcuts)

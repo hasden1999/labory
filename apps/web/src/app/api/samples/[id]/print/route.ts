@@ -69,11 +69,43 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const qrEnabled = settings.enableQrCode !== false;
   const qrPosition = settings.qrCodePosition || 'HEADER';
 
+  // Advanced Sheet & Element Visibility Settings
+  const showLabName = settings.showLabName !== false;
+  const labNameFontSize = settings.labNameFontSize || 20;
+  const labNameColor = settings.labNameColor || primaryCol;
+  const labNameAlignment = settings.labNameAlignment || 'RIGHT';
+  const labNameStyle = settings.labNameStyle || 'DEFAULT';
+  const showLabSubtitle = settings.showLabSubtitle !== false;
+  const showContactInfo = settings.showContactInfo !== false;
+  const showDoctorInfo = settings.showDoctorInfo !== false;
+  const showPatientBox = settings.showPatientBox !== false;
+  const showReportBorder = settings.showReportBorder !== false;
+  const showFooter = settings.showFooter !== false;
+  const showFooterSignature = settings.showFooterSignature !== false;
+
+  // Watermark Settings
+  const enableWatermark = settings.enableWatermark === true;
+  const watermarkText = escapeHtml(settings.watermarkText || settings.labName || 'ORIGINAL REPORT');
+  const watermarkOpacity = settings.watermarkOpacity ?? 0.08;
+  const watermarkAngle = settings.watermarkAngle ?? -30;
+  const watermarkSize = settings.watermarkSize ?? 46;
+  const watermarkColor = settings.watermarkColor || '#0f172a';
+
   const rawBase = settings.serverBaseUrl?.trim();
   const baseDomain = rawBase || `http://${getLocalIpAddress()}:8080`;
   const cleanBase = baseDomain.replace(/\/+$/, '');
   const verifyUrl = `${cleanBase}/verify/${sample.id}`;
   const qrSvg = generateQrSvg(verifyUrl, 64);
+
+  // Watermark Layer Helper
+  const renderWatermark = () => {
+    if (!enableWatermark) return '';
+    return `
+      <div class="watermark-layer" aria-hidden="true">
+        <div class="watermark-inner">${watermarkText}</div>
+      </div>
+    `;
+  };
 
   // Tests Categorization
   const allTests = sample.tests || [];
@@ -101,63 +133,100 @@ export async function GET(request: Request, { params }: { params: { id: string }
     if (isPreprinted) {
       return `<div style="height: 10px; margin-bottom: 10px;"></div>`;
     }
+
+    const hasHeaderContent = (showLabName && safeLabName) || showLabSubtitle || showContactInfo || showDoctorInfo || (qrEnabled && qrPosition === 'HEADER');
+    if (!hasHeaderContent) {
+      return '';
+    }
+
+    let labNameStyleCss = '';
+    if (labNameStyle === 'BOLD') {
+      labNameStyleCss = 'font-weight: 900;';
+    } else if (labNameStyle === 'MODERN_BADGE') {
+      labNameStyleCss = `background: ${labNameColor}18; padding: 2px 10px; border-radius: 6px; display: inline-block;`;
+    } else if (labNameStyle === 'ELEGANT_BORDER') {
+      labNameStyleCss = `border: 1.5px solid ${labNameColor}; padding: 2px 10px; border-radius: 4px; display: inline-block;`;
+    }
+
+    const labNameAlignStyle = labNameAlignment === 'CENTER' ? 'text-align: center;' : labNameAlignment === 'LEFT' ? 'text-align: left;' : 'text-align: right;';
+
     return `
-      <div class="header-border" style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 14px; margin-bottom: 16px;">
-        <div style="text-align: right;">
-          <h1 style="margin: 0; font-size: 20px; color: ${primaryCol}; font-weight: 900;">${safeLabName}</h1>
-          <p style="margin: 3px 0 0 0; font-size: 11.5px; color: #64748b; font-weight: 600;">${safeLabSubtitle}</p>
-          <p style="margin: 4px 0 0 0; font-size: 11px; color: #475569;">العنوان: ${safeAddress} | هاتف: ${safePhone}</p>
+      <div class="header-border" style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 14px; margin-bottom: 16px; position: relative; z-index: 1;">
+        <div style="flex: 1; ${labNameAlignStyle}">
+          ${showLabName && safeLabName ? `
+            <h1 style="margin: 0; font-size: ${labNameFontSize}px; color: ${labNameColor}; font-weight: 800; ${labNameStyleCss}">
+              ${safeLabName}
+            </h1>
+          ` : ''}
+          ${showLabSubtitle && safeLabSubtitle ? `
+            <p style="margin: 3px 0 0 0; font-size: 11.5px; color: #64748b; font-weight: 600;">${safeLabSubtitle}</p>
+          ` : ''}
+          ${showContactInfo ? `
+            <p style="margin: 4px 0 0 0; font-size: 11px; color: #475569;">العنوان: ${safeAddress} | هاتف: ${safePhone}</p>
+          ` : ''}
+        </div>
+
+        ${(showDoctorInfo || (qrEnabled && qrPosition === 'HEADER')) ? `
+          <div style="display: flex; align-items: center; gap: 14px; margin-right: 16px;">
+            ${qrEnabled && qrPosition === 'HEADER' ? `
+              <div style="text-align: center;">
+                ${qrSvg}
+                <div style="font-size: 9px; color: #64748b; margin-top: 2px;">تحقق إلكتروني</div>
+              </div>
+            ` : ''}
+
+            ${showDoctorInfo ? `
+              <div style="text-align: left;" dir="ltr">
+                <div style="font-size: 13px; font-weight: 800; color: #0f172a;">${safeDocName || 'Laboratory Director'}</div>
+                <div style="font-size: 11px; color: #64748b;">${safeDocTitle || 'Consultant Clinical Pathologist'}</div>
+                <div style="font-size: 10px; color: #94a3b8;">License: ${safeLicense || 'MOH-2026'}</div>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+      </div>`;
+  };
+
+  // Shared Helper: Patient Demographics Box
+  const renderPatientMetaBox = (safePatientName: string, safeDoctorName: string) => {
+    if (!showPatientBox) return '';
+    return `
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 12px; position: relative; z-index: 1;">
+        <div><span style="color: #64748b;">اسم المريض:</span> <strong>${safePatientName}</strong></div>
+        <div><span style="color: #64748b;">العمر / الجنس:</span> <strong>${patient.age || '-'} سنة / ${patient.gender === 'FEMALE' ? 'أنثى (Female)' : 'ذكر (Male)'}</strong></div>
+        <div><span style="color: #64748b;">رقم العينة:</span> <strong style="color: ${primaryCol};">#${sample.sampleNumber}</strong></div>
+        <div><span style="color: #64748b;">الطبيب المعالج:</span> <strong>${safeDoctorName}</strong></div>
+        <div><span style="color: #64748b;">تاريخ الفحص:</span> <strong>${new Date(sample.createdAt).toLocaleDateString('ar-IQ')}</strong></div>
+        <div><span style="color: #64748b;">حالة التقرير:</span> <strong style="color: #16a34a;">معتمد نهائي (Verified)</strong></div>
+      </div>`;
+  };
+
+  // Shared Helper: Legal Accreditation Footer
+  const renderFooter = (safeFooter: string, safeLabName: string) => {
+    if (!showFooter) return '';
+    return `
+      <div style="margin-top: 24px; border-top: 1px dashed #cbd5e1; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; color: #64748b; position: relative; z-index: 1;">
+        <div>
+          <div>${safeFooter || 'تم فحص وتدقيق التقرير إلكترونياً وهو معتمد رسمياً.'}</div>
+          ${isPreprinted || !showLabName ? '' : `<div style="margin-top: 2px; color: #94a3b8;">${safeLabName} • تشخيص مخبري معتمد</div>`}
         </div>
 
         <div style="display: flex; align-items: center; gap: 14px;">
-          ${qrEnabled && qrPosition === 'HEADER' ? `
+          ${qrEnabled && qrPosition === 'FOOTER' ? `
             <div style="text-align: center;">
               ${qrSvg}
               <div style="font-size: 9px; color: #64748b; margin-top: 2px;">تحقق إلكتروني</div>
             </div>
           ` : ''}
-
-          <div style="text-align: left;" dir="ltr">
-            <div style="font-size: 13px; font-weight: 800; color: #0f172a;">${safeDocName || 'Laboratory Director'}</div>
-            <div style="font-size: 11px; color: #64748b;">${safeDocTitle || 'Consultant Clinical Pathologist'}</div>
-            <div style="font-size: 10px; color: #94a3b8;">License: ${safeLicense || 'MOH-2026'}</div>
-          </div>
+          ${showFooterSignature ? `
+            <div style="font-weight: 700; color: #0f172a; text-align: left;" dir="ltr">
+              <div>Approved by Clinical Pathologist</div>
+              <div style="font-size: 9px; color: #64748b;">Labryo Clinical LIS Validated</div>
+            </div>
+          ` : ''}
         </div>
       </div>`;
   };
-
-  // Shared Helper: Patient Demographics Box
-  const renderPatientMetaBox = (safePatientName: string, safeDoctorName: string) => `
-    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 12px;">
-      <div><span style="color: #64748b;">اسم المريض:</span> <strong>${safePatientName}</strong></div>
-      <div><span style="color: #64748b;">العمر / الجنس:</span> <strong>${patient.age || '-'} سنة / ${patient.gender === 'FEMALE' ? 'أنثى (Female)' : 'ذكر (Male)'}</strong></div>
-      <div><span style="color: #64748b;">رقم العينة:</span> <strong style="color: ${primaryCol};">#${sample.sampleNumber}</strong></div>
-      <div><span style="color: #64748b;">الطبيب المعالج:</span> <strong>${safeDoctorName}</strong></div>
-      <div><span style="color: #64748b;">تاريخ الفحص:</span> <strong>${new Date(sample.createdAt).toLocaleDateString('ar-IQ')}</strong></div>
-      <div><span style="color: #64748b;">حالة التقرير:</span> <strong style="color: #16a34a;">معتمد نهائي (Verified)</strong></div>
-    </div>`;
-
-  // Shared Helper: Legal Accreditation Footer
-  const renderFooter = (safeFooter: string, safeLabName: string) => `
-    <div style="margin-top: 24px; border-top: 1px dashed #cbd5e1; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; color: #64748b;">
-      <div>
-        <div>${safeFooter || 'تم فحص وتدقيق التقرير إلكترونياً وهو معتمد رسمياً.'}</div>
-        ${isPreprinted ? '' : `<div style="margin-top: 2px; color: #94a3b8;">${safeLabName} • تشخيص مخبري معتمد</div>`}
-      </div>
-
-      <div style="display: flex; align-items: center; gap: 14px;">
-        ${qrEnabled && qrPosition === 'FOOTER' ? `
-          <div style="text-align: center;">
-            ${qrSvg}
-            <div style="font-size: 9px; color: #64748b; margin-top: 2px;">تحقق إلكتروني</div>
-          </div>
-        ` : ''}
-        <div style="font-weight: 700; color: #0f172a; text-align: left;" dir="ltr">
-          <div>Approved by Clinical Pathologist</div>
-          <div style="font-size: 9px; color: #64748b;">Labryo Clinical LIS Validated</div>
-        </div>
-      </div>
-    </div>`;
 
   // ---------------------------------------------------------------
   // Template CSS Styling Variations
@@ -211,6 +280,30 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const renderedPages: string[] = [];
 
+  // Helper: Clinical Finding Badge with strict Left-to-Right layout and Bidi isolation
+  const renderClinicalFindingBadge = (p: string, forceAbnormal = false) => {
+    const isAbn = forceAbnormal || 
+      p.includes('1+') || p.includes('2+') || p.includes('3+') || p.includes('4+') || 
+      p.includes('Positive') || p.includes('+++') || p.includes('++') || 
+      p.includes('Full') || p.includes('Bloody') || 
+      p.includes('15-20') || p.includes('25-35') || p.includes('30-40') || p.includes('40-50');
+
+    const colonIdx = p.indexOf(':');
+    let innerHtml = '';
+    if (colonIdx > 0) {
+      const key = p.substring(0, colonIdx).trim();
+      const val = p.substring(colonIdx + 1).trim();
+      innerHtml = `<span style="color: ${isAbn ? '#991b1b' : '#64748b'}; font-weight: 700; white-space: nowrap;">${escapeHtml(key)}:</span> <span style="color: ${isAbn ? '#b91c1c' : '#0f172a'}; font-weight: 800; unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(val)}</span>`;
+    } else {
+      innerHtml = `<span style="color: ${isAbn ? '#b91c1c' : '#0f172a'}; font-weight: 800; unicode-bidi: isolate;">${escapeHtml(p)}</span>`;
+    }
+
+    const bg = isAbn ? '#fef2f2' : '#f8fafc';
+    const bdr = isAbn ? '#fca5a5' : '#e2e8f0';
+
+    return `<div style="background: ${bg}; border: 1px solid ${bdr}; padding: 6px 10px; border-radius: 4px; font-size: 11.5px; text-align: left; direction: ltr; unicode-bidi: isolate; display: flex; align-items: center; justify-content: flex-start;">${innerHtml}</div>`;
+  };
+
   // 1. General Laboratory Tests (Blood, Chemistry, Hormones, etc.)
   if (generalTests.length > 0) {
     const generalRows = generalTests.map((t: any) => {
@@ -233,17 +326,17 @@ export async function GET(request: Request, { params }: { params: { id: string }
             const body = cleanLine.substring(colonIdx + 1).trim();
             const items = body.split('|').map(p => p.trim());
             contentHtml += `
-              <div style="margin-bottom: 6px;">
-                <div style="font-size: 11px; font-weight: 800; color: #e11d48; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">${escapeHtml(title)}</div>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; font-size: 11px;">
-                  ${items.map(p => `<div style="background: #ffffff; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0;">${escapeHtml(p)}</div>`).join('')}
+              <div style="margin-bottom: 6px;" dir="ltr">
+                <div style="font-size: 11px; font-weight: 800; color: #e11d48; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px; text-align: left;" dir="ltr">${escapeHtml(title)}</div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; font-size: 11px;" dir="ltr">
+                  ${items.map(p => renderClinicalFindingBadge(p)).join('')}
                 </div>
               </div>`;
           } else {
-            contentHtml += `<div style="background: #ffffff; border: 1px solid #e2e8f0; padding: 3px 8px; border-radius: 4px; font-size: 11px; margin-bottom: 4px;">${escapeHtml(cleanLine)}</div>`;
+            contentHtml += `<div style="margin-bottom: 4px;" dir="ltr">${renderClinicalFindingBadge(cleanLine)}</div>`;
           }
         });
-        displayValue = `<div style="text-align: left; background: #fff1f2; padding: 8px 12px; border-radius: 8px; border: 1px solid #fecdd3; max-width: 520px; margin: 4px 0;">${contentHtml}</div>`;
+        displayValue = `<div style="text-align: left; background: #fff1f2; padding: 8px 12px; border-radius: 8px; border: 1px solid #fecdd3; max-width: 520px; margin: 4px 0;" dir="ltr">${contentHtml}</div>`;
       } else if (typeof t.resultValue === 'string' && (t.resultValue.includes('MICROBIOLOGY') || t.resultValue.includes('ANTIBIOGRAM:'))) {
         const clean = t.resultValue.replace(/\[.*?MICROBIOLOGY.*?\]/gi, '').trim();
         const lines = clean.split('\n').filter(Boolean);
@@ -301,6 +394,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     renderedPages.push(`
       <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
+        ${renderWatermark()}
         ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
         ${renderPatientMetaBox(safePatientName, safeDoctorName)}
         <table dir="ltr" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; text-align: left;">
@@ -321,30 +415,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
       </div>
     `);
   }
-
-  // Helper: Clinical Finding Badge with strict Left-to-Right layout and Bidi isolation
-  const renderClinicalFindingBadge = (p: string, forceAbnormal = false) => {
-    const isAbn = forceAbnormal || 
-      p.includes('1+') || p.includes('2+') || p.includes('3+') || p.includes('4+') || 
-      p.includes('Positive') || p.includes('+++') || p.includes('++') || 
-      p.includes('Full') || p.includes('Bloody') || 
-      p.includes('15-20') || p.includes('25-35') || p.includes('30-40') || p.includes('40-50');
-
-    const colonIdx = p.indexOf(':');
-    let innerHtml = '';
-    if (colonIdx > 0) {
-      const key = p.substring(0, colonIdx).trim();
-      const val = p.substring(colonIdx + 1).trim();
-      innerHtml = `<span style="color: ${isAbn ? '#991b1b' : '#64748b'}; font-weight: 700; white-space: nowrap;">${escapeHtml(key)}:</span> <span style="color: ${isAbn ? '#b91c1c' : '#0f172a'}; font-weight: 800; unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(val)}</span>`;
-    } else {
-      innerHtml = `<span style="color: ${isAbn ? '#b91c1c' : '#0f172a'}; font-weight: 800; unicode-bidi: isolate;">${escapeHtml(p)}</span>`;
-    }
-
-    const bg = isAbn ? '#fef2f2' : '#f8fafc';
-    const bdr = isAbn ? '#fca5a5' : '#e2e8f0';
-
-    return `<div style="background: ${bg}; border: 1px solid ${bdr}; padding: 6px 10px; border-radius: 4px; font-size: 11.5px; text-align: left; direction: ltr; unicode-bidi: isolate; display: flex; align-items: center; justify-content: flex-start;">${innerHtml}</div>`;
-  };
 
   // 2. Dedicated General Urine Examination (G.U.E) Page
   for (const gue of gueTests) {
@@ -371,6 +441,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     renderedPages.push(`
       <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
+        ${renderWatermark()}
         ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
         ${renderPatientMetaBox(safePatientName, safeDoctorName)}
         
@@ -454,6 +525,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     renderedPages.push(`
       <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
+        ${renderWatermark()}
         ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
         ${renderPatientMetaBox(safePatientName, safeDoctorName)}
         
@@ -529,6 +601,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   if (renderedPages.length === 0) {
     renderedPages.push(`
       <div class="${containerClass}">
+        ${renderWatermark()}
         ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
         ${renderPatientMetaBox(safePatientName, safeDoctorName)}
         <div style="padding: 30px; text-align: center; color: #64748b; font-size: 13px;">
@@ -564,12 +637,42 @@ export async function GET(request: Request, { params }: { params: { id: string }
       padding: 24px;
       position: relative;
       background: #ffffff;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-      border-radius: 8px;
+      box-shadow: ${showReportBorder ? '0 4px 15px rgba(0,0,0,0.05)' : 'none'};
+      border-radius: ${showReportBorder ? '8px' : '0'};
+      overflow: hidden;
+      ${!showReportBorder ? 'border: none !important;' : ''}
     }
     .page-break {
       page-break-before: always;
       break-before: page;
+    }
+    .watermark-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .watermark-inner {
+      transform: rotate(${watermarkAngle}deg);
+      font-size: ${watermarkSize}px;
+      font-weight: 900;
+      color: ${watermarkColor};
+      opacity: ${watermarkOpacity};
+      white-space: nowrap;
+      user-select: none;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    table, .header-border {
+      position: relative;
+      z-index: 1;
     }
     .print-btn-bar {
       max-width: 820px;
@@ -596,6 +699,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
       .report-card { border: none !important; box-shadow: none !important; padding: 0 !important; width: 100% !important; max-width: none !important; margin: 0 !important; border-radius: 0 !important; }
       .page-break { page-break-before: always !important; break-before: page !important; }
       .print-btn-bar { display: none !important; }
+      .watermark-inner {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
       tr { page-break-inside: avoid; }
     }
   </style>

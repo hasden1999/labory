@@ -46,8 +46,8 @@ function PatientsContent() {
   const [patientAge, setPatientAge] = useState('');
   const [patientGender, setPatientGender] = useState<'MALE' | 'FEMALE'>('MALE');
 
-  const loadPatients = async () => {
-    setLoading(true);
+  const loadPatients = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await apiRequest('/patients');
       setPatients(res || []);
@@ -60,15 +60,35 @@ function PatientsContent() {
         setSelectedPatientId(res[0].id);
       }
     } catch (err: any) {
-      toast.error('فشل في جلب سجل المرضى', 'خطأ');
+      if (!silent) toast.error('فشل في جلب سجل المرضى', 'خطأ');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     loadPatients();
   }, []);
+
+  // Live Auto-Polling & Focus Sync across LAN devices
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadPatients(true);
+    }, 5000);
+
+    const handleFocus = () => {
+      loadPatients(true);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('visibilitychange', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('visibilitychange', handleFocus);
+    };
+  }, [selectedPatientId]);
 
   // Fetch full details when selectedPatientId changes
   useEffect(() => {
@@ -116,7 +136,11 @@ function PatientsContent() {
       await loadPatients();
       setSelectedPatientId(newP.id);
     } catch (err: any) {
-      toast.error(err.message || 'خطأ أثناء إضافة المريض', 'فشل العملية');
+      if (err?.duplicate) {
+        toast.warning(err.message, 'حماية من التكرار');
+      } else {
+        toast.error(err.message || 'خطأ أثناء إضافة المريض', 'فشل العملية');
+      }
     }
   };
 

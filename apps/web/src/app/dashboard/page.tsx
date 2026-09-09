@@ -30,8 +30,8 @@ export default function DashboardPage() {
   const [whatsappPhone, setWhatsappPhone] = useState('');
   const [whatsappText, setWhatsappText] = useState('');
 
-  const loadData = async (showNotification = false) => {
-    setLoading(true);
+  const loadData = async (showNotification = false, silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [dashRes, samplesRes] = await Promise.all([
         apiRequest('/reports/dashboard'),
@@ -43,14 +43,34 @@ export default function DashboardPage() {
         toast.success('تم تحديث المؤشرات والعمليات بنجاح!', 'تحديث حي');
       }
     } catch (err: any) {
-      toast.error('فشل في جلب بيانات لوحة التحكم', 'خطأ');
+      if (!silent) toast.error('فشل في جلب بيانات لوحة التحكم', 'خطأ');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     loadData(false);
+  }, []);
+
+  // Live Auto-Polling & Focus Sync across LAN devices
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadData(false, true);
+    }, 5000);
+
+    const handleFocus = () => {
+      loadData(false, true);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('visibilitychange', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('visibilitychange', handleFocus);
+    };
   }, []);
 
   const handleOpenWhatsApp = (sample: Sample) => {

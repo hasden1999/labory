@@ -142,11 +142,16 @@ export async function apiRequest<T = any>(
       if (fallback !== null) return fallback as unknown as T;
 
       let errMessage = 'حدث خطأ في الاتصال بالسيرفر';
+      let errJson: any = null;
       try {
-        const errJson = await response.json();
+        errJson = await response.json();
         errMessage = errJson.message || errMessage;
       } catch {}
-      throw new Error(errMessage);
+      const errObj: any = new Error(errMessage);
+      if (errJson && typeof errJson === 'object') {
+        Object.assign(errObj, errJson);
+      }
+      throw errObj;
     }
 
     const contentType = response.headers.get('content-type');

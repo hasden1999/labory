@@ -417,7 +417,9 @@ export default function CbcModal({
             1. TOP CLINICAL HEADER BAR
            ======================================================== */}
         <div
+          dir="ltr"
           style={{
+            direction: 'ltr',
             padding: '12px 20px',
             background: 'var(--bg-card)',
             borderBottom: '1px solid var(--border-color)',
@@ -642,15 +644,17 @@ export default function CbcModal({
           {/* ----------------------------------------------------
               LEFT PANEL: STRUCTURED TABBED FORM (MODEL B)
              ---------------------------------------------------- */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div dir="ltr" style={{ display: 'flex', flexDirection: 'column', gap: '12px', direction: 'ltr', textAlign: 'left' }}>
             {/* Tab Navigation Header */}
             <div
+              dir="ltr"
               style={{
                 display: 'flex',
                 background: 'var(--bg-input)',
                 padding: '4px',
                 borderRadius: '10px',
                 gap: '4px',
+                direction: 'ltr',
               }}
             >
               <button
@@ -1329,7 +1333,10 @@ export default function CbcModal({
               RIGHT PANEL: DEDICATED A4 CLINICAL REPORT PREVIEW
              ---------------------------------------------------- */}
           <div
+            dir="ltr"
             style={{
+              direction: 'ltr',
+              textAlign: 'left',
               background: '#ffffff',
               border: '1px solid #cbd5e1',
               borderRadius: '12px',
@@ -1343,16 +1350,19 @@ export default function CbcModal({
           >
             {/* Header of Preview */}
             <div
+              dir="ltr"
               style={{
+                direction: 'ltr',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 borderBottom: '2px solid #dc2626',
                 paddingBottom: '10px',
                 marginBottom: '12px',
+                textAlign: 'left',
               }}
             >
-              <div>
+              <div style={{ textAlign: 'left' }}>
                 <span
                   style={{
                     fontSize: '10px',
@@ -1365,7 +1375,7 @@ export default function CbcModal({
                 >
                   A4 REPORT PREVIEW
                 </span>
-                <h4 style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a', margin: '4px 0 0 0' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a', margin: '4px 0 0 0', textAlign: 'left' }}>
                   Complete Blood Count (CBC)
                 </h4>
               </div>
@@ -1377,97 +1387,97 @@ export default function CbcModal({
             </div>
 
             {/* Preview Tables */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '11px' }}>
+            <div dir="ltr" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '11px', direction: 'ltr', textAlign: 'left' }}>
               {/* Section 1: Erythroid */}
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: 800, color: '#dc2626', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', marginBottom: '4px' }}>
+              <div dir="ltr" style={{ direction: 'ltr', textAlign: 'left' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#dc2626', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', marginBottom: '4px', textAlign: 'left' }}>
                   ERYTHROID SERIES (RBCs)
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table dir="ltr" style={{ width: '100%', borderCollapse: 'collapse', direction: 'ltr', textAlign: 'left' }}>
                   <tbody>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>RBC:</td>
-                      <td style={{ fontWeight: 700, color: rbcNum < 4.0 || rbcNum > 6.2 ? '#dc2626' : '#0f172a' }}>{data.rbc} 10^6</td>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>HGB:</td>
-                      <td style={{ fontWeight: 800, color: parseFloat(data.hgb) < 12.0 ? '#dc2626' : '#0f172a' }}>{data.hgb} g/dL</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left', width: '22%' }}>RBC:</td>
+                      <td style={{ fontWeight: 700, color: rbcNum < 4.0 || rbcNum > 6.2 ? '#dc2626' : '#0f172a', textAlign: 'left', width: '28%' }}>{data.rbc} 10^6</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left', width: '22%' }}>HGB:</td>
+                      <td style={{ fontWeight: 800, color: parseFloat(data.hgb) < 12.0 ? '#dc2626' : '#0f172a', textAlign: 'left', width: '28%' }}>{data.hgb} g/dL</td>
                     </tr>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>HCT:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.hct} %</td>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>MCV:</td>
-                      <td style={{ fontWeight: 700, color: parseFloat(data.mcv) < 80 ? '#dc2626' : '#0f172a' }}>{data.mcv} fL</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left', width: '22%' }}>HCT:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', textAlign: 'left', width: '28%' }}>{data.hct} %</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left', width: '22%' }}>MCV:</td>
+                      <td style={{ fontWeight: 700, color: parseFloat(data.mcv) < 80 ? '#dc2626' : '#0f172a', textAlign: 'left', width: '28%' }}>{data.mcv} fL</td>
                     </tr>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>MCH:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.mch} pg</td>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>MCHC:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.mchc} g/dL</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left', width: '22%' }}>MCH:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', textAlign: 'left', width: '28%' }}>{data.mch} pg</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left', width: '22%' }}>MCHC:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', textAlign: 'left', width: '28%' }}>{data.mchc} g/dL</td>
                     </tr>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>RDW-CV:</td>
-                      <td colSpan={3} style={{ fontWeight: 700, color: parseFloat(data.rdw) > 15 ? '#dc2626' : '#0f172a' }}>{data.rdw} %</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left', width: '22%' }}>RDW-CV:</td>
+                      <td colSpan={3} style={{ fontWeight: 700, color: parseFloat(data.rdw) > 15 ? '#dc2626' : '#0f172a', textAlign: 'left' }}>{data.rdw} %</td>
                     </tr>
                   </tbody>
                 </table>
                 {mentzer && (
-                  <div style={{ fontSize: '10px', color: '#0369a1', background: '#f0f9ff', padding: '2px 6px', borderRadius: '4px', marginTop: '3px' }}>
+                  <div dir="ltr" style={{ fontSize: '10px', color: '#0369a1', background: '#f0f9ff', padding: '2px 6px', borderRadius: '4px', marginTop: '3px', direction: 'ltr', textAlign: 'left' }}>
                     Mentzer: {mentzer.value} ({mentzer.interpretation})
                   </div>
                 )}
               </div>
 
               {/* Section 2: Leukocytes & Differential */}
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: 800, color: '#0284c7', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', marginBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
+              <div dir="ltr" style={{ direction: 'ltr', textAlign: 'left' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#0284c7', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', direction: 'ltr', textAlign: 'left' }}>
                   <span>LEUKOCYTES & 5-PART DIFF</span>
                   <span style={{ color: isDiffValid ? '#047857' : '#dc2626' }}>Sum: {diffSum}%</span>
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table dir="ltr" style={{ width: '100%', borderCollapse: 'collapse', direction: 'ltr', textAlign: 'left' }}>
                   <tbody>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Total WBC:</td>
-                      <td colSpan={3} style={{ fontWeight: 800, color: totalWbcNum < 4.0 || totalWbcNum > 11.0 ? '#dc2626' : '#0f172a' }}>
+                      <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left', width: '25%' }}>Total WBC:</td>
+                      <td colSpan={3} style={{ fontWeight: 800, color: totalWbcNum < 4.0 || totalWbcNum > 11.0 ? '#dc2626' : '#0f172a', textAlign: 'left' }}>
                         {data.wbc} x10^3/uL
                       </td>
                     </tr>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '1px 0' }}>Neut:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.neutrophils}%</td>
-                      <td style={{ color: '#64748b', padding: '1px 0' }}>Lymph:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.lymphocytes}%</td>
+                      <td style={{ color: '#64748b', padding: '2px 0', textAlign: 'left', width: '22%' }}>Neut:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', textAlign: 'left', width: '28%' }}>{data.neutrophils}%</td>
+                      <td style={{ color: '#64748b', padding: '2px 0', textAlign: 'left', width: '22%' }}>Lymph:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', textAlign: 'left', width: '28%' }}>{data.lymphocytes}%</td>
                     </tr>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '1px 0' }}>Mono:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.monocytes}%</td>
-                      <td style={{ color: '#64748b', padding: '1px 0' }}>Eos:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.eosinophils}%</td>
+                      <td style={{ color: '#64748b', padding: '2px 0', textAlign: 'left', width: '22%' }}>Mono:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', textAlign: 'left', width: '28%' }}>{data.monocytes}%</td>
+                      <td style={{ color: '#64748b', padding: '2px 0', textAlign: 'left', width: '22%' }}>Eos:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', textAlign: 'left', width: '28%' }}>{data.eosinophils}%</td>
                     </tr>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '1px 0' }}>Baso:</td>
-                      <td colSpan={3} style={{ fontWeight: 700, color: '#0f172a' }}>{data.basophils}%</td>
+                      <td style={{ color: '#64748b', padding: '2px 0', textAlign: 'left', width: '22%' }}>Baso:</td>
+                      <td colSpan={3} style={{ fontWeight: 700, color: '#0f172a', textAlign: 'left' }}>{data.basophils}%</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
               {/* Section 3: Platelets */}
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: 800, color: '#d97706', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', marginBottom: '4px' }}>
+              <div dir="ltr" style={{ direction: 'ltr', textAlign: 'left' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#d97706', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', marginBottom: '4px', textAlign: 'left' }}>
                   PLATELETS & INDICES
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table dir="ltr" style={{ width: '100%', borderCollapse: 'collapse', direction: 'ltr', textAlign: 'left' }}>
                   <tbody>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>PLT:</td>
-                      <td style={{ fontWeight: 800, color: parseFloat(data.plt) < 150 ? '#dc2626' : '#0f172a' }}>{data.plt} x10^3</td>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>MPV:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.mpv} fL</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left', width: '22%' }}>PLT:</td>
+                      <td style={{ fontWeight: 800, color: parseFloat(data.plt) < 150 ? '#dc2626' : '#0f172a', textAlign: 'left', width: '28%' }}>{data.plt} x10^3</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left', width: '22%' }}>MPV:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', textAlign: 'left', width: '28%' }}>{data.mpv} fL</td>
                     </tr>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>PDW:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.pdw} %</td>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>PCT:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.pct} %</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left', width: '22%' }}>PDW:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', textAlign: 'left', width: '28%' }}>{data.pdw} %</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left', width: '22%' }}>PCT:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', textAlign: 'left', width: '28%' }}>{data.pct} %</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1475,12 +1485,12 @@ export default function CbcModal({
 
               {/* Section 4: Morphology & Comments */}
               {data.morphology && (
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '6px 8px', borderRadius: '4px', fontSize: '10.5px' }}>
+                <div dir="ltr" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '6px 8px', borderRadius: '4px', fontSize: '10.5px', direction: 'ltr', textAlign: 'left' }}>
                   <strong>Morphology:</strong> {data.morphology}
                 </div>
               )}
               {data.comments && (
-                <div style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '6px 8px', borderRadius: '4px', fontSize: '10.5px', color: '#334155' }}>
+                <div dir="ltr" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '6px 8px', borderRadius: '4px', fontSize: '10.5px', color: '#334155', direction: 'ltr', textAlign: 'left' }}>
                   <strong>Comments:</strong> {data.comments}
                 </div>
               )}
@@ -1488,6 +1498,7 @@ export default function CbcModal({
 
             {/* Stamp / verification text */}
             <div
+              dir="ltr"
               style={{
                 marginTop: 'auto',
                 paddingTop: '10px',
@@ -1497,6 +1508,7 @@ export default function CbcModal({
                 alignItems: 'center',
                 fontSize: '9.5px',
                 color: '#94a3b8',
+                direction: 'ltr',
               }}
             >
               <span>Labryo Diagnostic System • Verified</span>

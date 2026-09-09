@@ -460,15 +460,19 @@ export default function UrineFormModal({
         {/* ========================================================
             1. TOP CLINICAL HEADER BAR
            ======================================================== */}
-        <div style={{
-          padding: '12px 20px',
-          background: 'var(--bg-card-subtle)',
-          borderBottom: '1px solid var(--border-color)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '12px',
-        }}>
+        <div
+          dir="ltr"
+          style={{
+            direction: 'ltr',
+            padding: '12px 20px',
+            background: 'var(--bg-card-subtle)',
+            borderBottom: '1px solid var(--border-color)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
           {/* Patient Details */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -609,16 +613,20 @@ export default function UrineFormModal({
           {/* ----------------------------------------------------
               LEFT PANEL: STRUCTURED TABBED FORM (MODEL B)
              ---------------------------------------------------- */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div dir="ltr" style={{ display: 'flex', flexDirection: 'column', gap: '12px', direction: 'ltr', textAlign: 'left' }}>
             
             {/* Tab Navigation Header */}
-            <div style={{
-              display: 'flex',
-              background: '#e2e8f0',
-              padding: '4px',
-              borderRadius: '10px',
-              gap: '4px',
-            }}>
+            <div
+              dir="ltr"
+              style={{
+                display: 'flex',
+                background: '#e2e8f0',
+                padding: '4px',
+                borderRadius: '10px',
+                gap: '4px',
+                direction: 'ltr',
+              }}
+            >
               <button
                 type="button"
                 onClick={() => setActiveTab('PHYSICAL')}
@@ -1081,31 +1089,41 @@ export default function UrineFormModal({
           {/* ----------------------------------------------------
               RIGHT PANEL: LIVE PATIENT REPORT PRINT PREVIEW (MODEL B FEATURE)
              ---------------------------------------------------- */}
-          <div style={{
-            background: '#ffffff',
-            border: '1px solid #cbd5e1',
-            borderRadius: '12px',
-            padding: '16px',
-            boxShadow: '0 4px 14px rgba(0,0,0,0.05)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflowY: 'auto',
-          }}>
+          <div
+            dir="ltr"
+            style={{
+              direction: 'ltr',
+              textAlign: 'left',
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
+              borderRadius: '12px',
+              padding: '16px',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              overflowY: 'auto',
+            }}
+          >
             
             {/* Header of Preview */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              borderBottom: '2px solid #0284c7',
-              paddingBottom: '10px',
-              marginBottom: '12px',
-            }}>
-              <div>
+            <div
+              dir="ltr"
+              style={{
+                direction: 'ltr',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '2px solid #0284c7',
+                paddingBottom: '10px',
+                marginBottom: '12px',
+                textAlign: 'left',
+              }}
+            >
+              <div style={{ textAlign: 'left' }}>
                 <span style={{ fontSize: '10px', background: '#0284c7', color: '#ffffff', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
                   A4 REPORT PREVIEW
                 </span>
-                <h4 style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a', margin: '4px 0 0 0' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a', margin: '4px 0 0 0', textAlign: 'left' }}>
                   General Urine Examination (G.U.E)
                 </h4>
               </div>
@@ -1117,80 +1135,80 @@ export default function UrineFormModal({
             </div>
 
             {/* Preview Mini Tables */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '11px' }}>
+            <div dir="ltr" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '11px', direction: 'ltr', textAlign: 'left' }}>
               
               {/* Section 1: Physical */}
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: 800, color: '#0284c7', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px' }}>
+              <div dir="ltr" style={{ direction: 'ltr', textAlign: 'left' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#0284c7', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px', textAlign: 'left' }}>
                   PHYSICAL EXAMINATION
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table dir="ltr" style={{ width: '100%', borderCollapse: 'collapse', direction: 'ltr', textAlign: 'left' }}>
                   <tbody>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Color:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.color}</td>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Clarity:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.appearance}</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Color:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', width: '25%', textAlign: 'left' }}>{data.color}</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Clarity:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', width: '25%', textAlign: 'left' }}>{data.appearance}</td>
                     </tr>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Sp. Gravity:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.spGravity}</td>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Reaction (pH):</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.reactionPh}</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Sp. Gravity:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', width: '25%', textAlign: 'left' }}>{data.spGravity}</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Reaction (pH):</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', width: '25%', textAlign: 'left' }}>{data.reactionPh}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
               {/* Section 2: Chemical */}
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: 800, color: '#0284c7', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px' }}>
+              <div dir="ltr" style={{ direction: 'ltr', textAlign: 'left' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#0284c7', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px', textAlign: 'left' }}>
                   CHEMICAL EXAMINATION
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table dir="ltr" style={{ width: '100%', borderCollapse: 'collapse', direction: 'ltr', textAlign: 'left' }}>
                   <tbody>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Protein:</td>
-                      <td style={{ fontWeight: 700, color: isProteinAbnormal ? '#dc2626' : '#0f172a' }}>{data.protein}</td>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Glucose:</td>
-                      <td style={{ fontWeight: 700, color: isGlucoseAbnormal ? '#dc2626' : '#0f172a' }}>{data.glucose}</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Protein:</td>
+                      <td style={{ fontWeight: 700, color: isProteinAbnormal ? '#dc2626' : '#0f172a', width: '25%', textAlign: 'left' }}>{data.protein}</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Glucose:</td>
+                      <td style={{ fontWeight: 700, color: isGlucoseAbnormal ? '#dc2626' : '#0f172a', width: '25%', textAlign: 'left' }}>{data.glucose}</td>
                     </tr>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Ketones:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.ketones}</td>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Blood:</td>
-                      <td style={{ fontWeight: 700, color: isBloodAbnormal ? '#dc2626' : '#0f172a' }}>{data.blood}</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Ketones:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', width: '25%', textAlign: 'left' }}>{data.ketones}</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Blood:</td>
+                      <td style={{ fontWeight: 700, color: isBloodAbnormal ? '#dc2626' : '#0f172a', width: '25%', textAlign: 'left' }}>{data.blood}</td>
                     </tr>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Nitrite:</td>
-                      <td style={{ fontWeight: 700, color: isNitriteAbnormal ? '#dc2626' : '#0f172a' }}>{data.nitrite}</td>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Leukocytes:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.leukocyteEsterase}</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Nitrite:</td>
+                      <td style={{ fontWeight: 700, color: isNitriteAbnormal ? '#dc2626' : '#0f172a', width: '25%', textAlign: 'left' }}>{data.nitrite}</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Leukocytes:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', width: '25%', textAlign: 'left' }}>{data.leukocyteEsterase}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
               {/* Section 3: Microscopic */}
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: 800, color: '#0284c7', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px' }}>
+              <div dir="ltr" style={{ direction: 'ltr', textAlign: 'left' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#0284c7', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px', textAlign: 'left' }}>
                   MICROSCOPIC EXAMINATION (HPF)
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table dir="ltr" style={{ width: '100%', borderCollapse: 'collapse', direction: 'ltr', textAlign: 'left' }}>
                   <tbody>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0', width: '25%' }}>Pus Cells:</td>
-                      <td style={{ fontWeight: 700, color: isPusAbnormal ? '#dc2626' : '#0f172a', width: '25%' }}>{data.pusCells} /HPF</td>
-                      <td style={{ color: '#64748b', padding: '2px 0', width: '25%' }}>RBCs:</td>
-                      <td style={{ fontWeight: 700, color: isRbcAbnormal ? '#dc2626' : '#0f172a', width: '25%' }}>{data.rbcs} /HPF</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Pus Cells:</td>
+                      <td style={{ fontWeight: 700, color: isPusAbnormal ? '#dc2626' : '#0f172a', width: '25%', textAlign: 'left' }}>{data.pusCells} /HPF</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>RBCs:</td>
+                      <td style={{ fontWeight: 700, color: isRbcAbnormal ? '#dc2626' : '#0f172a', width: '25%', textAlign: 'left' }}>{data.rbcs} /HPF</td>
                     </tr>
                     <tr>
-                      <td style={{ color: '#64748b', padding: '2px 0' }}>Epithelial:</td>
-                      <td style={{ fontWeight: 700, color: '#0f172a' }}>{data.epithelialCells}</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Epithelial:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', width: '25%', textAlign: 'left' }}>{data.epithelialCells}</td>
                       {data.bacteria !== 'Nil' ? (
                         <>
-                          <td style={{ color: '#64748b', padding: '2px 0' }}>Bacteria:</td>
-                          <td style={{ fontWeight: 700, color: '#dc2626' }}>{data.bacteria}</td>
+                          <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Bacteria:</td>
+                          <td style={{ fontWeight: 700, color: '#dc2626', width: '25%', textAlign: 'left' }}>{data.bacteria}</td>
                         </>
                       ) : (
                         <td colSpan={2}></td>

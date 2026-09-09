@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getStore, addPatient } from '../../../lib/serverStore';
+import { getStore, addPatient, normalizeArabic } from '../../../lib/serverStore';
 
 export async function GET() {
   const store = getStore();
@@ -23,6 +23,39 @@ export async function POST(request: Request) {
     if (!body?.name?.trim()) {
       return NextResponse.json({ message: 'يرجى إدخال اسم المريض' }, { status: 400 });
     }
+
+    const store = getStore();
+    const candidateName = body.name.trim();
+    const normName = normalizeArabic(candidateName);
+    const cleanPhone = (body.phone || '').replace(/[^0-9]/g, '');
+
+    // Duplicate Check: if identical patient was created in the last 3 minutes
+    if (!body.forceDuplicate) {
+      const now = Date.now();
+      const duplicate = store.patients.find((p) => {
+        const createdTime = new Date(p.createdAt || '').getTime();
+        if (isNaN(createdTime) || now - createdTime > 180000) return false;
+
+        const sameName = normalizeArabic(p.name || '') === normName;
+        const pPhone = (p.phone || '').replace(/[^0-9]/g, '');
+        if (cleanPhone && pPhone) {
+          return sameName && cleanPhone === pPhone;
+        }
+        return sameName;
+      });
+
+      if (duplicate) {
+        return NextResponse.json(
+          {
+            duplicate: true,
+            duplicatePatientId: duplicate.id,
+            message: `تم تسجيل المريض (${duplicate.name}) للتو قبل أقل من 3 دقائق. تم منع التكرار لحماية السجلات.`,
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     const newPatient = addPatient({
       name: body.name,
       phone: body.phone,

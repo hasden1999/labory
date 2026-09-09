@@ -7,7 +7,7 @@ import { useToast } from './Toast';
 import { Building2, Sparkles, CheckCircle2, Layout, Phone, MapPin, UserCheck, Printer, ShieldCheck, FileText, X, ArrowLeft, TestTube, Zap } from 'lucide-react';
 
 export default function LabOnboardingModal() {
-  const { labProfile, updateLabProfile, showSetupModal, setShowSetupModal } = useLab();
+  const { labProfile, updateLabProfile, showSetupModal, setShowSetupModal, dismissSetupWizard } = useLab();
   const toast = useToast();
 
   const [labName, setLabName] = useState('');
@@ -73,6 +73,9 @@ export default function LabOnboardingModal() {
         isConfigured: true,
       });
 
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lab_setup_completed', 'true');
+      }
       setShowSetupModal(false);
       toast.success(`مرحباً بكم في (${labName.trim()})! تم حفظ هوية مختبرك بنجاح وجاهزية النظام للعمل.`, 'تمت التهيئة بنجاح');
     } catch (err: any) {
@@ -162,16 +165,14 @@ export default function LabOnboardingModal() {
               </p>
             </div>
           </div>
-          {labProfile.isConfigured && (
-            <button 
-              type="button" 
-              onClick={() => setShowSetupModal(false)}
-              className="toast-close"
-              title="إغلاق"
-            >
-              <X size={20} />
-            </button>
-          )}
+          <button 
+            type="button" 
+            onClick={() => dismissSetupWizard()}
+            className="toast-close"
+            title="إغلاق وتخطي"
+          >
+            <X size={20} />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -357,7 +358,24 @@ export default function LabOnboardingModal() {
           </div>
 
           {/* Actions */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginTop: '4px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginTop: '4px' }}>
+            <button
+              type="button"
+              onClick={() => dismissSetupWizard()}
+              className="btn-secondary"
+              style={{
+                padding: '10px 18px',
+                fontSize: '13px',
+                fontWeight: 700,
+                color: 'var(--text-muted)',
+                background: 'transparent',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                cursor: 'pointer',
+              }}
+            >
+              المتابعة لاحقاً وتخطي هذه الخطوة
+            </button>
             <button
               type="submit"
               disabled={saving}

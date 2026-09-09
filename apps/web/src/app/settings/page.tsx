@@ -7,7 +7,7 @@ import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useLab } from '../../components/LabContext';
-import { Settings as SettingsIcon, Save, Sparkles, Printer, CheckCircle2, Award, Phone, DollarSign, Building2, Layout, FileText, Maximize2, QrCode, Sliders, Palette, Eye, ShieldCheck, Check, TestTube, Zap, Database, Download, Upload, RefreshCw, HardDrive, AlertCircle, History, Share2, ExternalLink, Plus } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Sparkles, Printer, CheckCircle2, Award, Phone, DollarSign, Building2, Layout, FileText, Maximize2, QrCode, Sliders, Palette, Eye, ShieldCheck, Check, TestTube, Zap, Database, Download, Upload, RefreshCw, HardDrive, AlertCircle, History, Share2, ExternalLink, Plus, Type, Droplet, AlignRight, AlignCenter, AlignLeft, Square, Layers, Trash2, EyeOff, CheckSquare, Sparkle } from 'lucide-react';
 
 export default function SettingsPage() {
   const toast = useToast();
@@ -43,8 +43,31 @@ export default function SettingsPage() {
   const [accreditationBadge, setAccreditationBadge] = useState<string>(labProfile.accreditationBadge || 'ISO 15189 Certified Lab');
   const [serverBaseUrl, setServerBaseUrl] = useState<string>(labProfile.serverBaseUrl || '');
 
+  // Sheet Elements & Lab Name Customization
+  const [showLabName, setShowLabName] = useState<boolean>(labProfile.showLabName ?? true);
+  const [labNameFontSize, setLabNameFontSize] = useState<number>(labProfile.labNameFontSize ?? 22);
+  const [labNameColor, setLabNameColor] = useState<string>(labProfile.labNameColor || labProfile.primaryColor || '#0284c7');
+  const [labNameAlignment, setLabNameAlignment] = useState<'RIGHT' | 'CENTER' | 'LEFT'>(labProfile.labNameAlignment || 'RIGHT');
+  const [labNameStyle, setLabNameStyle] = useState<'DEFAULT' | 'BOLD' | 'MODERN_BADGE' | 'ELEGANT_BORDER'>(labProfile.labNameStyle || 'DEFAULT');
+  const [showLabSubtitle, setShowLabSubtitle] = useState<boolean>(labProfile.showLabSubtitle ?? true);
+  const [showContactInfo, setShowContactInfo] = useState<boolean>(labProfile.showContactInfo ?? true);
+  const [showDoctorInfo, setShowDoctorInfo] = useState<boolean>(labProfile.showDoctorInfo ?? true);
+  const [showPatientBox, setShowPatientBox] = useState<boolean>(labProfile.showPatientBox ?? true);
+  const [showReportBorder, setShowReportBorder] = useState<boolean>(labProfile.showReportBorder ?? true);
+  const [showFooter, setShowFooter] = useState<boolean>(labProfile.showFooter ?? true);
+  const [showFooterSignature, setShowFooterSignature] = useState<boolean>(labProfile.showFooterSignature ?? true);
+
+  // Watermark Customization
+  const [enableWatermark, setEnableWatermark] = useState<boolean>(labProfile.enableWatermark ?? false);
+  const [watermarkType, setWatermarkType] = useState<'TEXT' | 'IMAGE'>(labProfile.watermarkType || 'TEXT');
+  const [watermarkText, setWatermarkText] = useState<string>(labProfile.watermarkText ?? '');
+  const [watermarkOpacity, setWatermarkOpacity] = useState<number>(labProfile.watermarkOpacity ?? 0.08);
+  const [watermarkAngle, setWatermarkAngle] = useState<number>(labProfile.watermarkAngle ?? -30);
+  const [watermarkSize, setWatermarkSize] = useState<number>(labProfile.watermarkSize ?? 46);
+  const [watermarkColor, setWatermarkColor] = useState<string>(labProfile.watermarkColor || '#0f172a');
+
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'IDENTITY' | 'DESIGNER' | 'MARGINS' | 'BACKUP' | 'NETWORK'>('DESIGNER');
+  const [activeTab, setActiveTab] = useState<'CUSTOMIZE' | 'DESIGNER' | 'MARGINS' | 'IDENTITY' | 'BACKUP' | 'NETWORK'>('CUSTOMIZE');
 
   // Backup & Restore States
   const [backupSnapshots, setBackupSnapshots] = useState<any[]>([]);
@@ -54,7 +77,6 @@ export default function SettingsPage() {
   const [selectedFileName, setSelectedFileName] = useState<string>('');
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [restoreSummary, setRestoreSummary] = useState<{ patients: number; samples: number; labName: string } | null>(null);
-
 
   useEffect(() => {
     if (labProfile) {
@@ -80,6 +102,27 @@ export default function SettingsPage() {
       setQrCodePosition(labProfile.qrCodePosition || 'HEADER');
       setAccreditationBadge(labProfile.accreditationBadge || 'ISO 15189 Certified Lab');
       setServerBaseUrl(labProfile.serverBaseUrl || '');
+
+      setShowLabName(labProfile.showLabName ?? true);
+      setLabNameFontSize(labProfile.labNameFontSize ?? 22);
+      setLabNameColor(labProfile.labNameColor || labProfile.primaryColor || '#0284c7');
+      setLabNameAlignment(labProfile.labNameAlignment || 'RIGHT');
+      setLabNameStyle(labProfile.labNameStyle || 'DEFAULT');
+      setShowLabSubtitle(labProfile.showLabSubtitle ?? true);
+      setShowContactInfo(labProfile.showContactInfo ?? true);
+      setShowDoctorInfo(labProfile.showDoctorInfo ?? true);
+      setShowPatientBox(labProfile.showPatientBox ?? true);
+      setShowReportBorder(labProfile.showReportBorder ?? true);
+      setShowFooter(labProfile.showFooter ?? true);
+      setShowFooterSignature(labProfile.showFooterSignature ?? true);
+
+      setEnableWatermark(labProfile.enableWatermark ?? false);
+      setWatermarkType(labProfile.watermarkType || 'TEXT');
+      setWatermarkText(labProfile.watermarkText ?? '');
+      setWatermarkOpacity(labProfile.watermarkOpacity ?? 0.08);
+      setWatermarkAngle(labProfile.watermarkAngle ?? -30);
+      setWatermarkSize(labProfile.watermarkSize ?? 46);
+      setWatermarkColor(labProfile.watermarkColor || '#0f172a');
     }
   }, [labProfile]);
 
@@ -111,6 +154,29 @@ export default function SettingsPage() {
         qrCodePosition,
         accreditationBadge,
         serverBaseUrl: serverBaseUrl.trim(),
+
+        // Customization
+        showLabName,
+        labNameFontSize: Number(labNameFontSize),
+        labNameColor,
+        labNameAlignment,
+        labNameStyle,
+        showLabSubtitle,
+        showContactInfo,
+        showDoctorInfo,
+        showPatientBox,
+        showReportBorder,
+        showFooter,
+        showFooterSignature,
+
+        // Watermark
+        enableWatermark,
+        watermarkType,
+        watermarkText: watermarkText.trim(),
+        watermarkOpacity: Number(watermarkOpacity),
+        watermarkAngle: Number(watermarkAngle),
+        watermarkSize: Number(watermarkSize),
+        watermarkColor,
       };
 
       await updateLabProfile(payload as any);
@@ -268,7 +334,29 @@ export default function SettingsPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid var(--border-color)', marginBottom: '16px', paddingBottom: '4px' }}>
+      <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid var(--border-color)', marginBottom: '16px', paddingBottom: '4px', overflowX: 'auto' }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab('CUSTOMIZE')}
+          style={{
+            padding: '8px 16px',
+            borderRadius: '6px',
+            fontSize: '12.5px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            border: 'none',
+            background: activeTab === 'CUSTOMIZE' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
+            color: activeTab === 'CUSTOMIZE' ? 'var(--accent-cyan)' : 'var(--text-muted)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <Sliders size={14} />
+          <span>🎛️ تخصيص عناصر الورقة والعلامة المائية</span>
+        </button>
+
         <button
           type="button"
           onClick={() => setActiveTab('DESIGNER')}
@@ -283,11 +371,12 @@ export default function SettingsPage() {
             color: activeTab === 'DESIGNER' ? 'var(--accent-cyan)' : 'var(--text-muted)',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px'
+            gap: '6px',
+            whiteSpace: 'nowrap',
           }}
         >
           <Sparkles size={14} />
-          <span>🎨 تصميم وقالب التقرير (5 القوالب)</span>
+          <span>🎨 قوالب وسمات التقرير</span>
         </button>
 
         <button
@@ -304,11 +393,12 @@ export default function SettingsPage() {
             color: activeTab === 'MARGINS' ? 'var(--accent-cyan)' : 'var(--text-muted)',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px'
+            gap: '6px',
+            whiteSpace: 'nowrap',
           }}
         >
-          <Sliders size={14} />
-          <span>📄 الورق المروّس والهوامش (Letterhead & Margins)</span>
+          <Maximize2 size={14} />
+          <span>📄 الورق المروّس والهوامش (Margins)</span>
         </button>
 
         <button
@@ -325,7 +415,8 @@ export default function SettingsPage() {
             color: activeTab === 'IDENTITY' ? 'var(--accent-cyan)' : 'var(--text-muted)',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px'
+            gap: '6px',
+            whiteSpace: 'nowrap',
           }}
         >
           <Building2 size={14} />
@@ -346,7 +437,8 @@ export default function SettingsPage() {
             color: activeTab === 'BACKUP' ? 'var(--accent-cyan)' : 'var(--text-muted)',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px'
+            gap: '6px',
+            whiteSpace: 'nowrap',
           }}
         >
           <Database size={14} />
@@ -367,11 +459,12 @@ export default function SettingsPage() {
             color: activeTab === 'NETWORK' ? 'var(--accent-cyan)' : 'var(--text-muted)',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px'
+            gap: '6px',
+            whiteSpace: 'nowrap',
           }}
         >
           <Share2 size={14} />
-          <span>🌐 الربط الشبكي وبوابة المرضى (Network & Web)</span>
+          <span>🌐 الربط الشبكي وبوابة المرضى</span>
         </button>
       </div>
 
@@ -380,7 +473,555 @@ export default function SettingsPage() {
         
         {/* Designer Controls */}
         <div className="glass-card" style={{ padding: '20px' }}>
-          
+
+          {/* TAB 0: CUSTOMIZE SHEET ELEMENTS & WATERMARK */}
+          {activeTab === 'CUSTOMIZE' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }} dir="rtl">
+              
+              {/* Quick Preset Action Bar */}
+              <div style={{ background: 'rgba(6, 182, 212, 0.08)', border: '1px solid rgba(6, 182, 212, 0.25)', borderRadius: '10px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                <div>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--accent-cyan)', display: 'block' }}>
+                    ⚡ أوضاع الإخراج والطباعة السريعة:
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    اختر نمط الإخراج التلقائي بنقرة واحدة أو قم بتخصيص كل عنصر يدويًا أدناه
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowLabName(false);
+                      setShowLabSubtitle(false);
+                      setShowContactInfo(false);
+                      setShowDoctorInfo(false);
+                      setShowPatientBox(false);
+                      setShowReportBorder(false);
+                      setShowFooter(false);
+                      setShowFooterSignature(false);
+                      setEnableQrCode(false);
+                      toast.success('تم تفعيل وضع (النتائج فقط) - الورقة فارغة وجاهزة للورق المروّس بالمطبعة!', 'النتائج فقط');
+                    }}
+                    className="btn-secondary"
+                    style={{ padding: '6px 12px', fontSize: '11.5px', color: '#f59e0b', borderColor: '#f59e0b', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}
+                    title="إلغاء كافة العناصر والإطارات للطباعة على ورق مروّس يحتوي على الترويسة والبيانات مسبقاً"
+                  >
+                    <Square size={13} />
+                    <span>تفريغ للنتائج فقط (Results Only)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowLabName(true);
+                      setShowLabSubtitle(true);
+                      setShowContactInfo(true);
+                      setShowDoctorInfo(true);
+                      setShowPatientBox(true);
+                      setShowReportBorder(true);
+                      setShowFooter(true);
+                      setShowFooterSignature(true);
+                      setEnableQrCode(true);
+                      toast.success('تم استعادة التصميم الكامل والافتراضي لورقة التقرير!', 'استعادة التصميم');
+                    }}
+                    className="btn-secondary"
+                    style={{ padding: '6px 12px', fontSize: '11.5px', color: 'var(--accent-cyan)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <CheckSquare size={13} />
+                    <span>استعادة التصميم الكامل (Full)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 1. Lab Name Customization Section */}
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Type size={18} color="var(--accent-cyan)" />
+                    <strong style={{ fontSize: '13.5px', color: 'var(--text-main)' }}>
+                      اسم المختبر الرسمي (تنسيق وتصميم الاسم):
+                    </strong>
+                  </div>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: showLabName ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)', padding: '5px 10px', borderRadius: '6px', border: `1px solid ${showLabName ? '#10b981' : '#ef4444'}` }}>
+                    <input
+                      type="checkbox"
+                      checked={showLabName}
+                      onChange={(e) => setShowLabName(e.target.checked)}
+                      style={{ width: '15px', height: '15px', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '11.5px', fontWeight: 800, color: showLabName ? '#10b981' : '#ef4444' }}>
+                      {showLabName ? 'مفعّل (يظهر بالورقة)' : 'محذوف / مخفي'}
+                    </span>
+                  </label>
+                </div>
+
+                {showLabName && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
+                    
+                    {/* Size and Color */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '12px', alignItems: 'center' }}>
+                      <div style={{ background: 'var(--bg-input-deep)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-main)' }}>حجم خط اسم المختبر:</span>
+                          <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--accent-cyan)' }}>{labNameFontSize} px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={14}
+                          max={34}
+                          value={labNameFontSize}
+                          onChange={(e) => setLabNameFontSize(Number(e.target.value))}
+                          style={{ width: '100%', cursor: 'pointer' }}
+                        />
+                      </div>
+
+                      <div style={{ background: 'var(--bg-input-deep)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                        <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>
+                          لون خط اسم المختبر:
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input
+                            type="color"
+                            value={labNameColor}
+                            onChange={(e) => setLabNameColor(e.target.value)}
+                            style={{ width: '32px', height: '32px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }}
+                          />
+                          <input
+                            type="text"
+                            value={labNameColor}
+                            onChange={(e) => setLabNameColor(e.target.value)}
+                            className="input-control"
+                            style={{ height: '32px', fontSize: '11.5px', textAlign: 'center', fontWeight: 800 }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setLabNameColor(primaryColor)}
+                            className="btn-secondary"
+                            style={{ height: '32px', padding: '0 8px', fontSize: '10px' }}
+                            title="مطابقة لون السمة"
+                          >
+                            لون السمة
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Alignment & Design Style */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '12px' }}>
+                      
+                      {/* Alignment */}
+                      <div>
+                        <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>
+                          محاذاة الاسم في الترويسة:
+                        </span>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setLabNameAlignment('RIGHT')}
+                            style={{
+                              flex: 1,
+                              padding: '6px',
+                              borderRadius: '6px',
+                              border: labNameAlignment === 'RIGHT' ? '2px solid var(--accent-cyan)' : '1px solid var(--border-color)',
+                              background: labNameAlignment === 'RIGHT' ? 'rgba(6, 182, 212, 0.15)' : 'var(--bg-input-deep)',
+                              color: labNameAlignment === 'RIGHT' ? 'var(--accent-cyan)' : 'var(--text-muted)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              fontSize: '11.5px',
+                              fontWeight: 700
+                            }}
+                          >
+                            <AlignRight size={14} />
+                            <span>يمين</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setLabNameAlignment('CENTER')}
+                            style={{
+                              flex: 1,
+                              padding: '6px',
+                              borderRadius: '6px',
+                              border: labNameAlignment === 'CENTER' ? '2px solid var(--accent-cyan)' : '1px solid var(--border-color)',
+                              background: labNameAlignment === 'CENTER' ? 'rgba(6, 182, 212, 0.15)' : 'var(--bg-input-deep)',
+                              color: labNameAlignment === 'CENTER' ? 'var(--accent-cyan)' : 'var(--text-muted)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              fontSize: '11.5px',
+                              fontWeight: 700
+                            }}
+                          >
+                            <AlignCenter size={14} />
+                            <span>وسط</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setLabNameAlignment('LEFT')}
+                            style={{
+                              flex: 1,
+                              padding: '6px',
+                              borderRadius: '6px',
+                              border: labNameAlignment === 'LEFT' ? '2px solid var(--accent-cyan)' : '1px solid var(--border-color)',
+                              background: labNameAlignment === 'LEFT' ? 'rgba(6, 182, 212, 0.15)' : 'var(--bg-input-deep)',
+                              color: labNameAlignment === 'LEFT' ? 'var(--accent-cyan)' : 'var(--text-muted)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              fontSize: '11.5px',
+                              fontWeight: 700
+                            }}
+                          >
+                            <AlignLeft size={14} />
+                            <span>يسار</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Design Style */}
+                      <div>
+                        <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>
+                          شكل وتصميم اسم المختبر:
+                        </span>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+                          {[
+                            { id: 'DEFAULT', title: 'كلاسيكي قياسي', desc: 'نص أنيق مباشر' },
+                            { id: 'BOLD', title: 'عريض بارز', desc: 'خط سميك قوي' },
+                            { id: 'MODERN_BADGE', title: 'شارة حديثة', desc: 'خلفية خفيفة مستديرة' },
+                            { id: 'ELEGANT_BORDER', title: 'إطار رسمي', desc: 'مؤطر بحدود ناعمة' },
+                          ].map((st) => (
+                            <button
+                              key={st.id}
+                              type="button"
+                              onClick={() => setLabNameStyle(st.id as any)}
+                              style={{
+                                padding: '6px 8px',
+                                borderRadius: '6px',
+                                border: labNameStyle === st.id ? '2px solid var(--accent-cyan)' : '1px solid var(--border-color)',
+                                background: labNameStyle === st.id ? 'rgba(6, 182, 212, 0.15)' : 'var(--bg-input-deep)',
+                                color: labNameStyle === st.id ? 'var(--accent-cyan)' : 'var(--text-main)',
+                                cursor: 'pointer',
+                                textAlign: 'right',
+                              }}
+                            >
+                              <div style={{ fontSize: '11.5px', fontWeight: 800 }}>{st.title}</div>
+                              <div style={{ fontSize: '9.5px', color: 'var(--text-muted)' }}>{st.desc}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                    </div>
+
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Page Elements Visibility Control Section */}
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <Layers size={18} color="var(--accent-teal)" />
+                  <strong style={{ fontSize: '13.5px', color: 'var(--text-main)' }}>
+                    التحكم في ظهور عناصر وتفاصيل الصفحة:
+                  </strong>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                  
+                  {/* Subtitle */}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'var(--bg-input-deep)', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={showLabSubtitle}
+                      onChange={(e) => setShowLabSubtitle(e.target.checked)}
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)' }}>الوصف الفرعي للمختبر</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>العبارة التعريفية أسفل الاسم</div>
+                    </div>
+                  </label>
+
+                  {/* Contact Info */}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'var(--bg-input-deep)', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={showContactInfo}
+                      onChange={(e) => setShowContactInfo(e.target.checked)}
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)' }}>بيانات التواصل والعنوان</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>العنوان الجغرافي ورقم الهاتف</div>
+                    </div>
+                  </label>
+
+                  {/* Doctor Info */}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'var(--bg-input-deep)', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={showDoctorInfo}
+                      onChange={(e) => setShowDoctorInfo(e.target.checked)}
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)' }}>بيانات الطبيب / المشرف الفني</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>اسم الطبيب، لقبه وترخيصه المهني</div>
+                    </div>
+                  </label>
+
+                  {/* Patient Meta Box */}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'var(--bg-input-deep)', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={showPatientBox}
+                      onChange={(e) => setShowPatientBox(e.target.checked)}
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)' }}>صندوق معلومات المريض</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>الاسم، العمر، الجنس، رقم العينة، التاريخ</div>
+                    </div>
+                  </label>
+
+                  {/* Report Outer Border */}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'var(--bg-input-deep)', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={showReportBorder}
+                      onChange={(e) => setShowReportBorder(e.target.checked)}
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)' }}>إطار وحدود ورقة التقرير</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>إلغاؤه يمنح الورقة حواف بيضاء بالكامل</div>
+                    </div>
+                  </label>
+
+                  {/* Footer Box */}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'var(--bg-input-deep)', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={showFooter}
+                      onChange={(e) => setShowFooter(e.target.checked)}
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)' }}>ذيل الصفحة (Footer) بالكامل</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>الملاحظة القانونية وشارة الاعتماد</div>
+                    </div>
+                  </label>
+
+                  {/* Footer Signature */}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'var(--bg-input-deep)', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={showFooterSignature}
+                      onChange={(e) => setShowFooterSignature(e.target.checked)}
+                      disabled={!showFooter}
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: showFooter ? 'var(--text-main)' : 'var(--text-dim)' }}>
+                        خانة توقيع الطبيب والختم
+                      </div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Approved by Pathologist في الذيل</div>
+                    </div>
+                  </label>
+
+                  {/* QR Code */}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'var(--bg-input-deep)', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={enableQrCode}
+                      onChange={(e) => setEnableQrCode(e.target.checked)}
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)' }}>رمز الاستجابة السريعة (QR Code)</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>رابط التحقق الإلكتروني الذكي للتقرير</div>
+                    </div>
+                  </label>
+
+                </div>
+              </div>
+
+              {/* 3. Watermark Customization Section */}
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Droplet size={18} color="#06b6d4" />
+                    <strong style={{ fontSize: '13.5px', color: 'var(--text-main)' }}>
+                      العلامة المائية لورقة النتيجة (Watermark Security):
+                    </strong>
+                  </div>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: enableWatermark ? 'rgba(6, 182, 212, 0.15)' : 'rgba(239, 68, 68, 0.15)', padding: '5px 10px', borderRadius: '6px', border: `1px solid ${enableWatermark ? 'var(--accent-cyan)' : '#ef4444'}` }}>
+                    <input
+                      type="checkbox"
+                      checked={enableWatermark}
+                      onChange={(e) => setEnableWatermark(e.target.checked)}
+                      style={{ width: '15px', height: '15px', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '11.5px', fontWeight: 800, color: enableWatermark ? 'var(--accent-cyan)' : '#ef4444' }}>
+                      {enableWatermark ? 'العلامة المائية مفعلة' : 'معطلة / محذوفة'}
+                    </span>
+                  </label>
+                </div>
+
+                {enableWatermark && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '10px', borderTop: '1px solid var(--border-color)' }}>
+                    
+                    {/* Watermark Text Input & Suggestions */}
+                    <div>
+                      <label className="input-label" style={{ fontWeight: 700, marginBottom: '6px', display: 'block' }}>
+                        نص العلامة المائية:
+                      </label>
+                      <input
+                        type="text"
+                        className="input-control"
+                        placeholder="اكتب نص العلامة المائية هنا، مثل: اسم المختبر أو كلمة ORIGINAL"
+                        value={watermarkText}
+                        onChange={(e) => setWatermarkText(e.target.value)}
+                        style={{ width: '100%', padding: '9px 12px', fontSize: '13px', fontWeight: 700 }}
+                      />
+
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>اقتراحات سريعة:</span>
+                        <button
+                          type="button"
+                          onClick={() => setWatermarkText(labName || 'مختبر طبي معتمد')}
+                          className="btn-secondary"
+                          style={{ padding: '3px 8px', fontSize: '10.5px' }}
+                        >
+                          {labName || 'اسم المختبر'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setWatermarkText('ORIGINAL REPORT')}
+                          className="btn-secondary"
+                          style={{ padding: '3px 8px', fontSize: '10.5px' }}
+                        >
+                          ORIGINAL REPORT
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setWatermarkText('تقرير معتمد رسمياً')}
+                          className="btn-secondary"
+                          style={{ padding: '3px 8px', fontSize: '10.5px' }}
+                        >
+                          تقرير معتمد رسمياً
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setWatermarkText('')}
+                          className="btn-secondary"
+                          style={{ padding: '3px 8px', fontSize: '10.5px', color: '#ef4444' }}
+                          title="مسح النص"
+                        >
+                          <Trash2 size={11} /> مسح
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Sliders: Opacity, Angle, Size */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                      
+                      {/* Opacity */}
+                      <div style={{ background: 'var(--bg-input-deep)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 700 }}>الشفافية والتعتيم:</span>
+                          <span style={{ fontSize: '11.5px', fontWeight: 900, color: 'var(--accent-cyan)' }}>
+                            {Math.round(watermarkOpacity * 100)}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0.02}
+                          max={0.35}
+                          step={0.01}
+                          value={watermarkOpacity}
+                          onChange={(e) => setWatermarkOpacity(Number(e.target.value))}
+                          style={{ width: '100%', cursor: 'pointer' }}
+                        />
+                        <span style={{ fontSize: '9.5px', color: 'var(--text-dim)' }}>نسبة منخفضة لعدم حجب القراءة</span>
+                      </div>
+
+                      {/* Size */}
+                      <div style={{ background: 'var(--bg-input-deep)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 700 }}>حجم خط العلامة:</span>
+                          <span style={{ fontSize: '11.5px', fontWeight: 900, color: 'var(--accent-cyan)' }}>
+                            {watermarkSize} px
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={22}
+                          max={72}
+                          value={watermarkSize}
+                          onChange={(e) => setWatermarkSize(Number(e.target.value))}
+                          style={{ width: '100%', cursor: 'pointer' }}
+                        />
+                        <span style={{ fontSize: '9.5px', color: 'var(--text-dim)' }}>عرض النص المائي في الصفحة</span>
+                      </div>
+
+                      {/* Angle */}
+                      <div style={{ background: 'var(--bg-input-deep)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 700 }}>زاوية الميلان:</span>
+                          <span style={{ fontSize: '11.5px', fontWeight: 900, color: 'var(--accent-cyan)' }}>
+                            {watermarkAngle}°
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          {[
+                            { deg: 0, label: 'أفقي 0°' },
+                            { deg: -30, label: 'مائل -30°' },
+                            { deg: -45, label: 'قطري -45°' },
+                          ].map((a) => (
+                            <button
+                              key={a.deg}
+                              type="button"
+                              onClick={() => setWatermarkAngle(a.deg)}
+                              style={{
+                                flex: 1,
+                                padding: '4px 2px',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                borderRadius: '4px',
+                                border: watermarkAngle === a.deg ? '1.5px solid var(--accent-cyan)' : '1px solid var(--border-color)',
+                                background: watermarkAngle === a.deg ? 'rgba(6, 182, 212, 0.2)' : 'transparent',
+                                color: watermarkAngle === a.deg ? 'var(--accent-cyan)' : 'var(--text-muted)',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {a.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                    </div>
+
+                  </div>
+                )}
+              </div>
+
+            </div>
+          )}
+
           {/* TAB 1: DESIGNER & TEMPLATES */}
           {activeTab === 'DESIGNER' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -1014,7 +1655,7 @@ export default function SettingsPage() {
             style={{
               background: '#ffffff',
               color: '#0f172a',
-              border: `2px solid ${primaryColor}`,
+              border: showReportBorder ? `2px solid ${primaryColor}` : '1px solid #e2e8f0',
               padding: `${topMarginMm * 1.5}px ${leftMarginMm * 1.5}px ${bottomMarginMm * 1.5}px ${rightMarginMm * 1.5}px`,
               borderRadius: '8px',
               boxShadow: '0 12px 30px rgba(0,0,0,0.3)',
@@ -1023,11 +1664,37 @@ export default function SettingsPage() {
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              position: 'relative'
+              position: 'relative',
+              overflow: 'hidden',
             }}
           >
+            {/* Watermark Overlay Layer */}
+            {enableWatermark && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: `translate(-50%, -50%) rotate(${watermarkAngle}deg)`,
+                  fontSize: `${watermarkSize}px`,
+                  fontWeight: 900,
+                  color: watermarkColor,
+                  opacity: watermarkOpacity,
+                  whiteSpace: 'nowrap',
+                  pointerEvents: 'none',
+                  userSelect: 'none',
+                  zIndex: 0,
+                  textAlign: 'center',
+                  maxWidth: '90%',
+                  lineHeight: 1.2,
+                }}
+              >
+                {watermarkText || labName || 'ORIGINAL REPORT'}
+              </div>
+            )}
+
             {/* Top Space or Digital Header */}
-            <div>
+            <div style={{ position: 'relative', zIndex: 1 }}>
               {headerMode === 'PREPRINTED' ? (
                 <div style={{
                   height: `${Math.max(40, topMarginMm * 2)}px`,
@@ -1044,87 +1711,105 @@ export default function SettingsPage() {
                 }}>
                   📄 Pre-Printed Lab Stationery Reserved Space ({topMarginMm}mm)
                 </div>
-              ) : reportTemplate === 'MODERN' ? (
-                <div style={{
-                  background: `linear-gradient(135deg, ${primaryColor} 0%, #06b6d4 100%)`,
-                  color: '#fff',
-                  padding: '12px 14px',
-                  borderRadius: '8px',
-                  marginBottom: '12px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div>
-                    <h3 style={{ fontSize: '15px', fontWeight: 900, color: '#fff' }}><TestTube size={14} /> {labName}</h3>
-                    <p style={{ fontSize: '10px', opacity: 0.9 }}>{labSubtitle}</p>
-                    <p style={{ fontSize: '9px', opacity: 0.8, marginTop: '2px' }}>العنوان: {address} | هاتف: {phone}</p>
-                  </div>
-                  <div style={{ textAlign: 'right', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {enableQrCode && qrCodePosition === 'HEADER' && (
-                      <div style={{ width: '40px', height: '40px', background: '#fff', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000' }}>
-                        <QrCode size={30} />
-                      </div>
-                    )}
-                    <div style={{ background: 'rgba(255,255,255,0.15)', padding: '6px 10px', borderRadius: '6px' }}>
-                      <h4 style={{ fontSize: '11px', fontWeight: 800, color: '#fff' }}>{doctorName}</h4>
-                      <p style={{ fontSize: '9px', opacity: 0.9 }}>{doctorTitle}</p>
+              ) : (showLabName || showLabSubtitle || showContactInfo || showDoctorInfo || (enableQrCode && qrCodePosition === 'HEADER')) ? (
+                reportTemplate === 'MODERN' ? (
+                  <div style={{
+                    background: `linear-gradient(135deg, ${primaryColor} 0%, #06b6d4 100%)`,
+                    color: '#fff',
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    marginBottom: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div style={{ textAlign: labNameAlignment.toLowerCase() as any, flex: 1 }}>
+                      {showLabName && (
+                        <div style={{
+                          fontSize: `${labNameFontSize}px`,
+                          fontWeight: 900,
+                          color: '#fff',
+                          display: labNameStyle === 'MODERN_BADGE' || labNameStyle === 'ELEGANT_BORDER' ? 'inline-block' : 'block',
+                          background: labNameStyle === 'MODERN_BADGE' ? 'rgba(255,255,255,0.2)' : 'transparent',
+                          border: labNameStyle === 'ELEGANT_BORDER' ? '1.5px solid #fff' : 'none',
+                          padding: labNameStyle === 'MODERN_BADGE' || labNameStyle === 'ELEGANT_BORDER' ? '2px 8px' : '0',
+                          borderRadius: '6px',
+                          marginBottom: '2px'
+                        }}>
+                          <TestTube size={Math.min(18, labNameFontSize - 4)} /> {labName || 'اسم المختبر'}
+                        </div>
+                      )}
+                      {showLabSubtitle && <p style={{ fontSize: '10px', opacity: 0.9, margin: 0 }}>{labSubtitle}</p>}
+                      {showContactInfo && <p style={{ fontSize: '9px', opacity: 0.8, marginTop: '2px', margin: 0 }}>العنوان: {address} | هاتف: {phone}</p>}
+                    </div>
+
+                    <div style={{ textAlign: 'right', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {enableQrCode && qrCodePosition === 'HEADER' && (
+                        <div style={{ width: '40px', height: '40px', background: '#fff', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000' }}>
+                          <QrCode size={30} />
+                        </div>
+                      )}
+                      {showDoctorInfo && (
+                        <div style={{ background: 'rgba(255,255,255,0.15)', padding: '6px 10px', borderRadius: '6px' }}>
+                          <h4 style={{ fontSize: '11px', fontWeight: 800, color: '#fff', margin: 0 }}>{doctorName || 'Dr. Laboratory Director'}</h4>
+                          <p style={{ fontSize: '9px', opacity: 0.9, margin: 0 }}>{doctorTitle}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              ) : reportTemplate === 'EXECUTIVE' ? (
-                <div style={{ borderBottom: `3px double ${primaryColor}`, paddingBottom: '8px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <span style={{ fontSize: '9px', background: primaryColor, color: '#fff', padding: '1px 6px', borderRadius: '2px', fontWeight: 800 }}>OFFICIAL MEDICAL REPORT</span>
-                    <h3 style={{ fontSize: '15px', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>🏛️ {labName}</h3>
-                    <p style={{ fontSize: '10px', color: '#64748b' }}>{labSubtitle}</p>
-                    <p style={{ fontSize: '9px', color: '#475569' }}>العنوان: {address} | هاتف: {phone}</p>
-                  </div>
-                  <div style={{ textAlign: 'right', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {enableQrCode && qrCodePosition === 'HEADER' && (
-                      <div style={{ width: '38px', height: '38px', border: '1px solid #cbd5e1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <QrCode size={28} color={primaryColor} />
-                      </div>
-                    )}
-                    <div style={{ border: '1px solid #cbd5e1', padding: '6px 10px', borderRadius: '6px', background: '#f8fafc' }}>
-                      <h4 style={{ fontSize: '11px', fontWeight: 900, color: '#0f172a' }}>{doctorName}</h4>
-                      <p style={{ fontSize: '9px', color: '#64748b' }}>{doctorTitle}</p>
+                ) : (
+                  <div style={{ borderBottom: `2px solid ${primaryColor}`, paddingBottom: '8px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ textAlign: labNameAlignment.toLowerCase() as any, flex: 1 }}>
+                      {showLabName && (
+                        <div style={{
+                          fontSize: `${labNameFontSize}px`,
+                          fontWeight: labNameStyle === 'BOLD' ? 900 : 800,
+                          color: labNameColor,
+                          display: labNameStyle === 'MODERN_BADGE' || labNameStyle === 'ELEGANT_BORDER' ? 'inline-block' : 'block',
+                          background: labNameStyle === 'MODERN_BADGE' ? `${labNameColor}18` : 'transparent',
+                          border: labNameStyle === 'ELEGANT_BORDER' ? `1.5px solid ${labNameColor}` : 'none',
+                          padding: labNameStyle === 'MODERN_BADGE' || labNameStyle === 'ELEGANT_BORDER' ? '2px 8px' : '0',
+                          borderRadius: '6px',
+                          marginBottom: '2px'
+                        }}>
+                          <TestTube size={Math.min(18, labNameFontSize - 4)} /> {labName || 'اسم المختبر'}
+                        </div>
+                      )}
+                      {showLabSubtitle && <p style={{ fontSize: '10px', color: '#64748b', fontWeight: 600, margin: 0 }}>{labSubtitle}</p>}
+                      {showContactInfo && <p style={{ fontSize: '9px', color: '#475569', marginTop: '2px', margin: 0 }}>العنوان: {address} | هاتف: {phone}</p>}
+                    </div>
+
+                    <div style={{ textAlign: 'right', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {enableQrCode && qrCodePosition === 'HEADER' && (
+                        <div style={{ width: '38px', height: '38px', border: '1px solid #cbd5e1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <QrCode size={28} color={primaryColor} />
+                        </div>
+                      )}
+                      {showDoctorInfo && (
+                        <div>
+                          <h4 style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', margin: 0 }}>{doctorName || 'Dr. Laboratory Director'}</h4>
+                          <p style={{ fontSize: '9px', color: '#64748b', margin: 0 }}>{doctorTitle}</p>
+                          {labLicense && <p style={{ fontSize: '8.5px', color: primaryColor, margin: 0 }}>License: {labLicense}</p>}
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div style={{ borderBottom: `2px solid ${primaryColor}`, paddingBottom: '8px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <h3 style={{ fontSize: '15px', fontWeight: 900, color: primaryColor }}><TestTube size={14} /> {labName}</h3>
-                    <p style={{ fontSize: '10px', color: '#64748b', fontWeight: 600 }}>{labSubtitle}</p>
-                    <p style={{ fontSize: '9px', color: '#475569', marginTop: '2px' }}>العنوان: {address} | هاتف: {phone}</p>
+                )
+              ) : null}
+
+              {/* Patient Bar */}
+              {showPatientBox && (
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px', fontSize: '11px', marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span><strong>Patient:</strong> Hayder Al-Khafaji (Male, 48y)</span>
+                    <span><strong>Sample ID:</strong> #1001</span>
                   </div>
-                  <div style={{ textAlign: 'right', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {enableQrCode && qrCodePosition === 'HEADER' && (
-                      <div style={{ width: '38px', height: '38px', border: '1px solid #cbd5e1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <QrCode size={28} color={primaryColor} />
-                      </div>
-                    )}
-                    <div>
-                      <h4 style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a' }}>{doctorName}</h4>
-                      <p style={{ fontSize: '9px', color: '#64748b' }}>{doctorTitle}</p>
-                      <p style={{ fontSize: '8.5px', color: primaryColor }}>License: {labLicense}</p>
-                    </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '10px', color: '#64748b' }}>
+                    <span><strong>Ref Doctor:</strong> Direct Consultation</span>
+                    <span><strong>Date:</strong> 2026-09-01</span>
                   </div>
                 </div>
               )}
-
-              {/* Patient Bar */}
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px', fontSize: '11px', marginBottom: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span><strong>Patient:</strong> Hayder Al-Khafaji (Male, 48y)</span>
-                  <span><strong>Sample ID:</strong> #1001</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '10px', color: '#64748b' }}>
-                  <span><strong>Ref Doctor:</strong> Direct Consultation</span>
-                  <span><strong>Date:</strong> 2026-09-01</span>
-                </div>
-              </div>
 
               {/* Sample Table */}
               <table style={{ width: '100%', fontSize: '10.5px', borderCollapse: 'collapse', marginBottom: '12px' }}>
@@ -1160,25 +1845,35 @@ export default function SettingsPage() {
             </div>
 
             {/* Footer Area */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #cbd5e1', paddingTop: '8px', fontSize: '9px', color: '#64748b' }}>
-                <div style={{ textAlign: 'left' }}>
-                  <p>{reportFooter}</p>
-                  {accreditationBadge && (
-                    <span style={{ fontWeight: 800, color: primaryColor, display: 'inline-block', marginTop: '2px' }}>
-                      🛡️ {accreditationBadge}
-                    </span>
-                  )}
-                </div>
-
-                {enableQrCode && qrCodePosition === 'FOOTER' && (
-                  <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '8px' }}>Scan to verify:</span>
-                    <QrCode size={30} color={primaryColor} />
+            {showFooter && (
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #cbd5e1', paddingTop: '8px', fontSize: '9px', color: '#64748b' }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ margin: 0 }}>{reportFooter}</p>
+                    {accreditationBadge && (
+                      <span style={{ fontWeight: 800, color: primaryColor, display: 'inline-block', marginTop: '2px' }}>
+                        🛡️ {accreditationBadge}
+                      </span>
+                    )}
                   </div>
-                )}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {enableQrCode && qrCodePosition === 'FOOTER' && (
+                      <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '8px' }}>Scan:</span>
+                        <QrCode size={26} color={primaryColor} />
+                      </div>
+                    )}
+                    {showFooterSignature && (
+                      <div style={{ borderLeft: '1px solid #cbd5e1', paddingLeft: '8px', textAlign: 'right' }}>
+                        <span style={{ fontSize: '8px', color: '#94a3b8', display: 'block' }}>Clinical Signature</span>
+                        <strong style={{ fontSize: '9px', color: '#0f172a' }}>Verified & Signed</strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
 
           </div>
         </div>

@@ -81,6 +81,16 @@ export async function POST(request: Request) {
     const newSample = addSample(body);
     return NextResponse.json(newSample, { status: 201 });
   } catch (err: any) {
+    if (err?.code === 'DUPLICATE_ENTRY') {
+      return NextResponse.json(
+        {
+          duplicate: true,
+          duplicateSampleNumber: err.duplicateSampleNumber,
+          message: err.message,
+        },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ message: err.message || 'فشل إضافة العينة' }, { status: 500 });
   }
 }

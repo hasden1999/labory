@@ -36,8 +36,8 @@ function SamplesContent() {
   const [whatsappPhone, setWhatsappPhone] = useState('');
   const [whatsappText, setWhatsappText] = useState('');
 
-  const loadSamples = async (showToast = false) => {
-    setLoading(true);
+  const loadSamples = async (showToast = false, silent = false) => {
+    if (!silent) setLoading(true);
     try {
       let url = `/samples?dateFilter=${dateFilter}`;
       if (customDate) {
@@ -47,9 +47,9 @@ function SamplesContent() {
       setSamples(res || []);
       if (showToast) toast.success('تم تحديث قائمة عينات وسجل اليوم بنجاح!', 'تحديث حي');
     } catch (err: any) {
-      toast.error('فشل في جلب قائمة العينات', 'خطأ');
+      if (!silent) toast.error('فشل في جلب قائمة العينات', 'خطأ');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -62,6 +62,26 @@ function SamplesContent() {
 
   useEffect(() => {
     loadSamples();
+  }, [dateFilter, customDate]);
+
+  // Live Auto-Polling & Focus Sync across LAN devices (Phones / Tablets / PC)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadSamples(false, true);
+    }, 4000);
+
+    const handleFocus = () => {
+      loadSamples(false, true);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('visibilitychange', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('visibilitychange', handleFocus);
+    };
   }, [dateFilter, customDate]);
 
   const handleUpdateStatus = async (sampleId: string, status: string) => {
