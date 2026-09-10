@@ -471,6 +471,9 @@ function showMainWindow() {
     mainWindow.restore();
   }
   mainWindow.focus();
+  try {
+    mainWindow.webContents.reload();
+  } catch (e) {}
 }
 
 // Initialize system tray with Arabic controls
