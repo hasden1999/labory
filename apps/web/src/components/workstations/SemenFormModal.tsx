@@ -292,7 +292,7 @@ export default function SemenFormModal({
   const applyPreset = (preset: 'NORMAL' | 'ASTHENO' | 'OLIGO' | 'OAT' | 'AZOO' | 'LEUKO' | 'TERATO' | 'RESET') => {
     if (preset === 'NORMAL' || preset === 'RESET') {
       setData({ ...DEFAULT_SEMEN_DATA });
-      toast.success('تم تطبيق فحص السائل المنوي السليم (Normozoospermia)', 'تم التحميل');
+      toast.success('Applied Normozoospermia template', 'Loaded');
     } else if (preset === 'ASTHENO') {
       setData((prev) => ({
         ...prev,
@@ -308,7 +308,7 @@ export default function SemenFormModal({
         clinicalImpression: 'Asthenozoospermia',
         pathologistNotes: 'Asthenozoospermia: Reduced progressive sperm motility (PR < 32%). Semen culture and clinical evaluation for varicocele or subclinical infection advised.',
       }));
-      toast.warning('تم تطبيق نموذج ضعف الحركة (Asthenozoospermia)', 'تم التحميل');
+      toast.warning('Applied Asthenozoospermia template', 'Loaded');
     } else if (preset === 'OLIGO') {
       setData((prev) => ({
         ...prev,
@@ -324,7 +324,7 @@ export default function SemenFormModal({
         clinicalImpression: 'Oligozoospermia',
         pathologistNotes: 'Oligozoospermia: Low sperm concentration (< 15 M/mL). Hormonal profile (FSH, LH, Testosterone, Prolactin) recommended.',
       }));
-      toast.info('تم تطبيق نموذج قلة العدد (Oligozoospermia)', 'تم التحميل');
+      toast.info('Applied Oligozoospermia template', 'Loaded');
     } else if (preset === 'OAT') {
       setData((prev) => ({
         ...prev,
@@ -345,7 +345,7 @@ export default function SemenFormModal({
         clinicalImpression: 'Oligoasthenoteratozoospermia (OAT Syndrome)',
         pathologistNotes: 'Oligoasthenoteratozoospermia (OAT): Combined severe impairment of sperm concentration, progressive motility, and normal morphology. Andrological consultation required.',
       }));
-      toast.error('تم تطبيق نموذج الضعف الثلاثي المركب (OAT Syndrome)', 'تم التحميل');
+      toast.error('Applied OAT Syndrome template', 'Loaded');
     } else if (preset === 'AZOO') {
       setData((prev) => ({
         ...prev,
@@ -367,7 +367,7 @@ export default function SemenFormModal({
         clinicalImpression: 'Azoospermia (Confirmed)',
         pathologistNotes: 'Azoospermia: No spermatozoa seen in fresh wet preparations or in the centrifuged pellet (3000g for 15 min). Confirmatory repeat test after 2-4 weeks recommended.',
       }));
-      toast.error('تم تطبيق نموذج انعدام النطف (Azoospermia)', 'تم التحميل');
+      toast.error('Applied Azoospermia template', 'Loaded');
     } else if (preset === 'LEUKO') {
       setData((prev) => ({
         ...prev,
@@ -386,7 +386,7 @@ export default function SemenFormModal({
         clinicalImpression: 'Leukocytospermia / Pyospermia (Genital Tract Infection)',
         pathologistNotes: 'Significant Leukocytospermia (> 1x10^6 WBC/mL) with sperm agglutination. Suggests accessory gland infection (Prostatitis/Epididymitis). Semen culture and antibiotic sensitivity advised.',
       }));
-      toast.warning('تم تطبيق نموذج التهاب المسالك والصديد (Leukocytospermia)', 'تم التحميل');
+      toast.warning('Applied Leukocytospermia template', 'Loaded');
     } else if (preset === 'TERATO') {
       setData((prev) => ({
         ...prev,
@@ -398,14 +398,14 @@ export default function SemenFormModal({
         clinicalImpression: 'Teratozoospermia',
         pathologistNotes: 'Teratozoospermia: Normal sperm morphology below 4% according to Kruger Strict Criteria. High index of head and midpiece abnormalities.',
       }));
-      toast.info('تم تطبيق نموذج زيادة التشوهات (Teratozoospermia)', 'تم التحميل');
+      toast.info('Applied Teratozoospermia template', 'Loaded');
     }
   };
 
   const handleSaveAndApply = () => {
     const formatted = serializeSemen(data);
     onApply(formatted, data);
-    toast.success('تم حفظ واعتماد تقرير فحص السائل المنوي بنجاح!', 'تم الحفظ');
+    toast.success('Semen analysis report saved and applied successfully!', 'Saved');
     onClose();
   };
 
@@ -493,6 +493,7 @@ export default function SemenFormModal({
     <div className="modal-overlay" onClick={onClose}>
       <div 
         className="modal-content" 
+        dir="ltr"
         style={{ maxWidth: '1080px', width: '96vw', height: '90vh', maxHeight: '900px', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -524,14 +525,14 @@ export default function SemenFormModal({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h2 style={{ fontSize: '15px', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>
-                  فحص السائل المنوي الشامل (S.F.A)
+                  Seminal Fluid Analysis (S.F.A) Workstation
                 </h2>
                 <span className="badge badge-received" style={{ fontSize: '10px', padding: '2px 8px' }}>
                   WHO 5th & 6th Criteria
                 </span>
               </div>
               <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-                عينة #{sampleNumber} • المريض: <strong style={{ color: 'var(--text-main)' }}>{patientName}</strong>
+                Sample #{sampleNumber} • Patient: <strong style={{ color: 'var(--text-main)' }}>{patientName}</strong>
               </span>
             </div>
           </div>
@@ -544,7 +545,7 @@ export default function SemenFormModal({
               style={{ padding: '6px 16px', fontSize: '12.5px', fontWeight: 800, height: '34px', borderRadius: '8px' }}
             >
               <Check size={15} />
-              <span>اعتماد وتثبيت النتيجة</span>
+              <span>Save & Apply Result</span>
             </button>
             <button
               type="button"
@@ -569,7 +570,7 @@ export default function SemenFormModal({
         }}>
           <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
             <Sparkles size={13} />
-            <span>قوالب سريرية سريعة:</span>
+            <span>Clinical Presets:</span>
           </span>
 
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap' }}>
@@ -578,9 +579,9 @@ export default function SemenFormModal({
               onClick={() => applyPreset('NORMAL')}
               className="btn-secondary"
               style={{ fontSize: '10.5px', padding: '3px 9px', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.4)', background: 'rgba(16, 185, 129, 0.08)', whiteSpace: 'nowrap' }}
-              title="فحص طبيعي وسليم بالكامل وفق مواصفات WHO"
+              title="Normal physiological parameters according to WHO criteria"
             >
-              طبيعي (Normo)
+              Normo (Normal)
             </button>
 
             <button
@@ -588,9 +589,9 @@ export default function SemenFormModal({
               onClick={() => applyPreset('ASTHENO')}
               className="btn-secondary"
               style={{ fontSize: '10.5px', padding: '3px 9px', color: '#fbbf24', borderColor: 'rgba(251, 191, 36, 0.4)', background: 'rgba(251, 191, 36, 0.08)', whiteSpace: 'nowrap' }}
-              title="ضعف في حركة النطف التقدمية"
+              title="Reduced progressive sperm motility (PR < 32%)"
             >
-              ضعف حركة (Astheno)
+              Astheno (Motility)
             </button>
 
             <button
@@ -598,9 +599,9 @@ export default function SemenFormModal({
               onClick={() => applyPreset('OLIGO')}
               className="btn-secondary"
               style={{ fontSize: '10.5px', padding: '3px 9px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.4)', background: 'rgba(56, 189, 248, 0.08)', whiteSpace: 'nowrap' }}
-              title="قلة عدد النطف أقل من 15 مليون/مل"
+              title="Low sperm concentration (< 15 M/mL)"
             >
-              قلة عدد (Oligo)
+              Oligo (Low Count)
             </button>
 
             <button
@@ -608,9 +609,9 @@ export default function SemenFormModal({
               onClick={() => applyPreset('OAT')}
               className="btn-secondary"
               style={{ fontSize: '10.5px', padding: '3px 9px', color: '#f43f5e', borderColor: 'rgba(244, 63, 94, 0.4)', background: 'rgba(244, 63, 94, 0.08)', whiteSpace: 'nowrap' }}
-              title="ضعف ثلاثي في العدد والحركة والأشكال"
+              title="Combined defect: Oligo-Astheno-Teratozoospermia"
             >
-              ضعف مركب (OAT)
+              OAT Syndrome
             </button>
 
             <button
@@ -618,9 +619,9 @@ export default function SemenFormModal({
               onClick={() => applyPreset('AZOO')}
               className="btn-secondary"
               style={{ fontSize: '10.5px', padding: '3px 9px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.4)', background: 'rgba(239, 68, 68, 0.08)', whiteSpace: 'nowrap' }}
-              title="انعدام وجود أي نطف بعد التثفيل"
+              title="No spermatozoa detected in centrifuged ejaculate"
             >
-              انعدام نطف (Azoo)
+              Azoo (Zero Sperm)
             </button>
 
             <button
@@ -628,9 +629,9 @@ export default function SemenFormModal({
               onClick={() => applyPreset('LEUKO')}
               className="btn-secondary"
               style={{ fontSize: '10.5px', padding: '3px 9px', color: '#a855f7', borderColor: 'rgba(168, 85, 247, 0.4)', background: 'rgba(168, 85, 247, 0.08)', whiteSpace: 'nowrap' }}
-              title="ارتفاع خلايا الصديد والالتهاب الميكروبي"
+              title="Elevated WBC / Pus cells > 1 M/mL indicating infection"
             >
-              التهاب وصديد (Pus/Leuko)
+              Leukocytospermia (Pus)
             </button>
 
             <button
@@ -638,9 +639,9 @@ export default function SemenFormModal({
               onClick={() => applyPreset('TERATO')}
               className="btn-secondary"
               style={{ fontSize: '10.5px', padding: '3px 9px', color: '#eab308', borderColor: 'rgba(234, 179, 8, 0.4)', background: 'rgba(234, 179, 8, 0.08)', whiteSpace: 'nowrap' }}
-              title="زيادة تشوهات النطف"
+              title="Normal morphology < 4% (Kruger Strict Criteria)"
             >
-              تشوهات (Terato)
+              Terato (Morphology)
             </button>
 
             <button
@@ -648,7 +649,7 @@ export default function SemenFormModal({
               onClick={() => applyPreset('RESET')}
               className="btn-icon"
               style={{ width: '26px', height: '26px' }}
-              title="إعادة ضبط الحقول"
+              title="Reset all parameters"
             >
               <RotateCcw size={12} />
             </button>
@@ -681,7 +682,7 @@ export default function SemenFormModal({
             }}
           >
             <Eye size={14} />
-            <span>1. الفحص العياني (Physical)</span>
+            <span>1. Physical Examination</span>
           </button>
 
           <button
@@ -702,7 +703,7 @@ export default function SemenFormModal({
             }}
           >
             <Microscope size={14} />
-            <span>2. التعداد والمجهري (Count)</span>
+            <span>2. Count & Microscopy</span>
           </button>
 
           <button
@@ -723,7 +724,7 @@ export default function SemenFormModal({
             }}
           >
             <Activity size={14} />
-            <span>3. الحركية والحيوية (Motility)</span>
+            <span>3. Motility & Vitality</span>
             <span style={{ fontSize: '10px', background: motilitySum === 100 ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', color: motilitySum === 100 ? '#10b981' : '#ef4444', padding: '1px 5px', borderRadius: '4px' }}>
               {motilitySum}%
             </span>
@@ -747,7 +748,7 @@ export default function SemenFormModal({
             }}
           >
             <CheckCircle2 size={14} />
-            <span>4. الأشكال والخلاصة (Morphology)</span>
+            <span>4. Morphology & Diagnosis</span>
           </button>
         </div>
 
@@ -764,7 +765,7 @@ export default function SemenFormModal({
                 {/* Abstinence & Volume Row */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <PillSelector
-                    label="فترة الامتناع (Abstinence Period)"
+                    label="Abstinence Period"
                     refRange="2 - 7 Days"
                     value={data.abstinenceDays}
                     onChange={(val) => setField('abstinenceDays', val)}
@@ -780,7 +781,7 @@ export default function SemenFormModal({
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                       <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
-                        حجم القذف (Ejaculate Volume)
+                        Ejaculate Volume
                       </span>
                       <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
                         WHO Ref: <span style={{ color: 'var(--accent-cyan)' }}>≥ 1.5 mL</span>
@@ -811,7 +812,7 @@ export default function SemenFormModal({
                         step="0.1"
                         value={data.volume}
                         onChange={(e) => setField('volume', e.target.value)}
-                        placeholder="حجم مخصص"
+                        placeholder="Custom"
                         className="input-control"
                         style={{ width: '80px', height: '28px', fontSize: '12px', padding: '2px 6px', textAlign: 'center' }}
                       />
@@ -828,10 +829,10 @@ export default function SemenFormModal({
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
-                      لون العينة (Color)
+                      Sample Color
                     </span>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      اللون الطبيعي: <strong style={{ color: 'var(--accent-cyan)' }}>Greyish-White</strong>
+                      Normal Reference: <strong style={{ color: 'var(--accent-cyan)' }}>Greyish-White</strong>
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -867,7 +868,7 @@ export default function SemenFormModal({
                 {/* Appearance & Liquefaction */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <PillSelector
-                    label="المظهر والتجانس (Appearance)"
+                    label="Appearance & Homogeneity"
                     refRange="Homogeneous"
                     value={data.appearance}
                     onChange={(val) => setField('appearance', val)}
@@ -875,7 +876,7 @@ export default function SemenFormModal({
                   />
 
                   <PillSelector
-                    label="زمن التميع (Liquefaction Time)"
+                    label="Liquefaction Time"
                     refRange="< 60 minutes"
                     value={data.liquefactionTime}
                     onChange={(val) => setField('liquefactionTime', val)}
@@ -887,7 +888,7 @@ export default function SemenFormModal({
                 {/* Viscosity & pH & Odor */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                   <PillSelector
-                    label="اللزوجة (Viscosity)"
+                    label="Viscosity"
                     refRange="Normal / Small drops"
                     value={data.viscosity}
                     onChange={(val) => setField('viscosity', val)}
@@ -896,7 +897,7 @@ export default function SemenFormModal({
                   />
 
                   <PillSelector
-                    label="درجة الحموضة (pH)"
+                    label="Reaction (pH)"
                     refRange="≥ 7.2"
                     value={data.reactionPh}
                     onChange={(val) => setField('reactionPh', val)}
@@ -905,7 +906,7 @@ export default function SemenFormModal({
                   />
 
                   <PillSelector
-                    label="الرائحة (Odor)"
+                    label="Odor"
                     refRange="Characteristic"
                     value={data.odor}
                     onChange={(val) => setField('odor', val)}
@@ -932,18 +933,18 @@ export default function SemenFormModal({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Zap size={16} color="var(--accent-cyan)" />
                       <strong style={{ fontSize: '13.5px', color: 'var(--text-main)' }}>
-                        تركيز النطف والعدد الإجمالي (Sperm Concentration & Total Count)
+                        Sperm Concentration & Total Count
                       </strong>
                     </div>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      WHO 2010/2021 Reference: <strong style={{ color: 'var(--accent-cyan)' }}>≥ 15 M/mL | ≥ 39 M/ejaculate</strong>
+                      WHO Reference: <strong style={{ color: 'var(--accent-cyan)' }}>≥ 15 M/mL | ≥ 39 M/ejaculate</strong>
                     </span>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '14px' }}>
                     <div>
                       <label className="input-label" style={{ fontSize: '12px' }}>
-                        تركيز النطف (Sperm Concentration - Millions/mL):
+                        Sperm Concentration (Millions/mL):
                       </label>
                       <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                         {['0 (Azoo)', '5', '10', '15', '25', '45', '60', '80', '100'].map((c) => {
@@ -990,13 +991,13 @@ export default function SemenFormModal({
                       justifyContent: 'center',
                     }}>
                       <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'block' }}>
-                        العدد الكلي المحسوب في كامل القذف (Total Sperm Count):
+                        Total Sperm Count in Ejaculate (Calculated):
                       </span>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '2px' }}>
                         <strong style={{ fontSize: '20px', color: parseFloat(data.totalCount) >= 39 ? '#10b981' : '#ef4444' }}>
                           {data.totalCount || '0'}
                         </strong>
-                        <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>مليون نطفة (Million/ejac)</span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>Million / Ejaculate</span>
                       </div>
                       <span style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '2px' }}>
                         = ({data.concentration} M/mL × {data.volume} mL)
@@ -1008,7 +1009,7 @@ export default function SemenFormModal({
                 {/* Pus & RBCs Row */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <PillSelector
-                    label="الخلايا القيحية / الصديدية (Pus Cells / Leukocytes)"
+                    label="Pus Cells / Leukocytes (/HPF)"
                     refRange="< 5 /HPF (< 1 M/mL)"
                     value={data.pusCells}
                     onChange={(val) => setField('pusCells', val)}
@@ -1017,7 +1018,7 @@ export default function SemenFormModal({
                   />
 
                   <PillSelector
-                    label="كريات الدم الحمراء (R.B.Cs)"
+                    label="Red Blood Cells (RBCs /HPF)"
                     refRange="0 - 1 /HPF"
                     value={data.rbcs}
                     onChange={(val) => setField('rbcs', val)}
@@ -1029,7 +1030,7 @@ export default function SemenFormModal({
                 {/* Agglutination & Aggregation */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <PillSelector
-                    label="التلازن المناعي (Sperm Agglutination)"
+                    label="Sperm Agglutination"
                     refRange="Nil / None"
                     value={data.agglutination}
                     onChange={(val) => setField('agglutination', val)}
@@ -1038,7 +1039,7 @@ export default function SemenFormModal({
                   />
 
                   <PillSelector
-                    label="التجمع غير النوعي (Sperm Aggregation)"
+                    label="Sperm Aggregation"
                     refRange="Nil"
                     value={data.aggregation}
                     onChange={(val) => setField('aggregation', val)}
@@ -1049,7 +1050,7 @@ export default function SemenFormModal({
                 {/* Epithelial, Germ Cells, Microorganisms */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                   <PillSelector
-                    label="خلايا طلائية (Epithelial Cells)"
+                    label="Epithelial Cells"
                     refRange="Few"
                     value={data.epithelialCells}
                     onChange={(val) => setField('epithelialCells', val)}
@@ -1057,7 +1058,7 @@ export default function SemenFormModal({
                   />
 
                   <PillSelector
-                    label="خلايا نطف غير ناضجة (Germ Cells)"
+                    label="Immature Germ Cells"
                     refRange="Nil / Few"
                     value={data.immatureGermCells}
                     onChange={(val) => setField('immatureGermCells', val)}
@@ -1065,7 +1066,7 @@ export default function SemenFormModal({
                   />
 
                   <PillSelector
-                    label="بكتيريا / أحياء مجهرية (Bacteria)"
+                    label="Bacteria / Microorganisms"
                     refRange="Nil"
                     value={data.microorganisms}
                     onChange={(val) => setField('microorganisms', val)}
@@ -1092,7 +1093,7 @@ export default function SemenFormModal({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Activity size={16} color="var(--accent-cyan)" />
                       <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>
-                        مجموع نسب الحركية (Motility Balance):
+                        Motility Balance (Total 100%):
                       </strong>
                     </div>
                     <div style={{ display: 'flex', gap: '12px', fontSize: '11.5px' }}>
@@ -1116,7 +1117,7 @@ export default function SemenFormModal({
                   {motilitySum !== 100 && (
                     <div style={{ marginTop: '6px', fontSize: '11px', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <AlertCircle size={12} />
-                      <span>تنبيه: مجموع نسب الحركية الحالية ({motilitySum}%) لا يساوي 100%. يرجى مراجعة الأرقام.</span>
+                      <span>Warning: Total motility sum ({motilitySum}%) does not equal 100%. Please adjust values.</span>
                     </div>
                   )}
                 </div>
@@ -1136,7 +1137,7 @@ export default function SemenFormModal({
                       Grade A (Rapid PR)
                     </span>
                     <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                      سريعة مستقيمة للأمام
+                      Rapid progressive / forward
                     </span>
                     <input
                       type="number"
@@ -1173,7 +1174,7 @@ export default function SemenFormModal({
                       Grade B (Slow PR)
                     </span>
                     <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                      بطيئة للأمام
+                      Slow or sluggish progressive
                     </span>
                     <input
                       type="number"
@@ -1210,7 +1211,7 @@ export default function SemenFormModal({
                       Grade C (Non-Prog NP)
                     </span>
                     <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                      حركة موضعية غير تقدمية
+                      Non-progressive motility
                     </span>
                     <input
                       type="number"
@@ -1247,7 +1248,7 @@ export default function SemenFormModal({
                       Grade D (Immotile IM)
                     </span>
                     <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                      ساكنة عديمة الحركة
+                      Immotile / no movement
                     </span>
                     <input
                       type="number"
@@ -1288,7 +1289,7 @@ export default function SemenFormModal({
                 }}>
                   <div>
                     <strong style={{ fontSize: '13px', color: 'var(--text-main)', display: 'block' }}>
-                      حيوية النطف بصبغة الإيوسين (Sperm Vitality / Viability % Live):
+                      Sperm Vitality / Viability (Eosin Test % Live):
                     </strong>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                       WHO Reference Standard: <strong style={{ color: 'var(--accent-cyan)' }}>≥ 58% Live Sperm</strong>
@@ -1346,7 +1347,7 @@ export default function SemenFormModal({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <CheckCircle2 size={16} color="var(--accent-cyan)" />
                       <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>
-                        شكل النطف وفق معايير كروجر الصارمة (Kruger Strict Criteria / WHO)
+                        Sperm Morphology (Kruger Strict Criteria / WHO)
                       </strong>
                     </div>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -1357,7 +1358,7 @@ export default function SemenFormModal({
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                     <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1.5px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', padding: '10px 14px' }}>
                       <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 800, display: 'block' }}>
-                        الأشكال الطبيعية السليمة (Normal Forms %):
+                        Normal Sperm Forms (%):
                       </span>
                       <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '6px' }}>
                         {['4', '30', '50', '65', '75'].map((v) => (
@@ -1382,7 +1383,7 @@ export default function SemenFormModal({
 
                     <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1.5px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', padding: '10px 14px' }}>
                       <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 800, display: 'block' }}>
-                        الأشكال المشوهة المحسوبة (Abnormal Forms %):
+                        Abnormal Forms (% Calculated):
                       </span>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '6px' }}>
                         <strong style={{ fontSize: '22px', color: '#ef4444' }}>
@@ -1402,11 +1403,11 @@ export default function SemenFormModal({
                   padding: '12px 14px',
                 }}>
                   <strong style={{ fontSize: '12.5px', color: 'var(--text-main)', display: 'block', marginBottom: '8px' }}>
-                    تفصيل التشوهات المورفولوجية (Defects Breakdown %):
+                    Defects Breakdown (%):
                   </strong>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
                     <div>
-                      <label className="input-label" style={{ fontSize: '11px' }}>تشوهات الرأس (Head):</label>
+                      <label className="input-label" style={{ fontSize: '11px' }}>Head Defects:</label>
                       <input
                         type="text"
                         value={data.headDefects}
@@ -1418,7 +1419,7 @@ export default function SemenFormModal({
                     </div>
 
                     <div>
-                      <label className="input-label" style={{ fontSize: '11px' }}>تشوهات العنق (Neck):</label>
+                      <label className="input-label" style={{ fontSize: '11px' }}>Neck / Midpiece Defects:</label>
                       <input
                         type="text"
                         value={data.neckDefects}
@@ -1430,7 +1431,7 @@ export default function SemenFormModal({
                     </div>
 
                     <div>
-                      <label className="input-label" style={{ fontSize: '11px' }}>تشوهات الذيل (Tail):</label>
+                      <label className="input-label" style={{ fontSize: '11px' }}>Tail Defects:</label>
                       <input
                         type="text"
                         value={data.tailDefects}
@@ -1442,14 +1443,14 @@ export default function SemenFormModal({
                     </div>
 
                     <div>
-                      <label className="input-label" style={{ fontSize: '11px' }}>بقايا السيتوبلازم (ERC):</label>
+                      <label className="input-label" style={{ fontSize: '11px' }}>Excess Residual Cytoplasm (ERC):</label>
                       <input
                         type="text"
                         value={data.cytoplasmicDroplets}
                         onChange={(e) => setField('cytoplasmicDroplets', e.target.value)}
                         className="input-control"
                         style={{ textAlign: 'center', fontWeight: 700 }}
-                        placeholder="Nil أو %"
+                        placeholder="Nil or %"
                       />
                     </div>
                   </div>
@@ -1463,7 +1464,7 @@ export default function SemenFormModal({
                   padding: '12px 14px',
                 }}>
                   <label className="input-label" style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px' }}>
-                    الخلاصة والتشخيص السريري (Clinical Diagnostic Impression):
+                    Clinical Diagnostic Impression:
                   </label>
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
                     {[
@@ -1504,7 +1505,7 @@ export default function SemenFormModal({
                     value={data.clinicalImpression}
                     onChange={(e) => setField('clinicalImpression', e.target.value)}
                     className="input-control"
-                    placeholder="التشخيص النهائي..."
+                    placeholder="Final Diagnosis / Clinical Impression..."
                     style={{ fontSize: '13px', fontWeight: 800, color: 'var(--accent-cyan)' }}
                   />
                 </div>
@@ -1517,14 +1518,14 @@ export default function SemenFormModal({
                   padding: '12px 14px',
                 }}>
                   <label className="input-label" style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-main)' }}>
-                    ملاحظات وتوصيات استشاري المختبر (Pathologist Comments):
+                    Pathologist Comments & Clinical Notes:
                   </label>
                   <textarea
                     rows={3}
                     value={data.pathologistNotes}
                     onChange={(e) => setField('pathologistNotes', e.target.value)}
                     className="textarea-control"
-                    placeholder="ملاحظات سريرية أو توصيات بإعادة الفحص بعد 2-3 أسابيع..."
+                    placeholder="Clinical notes or recommendations (e.g. repeat test after 2-4 weeks)..."
                     style={{ fontSize: '12px', lineHeight: 1.5 }}
                   />
                 </div>
@@ -1553,7 +1554,7 @@ export default function SemenFormModal({
             }}>
               <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <FileText size={14} color="var(--accent-cyan)" />
-                <span>معاينة حية للتقرير المعتمد</span>
+                <span>Live Report Preview</span>
               </span>
               <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Auto-Generated</span>
             </div>
@@ -1631,7 +1632,7 @@ export default function SemenFormModal({
                 style={{ width: '100%', height: '36px', fontSize: '12.5px', fontWeight: 800, borderRadius: '8px' }}
               >
                 <Check size={15} />
-                <span>اعتماد وتثبيت النتيجة الآن</span>
+                <span>Apply & Save Result Now</span>
               </button>
             </div>
           </div>
@@ -1651,7 +1652,7 @@ export default function SemenFormModal({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
-            <span>معايير منظمة الصحة العالمية (WHO 5th/6th Guidelines): فحص عياني، تعداد، حركية، وأشكال طبيعية.</span>
+            <span>WHO Guidelines (5th/6th Eds): Macroscopic, Count, Motility, Vitality, Kruger Morphology.</span>
           </div>
 
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -1666,8 +1667,8 @@ export default function SemenFormModal({
                 className="btn-secondary"
                 style={{ padding: '4px 10px', fontSize: '11px' }}
               >
-                <ChevronRight size={13} />
-                <span>القسم السابق</span>
+                <ChevronLeft size={13} />
+                <span>Previous</span>
               </button>
             )}
 
@@ -1682,8 +1683,8 @@ export default function SemenFormModal({
                 className="btn-secondary"
                 style={{ padding: '4px 10px', fontSize: '11px', color: 'var(--accent-cyan)' }}
               >
-                <span>القسم التالي</span>
-                <ChevronLeft size={13} />
+                <span>Next</span>
+                <ChevronRight size={13} />
               </button>
             )}
           </div>
