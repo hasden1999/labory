@@ -320,7 +320,6 @@ function ResultsContent() {
       if (categoryOrCode === 'GSE') return code === 'GSE' || name.includes('STOOL') || name.includes('خروج');
       if (categoryOrCode === 'CBC') return code === 'CBC' || name.includes('BLOOD') || name.includes('CBC') || name.includes('دم');
       if (categoryOrCode === 'MICROBIOLOGY') return code.includes('CULTURE') || name.includes('CULTURE') || name.includes('زرع');
-      if (categoryOrCode === 'SFA') return code === 'SFA' || code === 'SEMEN' || name.includes('SEMEN') || name.includes('SEMINAL') || name.includes('سائل منوي') || name.includes('نطف') || name.includes('مني');
       if (categoryOrCode === 'CHEMISTRY') return st.test?.category === 'CHEMISTRY' || ['LFT', 'KFT', 'LIPID', 'GLUCOSE', 'FBS', 'UREA', 'CREAT', 'CHEMISTRY'].some(c => code.includes(c)) || ['كيمياء', 'سكري', 'كبد', 'كلى', 'وظائف', 'دهون', 'يوريا', 'كرياتنين'].some(k => name.includes(k));
       return false;
     });
@@ -674,18 +673,6 @@ function ResultsContent() {
     };
   }, [samples]);
 
-  // Completion stats for current active sample (Hero Progress Bar)
-  const testCompletionStats = useMemo(() => {
-    if (!selectedSample?.tests?.length) return { completed: 0, total: 0, percentage: 0 };
-    const total = selectedSample.tests.length;
-    const completed = selectedSample.tests.filter((st: any) => {
-      const val = testResults[st.id]?.resultValue;
-      return val !== undefined && val !== null && String(val).trim() !== '';
-    }).length;
-    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-    return { completed, total, percentage };
-  }, [selectedSample, testResults]);
-
   // Helper for elapsed time indicator
   const getElapsedTime = (createdAt: string | Date) => {
     if (!createdAt) return '';
@@ -765,55 +752,6 @@ function ResultsContent() {
     }
   };
 
-  const handleOpenWorkstationDirect = async (code: 'SFA' | 'GUE' | 'GSE') => {
-    if (!selectedSample) {
-      toast.warning('يرجى اختيار عينة أولاً من طابور العينات', 'تنبيه');
-      return;
-    }
-
-    const hasTest = selectedSample.tests?.some((st: any) => {
-      const c = (st.test?.code || '').toUpperCase();
-      const n = (st.test?.name || '').toLowerCase();
-      if (code === 'SFA') return c === 'SFA' || c === 'SEMEN' || n.includes('semen') || n.includes('سائل منوي') || n.includes('نطف');
-      if (code === 'GUE') return c === 'GUE' || n.includes('urine') || n.includes('إدرار');
-      if (code === 'GSE') return c === 'GSE' || n.includes('stool') || n.includes('خروج');
-      return false;
-    });
-
-    if (hasTest) {
-      if (code === 'SFA') setShowSemenModal(true);
-      else if (code === 'GUE') setShowUrineModal(true);
-      else if (code === 'GSE') setShowGseModal(true);
-    } else {
-      try {
-        if (allAvailableTests.length === 0) {
-          const res: any = await apiRequest('/catalog/tests');
-          const list: Test[] = Array.isArray(res) ? res : res?.tests || [];
-          setAllAvailableTests(list);
-        }
-        const targetTest = (allAvailableTests.length > 0 ? allAvailableTests : []).find(t => t.code === code) || {
-          id: code === 'SFA' ? 't-sfa' : code === 'GUE' ? 't-gue' : 't-gse',
-          code,
-          name: code === 'SFA' ? 'Seminal Fluid Analysis (SFA)' : code === 'GUE' ? 'General Urine Examination (GUE)' : 'General Stool Examination (GSE)',
-        };
-
-        const updated = await apiRequest(`/samples/${selectedSample.id}/tests`, 'POST', {
-          testIds: [targetTest.id],
-        });
-        selectSample(updated);
-        loadSamples();
-        toast.success(`تم ربط فحص (${code}) بالعينة وتفعيل فورمة الفحص بنجاح!`);
-        if (code === 'SFA') setShowSemenModal(true);
-        else if (code === 'GUE') setShowUrineModal(true);
-        else if (code === 'GSE') setShowGseModal(true);
-      } catch (err: any) {
-        if (code === 'SFA') setShowSemenModal(true);
-        else if (code === 'GUE') setShowUrineModal(true);
-        else if (code === 'GSE') setShowGseModal(true);
-      }
-    }
-  };
-
   const handleConfirmDeleteTest = async () => {
     if (!selectedSample || !testToDelete) return;
     try {
@@ -846,325 +784,212 @@ function ResultsContent() {
 
   return (
     <AppShell>
-      <div className="results-guided-container">
-        {/* Top Full-Width Patient Hero Card */}
-        {selectedSample ? (
-          <div className="results-hero-card">
-            <div className="results-hero-top">
-              {/* Patient Info & Metadata */}
-              <div className="results-hero-meta">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.3px' }}>
-                    {selectedSample.patient?.name || 'مريض غير مسمى'}
-                  </span>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--accent-cyan)', background: 'var(--accent-cyan-subtle)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
-                    #{selectedSample.sampleNumber}
-                  </span>
-                </div>
+      {/* Main Mockup Split Layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '18px', minHeight: 'calc(100vh - 120px)' }}>
+        
+        {/* LEFT: PATIENT SAMPLE QUEUE (Image 2 Style) */}
+        <div className="glass-card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', height: 'fit-content', maxHeight: 'calc(100vh - 120px)' }}>
+          <label htmlFor="results-search-input" className="input-label" style={{ fontSize: '11.5px', fontWeight: 800, marginBottom: '10px', display: 'block', cursor: 'pointer' }}>
+            PATIENT SAMPLE QUEUE (طابور العينات)
+          </label>
 
-                {/* Gender & Age */}
-                <span className="results-pill-chip">
-                  <User size={13} style={{ color: selectedSample.patient?.gender === 'FEMALE' ? '#ec4899' : 'var(--accent-cyan)' }} />
-                  <span>{selectedSample.patient?.gender === 'FEMALE' ? 'أنثى' : 'ذكر'}</span>
-                  <span>•</span>
-                  <span>{selectedSample.patient?.age || '-'} سنة</span>
-                </span>
+          {/* Quick Search */}
+          <div style={{ position: 'relative', marginBottom: '10px' }}>
+            <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+            <input
+              id="results-search-input"
+              type="text"
+              placeholder="Search Queue (Sample # / Name)..."
+              className="input-control"
+              style={{ paddingLeft: '28px', fontSize: '12px', height: '32px', background: 'var(--bg-input-deep)' }}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
 
-                {/* Urgency Pill */}
-                {selectedSample.isUrgent ? (
-                  <span className="results-pill-chip" style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'var(--color-danger)', borderColor: 'rgba(239, 68, 68, 0.4)' }}>
-                    <AlertOctagon size={13} />
-                    <span>حالة إسعافية عاجلة STAT</span>
-                  </span>
-                ) : (
-                  <span className="results-pill-chip">
-                    <Clock size={13} style={{ color: 'var(--text-dim)' }} />
-                    <span>عادي (Routine)</span>
-                  </span>
-                )}
-
-                {/* Doctor */}
-                {selectedSample.doctor?.name && (
-                  <span className="results-pill-chip" style={{ color: 'var(--text-muted)' }}>
-                    <span>الطبيب: {selectedSample.doctor.name}</span>
-                  </span>
-                )}
-
-                {/* Sample Received Time */}
-                {selectedSample.createdAt && (
-                  <span className="results-pill-chip" style={{ color: 'var(--text-dim)', fontSize: '11px' }}>
-                    <Clock size={12} />
-                    <span>{new Date(selectedSample.createdAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' })}</span>
-                    {getElapsedTime(selectedSample.createdAt) && (
-                      <span style={{ color: 'var(--accent-cyan)', fontWeight: 800 }}>({getElapsedTime(selectedSample.createdAt)})</span>
-                    )}
-                  </span>
-                )}
-
-                {/* Barcode Quick Link */}
+          {/* Status Filter Tabs (Pills) */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '12px' }}>
+            {([
+              { id: 'ALL', label: 'الكل', count: statusCounts.ALL, variant: 'default' },
+              { id: 'URGENT', label: '<AlertOctagon size={12} /> STAT', count: statusCounts.URGENT, variant: 'stat' },
+              { id: 'RECEIVED', label: 'مستلمة', count: statusCounts.RECEIVED, variant: 'default' },
+              { id: 'IN_PROGRESS', label: 'قيد الفحص', count: statusCounts.IN_PROGRESS, variant: 'default' },
+              { id: 'READY', label: 'جاهزة', count: statusCounts.READY, variant: 'ready' },
+            ] as const).map((tab) => {
+              const isActive = statusFilter === tab.id;
+              const isStat = tab.variant === 'stat';
+              const isReady = tab.variant === 'ready';
+              return (
                 <button
+                  key={tab.id}
                   type="button"
-                  onClick={() => {
-                    setDocPreviewUrl(`/api/samples/${selectedSample.id}/barcode`);
-                    setDocPreviewTitle(`طباعة ملصق الباركود (50x25mm) - عينة #${selectedSample.sampleNumber} (${selectedSample.patient?.name})`);
-                  }}
-                  title="طباعة ملصق الباركود الحراري 50x25mm"
-                  className="results-pill-chip"
-                  style={{ cursor: 'pointer', background: 'rgba(6, 182, 212, 0.08)', borderColor: 'rgba(6, 182, 212, 0.3)', color: 'var(--accent-cyan)' }}
-                >
-                  <Barcode size={13} />
-                  <span>ملصق الباركود</span>
-                </button>
-              </div>
-
-              {/* Progress Bar & Test Completion Stats */}
-              <div className="results-hero-progress-box">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11.5px', fontWeight: 800 }}>
-                    <span style={{ color: testCompletionStats.percentage === 100 ? 'var(--color-success)' : 'var(--accent-cyan)' }}>
-                      {testCompletionStats.percentage === 100 ? '✅ اكتملت كافة الفحوصات' : `نسبة الإنجاز: ${testCompletionStats.percentage}%`}
-                    </span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>
-                      {testCompletionStats.completed} من {testCompletionStats.total} فحص مكتمل
-                    </span>
-                  </div>
-                  <div className="results-progress-bar-track">
-                    <div
-                      className="results-progress-bar-fill"
-                      style={{
-                        width: `${testCompletionStats.percentage}%`,
-                        background: testCompletionStats.percentage === 100 ? '#10b981' : 'linear-gradient(90deg, var(--accent-cyan) 0%, #10b981 100%)'
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="results-hero-card" style={{ textAlign: 'center', padding: '16px', color: 'var(--text-muted)' }}>
-            <span>يرجى اختيار عينة من طابور العينات أدناه للبدء في إدخال وتدقيق النتائج</span>
-          </div>
-        )}
-
-        {/* Lower Guided Split Flow */}
-        <div className="results-guided-split">
-          
-          {/* RIGHT: PATIENT SAMPLE QUEUE */}
-          <div className="results-queue-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <label htmlFor="results-search-input" className="input-label" style={{ margin: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer' }}>
-                طابور العينات (PATIENT QUEUE)
-              </label>
-              <span style={{ fontSize: '11px', color: 'var(--accent-cyan)', fontWeight: 800 }}>
-                {filteredSamples.length} عينة
-              </span>
-            </div>
-
-            {/* Quick Search */}
-            <div style={{ position: 'relative', marginBottom: '10px' }}>
-              <Search size={13} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-              <input
-                id="results-search-input"
-                type="text"
-                placeholder="بحث في الطابور (رقم العينة أو الاسم)..."
-                className="input-control"
-                style={{ paddingRight: '30px', fontSize: '12px', height: '34px', borderRadius: '8px' }}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-
-            {/* Status Filter Tabs (Pills) */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '12px' }}>
-              {([
-                { id: 'ALL', label: 'الكل', count: statusCounts.ALL, variant: 'default' },
-                { id: 'URGENT', label: 'STAT', count: statusCounts.URGENT, variant: 'stat' },
-                { id: 'RECEIVED', label: 'مستلمة', count: statusCounts.RECEIVED, variant: 'default' },
-                { id: 'IN_PROGRESS', label: 'قيد الفحص', count: statusCounts.IN_PROGRESS, variant: 'default' },
-                { id: 'READY', label: 'جاهزة', count: statusCounts.READY, variant: 'ready' },
-              ] as const).map((tab) => {
-                const isActive = statusFilter === tab.id;
-                const isStat = tab.variant === 'stat';
-                const isReady = tab.variant === 'ready';
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setStatusFilter(tab.id as any)}
-                    style={{
-                      padding: '4px 9px',
-                      fontSize: '11px',
-                      fontWeight: isActive ? 800 : 600,
-                      borderRadius: '12px',
-                      border: `1px solid ${
-                        isActive
-                          ? (isStat ? 'var(--color-danger)' : isReady ? 'var(--color-success)' : 'var(--accent-cyan)')
-                          : 'var(--border-color)'
-                      }`,
-                      background: isActive
-                        ? (isStat ? 'rgba(239, 68, 68, 0.15)' : isReady ? 'rgba(16, 185, 129, 0.15)' : 'var(--accent-cyan-subtle)')
-                        : 'var(--bg-input-deep)',
-                      color: isActive
+                  onClick={() => setStatusFilter(tab.id as any)}
+                  style={{
+                    padding: '3px 8px',
+                    fontSize: '10.5px',
+                    fontWeight: isActive ? 800 : 600,
+                    borderRadius: '12px',
+                    border: `1px solid ${
+                      isActive
                         ? (isStat ? 'var(--color-danger)' : isReady ? 'var(--color-success)' : 'var(--accent-cyan)')
-                        : 'var(--text-muted)',
+                        : '#1e2638'
+                    }`,
+                    background: isActive
+                      ? (isStat ? 'var(--bg-stat-row)' : isReady ? 'rgba(16, 185, 129, 0.2)' : 'rgba(0, 210, 211, 0.15)')
+                      : 'var(--bg-input-deep)',
+                    color: isActive
+                      ? (isStat ? 'var(--color-danger)' : isReady ? 'var(--color-success)' : 'var(--accent-cyan)')
+                      : 'var(--text-muted)',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.12s ease',
+                  }}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    style={{
+                      fontSize: '9px',
+                      fontWeight: 900,
+                      opacity: 0.9,
+                      background: isActive ? 'rgba(255,255,255,0.15)' : '#1a2233',
+                      padding: '0 4px',
+                      borderRadius: '6px',
+                    }}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Active Highlight Banner if selected */}
+          {selectedSample && (
+            <div style={{ padding: '10px 12px', background: 'rgba(0, 210, 211, 0.15)', border: '1px solid var(--accent-cyan)', borderRadius: '8px', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>
+                  {selectedSample.patient?.name}
+                </strong>
+                <span style={{ fontSize: '11px', color: 'var(--accent-cyan)', fontWeight: 800 }}>
+                  #{selectedSample.sampleNumber}
+                </span>
+              </div>
+              <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                {selectedSample.patient?.gender === 'FEMALE' ? 'Female' : 'Male'}, {selectedSample.patient?.age || '-'} yrs • {new Date(selectedSample.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+          )}
+
+          {/* Queue List with Distinct STAT & Elapsed Time */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', flex: 1, paddingRight: '2px' }}>
+            {loadingSamples ? (
+              <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>Loading queue...</div>
+            ) : filteredSamples.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>No samples found</div>
+            ) : (
+              filteredSamples.map((s) => {
+                const isSelected = selectedSample?.id === s.id;
+                const isReady = s.status === 'READY';
+                return (
+                  <div
+                    key={s.id}
+                    onClick={() => handleSelectSampleWithGuard(s)}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      background: isSelected
+                        ? (s.isUrgent ? 'linear-gradient(90deg, rgba(239,68,68,0.22) 0%, #1b2436 100%)' : '#1b2436')
+                        : (s.isUrgent ? 'var(--bg-stat-card)' : 'var(--bg-input-deep)'),
+                      border: isSelected
+                        ? '1px solid var(--accent-cyan)'
+                        : (s.isUrgent ? '1px solid rgba(239, 68, 68, 0.45)' : '1px solid #1a2233'),
+                      borderLeft: s.isUrgent
+                        ? '3.5px solid var(--color-danger)'
+                        : (isSelected ? '3.5px solid var(--accent-cyan)' : '3.5px solid transparent'),
+                      boxShadow: s.isUrgent ? '0 0 10px rgba(239, 68, 68, 0.2)' : 'none',
                       cursor: 'pointer',
-                      display: 'inline-flex',
+                      display: 'flex',
+                      justifyContent: 'space-between',
                       alignItems: 'center',
-                      gap: '4px',
                       transition: 'all 0.12s ease',
                     }}
                   >
-                    {tab.id === 'URGENT' && <AlertOctagon size={11} />}
-                    <span>{tab.label}</span>
-                    <span
-                      style={{
-                        fontSize: '9.5px',
-                        fontWeight: 900,
-                        opacity: 0.9,
-                        background: isActive ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.06)',
-                        padding: '0 4px',
-                        borderRadius: '6px',
-                      }}
-                    >
-                      {tab.count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Queue List with Urgency & Active Indicators */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', flex: 1, paddingLeft: '2px' }}>
-              {loadingSamples ? (
-                <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>جاري تحميل الطابور...</div>
-              ) : filteredSamples.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>لا توجد عينات مطابقة</div>
-              ) : (
-                filteredSamples.map((s) => {
-                  const isSelected = selectedSample?.id === s.id;
-                  const isReady = s.status === 'READY';
-                  return (
-                    <div
-                      key={s.id}
-                      onClick={() => handleSelectSampleWithGuard(s)}
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: '10px',
-                        background: isSelected
-                          ? (s.isUrgent ? 'linear-gradient(90deg, rgba(239,68,68,0.18) 0%, var(--bg-card) 100%)' : 'var(--accent-cyan-subtle)')
-                          : (s.isUrgent ? 'rgba(239, 68, 68, 0.05)' : 'var(--bg-input-deep)'),
-                        border: isSelected
-                          ? '1.5px solid var(--accent-cyan)'
-                          : (s.isUrgent ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid var(--border-color)'),
-                        borderRight: s.isUrgent
-                          ? '4px solid var(--color-danger)'
-                          : (isSelected ? '4px solid var(--accent-cyan)' : '4px solid transparent'),
-                        boxShadow: isSelected ? '0 2px 8px rgba(0, 210, 211, 0.15)' : 'none',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      <div>
-                        <strong style={{ fontSize: '13px', color: isSelected ? 'var(--accent-cyan)' : 'var(--text-main)', display: 'block' }}>
-                          {s.patient?.name}
-                        </strong>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
-                          <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: 700 }}>
-                            #{s.sampleNumber} • {s.tests?.length || 0} فحص
+                    <div>
+                      <strong style={{ fontSize: '12.5px', color: isSelected ? 'var(--accent-cyan)' : 'var(--text-main)', display: 'block' }}>
+                        {s.patient?.name}
+                      </strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                        <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}>
+                          #{s.sampleNumber} • {s.tests?.length || 0} tests
+                        </span>
+                        {s.createdAt && (
+                          <span style={{ fontSize: '10px', color: s.isUrgent ? '#f87171' : 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                            <Clock size={10} />
+                            <span>{getElapsedTime(s.createdAt)}</span>
                           </span>
-                          {s.createdAt && (
-                            <span style={{ fontSize: '10.5px', color: s.isUrgent ? 'var(--color-danger)' : 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                              <Clock size={10} />
-                              <span>{getElapsedTime(s.createdAt)}</span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div>
-                        {s.isUrgent ? (
-                          <span className="badge badge-urgent" style={{ fontSize: '9.5px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                            <AlertOctagon size={11} /> STAT
-                          </span>
-                        ) : isReady ? (
-                          <span className="badge badge-ready" style={{ fontSize: '9.5px' }}>مكتملة</span>
-                        ) : (
-                          <span className="badge badge-received" style={{ fontSize: '9.5px' }}>قيد الفحص</span>
                         )}
                       </div>
                     </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
 
-        {/* LEFT / WORKSPACE: RESULTS ENTRY & VALIDATION */}
+                    <div>
+                      {s.isUrgent ? (
+                        <span className="badge badge-urgent" style={{ fontSize: '9px', background: 'rgba(239, 68, 68, 0.25)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)' }}>
+                          <AlertOctagon size={12} /> STAT
+                        </span>
+                      ) : isReady ? (
+                        <span className="badge badge-ready" style={{ fontSize: '9.5px' }}>VALIDATED</span>
+                      ) : (
+                        <span className="badge badge-received" style={{ fontSize: '9.5px' }}>IN PROGRESS</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT: RESULTS ENTRY & VALIDATION (Image 2 Style) */}
         {selectedSample ? (
-          <div className="results-workspace-card">
+          <div className="glass-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column' }}>
             
             {/* Header with Tools */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <span className="input-label" style={{ margin: 0, fontSize: '13px', fontWeight: 900, color: 'var(--text-main)' }}>
-                  إدخال وتدقيق النتائج (RESULTS ENTRY & VALIDATION)
+                <span className="input-label" style={{ margin: 0, fontSize: '12px', fontWeight: 800 }}>
+                  RESULTS ENTRY & VALIDATION (إدخال وتدقيق النتائج)
                 </span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
-                  عينة #{selectedSample.sampleNumber} • المريض: {selectedSample.patient?.name}
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Sample #{selectedSample.sampleNumber} • Patient: {selectedSample.patient?.name}
                 </span>
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                {/* Fast Pathologist Approval Hotkey Button */}
-                <button
-                  type="button"
-                  onClick={handleFastPathologistApprove}
-                  disabled={savingResults}
-                  className="btn-fast-approve"
-                  title="اعتماد العينة كـ READY والانتقال التلقائي للعينة التالية (Ctrl+Shift+Enter)"
-                >
-                  <Zap size={14} />
-                  <span>اعتماد سريع</span>
-                  <kbd style={{ background: 'rgba(0,0,0,0.25)', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontFamily: 'monospace' }}>Ctrl+Shift+Enter</kbd>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSaveResults(true)}
-                  disabled={savingResults}
-                  className="btn-cyan-primary"
-                  style={{ height: '34px', padding: '0 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '8px' }}
-                >
-                  <Printer size={14} />
-                  <span>حفظ وطباعة التقرير</span>
-                </button>
-
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={handleOpenAddTestsModal}
                   style={{
                     height: '34px',
-                    fontSize: '11.5px',
+                    fontSize: '12px',
                     fontWeight: 800,
-                    padding: '0 12px',
+                    padding: '0 14px',
                     background: 'var(--accent-cyan-subtle)',
                     border: '1.5px solid var(--accent-cyan)',
                     color: 'var(--accent-cyan)',
-                    borderRadius: '8px',
+                    borderRadius: '6px',
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
+                    boxShadow: '0 1px 3px rgba(37, 99, 235, 0.1)',
                   }}
                   title="إضافة تحليل إضافي طلبه الطبيب ودمجه مباشرة مع هذه العينة والتقرير السابق"
                 >
-                  <Plus size={14} />
-                  <span>➕ إضافة فحص</span>
+                  <Plus size={15} />
+                  <span>➕ إضافة فحص ودمجه مع العينة (Add & Merge Test)</span>
                 </button>
 
                 <button
@@ -1174,15 +999,50 @@ function ResultsContent() {
                     setDocPreviewTitle(`طباعة ملصق الباركود (50x25mm) - عينة #${selectedSample.sampleNumber} (${selectedSample.patient?.name})`);
                   }}
                   className="btn-secondary"
-                  style={{ color: '#06b6d4', borderColor: 'rgba(6,182,212,0.4)', height: '34px', fontSize: '11.5px', padding: '0 10px', borderRadius: '8px' }}
+                  style={{ color: '#06b6d4', borderColor: 'rgba(6,182,212,0.4)', height: '32px', fontSize: '11px', padding: '0 10px' }}
                   title="طباعة ملصق الباركود الحراري 50x25mm لأنبوب التحليل"
                 >
-                  <Barcode size={14} />
-                  <span>طباعة باركود</span>
+                  <Barcode size={13} />
+                  <span>طباعة ملصق الباركود</span>
+                </button>
+
+                {/* Fast Pathologist Approval Hotkey Button */}
+                <button
+                  type="button"
+                  onClick={handleFastPathologistApprove}
+                  disabled={savingResults}
+                  className="btn-cyan-primary"
+                  style={{
+                    height: '32px',
+                    padding: '0 12px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    background: 'linear-gradient(135deg, #0d9488 0%, #06b6d4 100%)',
+                    borderColor: '#14b8a6',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}
+                  title="اعتماد العينة كـ READY والانتقال التلقائي للعينة التالية (Ctrl+Shift+Enter)"
+                >
+                  <Zap size={13} />
+                  <span>اعتماد سريع</span>
+                  <kbd style={{ background: 'rgba(0,0,0,0.3)', padding: '1px 5px', borderRadius: '3px', fontSize: '10px' }}>Ctrl+Shift+Enter</kbd>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSaveResults(true)}
+                  disabled={savingResults}
+                  className="btn-cyan-primary"
+                  style={{ height: '32px', padding: '0 14px', fontSize: '11.5px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Printer size={13} />
+                  <span>حفظ وطباعة التقرير</span>
                 </button>
 
                 {isDirty && (
-                  <span style={{ fontSize: '11px', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.35)', padding: '4px 8px', borderRadius: '6px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '11px', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.35)', padding: '3px 8px', borderRadius: '6px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     <AlertTriangle size={12} />
                     <span>مسودة غير محفوظة</span>
                   </span>
@@ -1196,161 +1056,31 @@ function ResultsContent() {
                     style={{
                       color: 'var(--color-success)',
                       borderColor: 'rgba(16, 185, 129, 0.4)',
-                      height: '34px',
-                      fontSize: '11.5px',
+                      height: '32px',
+                      fontSize: '11px',
                       padding: '0 10px',
-                      borderRadius: '8px',
                       background: 'rgba(16, 185, 129, 0.1)'
                     }}
                     title="إرسال تقرير المريض ورابط التحقق عبر واتساب"
                   >
-                    <MessageCircle size={14} />
+                    <MessageCircle size={13} />
                     <span>WhatsApp</span>
                   </button>
                 )}
               </div>
             </div>
 
-            {/* CLINICAL WORKSTATIONS QUICK BAR */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              flexWrap: 'wrap',
-              padding: '8px 12px',
-              background: 'rgba(15, 23, 42, 0.7)',
-              border: '1px solid #1e293b',
-              borderRadius: '8px',
-              marginTop: '10px',
-              marginBottom: '10px'
-            }} dir="rtl">
-              <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-dim)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <Microscope size={13} style={{ color: 'var(--accent-cyan)' }} />
-                <span>فورمات الفحص السريري:</span>
-              </span>
-
-              <button
-                type="button"
-                onClick={() => handleOpenWorkstationDirect('SFA')}
-                style={{
-                  height: '28px',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  padding: '0 10px',
-                  background: 'rgba(99, 102, 241, 0.15)',
-                  border: '1px solid rgba(99, 102, 241, 0.4)',
-                  color: '#818cf8',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px'
-                }}
-                title="فتح فورمة تحليل السائل المنوي الشاملة (S.F.A)"
-              >
-                <span>🧬 فورمة السائل المنوي (S.F.A)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleOpenWorkstationDirect('GUE')}
-                style={{
-                  height: '28px',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  padding: '0 10px',
-                  background: 'rgba(2, 132, 199, 0.15)',
-                  border: '1px solid rgba(2, 132, 199, 0.4)',
-                  color: '#38bdf8',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px'
-                }}
-                title="فتح فورمة فحص الإدرار العام (G.U.E)"
-              >
-                <span>🧪 فورمة الإدرار (G.U.E)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleOpenWorkstationDirect('GSE')}
-                style={{
-                  height: '28px',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  padding: '0 10px',
-                  background: 'rgba(217, 119, 6, 0.15)',
-                  border: '1px solid rgba(217, 119, 6, 0.4)',
-                  color: '#fbbf24',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px'
-                }}
-                title="فتح فورمة فحص الخروج العام (G.S.E)"
-              >
-                <span>🔬 فورمة الخروج (G.S.E)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowCbcModal(true)}
-                style={{
-                  height: '28px',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  padding: '0 10px',
-                  background: 'rgba(225, 29, 72, 0.15)',
-                  border: '1px solid rgba(225, 29, 72, 0.4)',
-                  color: '#fb7185',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px'
-                }}
-                title="فتح محطة تعداد الدم الكامل (CBC)"
-              >
-                <span>🩸 محطة الدم (CBC)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowChemistryModal(true)}
-                style={{
-                  height: '28px',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  padding: '0 10px',
-                  background: 'rgba(139, 92, 246, 0.15)',
-                  border: '1px solid rgba(139, 92, 246, 0.4)',
-                  color: '#c084fc',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px'
-                }}
-                title="فتح محطة الكيمياء السريرية"
-              >
-                <span>⚡ الكيمياء السريرية</span>
-              </button>
-            </div>
-
-            {/* Results Table */}
-            <div className="results-table-container" dir="ltr">
-              <table className="results-table-modern" dir="ltr">
+            {/* Results Table (Image 2 Exact Layout) */}
+            <div style={{ overflowX: 'auto', flex: 1, border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-input-deep)' }} dir="ltr">
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px', textAlign: 'left' }} dir="ltr">
                 <thead>
-                  <tr>
-                    <th style={{ textAlign: 'left' }}>PARAMETER (TEST NAME)</th>
-                    <th style={{ width: '220px', textAlign: 'left' }}>RESULT</th>
-                    <th style={{ textAlign: 'left' }}>RANGE</th>
-                    <th style={{ textAlign: 'left' }}>UNITS</th>
-                    <th style={{ textAlign: 'left' }}>STATUS</th>
-                    <th style={{ textAlign: 'center', width: '50px' }}>DEL</th>
+                  <tr style={{ background: '#1c2436', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <th style={{ padding: '10px 14px', textAlign: 'left' }}>PARAMETER (TEST NAME)</th>
+                    <th style={{ padding: '10px 14px', width: '220px', textAlign: 'left' }}>RESULT</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left' }}>RANGE</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left' }}>UNITS</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left' }}>STATUS</th>
+                    <th style={{ padding: '10px 10px', textAlign: 'center', width: '50px' }}>DEL</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1452,7 +1182,7 @@ function ResultsContent() {
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>G.S.E</span>
                               </button>
-                            ) : /* S.F.A Semen Analysis Button */ (st.test?.code === 'SFA' || st.test?.code === 'SEMEN' || st.test?.name?.toLowerCase().includes('semen') || st.test?.name?.toLowerCase().includes('seminal') || st.test?.name?.toLowerCase().includes('سائل منوي') || st.test?.name?.toLowerCase().includes('نطف') || st.test?.name?.toLowerCase().includes('مني')) ? (
+                                                        ) : /* S.F.A Semen Analysis Button */ (st.test?.code === 'SFA' || st.test?.code === 'SEMEN' || st.test?.name?.toLowerCase().includes('semen') || st.test?.name?.toLowerCase().includes('seminal') || st.test?.name?.toLowerCase().includes('سائل منوي') || st.test?.name?.toLowerCase().includes('نطف') || st.test?.name?.toLowerCase().includes('مني')) ? (
                               <button
                                 type="button"
                                 onClick={() => setShowSemenModal(true)}
@@ -1724,20 +1454,11 @@ function ResultsContent() {
 
           </div>
         ) : (
-          <div className="results-workspace-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '360px', color: 'var(--text-muted)', gap: '12px' }}>
-            <FlaskConical size={40} style={{ opacity: 0.35, color: 'var(--accent-cyan)' }} />
-            <div style={{ textAlign: 'center' }}>
-              <strong style={{ fontSize: '15px', color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                لم يتم تحديد أي عينة بعد
-              </strong>
-              <span style={{ fontSize: '12px' }}>
-                يرجى اختيار عينة من طابور المرضى بالجانب الأيمن للبدء في إدخال وتدقيق النتائج.
-              </span>
-            </div>
+          <div className="glass-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+            Select a patient sample from the queue on the left to enter results.
           </div>
         )}
 
-        </div>
       </div>
 
       {/* URINE ANALYSIS MODAL */}
