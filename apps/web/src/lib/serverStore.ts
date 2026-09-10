@@ -763,6 +763,67 @@ export function getStore(): ServerStore {
   if (!Array.isArray(global.__labStore.deviceRawLogs)) {
     global.__labStore.deviceRawLogs = [];
   }
+
+  // Ensure SFA (Seminal Fluid Analysis) is present in tests catalog
+  const sfaCatalogItem = INITIAL_TESTS_CATALOG.find(t => t.code === 'SFA');
+  if (sfaCatalogItem && Array.isArray(global.__labStore.tests)) {
+    const hasSfa = global.__labStore.tests.some((t: any) => (t.code || '').toUpperCase() === 'SFA');
+    if (!hasSfa) {
+      global.__labStore.tests.push(sfaCatalogItem);
+      saveStoreToFile();
+    }
+  }
+
+  // Ensure there is at least one sample with SFA for immediate testing in results
+  const hasSampleWithSfa = (global.__labStore.samples || []).some(s => 
+    (s.tests || []).some((st: any) => (st.test?.code || st.testCode || '').toUpperCase() === 'SFA')
+  );
+  if (!hasSampleWithSfa && sfaCatalogItem && Array.isArray(global.__labStore.samples)) {
+    const sampleSfa: SampleRecord = {
+      id: 's-1004',
+      sampleNumber: 1004,
+      patientId: 'pat-4',
+      patient: {
+        id: 'pat-4',
+        name: 'كرار جاسم العبيدي',
+        phone: '07705556677',
+        age: 32,
+        gender: 'MALE',
+        createdAt: new Date().toISOString(),
+      },
+      doctorId: 'doc-1',
+      doctor: INITIAL_DOCTORS[0],
+      doctorCommission: 2000,
+      status: 'IN_PROGRESS',
+      isUrgent: false,
+      priceTotal: 15000,
+      discount: 0,
+      discountPercent: 0,
+      paidAmount: 15000,
+      remainingAmount: 0,
+      paymentMethod: 'CASH',
+      notes: 'تحليل سائل منوي - استشارة عقم وخصوبة',
+      createdAt: new Date().toISOString(),
+      tests: [
+        {
+          id: 'st-sfa-1004',
+          sampleId: 's-1004',
+          testId: sfaCatalogItem.id,
+          test: sfaCatalogItem,
+          resultValue: null,
+          isAbnormal: false,
+          status: 'PENDING',
+          notes: 'فحص السائل المنوي - قيد الفحص في محطة S.F.A',
+        }
+      ]
+    };
+    global.__labStore.samples.unshift(sampleSfa);
+    if (!global.__labStore.patients.some(p => p.id === 'pat-4')) {
+      global.__labStore.patients.push(sampleSfa.patient);
+    }
+    saveStoreToFile();
+  }
+
   return global.__labStore;
 }
 

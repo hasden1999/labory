@@ -765,6 +765,55 @@ function ResultsContent() {
     }
   };
 
+  const handleOpenWorkstationDirect = async (code: 'SFA' | 'GUE' | 'GSE') => {
+    if (!selectedSample) {
+      toast.warning('يرجى اختيار عينة أولاً من طابور العينات', 'تنبيه');
+      return;
+    }
+
+    const hasTest = selectedSample.tests?.some((st: any) => {
+      const c = (st.test?.code || '').toUpperCase();
+      const n = (st.test?.name || '').toLowerCase();
+      if (code === 'SFA') return c === 'SFA' || c === 'SEMEN' || n.includes('semen') || n.includes('سائل منوي') || n.includes('نطف');
+      if (code === 'GUE') return c === 'GUE' || n.includes('urine') || n.includes('إدرار');
+      if (code === 'GSE') return c === 'GSE' || n.includes('stool') || n.includes('خروج');
+      return false;
+    });
+
+    if (hasTest) {
+      if (code === 'SFA') setShowSemenModal(true);
+      else if (code === 'GUE') setShowUrineModal(true);
+      else if (code === 'GSE') setShowGseModal(true);
+    } else {
+      try {
+        if (allAvailableTests.length === 0) {
+          const res: any = await apiRequest('/catalog/tests');
+          const list: Test[] = Array.isArray(res) ? res : res?.tests || [];
+          setAllAvailableTests(list);
+        }
+        const targetTest = (allAvailableTests.length > 0 ? allAvailableTests : []).find(t => t.code === code) || {
+          id: code === 'SFA' ? 't-sfa' : code === 'GUE' ? 't-gue' : 't-gse',
+          code,
+          name: code === 'SFA' ? 'Seminal Fluid Analysis (SFA)' : code === 'GUE' ? 'General Urine Examination (GUE)' : 'General Stool Examination (GSE)',
+        };
+
+        const updated = await apiRequest(`/samples/${selectedSample.id}/tests`, 'POST', {
+          testIds: [targetTest.id],
+        });
+        selectSample(updated);
+        loadSamples();
+        toast.success(`تم ربط فحص (${code}) بالعينة وتفعيل فورمة الفحص بنجاح!`);
+        if (code === 'SFA') setShowSemenModal(true);
+        else if (code === 'GUE') setShowUrineModal(true);
+        else if (code === 'GSE') setShowGseModal(true);
+      } catch (err: any) {
+        if (code === 'SFA') setShowSemenModal(true);
+        else if (code === 'GUE') setShowUrineModal(true);
+        else if (code === 'GSE') setShowGseModal(true);
+      }
+    }
+  };
+
   const handleConfirmDeleteTest = async () => {
     if (!selectedSample || !testToDelete) return;
     try {
@@ -1160,6 +1209,135 @@ function ResultsContent() {
                   </button>
                 )}
               </div>
+            </div>
+
+            {/* CLINICAL WORKSTATIONS QUICK BAR */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'wrap',
+              padding: '8px 12px',
+              background: 'rgba(15, 23, 42, 0.7)',
+              border: '1px solid #1e293b',
+              borderRadius: '8px',
+              marginTop: '10px',
+              marginBottom: '10px'
+            }} dir="rtl">
+              <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-dim)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Microscope size={13} style={{ color: 'var(--accent-cyan)' }} />
+                <span>فورمات الفحص السريري:</span>
+              </span>
+
+              <button
+                type="button"
+                onClick={() => handleOpenWorkstationDirect('SFA')}
+                style={{
+                  height: '28px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  padding: '0 10px',
+                  background: 'rgba(99, 102, 241, 0.15)',
+                  border: '1px solid rgba(99, 102, 241, 0.4)',
+                  color: '#818cf8',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+                title="فتح فورمة تحليل السائل المنوي الشاملة (S.F.A)"
+              >
+                <span>🧬 فورمة السائل المنوي (S.F.A)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleOpenWorkstationDirect('GUE')}
+                style={{
+                  height: '28px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  padding: '0 10px',
+                  background: 'rgba(2, 132, 199, 0.15)',
+                  border: '1px solid rgba(2, 132, 199, 0.4)',
+                  color: '#38bdf8',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+                title="فتح فورمة فحص الإدرار العام (G.U.E)"
+              >
+                <span>🧪 فورمة الإدرار (G.U.E)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleOpenWorkstationDirect('GSE')}
+                style={{
+                  height: '28px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  padding: '0 10px',
+                  background: 'rgba(217, 119, 6, 0.15)',
+                  border: '1px solid rgba(217, 119, 6, 0.4)',
+                  color: '#fbbf24',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+                title="فتح فورمة فحص الخروج العام (G.S.E)"
+              >
+                <span>🔬 فورمة الخروج (G.S.E)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowCbcModal(true)}
+                style={{
+                  height: '28px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  padding: '0 10px',
+                  background: 'rgba(225, 29, 72, 0.15)',
+                  border: '1px solid rgba(225, 29, 72, 0.4)',
+                  color: '#fb7185',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+                title="فتح محطة تعداد الدم الكامل (CBC)"
+              >
+                <span>🩸 محطة الدم (CBC)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowChemistryModal(true)}
+                style={{
+                  height: '28px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  padding: '0 10px',
+                  background: 'rgba(139, 92, 246, 0.15)',
+                  border: '1px solid rgba(139, 92, 246, 0.4)',
+                  color: '#c084fc',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+                title="فتح محطة الكيمياء السريرية"
+              >
+                <span>⚡ الكيمياء السريرية</span>
+              </button>
             </div>
 
             {/* Results Table */}

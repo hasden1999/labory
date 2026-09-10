@@ -107,10 +107,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
   { id: 't-hcv', code: 'HCV', name: 'Hepatitis C Virus Antibody (HCV Ab)', arabicName: 'التهاب الكبد الفيروسي نوع C', category: 'المناعة والأمصال', price: 15000, costEstimate: 2800, refRangeText: 'Negative (Non-reactive)', unit: '', sampleType: 'مصل الدم (Serum)' },
   { id: 't-hiv', code: 'HIV', name: 'HIV 1 & 2 Ab/Ag Combo', arabicName: 'فحص الإيدز وفيروس نقص المناعة', category: 'المناعة والأمصال', price: 20000, costEstimate: 4000, refRangeText: 'Negative (Non-reactive)', unit: '', sampleType: 'مصل الدم (Serum)' },
 
-  // 9. Urine & Stool
+  // 9. Urine, Stool & Semen
   { id: 't-gue', code: 'GUE', name: 'General Urine Examination (GUE)', arabicName: 'فحص الإدرار العام الشامل', category: 'الفحص المجهري العام', price: 5000, costEstimate: 800, refRangeText: 'Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)', unit: '', sampleType: 'إدرار صباحي' },
   { id: 't-gse', code: 'GSE', name: 'General Stool Examination (GSE)', arabicName: 'فحص الخروج العام الشامل', category: 'الفحص المجهري العام', price: 5000, costEstimate: 800, refRangeText: 'Normal (No Parasites / FOBT: Negative)', unit: '', sampleType: 'عينة خروج' },
   { id: 't-fobt', code: 'FOBT', name: 'Fecal Occult Blood Test (FOBT)', arabicName: 'فحص الدم الخفي في الخروج', category: 'الفحص المجهري العام', price: 10000, costEstimate: 2000, refRangeText: 'Negative', unit: '', sampleType: 'عينة خروج' },
+  { id: 't-sfa', code: 'SFA', name: 'Seminal Fluid Analysis (SFA)', arabicName: 'تحليل السائل المنوي الشامل (النطاف)', category: 'الفحص المجهري العام', price: 15000, costEstimate: 2000, refRangeLow: 15.0, refRangeHigh: 200.0, refRangeText: 'Normal (Conc >= 15 M/mL, PR >= 32%, Normal Forms >= 4%)', unit: 'M/mL', sampleType: 'سائل منوي' },
 
   // 10. Tumor Markers
   { id: 't-psa', code: 'PSA-TOT', name: 'Total PSA (Prostate Specific Antigen)', arabicName: 'دلالات البروستات الكلية (PSA)', category: 'دلالات الأورام', price: 25000, costEstimate: 5000, refRangeLow: 0, refRangeHigh: 4.0, criticalHigh: 10.0, refRangeText: '< 4.0', unit: 'ng/mL', sampleType: 'مصل الدم (Serum)' },

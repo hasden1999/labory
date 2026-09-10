@@ -1059,6 +1059,20 @@
       "refRangeText": "< 7.0",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)"
+    },
+    {
+      "id": "t-sfa",
+      "code": "SFA",
+      "name": "Seminal Fluid Analysis (SFA)",
+      "arabicName": "تحليل السائل المنوي الشامل (النطاف)",
+      "category": "الفحص المجهري العام",
+      "price": 15000,
+      "costEstimate": 2000,
+      "refRangeLow": 15,
+      "refRangeHigh": 200,
+      "refRangeText": "Normal (Conc >= 15 M/mL, PR >= 32%, Normal Forms >= 4%)",
+      "unit": "M/mL",
+      "sampleType": "سائل منوي"
     }
   ],
   "panels": [
@@ -1439,6 +1453,65 @@
     }
   ],
   "samples": [
+    {
+      "id": "s-1020",
+      "sampleNumber": 1020,
+      "patientId": "pat-1789060000000",
+      "patient": {
+        "id": "pat-1789060000000",
+        "name": "كرار جاسم العبيدي",
+        "phone": "07705556677",
+        "age": 32,
+        "gender": "MALE",
+        "address": "بغداد",
+        "notes": "استشارة عقم وخصوبة",
+        "createdAt": "2026-09-10T15:30:00.000Z",
+        "updatedAt": "2026-09-10T15:30:00.000Z",
+        "lastTestIds": [
+          "t-sfa"
+        ],
+        "lastTestNames": [
+          "Seminal Fluid Analysis (SFA)"
+        ]
+      },
+      "doctorId": null,
+      "doctor": null,
+      "doctorCommission": 0,
+      "status": "RECEIVED",
+      "isUrgent": false,
+      "priceTotal": 15000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 15000,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": "فحص السائل المنوي الشامل S.F.A",
+      "createdAt": "2026-09-10T15:30:00.000Z",
+      "tests": [
+        {
+          "id": "st-1789060000000-0",
+          "sampleId": "s-1020",
+          "testId": "t-sfa",
+          "test": {
+            "id": "t-sfa",
+            "code": "SFA",
+            "name": "Seminal Fluid Analysis (SFA)",
+            "arabicName": "تحليل السائل المنوي الشامل (النطاف)",
+            "category": "الفحص المجهري العام",
+            "price": 15000,
+            "costEstimate": 2000,
+            "refRangeLow": 15,
+            "refRangeHigh": 200,
+            "refRangeText": "Normal (Conc >= 15 M/mL, PR >= 32%, Normal Forms >= 4%)",
+            "unit": "M/mL",
+            "sampleType": "سائل منوي"
+          },
+          "resultValue": null,
+          "isAbnormal": false,
+          "status": "PENDING"
+        }
+      ]
+    },
     {
       "id": "s-1019",
       "sampleNumber": 1019,
