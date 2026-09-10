@@ -11,7 +11,7 @@ import { useLab } from '../../components/LabContext';
 import { getShareableUrl } from '../../lib/urlHelper';
 import ConfirmModal from '../../components/ConfirmModal';
 import { Patient, Sample, SampleTest } from '../../types';
-import { Users, Search, Plus, User, Phone, Calendar, Clock, Activity, Printer, Share2, FileText, CreditCard, Trash2, Edit3, CheckCircle2, AlertCircle, ExternalLink, ChevronLeft, X, UserPlus, ArrowUpRight, Sparkles, FlaskConical, DollarSign, AlertOctagon, AlertTriangle, Check } from 'lucide-react';
+import { Users, Search, Plus, User, Phone, Calendar, Clock, Activity, Printer, Share2, FileText, CreditCard, Trash2, Edit3, CheckCircle2, AlertCircle, ExternalLink, ChevronLeft, X, UserPlus, ArrowUpRight, Sparkles, FlaskConical, DollarSign, AlertOctagon, AlertTriangle, Check, RefreshCw } from 'lucide-react';
 
 function PatientsContent() {
   const router = useRouter();
@@ -40,11 +40,65 @@ function PatientsContent() {
   const [whatsappPhone, setWhatsappPhone] = useState('');
   const [whatsappText, setWhatsappText] = useState('');
 
+  // Quick Pay Modal & Thermal Voucher States
+  const [payModalSample, setPayModalSample] = useState<any | null>(null);
+  const [payAmount, setPayAmount] = useState<string>('');
+  const [payMethod, setPayMethod] = useState<string>('نقداً');
+  const [payNotes, setPayNotes] = useState<string>('');
+  const [paying, setPaying] = useState(false);
+  const [activeVoucher, setActiveVoucher] = useState<any | null>(null);
+  const [showVoucherModal, setShowVoucherModal] = useState(false);
+
   // Form States
   const [patientName, setPatientName] = useState('');
   const [patientPhone, setPatientPhone] = useState('');
   const [patientAge, setPatientAge] = useState('');
   const [patientGender, setPatientGender] = useState<'MALE' | 'FEMALE'>('MALE');
+
+  const handlePaySample = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!payModalSample) return;
+    const amt = Number(payAmount);
+    if (!amt || amt <= 0) {
+      toast.warning('يرجى إدخال مبلغ صحيح', 'تنبيه');
+      return;
+    }
+    setPaying(true);
+    try {
+      const res = await apiRequest(`/samples/${payModalSample.id}/pay`, 'PATCH', {
+        paidAmount: amt,
+        paymentMethod: payMethod,
+        notes: payNotes,
+      });
+      toast.success(`تم تسجيل سداد الدفعة بنجاح! رقم السند: #${res.voucherNumber || ''}`, 'سداد دفعة');
+      setPayModalSample(null);
+      
+      // Reload details and list
+      if (selectedPatientId) {
+        const p = await apiRequest(`/patients/${selectedPatientId}`);
+        setPatientDetails(p);
+      }
+      loadPatients(true);
+
+      if (res?.voucherNumber) {
+        setActiveVoucher({
+          voucherNumber: res.voucherNumber,
+          debtorName: patientDetails?.name || payModalSample.patient?.name || 'مريض',
+          phone: patientDetails?.phone || payModalSample.patient?.phone,
+          amount: amt,
+          type: 'سند قبض مالي (سداد متبقي فحص)',
+          paymentMethod: payMethod,
+          date: new Date().toLocaleString('ar-IQ'),
+          notes: payNotes || `سداد متبقي فحص عينة #${payModalSample.sampleNumber}`,
+        });
+        setShowVoucherModal(true);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'فشل سداد الدفعة', 'خطأ');
+    } finally {
+      setPaying(false);
+    }
+  };
 
   const loadPatients = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -207,6 +261,11 @@ function PatientsContent() {
     });
   }, [patients, searchQuery]);
 
+  const totalPatientDebt = useMemo(() => {
+    if (!patientDetails?.samples) return 0;
+    return patientDetails.samples.reduce((sum: number, s: any) => sum + (s.remainingAmount || 0), 0);
+  }, [patientDetails]);
+
   return (
     <AppShell>
       {/* Header */}
@@ -368,6 +427,44 @@ function PatientsContent() {
               </div>
             </div>
 
+            {/* Patient Debt Warning Banner */}
+            {totalPatientDebt > 0 && (
+              <div
+                style={{
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '10px 14px',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={18} color="var(--accent-rose)" />
+                  <div>
+                    <strong style={{ color: 'var(--accent-rose)', fontSize: '13px' }}>
+                      تنبيه ذمة مالية معلقة:
+                    </strong>
+                    <span style={{ fontSize: '12px', color: 'var(--text-main)', marginRight: '6px' }}>
+                      يوجد متبقي دين غير مسدد بذمة المريض قدره <strong>{totalPatientDebt.toLocaleString()} د.ع</strong>
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => router.push(`/debts?search=${encodeURIComponent(patientDetails.name)}`)}
+                  className="btn-secondary"
+                  style={{ fontSize: '11px', padding: '3px 10px', color: 'var(--accent-rose)', borderColor: 'var(--accent-rose)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <CreditCard size={12} />
+                  <span>فتح كشف الحساب والديون</span>
+                </button>
+              </div>
+            )}
+
             {/* 2. Medical Visit History & Test Results Stream */}
             <div className="glass-card" style={{ padding: '14px 18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
@@ -506,7 +603,34 @@ function PatientsContent() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
                         <span>المبلغ الإجمالي: <strong>{sample.priceTotal?.toLocaleString()} د.ع</strong></span>
                         {(sample.remainingAmount || 0) > 0 ? (
-                          <span style={{ color: 'var(--accent-rose)', fontWeight: 800 }}>متبقي دين: {(sample.remainingAmount || 0).toLocaleString()} د.ع</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ color: 'var(--accent-rose)', fontWeight: 800 }}>
+                              متبقي دين: {(sample.remainingAmount || 0).toLocaleString()} د.ع
+                            </span>
+                            <button
+                              onClick={() => {
+                                setPayModalSample(sample);
+                                setPayAmount(String(sample.remainingAmount || 0));
+                                setPayMethod('نقداً');
+                                setPayNotes(`سداد متبقي فحص عينة #${sample.sampleNumber} (${patientDetails.name})`);
+                              }}
+                              className="btn-secondary"
+                              style={{
+                                padding: '2px 8px',
+                                fontSize: '10.5px',
+                                color: '#10b981',
+                                borderColor: '#10b981',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                background: 'rgba(16, 185, 129, 0.08)'
+                              }}
+                              title="سداد متبقي الحساب وطباعة إيصال القبض"
+                            >
+                              <CreditCard size={12} />
+                              <span>سداد الدفعة وطباعة السند</span>
+                            </button>
+                          </div>
                         ) : (
                           <span style={{ color: 'var(--accent-emerald)', fontWeight: 800 }}><Check size={12} /> واصل بالكامل</span>
                         )}
@@ -763,6 +887,132 @@ function PatientsContent() {
               style={{ flex: 1, width: '100%', border: 'none', borderRadius: '6px', background: '#fff' }}
               title="معاينة المستند"
             />
+          </div>
+        </div>
+      )}
+
+      {/* QUICK PAY MODAL */}
+      {payModalSample && (
+        <div className="modal-overlay" onClick={() => setPayModalSample(null)}>
+          <div className="modal-content" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CreditCard size={18} color="var(--accent-emerald)" />
+                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                  سداد متبقي حساب عينة #{payModalSample.sampleNumber}
+                </h3>
+              </div>
+              <button onClick={() => setPayModalSample(null)} className="btn-icon">
+                <X size={15} />
+              </button>
+            </div>
+
+            <form onSubmit={handlePaySample} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div><strong>اسم المريض:</strong> {patientDetails?.name || payModalSample.patient?.name}</div>
+                <div><strong>إجمالي كلفة الفحوصات:</strong> {payModalSample.priceTotal?.toLocaleString()} د.ع</div>
+                <div><strong>المسدد سابقاً:</strong> {(payModalSample.paidAmount || 0).toLocaleString()} د.ع</div>
+                <div style={{ color: 'var(--accent-rose)', fontWeight: 800, fontSize: '13px' }}>
+                  <strong>المتبقي بذمة المريض:</strong> {(payModalSample.remainingAmount || 0).toLocaleString()} د.ع
+                </div>
+              </div>
+
+              <div>
+                <label className="input-label">المبلغ المطلوب تسديده الآن (د.ع) *</label>
+                <input
+                  type="number"
+                  value={payAmount}
+                  onChange={(e) => setPayAmount(e.target.value)}
+                  className="input-control"
+                  style={{ fontSize: '15px', fontWeight: 800, color: 'var(--accent-emerald)' }}
+                  min="1"
+                  max={payModalSample.remainingAmount}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="input-label">طريقة الدفع</label>
+                <select
+                  value={payMethod}
+                  onChange={(e) => setPayMethod(e.target.value)}
+                  className="select-control"
+                >
+                  <option value="نقداً">نقداً (كاش - قاصة الصندوق)</option>
+                  <option value="زين كاش">زين كاش (ZainCash)</option>
+                  <option value="بطاقة دفع">بطاقة ماستركارد / كي كارد (POS)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="input-label">ملاحظات / بيان السند</label>
+                <input
+                  type="text"
+                  value={payNotes}
+                  onChange={(e) => setPayNotes(e.target.value)}
+                  className="input-control"
+                  placeholder="ملاحظات اختيارية..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+                <button type="button" onClick={() => setPayModalSample(null)} className="btn-secondary">
+                  إلغاء
+                </button>
+                <button type="submit" disabled={paying} className="btn-success">
+                  {paying ? <RefreshCw size={13} className="animate-spin" /> : <DollarSign size={13} />}
+                  <span>{paying ? 'جاري التسجيل...' : 'تأكيد السداد وطباعة السند'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* INSTANT THERMAL VOUCHER PREVIEW & PRINT */}
+      {showVoucherModal && activeVoucher && (
+        <div className="modal-overlay" onClick={() => setShowVoucherModal(false)}>
+          <div className="modal-content" style={{ maxWidth: '380px', padding: '16px' }} onClick={(e) => e.stopPropagation()}>
+            <div id="thermal-voucher-print" style={{ background: '#fff', color: '#000', padding: '16px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px', textAlign: 'center', border: '1px dashed #cbd5e1' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: 900, marginBottom: '2px', color: '#000' }}>
+                {labProfile?.labName || 'المختبر للتحليلات الطبية'}
+              </h2>
+              <p style={{ fontSize: '11px', color: '#475569', marginBottom: '8px' }}>
+                هاتف: {labProfile?.phone || '07701234567'} | {labProfile?.address || 'العراق'}
+              </p>
+              <div style={{ borderTop: '1px dashed #000', borderBottom: '1px dashed #000', padding: '6px 0', margin: '8px 0' }}>
+                <strong style={{ fontSize: '14px', display: 'block' }}>{activeVoucher.type}</strong>
+                <span style={{ fontSize: '12px' }}>رقم السند: #{activeVoucher.voucherNumber}</span>
+              </div>
+
+              <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '4px', margin: '10px 0', fontSize: '12px' }}>
+                <div><strong>التاريخ:</strong> {activeVoucher.date}</div>
+                <div><strong>المريض:</strong> {activeVoucher.debtorName}</div>
+                {activeVoucher.phone && <div><strong>الهاتف:</strong> {activeVoucher.phone}</div>}
+                <div><strong>طريقة الدفع:</strong> {activeVoucher.paymentMethod}</div>
+                <div><strong>البيان:</strong> {activeVoucher.notes}</div>
+              </div>
+
+              <div style={{ background: '#f1f5f9', padding: '8px', borderRadius: '4px', margin: '12px 0', border: '1px solid #cbd5e1' }}>
+                <span style={{ fontSize: '11px', color: '#334155', display: 'block' }}>المبلغ المقبوض:</span>
+                <strong style={{ fontSize: '18px', color: '#0f172a' }}>{activeVoucher.amount?.toLocaleString()} دينار عراقي</strong>
+              </div>
+
+              <p style={{ fontSize: '10px', color: '#64748b', marginTop: '10px' }}>
+                شكراً لتعاملكم معنا. يعتبر هذا السند إشعاراً رسمياً بالقبض.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+              <button onClick={() => window.print()} className="btn-primary" style={{ flex: 1 }}>
+                <Printer size={15} />
+                <span>طباعة السند فوري</span>
+              </button>
+              <button onClick={() => setShowVoucherModal(false)} className="btn-secondary">
+                إغلاق
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -894,170 +894,233 @@ function IntakeContent() {
     return 'CLINICAL';
   };
 
+  // Smart Diagnostic Bundles for rapid 1-click intake
+  const SMART_BUNDLES = [
+    {
+      id: 'comprehensive',
+      name: 'الفحص الشامل',
+      desc: 'صورة الدم، وظائف الكبد والكلى، الدهون، السكر',
+      keywords: ['cbc', 'lipid', 'chol', 'ast', 'alt', 'urea', 'creat', 'fbs']
+    },
+    {
+      id: 'diabetes',
+      name: 'فحص السكري',
+      desc: 'السكر الصائم والتراكمي والإدرار',
+      keywords: ['fbs', 'sugar', 'glucose', 'hba1c', 'gue', 'urine']
+    },
+    {
+      id: 'anemia',
+      name: 'فقر الدم والحديد',
+      desc: 'صورة الدم ومخزون الحديد',
+      keywords: ['cbc', 'ferritin', 'iron', 'fer', 'hb']
+    },
+    {
+      id: 'pre_op',
+      name: 'ما قبل العمليات',
+      desc: 'CBC، التخثر PT/INR، فصيلة الدم',
+      keywords: ['cbc', 'pt', 'inr', 'ptt', 'bg', 'blood group']
+    },
+    {
+      id: 'thyroid',
+      name: 'الغدة الدرقية',
+      desc: 'TSH، FT3، FT4',
+      keywords: ['tsh', 'ft3', 'ft4', 'thyroid']
+    }
+  ];
+
+  const handleApplyBundle = (bundle: typeof SMART_BUNDLES[0]) => {
+    const matchingTests = tests.filter(t => {
+      const text = ((t.name || '') + ' ' + (t.code || '')).toLowerCase();
+      return bundle.keywords.some(kw => text.includes(kw));
+    });
+    if (matchingTests.length > 0) {
+      setSelectedTests(prev => {
+        const existingIds = new Set(prev.map(p => p.id));
+        const toAdd = matchingTests.filter(m => !existingIds.has(m.id));
+        if (toAdd.length === 0) {
+          toast.info(`فحوصات ${bundle.name} مضافة بالفعل`);
+          return prev;
+        }
+        toast.success(`تمت إضافة فحوصات ${bundle.name} (${toAdd.length} فحص)`);
+        return [...prev, ...toAdd];
+      });
+    } else {
+      toast.info('لم يتم العثور على فحوصات مطابقة لهذه الباقة في الكتالوج');
+    }
+  };
+
+  // Sample Collection Tubes breakdown calculated live from selected tests
+  const sampleContainers = useMemo(() => {
+    const list: { id: string; name: string; color: string; bg: string; dotColor: string }[] = [];
+    let hasEdta = false;
+    let hasSerum = false;
+    let hasCitrate = false;
+    let hasUrine = false;
+
+    selectedTests.forEach(t => {
+      const text = ((t.name || '') + ' ' + (t.code || '') + ' ' + (t.category || '')).toLowerCase();
+      if (text.includes('pt') || text.includes('inr') || text.includes('ptt') || text.includes('ddimer') || text.includes('d-dimer')) {
+        hasCitrate = true;
+      } else if (text.includes('cbc') || text.includes('esr') || text.includes('hb') || text.includes('hba1c') || text.includes('plt') || text.includes('blood group') || text.includes('bg')) {
+        hasEdta = true;
+      } else if (text.includes('gue') || text.includes('gse') || text.includes('urine') || text.includes('stool') || text.includes('ادرار') || text.includes('خروج')) {
+        hasUrine = true;
+      } else {
+        hasSerum = true;
+      }
+    });
+
+    if (hasEdta) list.push({ id: 'edta', name: 'EDTA (بنفسجي)', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.12)', dotColor: '#9333ea' });
+    if (hasSerum) list.push({ id: 'serum', name: 'Serum/Gel (أصفر)', color: '#eab308', bg: 'rgba(234, 179, 8, 0.12)', dotColor: '#ca8a04' });
+    if (hasCitrate) list.push({ id: 'citrate', name: 'Citrate (أزرق)', color: '#0284c7', bg: 'rgba(2, 132, 199, 0.12)', dotColor: '#0284c7' });
+    if (hasUrine) list.push({ id: 'urine', name: 'عبوة فحص (إدرار/خروج)', color: '#10b981', bg: 'rgba(16, 185, 129, 0.12)', dotColor: '#059669' });
+
+    return list;
+  }, [selectedTests]);
+
   return (
     <AppShell>
-      {/* 1. Header & Hotkey Bar */}
-      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+      {/* 1. Header & Quick Actions Bar */}
+      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '0.5px', textTransform: 'uppercase', margin: 0 }}>
-            PATIENT RECEPTION & INTAKE (استقبال وتسجيل المرضى)
-          </h1>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '2px' }}>
-            LABRYO LIMS • HIGH-SPEED RECEPTION • {new Date().toLocaleDateString('ar-IQ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h1 style={{ fontSize: '21px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '0.5px', margin: 0 }}>
+              استقبال وتسجيل المرضى
+            </h1>
+            <span style={{ fontSize: '11px', fontWeight: 800, background: 'var(--accent-cyan-subtle)', color: 'var(--accent-cyan)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(37, 99, 235, 0.2)' }}>
+              PATIENT INTAKE
+            </span>
+          </div>
+          <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '3px' }}>
+            منظومة الاستقبال السريع الذكية • {new Date().toLocaleDateString('ar-IQ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
         </div>
 
-        {/* Live Keyboard Hotkey Guide */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(0, 210, 211, 0.08)', border: '1px solid rgba(0, 210, 211, 0.25)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: 'var(--accent-cyan)' }}>
-            <Keyboard size={13} />
-            <span><kbd style={{ background: '#1c2436', padding: '1px 5px', borderRadius: '4px', color: '#fff', fontWeight: 800 }}>F2</kbd> New Intake</span>
-            <span style={{ opacity: 0.4 }}>|</span>
-            <span><kbd style={{ background: '#1c2436', padding: '1px 5px', borderRadius: '4px', color: '#fff', fontWeight: 800 }}>F8</kbd> Search Tests</span>
-            <span style={{ opacity: 0.4 }}>|</span>
-            <span><kbd style={{ background: '#1c2436', padding: '1px 5px', borderRadius: '4px', color: '#fff', fontWeight: 800 }}>F9</kbd> Discount</span>
-            <span style={{ opacity: 0.4 }}>|</span>
-            <span><kbd style={{ background: '#1c2436', padding: '1px 5px', borderRadius: '4px', color: '#fff', fontWeight: 800 }}>Ctrl+↵</kbd> Register</span>
+        {/* Live Keyboard Shortcuts Indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '6px 12px', fontSize: '11.5px', color: 'var(--text-muted)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+            <Keyboard size={14} color="var(--accent-cyan)" />
+            <span><kbd style={{ background: 'var(--bg-input-deep)', border: '1px solid var(--border-color)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-main)', fontWeight: 800 }}>F2</kbd> جديد</span>
+            <span style={{ opacity: 0.3 }}>|</span>
+            <span><kbd style={{ background: 'var(--bg-input-deep)', border: '1px solid var(--border-color)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-main)', fontWeight: 800 }}>F8</kbd> بحث الكتالوج</span>
+            <span style={{ opacity: 0.3 }}>|</span>
+            <span><kbd style={{ background: 'var(--bg-input-deep)', border: '1px solid var(--border-color)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-main)', fontWeight: 800 }}>F9</kbd> الخصم</span>
+            <span style={{ opacity: 0.3 }}>|</span>
+            <span><kbd style={{ background: 'var(--bg-input-deep)', border: '1px solid var(--border-color)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-main)', fontWeight: 800 }}>Ctrl+↵</kbd> حفظ وطباعة</span>
           </div>
 
           <button
             type="button"
             onClick={handleClearPatient}
             className="btn-secondary"
-            style={{ height: '32px', padding: '0 12px', fontSize: '11.5px', gap: '6px' }}
+            style={{ height: '36px', padding: '0 14px', fontSize: '12px', fontWeight: 800, gap: '6px', borderRadius: '10px' }}
             title="ابدأ استلام مريض جديد (F2)"
           >
-            <RotateCcw size={13} />
+            <RotateCcw size={14} />
             <span>استلام جديد (F2)</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Main 3-Column Grid (Clean Clinical Light 3-Column Layout: Right Patient 320px, Center Test Catalog flex, Left Financials 340px) */}
-      <div className="intake-3col-grid" style={{ direction: 'rtl' }}>
-        
-        {/* 1. RIGHT COLUMN: PATIENT INTAKE & AUTOCOMPLETE CARD (320px) */}
-        <div className="glass-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
-            {/* Draft Persistence Notification Bar */}
-            {savedDraft && (
-              <div
-                style={{
-                  background: 'linear-gradient(90deg, rgba(0, 210, 211, 0.12), rgba(14, 20, 32, 0.85))',
-                  border: '1px solid rgba(0, 210, 211, 0.4)',
-                  borderRadius: '8px',
-                  padding: '10px 14px',
-                  marginBottom: '14px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: '12px',
-                  flexWrap: 'wrap',
-                  boxShadow: '0 2px 10px rgba(0, 210, 211, 0.08)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--text-main)' }}>
-                  <span style={{ fontSize: '15px' }}><ClipboardList size={15} /></span>
-                  <span>
-                    تم العثور على مسودة سابقة غير محفوظة للمريض ({savedDraft.patientName || 'بدون اسم'} - {savedDraft.selectedTests?.length || 0} فحوصات)
-                  </span>
-                </div>
+      {/* 2. MAIN GUIDED SPLIT FLOW CONTAINER (OPTION 3) */}
+      <div className="intake-guided-container">
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={handleRestoreDraft}
-                    className="btn-cyan-primary"
-                    style={{
-                      height: '28px',
-                      padding: '0 12px',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      borderRadius: '5px',
-                    }}
-                  >
-                    استعادة المسودة (Restore)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDiscardDraft}
-                    style={{
-                      height: '28px',
-                      padding: '0 10px',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      background: 'rgba(239, 68, 68, 0.1)',
-                      border: '1px solid rgba(239, 68, 68, 0.35)',
-                      color: 'var(--accent-rose)',
-                      borderRadius: '5px',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    تجاهل (Discard)
-                  </button>
-                </div>
+        {/* ========================================================================= */}
+        {/* ZONE 1: TOP HORIZONTAL PATIENT INTAKE BAR (شريط بيانات واستقبال المريض الأفقي) */}
+        {/* ========================================================================= */}
+        <div className="patient-bar-card">
+
+          {/* Draft Persistence Banner (if available) */}
+          {savedDraft && (
+            <div
+              style={{
+                background: 'linear-gradient(90deg, rgba(37, 99, 235, 0.08), var(--bg-card-subtle))',
+                border: '1px solid var(--accent-cyan)',
+                borderRadius: '10px',
+                padding: '8px 14px',
+                marginBottom: '12px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '12px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--text-main)' }}>
+                <ClipboardList size={16} color="var(--accent-cyan)" />
+                <span>
+                  تم العثور على مسودة سابقة غير محفوظة: <strong style={{ color: 'var(--accent-cyan)' }}>{savedDraft.patientName || 'مريض بدون اسم'}</strong> ({savedDraft.selectedTests?.length || 0} فحوصات محددة)
+                </span>
               </div>
-            )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'var(--accent-cyan-subtle)', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <User size={16} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
-                    تسجيل واستقبال المريض (Patient Information)
-                  </h3>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    {patientId ? `مريض مسجل مسبقاً (ID: ${patientId})` : 'بيانات المريض الأساسية وتاريخ الزيارات'}
-                  </span>
-                </div>
-              </div>
-
-              {patientId && (
                 <button
                   type="button"
-                  onClick={handleClearPatient}
-                  style={{ background: '#fff', border: '1px solid var(--border-color)', color: 'var(--accent-rose)', cursor: 'pointer', fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  onClick={handleRestoreDraft}
+                  className="btn-cyan-primary"
+                  style={{ height: '28px', padding: '0 12px', fontSize: '11.5px', fontWeight: 800, borderRadius: '6px' }}
                 >
-                  <X size={12} /> تبديل المريض / جديد
+                  استعادة المسودة
                 </button>
-              )}
+                <button
+                  type="button"
+                  onClick={handleDiscardDraft}
+                  style={{
+                    height: '28px',
+                    padding: '0 10px',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: 'var(--accent-rose)',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  تجاهل
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Top Bar Header Row: Title & Quick Patient Autocomplete Search */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'var(--accent-cyan-subtle)', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <User size={16} />
+              </div>
+              <div>
+                <strong style={{ fontSize: '13.5px', color: 'var(--text-main)' }}>1. بيانات واستقبال المريض</strong>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginRight: '8px' }}>
+                  {patientId ? `(مريض مسجل سابقاً ✓ ID: ${patientId})` : '(أدخل الاسم للبحث الفوري أو التسجيل الجديد)'}
+                </span>
+              </div>
             </div>
 
-            {/* Prominent Quick Autocomplete Search for Existing Patients */}
-            {!patientId && (
-              <div style={{ position: 'relative', marginBottom: '14px', background: 'var(--bg-card-subtle)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Search size={13} color="var(--accent-cyan)" />
-                    <span>البحث عن مريض مسجل مسبقاً:</span>
-                  </span>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                    (ابحث بالاسم أو الهاتف للتعبئة التلقائية)
-                  </span>
-                </div>
-                <div style={{ position: 'relative' }}>
-                  <Search size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-                  <input
-                    type="text"
-                    placeholder="ابحث هنا بالاسم، رقم الهاتف، أو المعرّف (F3)..."
-                    className="input-control"
-                    style={{ paddingRight: '36px', paddingLeft: '45px', fontSize: '12.5px', height: '36px', background: 'var(--bg-card)', border: '1.5px solid var(--border-color)', borderRadius: '6px' }}
-                    value={patientSearchQuery}
-                    onChange={(e) => {
-                      setPatientSearchQuery(e.target.value);
-                      setHighlightedSuggestionIndex(-1);
-                    }}
-                    onKeyDown={handlePatientSearchKeyDown}
-                  />
-                  <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '9.5px', background: 'var(--bg-card-hover)', border: '1px solid var(--border-color)', color: 'var(--text-dim)', padding: '1px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>
-                    F3
-                  </span>
-                </div>
+            {/* Quick Autocomplete Search Input for Existing Patients */}
+            {!patientId ? (
+              <div style={{ position: 'relative', width: '320px', maxWidth: '100%' }}>
+                <Search size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                <input
+                  type="text"
+                  placeholder="بحث سريع عن مريض سابق بالاسم أو الهاتف..."
+                  className="input-control"
+                  style={{ paddingRight: '34px', paddingLeft: '38px', fontSize: '12px', height: '34px', borderRadius: '8px', background: 'var(--bg-input-deep)' }}
+                  value={patientSearchQuery}
+                  onChange={(e) => {
+                    setPatientSearchQuery(e.target.value);
+                    setHighlightedSuggestionIndex(-1);
+                  }}
+                  onKeyDown={handlePatientSearchKeyDown}
+                />
+                <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', padding: '1px 5px', borderRadius: '4px' }}>
+                  F3
+                </span>
+
+                {/* Suggestions Dropdown */}
                 {showSuggestions && patientSuggestions.length > 0 && (
-                  <div className="quick-search-dropdown" style={{ zIndex: 100 }}>
-                    <div className="dropdown-header">سجلات المرضى المطابقة ({patientSuggestions.length}): (استخدم ↑ ↓ للتنقل و Enter للاختيار)</div>
+                  <div className="quick-search-dropdown" style={{ zIndex: 120, width: '100%', top: '100%', marginTop: '4px' }}>
+                    <div className="dropdown-header">سجلات المرضى المطابقة ({patientSuggestions.length}):</div>
                     {patientSuggestions.map((p, idx) => {
                       const isHighlighted = highlightedSuggestionIndex === idx;
                       return (
@@ -1065,12 +1128,9 @@ function IntakeContent() {
                           key={p.id}
                           className="dropdown-item"
                           style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '4px',
                             padding: '8px 12px',
                             cursor: 'pointer',
-                            background: isHighlighted ? 'var(--bg-card-hover, rgba(0, 210, 211, 0.12))' : 'transparent',
+                            background: isHighlighted ? 'var(--accent-cyan-subtle)' : 'transparent',
                             borderRight: isHighlighted ? '3px solid var(--accent-cyan)' : '3px solid transparent',
                           }}
                           onMouseEnter={() => setHighlightedSuggestionIndex(idx)}
@@ -1079,189 +1139,16 @@ function IntakeContent() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
                               <strong style={{ fontSize: '13px', color: isHighlighted ? 'var(--accent-cyan)' : 'var(--text-main)' }}>{p.name}</strong>
-                              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px' }}>
-                                {p.phone || 'بدون هاتف'} • {p.age ? `${p.age} سنة` : ''} ({p.gender === 'FEMALE' ? 'أنثى' : 'ذكر'})
-                              </span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span className="badge badge-received" style={{ fontSize: '10px' }}>
-                                {p.visitCount || 0} زيارات
-                              </span>
-                              {((p.outstandingDebt || 0) > 0) && (
-                                <span style={{ background: 'rgba(239, 68, 68, 0.2)', color: 'var(--color-danger)', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
-                                  <CircleAlert size={12} /> دين: {p.outstandingDebt?.toLocaleString()} د.ع
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Historical abnormal flags preview */}
-                          {p.abnormalFlags && p.abnormalFlags.length > 0 && (
-                            <div style={{ fontSize: '10.5px', color: 'var(--color-warning)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <AlertTriangle size={11} />
-                              <span>فحوصات غير طبيعية سابقة: {p.abnormalFlags.slice(0, 2).join(' | ')}</span>
-                            </div>
-                          )}
-                          {/* Repeat Last Tests Button */}
-                          {p.lastTestIds && p.lastTestIds.length > 0 && (
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px' }}>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRepeatLastTests(p);
-                                }}
-                                style={{
-                                  background: 'rgba(0, 210, 211, 0.15)',
-                                  border: '1px solid rgba(0, 210, 211, 0.3)',
-                                  color: 'var(--accent-cyan)',
-                                  fontSize: '10.5px',
-                                  fontWeight: 700,
-                                  borderRadius: '4px',
-                                  padding: '2px 8px',
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px'
-                                }}
-                              >
-                                <RotateCcw size={11} />
-                                <span>إعادة نفس فحوصات الزيارة السابقة ({p.lastTestNames?.slice(0, 2).join(', ')}...)</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Selected Patient Alert Banner (if historical flags or debt exist) */}
-            {selectedPatientHistory && (
-              <div style={{ marginBottom: '12px', padding: '8px 12px', background: 'var(--bg-input-deep)', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '11.5px', color: 'var(--text-main)', fontWeight: 700 }}>
-                    سجل المريض: <span style={{ color: 'var(--accent-cyan)' }}>{selectedPatientHistory.visitCount || selectedPatientHistory.samples?.length || 0} زيارة</span>
-                  </span>
-                  {((selectedPatientHistory.outstandingDebt || 0) > 0) && (
-                    <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'var(--color-danger)', border: '1px solid rgba(239, 68, 68, 0.3)', fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>
-                      <AlertTriangle size={12} /> متبقي ديون سابقة: {selectedPatientHistory.outstandingDebt?.toLocaleString()} د.ع
-                    </span>
-                  )}
-                </div>
-
-                {selectedPatientHistory.lastTestIds && selectedPatientHistory.lastTestIds.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => handleRepeatLastTests(selectedPatientHistory)}
-                    className="btn-secondary"
-                    style={{ height: '26px', fontSize: '11px', padding: '0 8px', gap: '4px' }}
-                  >
-                    <RotateCcw size={11} />
-                    <span>إعادة نفس الفحوصات السابقة</span>
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Patient Form Fields - Formatted cleanly for 320px column */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
-              <div style={{ position: 'relative' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
-                  <label htmlFor="patient-name-input" className="input-label" style={{ fontSize: '10.5px', marginBottom: 0 }}>Full Name (اسم المريض) *</label>
-                  {patientId && (
-                    <span style={{ fontSize: '10px', color: 'var(--accent-cyan)', fontWeight: 700 }}>
-                      (مريض سابق مسجل ✓)
-                    </span>
-                  )}
-                </div>
-                <input
-                  id="patient-name-input"
-                  ref={(el) => {
-                    patientNameInputRef.current = el;
-                    inputRefs.current[0] = el;
-                  }}
-                  onKeyDown={handlePatientNameKeyDown}
-                  type="text"
-                  maxLength={80}
-                  placeholder="اسم المريض الثلاثي..."
-                  className="input-control"
-                  style={{
-                    height: '36px',
-                    fontSize: '12.5px',
-                    borderColor: patientId ? 'var(--accent-cyan)' : undefined,
-                  }}
-                  value={patientName}
-                  onChange={(e) => handlePatientNameChange(e.target.value)}
-                  autoComplete="off"
-                  required
-                />
-
-                {/* Typeahead Suggestions Dropdown */}
-                {showNameSuggestions && nameSuggestions.length > 0 && (
-                  <div
-                    ref={nameSuggestionsRef}
-                    className="quick-search-dropdown"
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      zIndex: 110,
-                      marginTop: '4px',
-                      background: 'var(--bg-card)',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-color)',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
-                      maxHeight: '260px',
-                      overflowY: 'auto'
-                    }}
-                  >
-                    <div className="dropdown-header" style={{ padding: '6px 10px', fontSize: '10.5px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                      مرضى مطابقون ({nameSuggestions.length}) - اضغط Enter أو انقر للاختيار:
-                    </div>
-                    {nameSuggestions.map((p, idx) => {
-                      const isHighlighted = highlightedNameIndex === idx;
-                      return (
-                        <div
-                          key={p.id}
-                          className="dropdown-item"
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '3px',
-                            padding: '7px 10px',
-                            cursor: 'pointer',
-                            background: isHighlighted ? 'var(--bg-card-hover, rgba(0, 210, 211, 0.12))' : 'transparent',
-                            borderRight: isHighlighted ? '3px solid var(--accent-cyan)' : '3px solid transparent',
-                            borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
-                          }}
-                          onMouseEnter={() => setHighlightedNameIndex(idx)}
-                          onClick={() => {
-                            selectExistingPatient(p);
-                            setTimeout(() => {
-                              patientAgeInputRef.current?.focus();
-                              patientAgeInputRef.current?.select();
-                            }, 50);
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                              <strong style={{ fontSize: '12.5px', color: isHighlighted ? 'var(--accent-cyan)' : 'var(--text-main)' }}>
-                                {p.name}
-                              </strong>
-                              <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginRight: '6px' }}>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginRight: '6px' }}>
                                 {p.phone || 'بلا هاتف'} • {p.age ? `${p.age} سنة` : ''} ({p.gender === 'FEMALE' ? 'أنثى' : 'ذكر'})
                               </span>
                             </div>
                             <span className="badge badge-received" style={{ fontSize: '10px' }}>
-                              {p.visitCount || 0} زيارات
+                              {p.visitCount || 0} زيارة
                             </span>
                           </div>
                           {((p.outstandingDebt || 0) > 0) && (
-                            <div style={{ fontSize: '10px', color: 'var(--color-danger)', fontWeight: 700 }}>
+                            <div style={{ fontSize: '10.5px', color: 'var(--color-danger)', fontWeight: 800, marginTop: '2px' }}>
                               ديون سابقة: {p.outstandingDebt?.toLocaleString()} د.ع
                             </div>
                           )}
@@ -1271,120 +1158,345 @@ function IntakeContent() {
                   </div>
                 )}
               </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <div>
-                  <label htmlFor="patient-age-input" className="input-label" style={{ fontSize: '10.5px' }}>Age (العمر)</label>
-                  <input
-                    id="patient-age-input"
-                    ref={(el) => {
-                      patientAgeInputRef.current = el;
-                      inputRefs.current[1] = el;
-                    }}
-                    onKeyDown={(e) => handleInputKeyDown(e, 1)}
-                    type="number"
-                    min={0}
-                    max={150}
-                    maxLength={3}
-                    placeholder="العمر"
-                    className="input-control"
-                    style={{ height: '36px', fontSize: '12.5px' }}
-                    value={patientAge}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val.length <= 3) {
-                        setPatientAge(val);
-                      }
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="patient-gender-select" className="input-label" style={{ fontSize: '10.5px' }}>Gender (الجنس)</label>
-                  <select
-                    id="patient-gender-select"
-                    ref={(el) => { inputRefs.current[2] = el; }}
-                    onKeyDown={(e) => handleInputKeyDown(e, 2)}
-                    className="select-control"
-                    style={{ height: '36px', fontSize: '12px' }}
-                    value={patientGender}
-                    onChange={(e) => setPatientGender(e.target.value as any)}
-                  >
-                    <option value="MALE">ذكر (Male)</option>
-                    <option value="FEMALE">أنثى (Female)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="patient-phone-input" className="input-label" style={{ fontSize: '10.5px' }}>Phone (الهاتف)</label>
-                <input
-                  id="patient-phone-input"
-                  ref={(el) => { inputRefs.current[3] = el; }}
-                  onKeyDown={(e) => handleInputKeyDown(e, 3)}
-                  type="text"
-                  placeholder="0770..."
-                  className="input-control"
-                  style={{ height: '36px', fontSize: '12px' }}
-                  value={patientPhone}
-                  onChange={(e) => {
-                    const sanitized = e.target.value.replace(/[^0-9+\-\s]/g, '');
-                    setPatientPhone(sanitized);
-                  }}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="patient-doctor-select" className="input-label" style={{ fontSize: '10.5px' }}>Referring Doctor (الطبيب المحيل)</label>
-                <select
-                  id="patient-doctor-select"
-                  ref={(el) => { inputRefs.current[4] = el; }}
-                  onKeyDown={(e) => handleInputKeyDown(e, 4)}
-                  className="select-control"
-                  style={{ height: '36px', fontSize: '11.5px' }}
-                  value={selectedDoctorId}
-                  onChange={(e) => setSelectedDoctorId(e.target.value)}
-                >
-                  <option value="">مباشر (بدون تحويل)</option>
-                  {doctors.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      د. {d.name} ({d.commissionPercent || 0}%)
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="sample-notes-input" className="input-label" style={{ fontSize: '10.5px', display: 'block', marginBottom: '4px' }}>
-                  Sample Notes / Clinical Instructions (ملاحظات العينة)
-                </label>
-                <input
-                  id="sample-notes-input"
-                  ref={(el) => { inputRefs.current[5] = el; }}
-                  onKeyDown={(e) => handleInputKeyDown(e, 5)}
-                  type="text"
-                  placeholder="ملاحظات سريرية (مثل: صائم 12 ساعة...)"
-                  className="input-control"
-                  style={{ height: '34px', fontSize: '12px', background: 'var(--bg-input-deep)' }}
-                  value={sampleNotes}
-                  onChange={(e) => setSampleNotes(e.target.value)}
-                />
-              </div>
-            </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleClearPatient}
+                style={{ background: 'var(--bg-input-deep)', border: '1px solid var(--border-color)', color: 'var(--accent-rose)', cursor: 'pointer', fontSize: '11.5px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+              >
+                <X size={13} /> تبديل المريض / جديد
+              </button>
+            )}
           </div>
 
-          {/* 2. CENTER COLUMN: TEST SELECTION CARD (Flexible Flex-1) */}
-          <div className="glass-card" style={{ padding: '16px 18px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <FlaskConical size={15} color="var(--accent-cyan)" />
-                <label htmlFor="test-search-input" className="input-label" style={{ margin: 0, fontSize: '11.5px', fontWeight: 800, cursor: 'pointer' }}>
-                  TEST SELECTION ({filteredTests.length} AVAILABLE)
-                </label>
+          {/* Historical Patient Alert Strip (if patient selected) */}
+          {selectedPatientHistory && (
+            <div style={{ marginBottom: '10px', padding: '6px 12px', background: 'var(--bg-input-deep)', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '11.5px', color: 'var(--text-main)', fontWeight: 700 }}>
+                  سجل الزيارات: <span style={{ color: 'var(--accent-cyan)' }}>{selectedPatientHistory.visitCount || 1} زيارة سابقة</span>
+                </span>
+                {((selectedPatientHistory.outstandingDebt || 0) > 0) && (
+                  <span style={{ background: 'rgba(239, 68, 68, 0.12)', color: 'var(--color-danger)', border: '1px solid rgba(239, 68, 68, 0.3)', fontSize: '11px', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>
+                    <AlertTriangle size={12} style={{ display: 'inline', marginLeft: '4px' }} />
+                    متبقي ديون سابقة: {selectedPatientHistory.outstandingDebt?.toLocaleString()} د.ع
+                  </span>
+                )}
               </div>
 
-              <div style={{ position: 'relative', width: '320px' }}>
-                <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+              {selectedPatientHistory.lastTestIds && selectedPatientHistory.lastTestIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => handleRepeatLastTests(selectedPatientHistory)}
+                  className="btn-secondary"
+                  style={{ height: '26px', fontSize: '11px', padding: '0 8px', gap: '4px', borderRadius: '6px' }}
+                >
+                  <RotateCcw size={12} />
+                  <span>إعادة نفس فحوصات الزيارة السابقة</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Patient Form Grid Fields */}
+          <div className="patient-horizontal-grid">
+
+            {/* 1. Full Name Input with Typeahead Dropdown */}
+            <div style={{ position: 'relative' }}>
+              <label htmlFor="patient-name-input" className="input-label" style={{ fontSize: '11px', fontWeight: 800, marginBottom: '4px' }}>
+                اسم المريض الثلاثي *
+              </label>
+              <input
+                id="patient-name-input"
+                ref={(el) => {
+                  patientNameInputRef.current = el;
+                  inputRefs.current[0] = el;
+                }}
+                onKeyDown={handlePatientNameKeyDown}
+                type="text"
+                maxLength={80}
+                placeholder="أدخل اسم المريض..."
+                className="input-control"
+                style={{
+                  height: '38px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  borderColor: patientId ? 'var(--accent-cyan)' : undefined,
+                  borderRadius: '8px',
+                }}
+                value={patientName}
+                onChange={(e) => handlePatientNameChange(e.target.value)}
+                autoComplete="off"
+                required
+              />
+
+              {/* Typeahead Suggestions */}
+              {showNameSuggestions && nameSuggestions.length > 0 && (
+                <div
+                  ref={nameSuggestionsRef}
+                  className="quick-search-dropdown"
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    zIndex: 130,
+                    marginTop: '4px',
+                    background: 'var(--bg-card)',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                    maxHeight: '220px',
+                    overflowY: 'auto',
+                  }}
+                >
+                  <div className="dropdown-header" style={{ padding: '6px 10px', fontSize: '10.5px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                    مرضى مطابقون ({nameSuggestions.length}) - اضغط Enter للاختيار:
+                  </div>
+                  {nameSuggestions.map((p, idx) => {
+                    const isHighlighted = highlightedNameIndex === idx;
+                    return (
+                      <div
+                        key={p.id}
+                        className="dropdown-item"
+                        style={{
+                          padding: '7px 10px',
+                          cursor: 'pointer',
+                          background: isHighlighted ? 'var(--accent-cyan-subtle)' : 'transparent',
+                          borderRight: isHighlighted ? '3px solid var(--accent-cyan)' : '3px solid transparent',
+                        }}
+                        onMouseEnter={() => setHighlightedNameIndex(idx)}
+                        onClick={() => {
+                          selectExistingPatient(p);
+                          setTimeout(() => {
+                            patientAgeInputRef.current?.focus();
+                            patientAgeInputRef.current?.select();
+                          }, 50);
+                        }}
+                      >
+                        <strong style={{ fontSize: '12.5px', color: isHighlighted ? 'var(--accent-cyan)' : 'var(--text-main)' }}>
+                          {p.name}
+                        </strong>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginRight: '6px' }}>
+                          {p.phone || 'بلا هاتف'} • {p.age ? `${p.age} سنة` : ''}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* 2. Age Input */}
+            <div>
+              <label htmlFor="patient-age-input" className="input-label" style={{ fontSize: '11px', fontWeight: 800, marginBottom: '4px' }}>
+                العمر (سنة)
+              </label>
+              <input
+                id="patient-age-input"
+                ref={(el) => {
+                  patientAgeInputRef.current = el;
+                  inputRefs.current[1] = el;
+                }}
+                onKeyDown={(e) => handleInputKeyDown(e, 1)}
+                type="number"
+                min={0}
+                max={150}
+                maxLength={3}
+                placeholder="العمر"
+                className="input-control"
+                style={{ height: '38px', fontSize: '13px', borderRadius: '8px' }}
+                value={patientAge}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val.length <= 3) {
+                    setPatientAge(val);
+                  }
+                }}
+              />
+            </div>
+
+            {/* 3. Gender Segmented Toggle */}
+            <div>
+              <label className="input-label" style={{ fontSize: '11px', fontWeight: 800, marginBottom: '4px' }}>
+                الجنس
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', height: '38px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPatientGender('MALE')}
+                  style={{
+                    borderRadius: '8px',
+                    border: `1.5px solid ${patientGender === 'MALE' ? 'var(--accent-cyan)' : 'var(--border-color)'}`,
+                    background: patientGender === 'MALE' ? 'var(--accent-cyan)' : 'var(--bg-input-deep)',
+                    color: patientGender === 'MALE' ? '#ffffff' : 'var(--text-muted)',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  ذكر
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPatientGender('FEMALE')}
+                  style={{
+                    borderRadius: '8px',
+                    border: `1.5px solid ${patientGender === 'FEMALE' ? 'var(--accent-rose)' : 'var(--border-color)'}`,
+                    background: patientGender === 'FEMALE' ? 'var(--accent-rose)' : 'var(--bg-input-deep)',
+                    color: patientGender === 'FEMALE' ? '#ffffff' : 'var(--text-muted)',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  أنثى
+                </button>
+              </div>
+              {/* Keep hidden select for tab/ref continuity */}
+              <select
+                id="patient-gender-select"
+                ref={(el) => { inputRefs.current[2] = el; }}
+                onKeyDown={(e) => handleInputKeyDown(e, 2)}
+                value={patientGender}
+                onChange={(e) => setPatientGender(e.target.value as any)}
+                style={{ display: 'none' }}
+              >
+                <option value="MALE">ذكر</option>
+                <option value="FEMALE">أنثى</option>
+              </select>
+            </div>
+
+            {/* 4. Phone Input */}
+            <div>
+              <label htmlFor="patient-phone-input" className="input-label" style={{ fontSize: '11px', fontWeight: 800, marginBottom: '4px' }}>
+                رقم الهاتف
+              </label>
+              <input
+                id="patient-phone-input"
+                ref={(el) => { inputRefs.current[3] = el; }}
+                onKeyDown={(e) => handleInputKeyDown(e, 3)}
+                type="text"
+                placeholder="0770..."
+                className="input-control"
+                style={{ height: '38px', fontSize: '12.5px', borderRadius: '8px' }}
+                value={patientPhone}
+                onChange={(e) => {
+                  const sanitized = e.target.value.replace(/[^0-9+\-\s]/g, '');
+                  setPatientPhone(sanitized);
+                }}
+              />
+            </div>
+
+            {/* 5. Referring Doctor Select */}
+            <div>
+              <label htmlFor="patient-doctor-select" className="input-label" style={{ fontSize: '11px', fontWeight: 800, marginBottom: '4px' }}>
+                الطبيب المحيل
+              </label>
+              <select
+                id="patient-doctor-select"
+                ref={(el) => { inputRefs.current[4] = el; }}
+                onKeyDown={(e) => handleInputKeyDown(e, 4)}
+                className="select-control"
+                style={{ height: '38px', fontSize: '12px', borderRadius: '8px' }}
+                value={selectedDoctorId}
+                onChange={(e) => setSelectedDoctorId(e.target.value)}
+              >
+                <option value="">مباشر (بدون تحويل)</option>
+                {doctors.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    د. {d.name} ({d.commissionPercent || 0}%)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 6. Urgency Setting */}
+            <div>
+              <label className="input-label" style={{ fontSize: '11px', fontWeight: 800, marginBottom: '4px' }}>
+                أولوية التحليل
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', height: '38px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsUrgent(false)}
+                  style={{
+                    borderRadius: '8px',
+                    border: `1.5px solid ${!isUrgent ? 'var(--accent-teal)' : 'var(--border-color)'}`,
+                    background: !isUrgent ? 'var(--accent-teal)' : 'var(--bg-input-deep)',
+                    color: !isUrgent ? '#ffffff' : 'var(--text-muted)',
+                    fontSize: '11.5px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  عادي
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsUrgent(true)}
+                  style={{
+                    borderRadius: '8px',
+                    border: `1.5px solid ${isUrgent ? 'var(--color-danger)' : 'var(--border-color)'}`,
+                    background: isUrgent ? 'var(--color-danger)' : 'var(--bg-input-deep)',
+                    color: isUrgent ? '#ffffff' : 'var(--text-muted)',
+                    fontSize: '11.5px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  مستعجل STAT
+                </button>
+              </div>
+            </div>
+
+            {/* 7. Clinical Notes / Instructions */}
+            <div>
+              <label htmlFor="sample-notes-input" className="input-label" style={{ fontSize: '11px', fontWeight: 800, marginBottom: '4px' }}>
+                ملاحظات سريرية
+              </label>
+              <input
+                id="sample-notes-input"
+                ref={(el) => { inputRefs.current[5] = el; }}
+                onKeyDown={(e) => handleInputKeyDown(e, 5)}
+                type="text"
+                placeholder="صائم 12 ساعة، أدوية، حامل..."
+                className="input-control"
+                style={{ height: '38px', fontSize: '12px', borderRadius: '8px', background: 'var(--bg-input-deep)' }}
+                value={sampleNotes}
+                onChange={(e) => setSampleNotes(e.target.value)}
+              />
+            </div>
+
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* ZONE 2: LOWER SPLIT WORKSPACE (الكتالوج وباقات الفحص يميناً + التذكرة يساراً) */}
+        {/* ========================================================================= */}
+        <div className="intake-guided-split">
+
+          {/* ----------------------------------------------------------------------- */}
+          {/* WING A: DIAGNOSTIC TESTS & QUICK PACKAGES (كتالوج الفحوصات الطبية)       */}
+          {/* ----------------------------------------------------------------------- */}
+          <div className="glass-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+            {/* Catalog Header: Title + F8 Search Bar */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FlaskConical size={18} color="var(--accent-cyan)" />
+                <strong style={{ fontSize: '14px', color: 'var(--text-main)' }}>
+                  2. كتالوج الفحوصات وباقات التحاليل
+                </strong>
+                <span style={{ fontSize: '11px', color: 'var(--accent-cyan)', background: 'var(--accent-cyan-subtle)', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>
+                  {filteredTests.length} فحص متاح
+                </span>
+              </div>
+
+              <div style={{ position: 'relative', width: '320px', maxWidth: '100%' }}>
+                <Search size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
                 <input
                   id="test-search-input"
                   ref={(el) => {
@@ -1395,21 +1507,42 @@ function IntakeContent() {
                   type="text"
                   placeholder="بحث سريع (F8) بالكود أو الاسم (CBC, TSH, Lipid)..."
                   className="input-control"
-                  style={{ paddingLeft: '28px', fontSize: '12px', height: '32px', background: 'var(--bg-input-deep)' }}
+                  style={{ paddingRight: '34px', paddingLeft: '38px', fontSize: '12.5px', height: '36px', borderRadius: '8px', background: 'var(--bg-input-deep)' }}
                   value={testSearch}
                   onChange={(e) => {
                     setTestSearch(e.target.value);
                     setHighlightedTestIndex(0);
                   }}
                 />
-                <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', color: 'var(--text-dim)', background: '#1c2436', padding: '1px 5px', borderRadius: '3px' }}>
+                <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', color: 'var(--text-muted)', background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: '4px' }}>
                   F8
                 </span>
               </div>
             </div>
 
-            {/* English Clinical Category Filter Strip with Badge Counters */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
+            {/* Quick Diagnostic Bundles Strip (الباقات السريعة) */}
+            <div style={{ background: 'var(--bg-input-deep)', padding: '8px 12px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', fontWeight: 800, color: 'var(--text-main)' }}>
+                <Zap size={14} color="var(--accent-amber)" />
+                <span>باقات سريعة:</span>
+              </div>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {SMART_BUNDLES.map(b => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => handleApplyBundle(b)}
+                    className="bundle-pill-btn"
+                    title={b.desc}
+                  >
+                    <span>+ {b.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Clinical Category Tabs Strip with Active Badges */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {CLINICAL_CATEGORIES.map((cat) => {
                 const isActive = activeCategory === cat.id;
                 const count = categorySelectedCounts[cat.id] || 0;
@@ -1422,30 +1555,30 @@ function IntakeContent() {
                       setHighlightedTestIndex(0);
                     }}
                     style={{
-                      padding: '4px 10px',
-                      fontSize: '10.5px',
+                      padding: '5px 12px',
+                      fontSize: '11px',
                       fontWeight: isActive ? 800 : 600,
-                      borderRadius: '6px',
-                      border: `1px solid ${isActive ? 'var(--accent-cyan)' : '#1e2638'}`,
-                      background: isActive ? 'rgba(0, 210, 211, 0.15)' : 'var(--bg-input-deep)',
+                      borderRadius: '8px',
+                      border: `1.5px solid ${isActive ? 'var(--accent-cyan)' : 'var(--border-color)'}`,
+                      background: isActive ? 'var(--accent-cyan-subtle)' : 'var(--bg-card)',
                       color: isActive ? 'var(--accent-cyan)' : 'var(--text-muted)',
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '5px',
-                      transition: 'all 0.12s ease',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
                     }}
                   >
                     <span>{cat.label}</span>
                     {count > 0 && (
                       <span
                         style={{
-                          background: isActive ? 'var(--accent-cyan)' : 'rgba(0, 210, 211, 0.22)',
-                          color: isActive ? '#000' : 'var(--accent-cyan)',
-                          fontSize: '9.5px',
+                          background: isActive ? 'var(--accent-cyan)' : 'rgba(37, 99, 235, 0.15)',
+                          color: isActive ? '#ffffff' : 'var(--accent-cyan)',
+                          fontSize: '10px',
                           fontWeight: 900,
-                          padding: '1px 5px',
-                          borderRadius: '8px',
+                          padding: '1px 6px',
+                          borderRadius: '10px',
                         }}
                       >
                         {count}
@@ -1456,14 +1589,25 @@ function IntakeContent() {
               })}
             </div>
 
-            {/* Test Cards Grid (Flexible height, no large gaps) */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '8px', minHeight: '360px', maxHeight: 'calc(100vh - 350px)', overflowY: 'auto', paddingRight: '2px', alignContent: 'start' }}>
+            {/* Modern Test Cards Grid */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))',
+                gap: '10px',
+                minHeight: '380px',
+                maxHeight: 'calc(100vh - 380px)',
+                overflowY: 'auto',
+                paddingRight: '2px',
+                alignContent: 'start',
+              }}
+            >
               {loading ? (
-                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                   جاري تحميل كتالوج الفحوصات...
                 </div>
               ) : filteredTests.length === 0 ? (
-                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                   لا توجد فحوصات مطابقة للبحث
                 </div>
               ) : (
@@ -1477,22 +1621,12 @@ function IntakeContent() {
                     <div
                       key={t.id}
                       onClick={() => handleToggleTest(t)}
+                      className={`test-card-modern ${isSelected ? 'selected' : ''}`}
                       style={{
-                        padding: '10px 12px',
-                        borderRadius: '10px',
-                        background: isSelected ? 'var(--accent-cyan-subtle)' : 'var(--bg-card)',
-                        border: `1.5px solid ${isSelected ? 'var(--accent-cyan)' : (isHighlighted ? 'var(--border-focus)' : 'var(--border-color)')}`,
-                        boxShadow: isSelected ? '0 2px 10px rgba(37, 99, 235, 0.12)' : '0 1px 3px rgba(0,0,0,0.02)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: '8px',
-                        minHeight: '84px',
-                        transition: 'all 0.15s ease',
+                        borderColor: isSelected ? 'var(--accent-cyan)' : (isHighlighted ? 'var(--border-focus)' : undefined),
                       }}
                     >
-                      {/* Top Row: Code Badge & English Category */}
+                      {/* Top Row: Category Icon & Test Code & Category Badge */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <div
@@ -1526,24 +1660,23 @@ function IntakeContent() {
                           </span>
                         </div>
 
-                        <span style={{ fontSize: '9px', color: 'var(--text-dim)', fontWeight: 700, textTransform: 'uppercase' }}>
+                        <span style={{ fontSize: '9.5px', color: 'var(--text-dim)', fontWeight: 700, textTransform: 'uppercase' }}>
                           {englishCat}
                         </span>
                       </div>
 
-                      {/* Middle: English Test Name */}
+                      {/* Middle: Test Name */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <strong
                           style={{
-                            fontSize: '12px',
+                            fontSize: '12.5px',
                             fontWeight: 700,
                             color: 'var(--text-main)',
                             display: 'block',
-                            lineHeight: 1.3,
+                            lineHeight: 1.35,
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
-                            fontFamily: 'system-ui, sans-serif',
                           }}
                           title={t.name}
                         >
@@ -1552,19 +1685,19 @@ function IntakeContent() {
                       </div>
 
                       {/* Bottom Row: Price & Action Add Button */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px', borderTop: '1px solid var(--border-subtle)' }}>
-                        <strong style={{ fontSize: '12px', color: 'var(--accent-cyan)', fontWeight: 800 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid var(--border-subtle)' }}>
+                        <strong style={{ fontSize: '13px', color: 'var(--accent-cyan)', fontWeight: 800 }}>
                           {t.price?.toLocaleString()} د.ع
                         </strong>
 
                         <span
                           style={{
-                            fontSize: '10.5px',
-                            fontWeight: 700,
+                            fontSize: '11px',
+                            fontWeight: 800,
                             color: isSelected ? '#ffffff' : 'var(--accent-cyan)',
                             background: isSelected ? 'var(--accent-cyan)' : 'var(--accent-cyan-subtle)',
                             padding: '2px 8px',
-                            borderRadius: '4px',
+                            borderRadius: '6px',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '3px',
@@ -1572,12 +1705,12 @@ function IntakeContent() {
                         >
                           {isSelected ? (
                             <>
-                              <Check size={11} />
+                              <Check size={12} />
                               <span>محدد</span>
                             </>
                           ) : (
                             <>
-                              <Plus size={11} />
+                              <Plus size={12} />
                               <span>إضافة</span>
                             </>
                           )}
@@ -1590,24 +1723,41 @@ function IntakeContent() {
             </div>
           </div>
 
-        {/* 3. LEFT COLUMN: INTAKE SUMMARY & FINANCIALS (340px) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          
-          <div className="glass-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <span className="input-label" style={{ margin: 0, fontSize: '11.5px', fontWeight: 800 }}>
-                INTAKE & FINANCIAL SUMMARY (ملخص الفحص)
-              </span>
-              <span style={{ fontSize: '11px', color: 'var(--accent-cyan)', fontWeight: 800 }}>
-                {selectedTests.length} فحص محدد
+          {/* ----------------------------------------------------------------------- */}
+          {/* WING B: LIVE DIGITAL ORDER TICKET & BARCODE HUB (تذكرة الزيارة والباركود) */}
+          {/* ----------------------------------------------------------------------- */}
+          <div className="digital-receipt-card">
+
+            {/* Ticket Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ClipboardList size={16} color="var(--accent-cyan)" />
+                <strong style={{ fontSize: '13.5px', color: 'var(--text-main)' }}>
+                  3. تذكرة الفاتورة والباركود
+                </strong>
+              </div>
+              <span style={{ fontSize: '11.5px', color: 'var(--accent-cyan)', fontWeight: 800, background: 'var(--accent-cyan-subtle)', padding: '2px 8px', borderRadius: '6px' }}>
+                {selectedTests.length} فحص
               </span>
             </div>
 
-            {/* Selected Tests List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1, minHeight: '120px', maxHeight: '180px', overflowY: 'auto', marginBottom: '12px' }}>
+            {/* Active Patient Summary Chip */}
+            {patientName.trim() && (
+              <div style={{ background: 'var(--bg-input-deep)', borderRadius: '8px', padding: '6px 10px', marginBottom: '10px', fontSize: '11.5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                  {patientName} {patientAge ? `(${patientAge} سنة)` : ''}
+                </span>
+                <span style={{ color: 'var(--text-muted)' }}>
+                  {patientGender === 'FEMALE' ? 'أنثى' : 'ذكر'} {isUrgent ? '• مستعجل' : ''}
+                </span>
+              </div>
+            )}
+
+            {/* Selected Tests Scrollable List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minHeight: '110px', maxHeight: '170px', overflowY: 'auto', marginBottom: '12px' }}>
               {selectedTests.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '24px 10px', color: 'var(--text-dim)', fontSize: '11.5px' }}>
-                  لم يتم اختيار أي فحص بعد. انقر على الفحوصات لإضافتها.
+                <div style={{ textAlign: 'center', padding: '24px 10px', color: 'var(--text-dim)', fontSize: '12px' }}>
+                  لم يتم اختيار أي فحص بعد. انقر على الفحوصات أو الباقات لإضافتها.
                 </div>
               ) : (
                 selectedTests.map((t) => (
@@ -1617,24 +1767,25 @@ function IntakeContent() {
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      padding: '5px 8px',
+                      padding: '6px 10px',
                       background: 'var(--bg-input-deep)',
-                      borderRadius: '6px',
-                      fontSize: '11.5px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-                      <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--accent-cyan)' }}>{t.code || ''}</span>
+                      <span style={{ fontSize: '10.5px', fontWeight: 800, color: 'var(--accent-cyan)' }}>{t.code || ''}</span>
                       <span style={{ color: 'var(--text-main)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                      <span style={{ color: 'var(--text-main)', fontWeight: 800 }}>{t.price?.toLocaleString()} د.ع</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                      <strong style={{ color: 'var(--text-main)', fontWeight: 800 }}>{t.price?.toLocaleString()} د.ع</strong>
                       <button
                         type="button"
                         onClick={() => handleToggleTest(t)}
                         style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', padding: '2px' }}
+                        title="إزالة الفحص"
                       >
-                        <X size={12} />
+                        <X size={13} />
                       </button>
                     </div>
                   </div>
@@ -1642,15 +1793,36 @@ function IntakeContent() {
               )}
             </div>
 
-            {/* Financial Discount Section (Requirement R4) */}
+            {/* Live Sample Tubes Requirement Badges */}
+            {sampleContainers.length > 0 && (
+              <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '8px', marginBottom: '10px' }}>
+                <div style={{ fontSize: '10.5px', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '5px' }}>
+                  الأنابيب المطلوبة لسحب العينة:
+                </div>
+                <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                  {sampleContainers.map(c => (
+                    <span
+                      key={c.id}
+                      className="tube-indicator-chip"
+                      style={{ color: c.color, background: c.bg, borderColor: c.color }}
+                    >
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: c.dotColor }} />
+                      <span>{c.name}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Financial Discount Section (F9) */}
             <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '10px', marginBottom: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                 <label htmlFor="custom-discount-input" className="input-label" style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', margin: 0 }}>
                   <Percent size={12} color="var(--accent-cyan)" />
-                  <span>DISCOUNT (الخصم المالي - F9)</span>
+                  <span>الخصم المالي (F9)</span>
                 </label>
                 {calculatedDiscount > 0 && (
-                  <span style={{ fontSize: '10.5px', color: 'var(--accent-rose)', fontWeight: 800 }}>
+                  <span style={{ fontSize: '11px', color: 'var(--accent-rose)', fontWeight: 800 }}>
                     - {calculatedDiscount.toLocaleString()} د.ع ({discountPercent}%)
                   </span>
                 )}
@@ -1666,13 +1838,13 @@ function IntakeContent() {
                       type="button"
                       onClick={() => handleSelectDiscountPercent(pct)}
                       style={{
-                        padding: '3px 0',
-                        fontSize: '10.5px',
+                        padding: '4px 0',
+                        fontSize: '11px',
                         fontWeight: isSelected ? 900 : 700,
-                        borderRadius: '4px',
-                        border: `1px solid ${isSelected ? 'var(--accent-cyan)' : 'var(--border-color)'}`,
+                        borderRadius: '6px',
+                        border: `1.5px solid ${isSelected ? 'var(--accent-cyan)' : 'var(--border-color)'}`,
                         background: isSelected ? 'var(--accent-cyan)' : 'var(--bg-input-deep)',
-                        color: isSelected ? '#000' : 'var(--text-main)',
+                        color: isSelected ? '#ffffff' : 'var(--text-main)',
                         cursor: 'pointer',
                       }}
                     >
@@ -1693,9 +1865,9 @@ function IntakeContent() {
                   onKeyDown={(e) => handleInputKeyDown(e, 7)}
                   type="number"
                   min={0}
-                  placeholder="خصم مخصص (IQD)..."
+                  placeholder="أدخل خصم مخصص (بالدينار)..."
                   className="input-control"
-                  style={{ height: '30px', fontSize: '11.5px', background: 'var(--bg-input-deep)' }}
+                  style={{ height: '32px', fontSize: '12px', borderRadius: '6px', background: 'var(--bg-input-deep)' }}
                   value={customDiscountAmount || ''}
                   onChange={(e) => handleCustomDiscountChange(e.target.value)}
                 />
@@ -1706,7 +1878,7 @@ function IntakeContent() {
                       setCustomDiscountAmount(0);
                       setDiscountPercent(0);
                     }}
-                    style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}
+                    style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', fontSize: '11.5px', fontWeight: 800 }}
                   >
                     مسح
                   </button>
@@ -1716,8 +1888,8 @@ function IntakeContent() {
 
             {/* Referring Doctor Commission Live Breakdown */}
             {selectedDoctor && (
-              <div style={{ background: 'rgba(2, 132, 199, 0.08)', border: '1px solid rgba(2, 132, 199, 0.25)', borderRadius: '6px', padding: '6px 10px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11.5px' }}>
-                <span style={{ color: 'var(--accent-blue)', fontWeight: 700 }}>
+              <div style={{ background: 'rgba(2, 132, 199, 0.08)', border: '1px solid rgba(2, 132, 199, 0.2)', borderRadius: '8px', padding: '6px 10px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11.5px' }}>
+                <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>
                   عمولة د. {selectedDoctor.name} ({selectedDoctor.commissionPercent || 0}%):
                 </span>
                 <strong style={{ color: 'var(--text-main)', fontWeight: 900 }}>
@@ -1726,34 +1898,35 @@ function IntakeContent() {
               </div>
             )}
 
-            {/* Financial Totals */}
-            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--text-muted)' }}>
-                <span>المبلغ الإجمالي (Gross):</span>
+            {/* Financial Totals & Payment Method */}
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-muted)' }}>
+                <span>المجموع الإجمالي:</span>
                 <span>{grossTotal.toLocaleString()} د.ع</span>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', fontWeight: 900, color: 'var(--text-main)' }}>
-                <span>الصافي المطلوب (Net Total):</span>
-                <span style={{ color: 'var(--accent-cyan)', fontSize: '15px' }}>{netTotal.toLocaleString()} د.ع</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', fontWeight: 900, color: 'var(--text-main)' }}>
+                <span>الصافي المطلوب:</span>
+                <span style={{ color: 'var(--accent-cyan)', fontSize: '18px' }}>{netTotal.toLocaleString()} د.ع</span>
               </div>
 
-              {/* Payment Method Selector */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', marginTop: '4px' }}>
+              {/* Payment Method Segmented Buttons */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', marginTop: '2px' }}>
                 {(['CASH', 'DEBT', 'CARD'] as const).map((method) => (
                   <button
                     key={method}
                     type="button"
                     onClick={() => setPaymentMethod(method)}
                     style={{
-                      padding: '4px 0',
-                      fontSize: '10.5px',
-                      fontWeight: paymentMethod === method ? 900 : 600,
-                      borderRadius: '4px',
-                      border: `1px solid ${paymentMethod === method ? 'var(--accent-cyan)' : 'var(--border-color)'}`,
-                      background: paymentMethod === method ? 'rgba(0, 210, 211, 0.15)' : 'var(--bg-input-deep)',
+                      padding: '6px 0',
+                      fontSize: '11.5px',
+                      fontWeight: paymentMethod === method ? 900 : 700,
+                      borderRadius: '6px',
+                      border: `1.5px solid ${paymentMethod === method ? 'var(--accent-cyan)' : 'var(--border-color)'}`,
+                      background: paymentMethod === method ? 'var(--accent-cyan-subtle)' : 'var(--bg-input-deep)',
                       color: paymentMethod === method ? 'var(--accent-cyan)' : 'var(--text-muted)',
                       cursor: 'pointer',
+                      transition: 'all 0.15s ease',
                     }}
                   >
                     {method === 'CASH' ? 'نقداً Cash' : method === 'DEBT' ? 'دين Debt' : 'بطاقة Card'}
@@ -1762,10 +1935,10 @@ function IntakeContent() {
               </div>
 
               {/* Paid & Remaining Balance */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '4px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '2px' }}>
                 <div>
-                  <label htmlFor="paid-amount-input" className="input-label" style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px', cursor: 'pointer' }}>
-                    المدفوع (Paid)
+                  <label htmlFor="paid-amount-input" className="input-label" style={{ fontSize: '10.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px', cursor: 'pointer' }}>
+                    المدفوع
                   </label>
                   <input
                     id="paid-amount-input"
@@ -1774,7 +1947,7 @@ function IntakeContent() {
                     type="number"
                     min={0}
                     className="input-control"
-                    style={{ height: '30px', fontSize: '11.5px', background: 'var(--bg-input-deep)' }}
+                    style={{ height: '32px', fontSize: '12px', borderRadius: '6px', background: 'var(--bg-input-deep)' }}
                     value={paidAmount}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -1785,25 +1958,11 @@ function IntakeContent() {
                   />
                 </div>
                 <div>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>المتبقي (Remaining)</span>
-                  <div style={{ height: '30px', background: 'var(--bg-input-deep)', border: '1px solid var(--border-color)', borderRadius: '6px', display: 'flex', alignItems: 'center', padding: '0 8px', fontSize: '11.5px', fontWeight: 800, color: remainingBalance > 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
+                  <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>المتبقي</span>
+                  <div style={{ height: '32px', background: 'var(--bg-input-deep)', border: '1px solid var(--border-color)', borderRadius: '6px', display: 'flex', alignItems: 'center', padding: '0 8px', fontSize: '12px', fontWeight: 800, color: remainingBalance > 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
                     {remainingBalance.toLocaleString()} د.ع
                   </div>
                 </div>
-              </div>
-
-              {/* Urgency Setting */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px', fontSize: '11.5px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>أولوية التحليل (Urgency):</span>
-                <select
-                  className="select-control"
-                  style={{ width: '110px', height: '28px', padding: '2px 6px', fontSize: '11px', background: isUrgent ? 'rgba(239, 68, 68, 0.2)' : 'var(--bg-input-deep)', color: isUrgent ? 'var(--color-danger)' : 'inherit' }}
-                  value={isUrgent ? 'URGENT' : 'ROUTINE'}
-                  onChange={(e) => setIsUrgent(e.target.value === 'URGENT')}
-                >
-                  <option value="ROUTINE">عادي Routine</option>
-                  <option value="URGENT"><AlertOctagon size={12} /> مستعجل STAT</option>
-                </select>
               </div>
             </div>
 
@@ -1813,9 +1972,23 @@ function IntakeContent() {
               onClick={handleRegisterSample}
               disabled={submitting || selectedTests.length === 0 || !patientName.trim()}
               className="btn-cyan-primary"
-              style={{ width: '100%', height: '42px', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 'auto' }}
+              style={{
+                width: '100%',
+                height: '46px',
+                fontSize: '13.5px',
+                fontWeight: 900,
+                letterSpacing: '0.5px',
+                borderRadius: '10px',
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)',
+                marginTop: 'auto',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
             >
-              <span>{submitting ? 'جاري التسجيل...' : 'تسجيل العينة وطباعة الباركود (Ctrl+Enter) →'}</span>
+              <Barcode size={18} />
+              <span>{submitting ? 'جاري تسجيل العينة...' : 'تسجيل العينة وطباعة الباركود (Ctrl+Enter) →'}</span>
             </button>
 
           </div>

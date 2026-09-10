@@ -423,3 +423,326 @@ body {
 .clinical-table tr:hover td {
   background: var(--table-row-hover);
 }
+
+/* ==========================================================================
+   GUIDED SPLIT FLOW INTAKE STYLES (OPTION 3: HIGH-SPEED ERGONOMIC WORKFLOW)
+   ========================================================================== */
+
+.intake-guided-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  direction: rtl;
+  margin-bottom: 24px;
+}
+
+/* Top Horizontal Patient Intake Bar */
+.patient-bar-card {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  border-radius: 16px;
+  padding: 14px 18px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03);
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.patient-bar-card:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: 0 4px 20px var(--border-glow);
+}
+
+.patient-horizontal-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 0.7fr 1.1fr 1.2fr 1.3fr 1.1fr 1.8fr;
+  gap: 10px;
+  align-items: end;
+}
+
+@media (max-width: 1400px) {
+  .patient-horizontal-grid {
+    grid-template-columns: 1.5fr 0.8fr 1.1fr 1.2fr 1.3fr 1.1fr;
+  }
+}
+
+@media (max-width: 1100px) {
+  .patient-horizontal-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .patient-horizontal-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Lower 2-Column Split Layout */
+.intake-guided-split {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1180px) {
+  .intake-guided-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Smart Test Package Pills */
+.bundle-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-input-deep);
+  color: var(--text-main);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.bundle-pill-btn:hover {
+  background: var(--accent-cyan-subtle);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  transform: translateY(-1px);
+}
+
+/* Modern Test Card */
+.test-card-modern {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justifyContent: space-between;
+  gap: 8px;
+  min-height: 88px;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  user-select: none;
+}
+
+.test-card-modern:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-focus);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.test-card-modern.selected {
+  background: var(--accent-cyan-subtle);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 3px 12px rgba(37, 99, 235, 0.14);
+}
+
+/* Digital Medical Receipt Card */
+.digital-receipt-card {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Collection Tube Indicator Badge */
+.tube-indicator-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  border: 1px solid currentColor;
+}
+
+/* ==========================================================
+   RESULTS ENTRY & VALIDATION - GUIDED SPLIT FLOW STYLES
+   ========================================================== */
+
+.results-guided-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  direction: rtl;
+  margin-bottom: 24px;
+}
+
+/* Top Patient Hero Card */
+.results-hero-card {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  border-radius: 16px;
+  padding: 16px 22px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.results-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.results-hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.results-pill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: var(--bg-input-deep);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+
+.results-hero-progress-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 260px;
+}
+
+.results-progress-bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-input-deep);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.results-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-cyan) 0%, #10b981 100%);
+  border-radius: 4px;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Lower 2-Column Split Layout for Results */
+.results-guided-split {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .results-guided-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Modern Queue Panel */
+.results-queue-card {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 180px);
+}
+
+/* Modern Workspace Card */
+.results-workspace-card {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Fast Pathologist Approve Button */
+.btn-fast-approve {
+  height: 34px;
+  padding: 0 14px;
+  font-size: 11.5px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #0d9488 0%, #06b6d4 100%);
+  border: 1px solid #14b8a6;
+  color: #ffffff;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+  transition: all 0.15s ease;
+}
+
+.btn-fast-approve:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
+}
+
+/* Modern Table for Results */
+.results-table-container {
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-card);
+}
+
+.results-table-modern {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px;
+}
+
+.results-table-modern th {
+  background: var(--bg-input-deep);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 12px 14px;
+  border-bottom: 1.5px solid var(--border-color);
+}
+
+.results-table-modern td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.results-table-modern tr:last-child td {
+  border-bottom: none;
+}
+
+.results-table-modern tr:hover td {
+  background: var(--accent-cyan-subtle);
+}
+

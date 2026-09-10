@@ -179,7 +179,7 @@ export async function sampleRoutes(fastify: FastifyInstance) {
           });
           const nextNum = (last?.sampleNumber || 1000) + 1;
 
-          return tx.sample.create({
+          const createdSample = await tx.sample.create({
             data: {
               sampleNumber: nextNum,
               patientId: targetPatientId,
@@ -215,6 +215,62 @@ export async function sampleRoutes(fastify: FastifyInstance) {
               },
             },
           });
+
+          // 1. Record FinancialTransaction if any cash/card payment was made now
+          if (paid > 0) {
+            const lastTx = await tx.financialTransaction.findFirst({
+              orderBy: { voucherNumber: 'desc' },
+              select: { voucherNumber: true },
+            });
+            const voucherNum = (lastTx?.voucherNumber || 1000) + 1;
+
+            await tx.financialTransaction.create({
+              data: {
+                voucherNumber: voucherNum,
+                type: 'INCOME_SAMPLE',
+                category: 'رسوم فحص عينة',
+                amount: paid,
+                paymentMethod: paymentMethod || 'نقداً',
+                patientId: targetPatientId,
+                sampleId: createdSample.id,
+                doctorId: doctorId || null,
+                notes: `استلام رسوم فحص عينة #${nextNum} (${patientName})`,
+                createdById: user?.id || 'single_operator',
+              },
+            });
+          }
+
+          // 2. Automatically link/update Debtor & DebtRecord if remaining > 0
+          if (remaining > 0) {
+            let debtor = await tx.debtor.findFirst({
+              where: { patientId: targetPatientId },
+            });
+
+            if (!debtor) {
+              debtor = await tx.debtor.create({
+                data: {
+                  name: patientName,
+                  phone: patientPhone || null,
+                  type: 'PATIENT',
+                  patientId: targetPatientId,
+                  notes: `حساب مدين مريض: ${patientName}`,
+                },
+              });
+            }
+
+            await tx.debtRecord.create({
+              data: {
+                debtorId: debtor.id,
+                sampleId: createdSample.id,
+                type: 'DEBT',
+                amount: remaining,
+                paymentMethod: paymentMethod || 'نقداً',
+                notes: `متبقي دين لعينة #${nextNum}`,
+              },
+            });
+          }
+
+          return createdSample;
         });
       } catch (err: any) {
         if (err.code === 'P2002' && attempts < 5) {
@@ -253,34 +309,105 @@ export async function sampleRoutes(fastify: FastifyInstance) {
     return reply.send(updated);
   });
 
-  // Settle or Pay Remaining Sample Debt
+  // Settle or Pay Remaining Sample Debt with Official Voucher Generation
   fastify.post('/samples/:id/pay', async (request: any, reply: any) => {
     const { id } = request.params as any;
-    const { payAmount } = request.body as any;
+    const { payAmount, paymentMethod, notes } = request.body as any;
 
-    const sample = await prisma.sample.findUnique({ where: { id } });
+    const sample = await prisma.sample.findUnique({
+      where: { id },
+      include: { patient: true },
+    });
     if (!sample) {
       return reply.status(404).send({ message: 'العينة غير موجودة' });
     }
 
     const amount = Number(payAmount) || 0;
+    if (amount <= 0) {
+      return reply.status(400).send({ message: 'الرجاء إدخال مبلغ دفع صالح أكبر من صفر' });
+    }
+
     const newPaid = sample.paidAmount + amount;
     const newRemaining = Math.max(0, sample.priceTotal - newPaid);
 
-    const updated = await prisma.sample.update({
-      where: { id },
-      data: {
-        paidAmount: newPaid,
+    const transactionResult = await prisma.$transaction(async (tx) => {
+      // 1. Update Sample
+      const updatedSample = await tx.sample.update({
+        where: { id },
+        data: {
+          paidAmount: newPaid,
+          remainingAmount: newRemaining,
+        },
+        include: {
+          patient: true,
+          doctor: true,
+          tests: { include: { test: true } },
+        },
+      });
+
+      // 2. Next Voucher Number
+      const lastTx = await tx.financialTransaction.findFirst({
+        orderBy: { voucherNumber: 'desc' },
+        select: { voucherNumber: true },
+      });
+      const voucherNum = (lastTx?.voucherNumber || 1000) + 1;
+
+      // 3. Create Financial Transaction
+      const finTx = await tx.financialTransaction.create({
+        data: {
+          voucherNumber: voucherNum,
+          type: 'DEBT_PAYMENT',
+          category: 'سداد دين عينة',
+          amount,
+          paymentMethod: paymentMethod || 'نقداً',
+          patientId: sample.patientId,
+          sampleId: sample.id,
+          doctorId: sample.doctorId,
+          notes: notes || `سداد دفعة دين لعينة #${sample.sampleNumber} (${sample.patient?.name})`,
+          createdById: request.user?.id || 'single_operator',
+        },
+      });
+
+      // 4. Record Debt Payment in Debtor Ledger if exists or create
+      let debtor = await tx.debtor.findFirst({
+        where: { patientId: sample.patientId },
+      });
+
+      if (!debtor) {
+        debtor = await tx.debtor.create({
+          data: {
+            name: sample.patient?.name || 'مريض',
+            phone: sample.patient?.phone || null,
+            type: 'PATIENT',
+            patientId: sample.patientId,
+          },
+        });
+      }
+
+      const debtRec = await tx.debtRecord.create({
+        data: {
+          debtorId: debtor.id,
+          sampleId: sample.id,
+          type: 'PAYMENT',
+          amount,
+          paymentMethod: paymentMethod || 'نقداً',
+          voucherNumber: voucherNum,
+          notes: notes || `سداد دفعة دين لعينة #${sample.sampleNumber}`,
+        },
+      });
+
+      return {
+        sample: updatedSample,
+        financialTransaction: finTx,
+        debtRecord: debtRec,
+        voucherNumber: voucherNum,
+        amount,
         remainingAmount: newRemaining,
-      },
-      include: {
-        patient: true,
-        doctor: true,
-        tests: { include: { test: true } },
-      },
+        paidTotal: newPaid,
+      };
     });
 
-    return reply.send(updated);
+    return reply.send(transactionResult);
   });
 
   // Append Additional Tests to an Existing Patient Sample

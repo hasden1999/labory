@@ -4,6 +4,12 @@ const fs = require('fs');
 const { spawn, execSync } = require('child_process');
 const http = require('http');
 
+// Disable hardware acceleration to eliminate Windows GPU crashes & black screen glitches
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-software-rasterizer');
+app.commandLine.appendSwitch('no-sandbox');
+
 // Enforce single application instance
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {

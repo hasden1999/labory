@@ -2,63 +2,179 @@ import { FastifyInstance } from 'fastify';
 import { prisma } from '../prisma';
 
 export async function financialRoutes(fastify: FastifyInstance) {
-  // Get Financial Summary (الواردات والصادرات والنواتج المالية)
+  // Helper: compute date bounds based on timeframe or custom date range
+  function getDateBounds(timeframe?: string, startDateStr?: string, endDateStr?: string): { start?: Date; end?: Date } {
+    const now = new Date();
+
+    if (timeframe === 'today') {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      return { start, end };
+    } else if (timeframe === 'yesterday') {
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      const start = new Date(y.getFullYear(), y.getMonth(), y.getDate(), 0, 0, 0, 0);
+      const end = new Date(y.getFullYear(), y.getMonth(), y.getDate(), 23, 59, 59, 999);
+      return { start, end };
+    } else if (timeframe === 'week') {
+      const start = new Date(now);
+      start.setDate(start.getDate() - 7);
+      start.setHours(0, 0, 0, 0);
+      return { start, end: now };
+    } else if (timeframe === 'month') {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      return { start, end: now };
+    } else if (startDateStr) {
+      const start = new Date(startDateStr);
+      start.setHours(0, 0, 0, 0);
+      const end = endDateStr ? new Date(endDateStr) : new Date(startDateStr);
+      end.setHours(23, 59, 59, 999);
+      return { start, end };
+    }
+
+    return {};
+  }
+
+  // 1. Get Financial Summary (الموجز المالي الشامل وقائمة الأرباح والخسائر)
   fastify.get('/financials/summary', async (request, reply) => {
-    // 1. Calculate Auto Revenues (الواردات التلقائية)
-    const samples = await prisma.sample.findMany({
-      where: { isDeleted: false },
-      select: {
-        paidAmount: true,
-        remainingAmount: true,
-        priceTotal: true,
-        discount: true,
-        createdAt: true,
+    const { timeframe, startDate, endDate } = request.query as {
+      timeframe?: string;
+      startDate?: string;
+      endDate?: string;
+    };
+
+    const dateBounds = getDateBounds(timeframe || 'month', startDate, endDate);
+    const txWhere: any = {};
+    if (dateBounds.start && dateBounds.end) {
+      txWhere.createdAt = { gte: dateBounds.start, lte: dateBounds.end };
+    } else if (dateBounds.start) {
+      txWhere.createdAt = { gte: dateBounds.start };
+    }
+
+    // A. Fetch All Financial Transactions for this period
+    const transactions = await prisma.financialTransaction.findMany({
+      where: txWhere,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        patient: { select: { id: true, name: true, phone: true } },
+        debtor: { select: { id: true, name: true, phone: true, type: true } },
+        doctor: { select: { id: true, name: true } },
+        sample: { select: { id: true, sampleNumber: true, priceTotal: true } },
       },
     });
 
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    // Calculate Incomes and Outgoings from actual transactions
+    let totalPaid = 0; // إجمالي النقد المقبوض فعلياً
+    let sampleIncome = 0;
+    let debtPaymentIncome = 0;
 
-    const samplePaidTotal = samples.reduce((sum, s) => sum + (s.paidAmount || 0), 0);
-    const sampleRemainingDebts = samples.reduce((sum, s) => sum + (s.remainingAmount || 0), 0);
-    const totalGrossRevenue = samples.reduce((sum, s) => sum + (s.priceTotal || 0), 0);
-    const totalDiscounts = samples.reduce((sum, s) => sum + (s.discount || 0), 0);
+    let cashTotal = 0;
+    let zainCashTotal = 0;
+    let cardTotal = 0;
 
-    const todaySamplePaid = samples
-      .filter(s => new Date(s.createdAt).getTime() >= todayStart)
-      .reduce((sum, s) => sum + (s.paidAmount || 0), 0);
+    let totalExpenses = 0;
+    let supplierPayments = 0;
+    let doctorCommissionsPaid = 0;
 
-    // B. Debt Ledger Payments (استلام الدفعات من قائمة الديون)
-    const debtPayments = await prisma.debtRecord.findMany({
-      where: { type: 'PAYMENT' },
-      select: { amount: true, createdAt: true },
+    const expenseCategoryMap: { [key: string]: number } = {};
+
+    transactions.forEach((tx) => {
+      const isIncome = tx.type === 'INCOME_SAMPLE' || tx.type === 'DEBT_PAYMENT';
+      const isExpense = tx.type === 'EXPENSE' || tx.type === 'SUPPLIER_PAYMENT' || tx.type === 'DOCTOR_COMMISSION';
+
+      if (isIncome) {
+        totalPaid += tx.amount;
+        if (tx.type === 'INCOME_SAMPLE') sampleIncome += tx.amount;
+        if (tx.type === 'DEBT_PAYMENT') debtPaymentIncome += tx.amount;
+
+        const m = (tx.paymentMethod || 'نقداً').trim();
+        if (m === 'زين كاش' || m.toLowerCase().includes('zain')) {
+          zainCashTotal += tx.amount;
+        } else if (m === 'بطاقة' || m.toLowerCase().includes('card') || m.toLowerCase().includes('pos')) {
+          cardTotal += tx.amount;
+        } else {
+          cashTotal += tx.amount;
+        }
+      }
+
+      if (isExpense) {
+        if (tx.type === 'EXPENSE') {
+          totalExpenses += tx.amount;
+          const cat = tx.category || 'مصاريف تشغيلية';
+          expenseCategoryMap[cat] = (expenseCategoryMap[cat] || 0) + tx.amount;
+        } else if (tx.type === 'SUPPLIER_PAYMENT') {
+          supplierPayments += tx.amount;
+        } else if (tx.type === 'DOCTOR_COMMISSION') {
+          doctorCommissionsPaid += tx.amount;
+        }
+      }
     });
 
-    const debtPaymentsTotal = debtPayments.reduce((sum, d) => sum + d.amount, 0);
-    const todayDebtPaid = debtPayments
-      .filter(d => new Date(d.createdAt).getTime() >= todayStart)
-      .reduce((sum, d) => sum + d.amount, 0);
+    // Fallback if legacy samples exist without FinancialTransaction:
+    // Check if transactions is empty but samples exist, to ensure backward compatibility
+    if (transactions.length === 0) {
+      const sampleWhere: any = { isDeleted: false };
+      if (dateBounds.start && dateBounds.end) {
+        sampleWhere.createdAt = { gte: dateBounds.start, lte: dateBounds.end };
+      }
+      const legacySamples = await prisma.sample.findMany({ where: sampleWhere });
+      sampleIncome = legacySamples.reduce((s, x) => s + (x.paidAmount || 0), 0);
+      totalPaid = sampleIncome;
+      cashTotal = sampleIncome;
 
-    const totalRevenues = samplePaidTotal + debtPaymentsTotal;
-    const todayRevenue = todaySamplePaid + todayDebtPaid;
+      const legacyExpenses = await prisma.expense.findMany({
+        where: dateBounds.start ? { date: { gte: dateBounds.start, lte: dateBounds.end } } : {},
+      });
+      totalExpenses = legacyExpenses.reduce((s, x) => s + x.amount, 0);
+    }
 
-    // 2. Calculate Costs & Expenses (الصادرات والتكاليف)
-    const rawExpenses = await prisma.expense.findMany({
-      orderBy: { date: 'desc' },
+    // B. Calculate Gross Sales from Samples created in this period
+    const sampleWhere: any = { isDeleted: false };
+    if (dateBounds.start && dateBounds.end) {
+      sampleWhere.createdAt = { gte: dateBounds.start, lte: dateBounds.end };
+    }
+    const samplesInPeriod = await prisma.sample.findMany({
+      where: sampleWhere,
+      select: {
+        priceTotal: true,
+        discount: true,
+        paidAmount: true,
+        remainingAmount: true,
+      },
     });
 
-    const expenses = rawExpenses.map(e => ({
-      ...e,
-      createdAt: e.date.toISOString(),
-    }));
+    const totalGrossRevenue = samplesInPeriod.reduce((sum, s) => sum + (s.priceTotal || 0), 0);
+    const totalDiscounts = samplesInPeriod.reduce((sum, s) => sum + (s.discount || 0), 0);
+    const newDebtsInPeriod = samplesInPeriod.reduce((sum, s) => sum + (s.remainingAmount || 0), 0);
 
-    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    // C. Calculate Global Outstanding Receivables & Payables (جميع الديون القائمة غير المسددة)
+    const allDebtors = await prisma.debtor.findMany({
+      include: { transactions: true },
+    });
 
-    // Doctor Commissions
+    let totalRemainingDebts = 0;  // ديون المرضى والجهات (Receivables)
+    let totalSupplierDebts = 0;   // ديون الموردين (Payables)
+
+    allDebtors.forEach((d) => {
+      let dTotal = 0;
+      let pTotal = 0;
+      d.transactions.forEach((t) => {
+        if (t.type === 'DEBT') dTotal += t.amount;
+        if (t.type === 'PAYMENT') pTotal += t.amount;
+      });
+      const bal = Math.max(0, dTotal - pTotal);
+      if (d.type === 'SUPPLIER') {
+        totalSupplierDebts += bal;
+      } else {
+        totalRemainingDebts += bal;
+      }
+    });
+
+    // D. Doctor Commissions earned in this period
     const doctors = await prisma.referringDoctor.findMany({
       include: {
         samples: {
-          where: { isDeleted: false },
+          where: sampleWhere,
           select: { priceTotal: true },
         },
       },
@@ -66,76 +182,332 @@ export async function financialRoutes(fastify: FastifyInstance) {
 
     let totalDoctorCommissions = 0;
     doctors.forEach((doc) => {
-      const docSampleRevenue = doc.samples.reduce((sum, s) => sum + (s.priceTotal || 0), 0);
-      totalDoctorCommissions += (docSampleRevenue * (doc.commissionPercent || 0)) / 100;
+      const docRev = doc.samples.reduce((sum, s) => sum + (s.priceTotal || 0), 0);
+      totalDoctorCommissions += (docRev * (doc.commissionPercent || 0)) / 100;
     });
 
-    const netProfit = totalRevenues - (totalExpenses + totalDoctorCommissions);
+    // Net Profit Calculation
+    const totalOutgoings = totalExpenses + supplierPayments + Math.max(totalDoctorCommissions, doctorCommissionsPaid);
+    const netProfit = totalPaid - totalOutgoings;
+
+    // Today specific quick stat
+    const nowStart = new Date(new Date().setHours(0, 0, 0, 0));
+    const todayTransactions = await prisma.financialTransaction.findMany({
+      where: {
+        createdAt: { gte: nowStart },
+        type: { in: ['INCOME_SAMPLE', 'DEBT_PAYMENT'] },
+      },
+    });
+    const todayRevenue = todayTransactions.reduce((s, tx) => s + tx.amount, 0);
+
+    // Recent 10 expenses
+    const recentExpenses = await prisma.expense.findMany({
+      orderBy: { date: 'desc' },
+      take: 10,
+    });
 
     return {
+      timeframe: timeframe || 'month',
+      dateRange: { start: dateBounds.start, end: dateBounds.end },
       totalRevenue: totalGrossRevenue,
-      totalPaid: totalRevenues,
+      totalPaid,
       totalExpenses,
       totalDoctorCommissions,
+      supplierPayments,
+      totalSupplierDebts,
       netProfit,
       todayRevenue,
       totalDiscounts,
-      totalRemainingDebts: sampleRemainingDebts,
-      recentExpenses: expenses.slice(0, 8),
-      expensesList: expenses,
-      autoRevenues: {
-        samplePaidTotal,
-        debtPaymentsTotal,
-        totalRevenues,
-        sampleRemainingDebts,
+      totalRemainingDebts,
+      newDebtsInPeriod,
+      paymentMethodBreakdown: {
+        cash: cashTotal,
+        zainCash: zainCashTotal,
+        card: cardTotal,
       },
+      expenseCategories: Object.entries(expenseCategoryMap).map(([category, amount]) => ({
+        category,
+        amount,
+      })),
+      recentExpenses: recentExpenses.map((e) => ({ ...e, createdAt: e.date.toISOString() })),
+      recentTransactions: transactions.slice(0, 15),
       outgoings: {
         operationalExpenses: totalExpenses,
         doctorCommissions: totalDoctorCommissions,
-        inventoryStockCost: 0,
-        totalTestCosts: 0,
-        totalOutgoings: totalExpenses + totalDoctorCommissions,
+        supplierPayments,
+        totalOutgoings,
       },
     };
   });
 
-  // Get Test Profitability Analytics (تحليل ربحية الفحوصات والكلفة الفعلية حسب الفترة: يوم / أسبوع / شهر)
-  fastify.get('/financials/test-profitability', async (request, reply) => {
-    const { timeframe } = request.query as { timeframe?: string }; // 'today', 'week', 'month', 'all'
-
-    const now = new Date();
-    let startDate: Date | null = null;
-
-    if (timeframe === 'today') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    } else if (timeframe === 'week') {
-      startDate = new Date();
-      startDate.setDate(startDate.getDate() - 7);
-    } else if (timeframe === 'month') {
-      startDate = new Date();
-      startDate.setDate(startDate.getDate() - 30);
-    }
+  // 2. Get Central Financial Transactions Ledger (سجل العمليات المالية الشامل مع فلاتر)
+  fastify.get('/financials/transactions', async (request, reply) => {
+    const { type, paymentMethod, startDate, endDate, query, page, limit } = request.query as {
+      type?: string;
+      paymentMethod?: string;
+      startDate?: string;
+      endDate?: string;
+      query?: string;
+      page?: string;
+      limit?: string;
+    };
 
     const whereClause: any = {};
-    if (startDate) {
-      whereClause.createdAt = { gte: startDate };
+    if (type && type !== 'ALL') {
+      whereClause.type = type;
     }
 
-    // Get executed sample tests with test catalog info
-    const sampleTests = await prisma.sampleTest.findMany({
-      where: whereClause,
-      include: {
-        test: true,
+    if (paymentMethod && paymentMethod !== 'ALL') {
+      whereClause.paymentMethod = paymentMethod;
+    }
+
+    if (startDate) {
+      const s = new Date(startDate);
+      s.setHours(0, 0, 0, 0);
+      const e = endDate ? new Date(endDate) : new Date(startDate);
+      e.setHours(23, 59, 59, 999);
+      whereClause.createdAt = { gte: s, lte: e };
+    }
+
+    if (query && query.trim()) {
+      whereClause.OR = [
+        { notes: { contains: query.trim() } },
+        { category: { contains: query.trim() } },
+        { patient: { name: { contains: query.trim() } } },
+        { debtor: { name: { contains: query.trim() } } },
+      ];
+    }
+
+    const take = limit ? Number(limit) : 50;
+    const skip = page ? (Number(page) - 1) * take : 0;
+
+    const [transactions, totalCount] = await prisma.$transaction([
+      prisma.financialTransaction.findMany({
+        where: whereClause,
+        include: {
+          patient: { select: { id: true, name: true, phone: true } },
+          debtor: { select: { id: true, name: true, phone: true, type: true } },
+          doctor: { select: { id: true, name: true } },
+          sample: { select: { id: true, sampleNumber: true, priceTotal: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take,
+        skip,
+      }),
+      prisma.financialTransaction.count({ where: whereClause }),
+    ]);
+
+    return {
+      transactions,
+      totalCount,
+      page: page ? Number(page) : 1,
+      totalPages: Math.ceil(totalCount / take),
+    };
+  });
+
+  // 3. Cash Drawer Shifts (جلسات الصندوق والورديات اليومية)
+  fastify.get('/financials/shifts/current', async (request, reply) => {
+    const currentShift = await prisma.cashDrawerShift.findFirst({
+      where: { status: 'OPEN' },
+      orderBy: { openedAt: 'desc' },
+    });
+
+    if (!currentShift) {
+      return { activeShift: null };
+    }
+
+    // Calculate cash in and cash out since shift was opened
+    const shiftTransactions = await prisma.financialTransaction.findMany({
+      where: {
+        createdAt: { gte: currentShift.openedAt },
       },
     });
 
-    // Also get all catalog tests so even unexecuted tests can be listed or analyzed
+    let cashCollected = 0;
+    let cashExpenses = 0;
+    let electronicCollected = 0;
+
+    shiftTransactions.forEach((tx) => {
+      const isCash = (tx.paymentMethod || 'نقداً') === 'نقداً';
+      if (tx.type === 'INCOME_SAMPLE' || tx.type === 'DEBT_PAYMENT') {
+        if (isCash) cashCollected += tx.amount;
+        else electronicCollected += tx.amount;
+      } else if (tx.type === 'EXPENSE' || tx.type === 'SUPPLIER_PAYMENT') {
+        if (isCash) cashExpenses += tx.amount;
+      }
+    });
+
+    const expectedCashInDrawer = currentShift.startingCash + cashCollected - cashExpenses;
+
+    return {
+      activeShift: {
+        ...currentShift,
+        cashCollected,
+        cashExpenses,
+        electronicCollected,
+        expectedCashInDrawer,
+        transactionCount: shiftTransactions.length,
+      },
+    };
+  });
+
+  // Open New Cash Drawer Shift
+  fastify.post('/financials/shifts/open', async (request, reply) => {
+    const { startingCash, notes } = request.body as { startingCash?: number; notes?: string };
+
+    const activeShift = await prisma.cashDrawerShift.findFirst({
+      where: { status: 'OPEN' },
+    });
+
+    if (activeShift) {
+      return reply.code(400).send({ error: 'توجد وردية مفتوحة بالفعل، يجب إغلاقها أولاً قبل فتح وردية جديدة' });
+    }
+
+    const lastShift = await prisma.cashDrawerShift.findFirst({
+      orderBy: { shiftNumber: 'desc' },
+      select: { shiftNumber: true },
+    });
+    const nextShiftNum = (lastShift?.shiftNumber || 0) + 1;
+
+    const newShift = await prisma.cashDrawerShift.create({
+      data: {
+        shiftNumber: nextShiftNum,
+        startingCash: Number(startingCash) || 0,
+        openedById: (request.user as any)?.name || 'المشغل',
+        notes: notes || null,
+        status: 'OPEN',
+      },
+    });
+
+    return reply.send(newShift);
+  });
+
+  // Close Cash Drawer Shift (تقفيل الصندوق والوردية وحساب الفارق Z-Report)
+  fastify.post('/financials/shifts/close', async (request, reply) => {
+    const { actualCash, notes } = request.body as { actualCash: number; notes?: string };
+
+    const activeShift = await prisma.cashDrawerShift.findFirst({
+      where: { status: 'OPEN' },
+    });
+
+    if (!activeShift) {
+      return reply.code(400).send({ error: 'لا توجد وردية مفتوحة لإغلاقها' });
+    }
+
+    // Calculate accurate expected cash from transactions
+    const shiftTransactions = await prisma.financialTransaction.findMany({
+      where: { createdAt: { gte: activeShift.openedAt } },
+    });
+
+    let cashCollected = 0;
+    let cashExpenses = 0;
+    let electronicCollected = 0;
+
+    shiftTransactions.forEach((tx) => {
+      const isCash = (tx.paymentMethod || 'نقداً') === 'نقداً';
+      if (tx.type === 'INCOME_SAMPLE' || tx.type === 'DEBT_PAYMENT') {
+        if (isCash) cashCollected += tx.amount;
+        else electronicCollected += tx.amount;
+      } else if (tx.type === 'EXPENSE' || tx.type === 'SUPPLIER_PAYMENT') {
+        if (isCash) cashExpenses += tx.amount;
+      }
+    });
+
+    const numActual = Number(actualCash) || 0;
+    const expectedCash = activeShift.startingCash + cashCollected - cashExpenses;
+    const discrepancy = numActual - expectedCash; // 0 = مطابق, >0 = زيادة, <0 = عجز
+
+    const closedShift = await prisma.cashDrawerShift.update({
+      where: { id: activeShift.id },
+      data: {
+        status: 'CLOSED',
+        closedAt: new Date(),
+        closedById: (request.user as any)?.name || 'المشغل',
+        expectedCash,
+        actualCash: numActual,
+        discrepancy,
+        notes: notes || activeShift.notes,
+      },
+    });
+
+    return reply.send({
+      shift: closedShift,
+      stats: {
+        startingCash: activeShift.startingCash,
+        cashCollected,
+        cashExpenses,
+        electronicCollected,
+        expectedCash,
+        actualCash: numActual,
+        discrepancy,
+        discrepancyStatus: discrepancy === 0 ? 'MATCHED' : discrepancy > 0 ? 'SURPLUS' : 'DEFICIT',
+      },
+    });
+  });
+
+  // Shift History
+  fastify.get('/financials/shifts/history', async (request, reply) => {
+    const shifts = await prisma.cashDrawerShift.findMany({
+      orderBy: { openedAt: 'desc' },
+      take: 30,
+    });
+    return reply.send(shifts);
+  });
+
+  // 4. Get Voucher Details for Thermal / A4 Print
+  fastify.get('/financials/vouchers/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const transaction = await prisma.financialTransaction.findFirst({
+      where: {
+        OR: [{ id }, { voucherNumber: !isNaN(Number(id)) ? Number(id) : -1 }],
+      },
+      include: {
+        patient: true,
+        debtor: true,
+        doctor: true,
+        sample: {
+          include: { tests: { include: { test: true } } },
+        },
+      },
+    });
+
+    if (!transaction) {
+      return reply.code(404).send({ error: 'السند غير موجود' });
+    }
+
+    const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
+
+    return {
+      voucher: transaction,
+      settings: settings || {
+        labName: 'مختبر التحليلات الطبية',
+        phone: '07700000000',
+        currency: 'د.ع',
+      },
+    };
+  });
+
+  // 5. Test Profitability Analytics (تحليل ربحية الفحوصات والكلفة الفعلية)
+  fastify.get('/financials/test-profitability', async (request, reply) => {
+    const { timeframe } = request.query as { timeframe?: string };
+
+    const dateBounds = getDateBounds(timeframe || 'month');
+    const whereClause: any = {};
+    if (dateBounds.start) {
+      whereClause.createdAt = { gte: dateBounds.start };
+    }
+
+    const sampleTests = await prisma.sampleTest.findMany({
+      where: whereClause,
+      include: { test: true },
+    });
+
     const catalogTests = await prisma.testCatalog.findMany({
       where: { active: true },
       orderBy: { name: 'asc' },
     });
 
-    // Group executions by testId
     const testMap: { [testId: string]: { count: number; totalRevenue: number; totalCost: number } } = {};
 
     sampleTests.forEach((st) => {
@@ -174,42 +546,77 @@ export async function financialRoutes(fastify: FastifyInstance) {
       };
     });
 
-    // Sort by count descending so most conducted tests appear first
     breakdown.sort((a, b) => b.count - a.count);
-
     return breakdown;
   });
 
-  // Create new operating expense
+  // Create new operating expense (mirrored on financials)
   fastify.post('/financials/expenses', async (request, reply) => {
-    const { description, amount, category } = request.body as {
+    const { description, amount, category, paymentMethod } = request.body as {
       description: string;
       amount: number;
       category?: string;
+      paymentMethod?: string;
     };
 
     if (!description || !amount || Number(amount) <= 0) {
       return reply.code(400).send({ error: 'الرجاء إدخال تفاصيل ومبلغ المصروف بشكل صحيح' });
     }
 
-    const expense = await prisma.expense.create({
-      data: {
-        description: description.trim(),
-        amount: Number(amount),
-        category: category || 'مصاريف تشغيلية',
-      },
+    const numAmount = Number(amount);
+    const cat = category || 'مصاريف تشغيلية';
+    const method = paymentMethod || 'نقداً';
+
+    const result = await prisma.$transaction(async (tx) => {
+      const lastTx = await tx.financialTransaction.findFirst({
+        orderBy: { voucherNumber: 'desc' },
+        select: { voucherNumber: true },
+      });
+      const voucherNum = (lastTx?.voucherNumber || 1000) + 1;
+
+      const expense = await tx.expense.create({
+        data: {
+          voucherNumber: voucherNum,
+          description: description.trim(),
+          amount: numAmount,
+          category: cat,
+          paymentMethod: method,
+        },
+      });
+
+      await tx.financialTransaction.create({
+        data: {
+          voucherNumber: voucherNum,
+          type: 'EXPENSE',
+          category: cat,
+          amount: numAmount,
+          paymentMethod: method,
+          notes: description.trim(),
+          createdById: (request.user as any)?.id || 'single_operator',
+        },
+      });
+
+      return {
+        ...expense,
+        createdAt: expense.date.toISOString(),
+      };
     });
 
-    return {
-      ...expense,
-      createdAt: expense.date.toISOString(),
-    };
+    return reply.send(result);
   });
 
   // Delete expense record
   fastify.delete('/financials/expenses/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
-    await prisma.expense.delete({ where: { id } });
-    return { success: true };
+    const existing = await prisma.expense.findUnique({ where: { id } });
+    if (existing) {
+      await prisma.$transaction([
+        prisma.expense.delete({ where: { id } }),
+        ...(existing.voucherNumber
+          ? [prisma.financialTransaction.deleteMany({ where: { voucherNumber: existing.voucherNumber, type: 'EXPENSE' } })]
+          : []),
+      ]);
+    }
+    return reply.send({ success: true });
   });
 }

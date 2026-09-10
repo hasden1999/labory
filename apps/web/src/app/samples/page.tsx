@@ -9,8 +9,7 @@ import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useLab } from '../../components/LabContext';
 import { getShareableUrl } from '../../lib/urlHelper';
-import ConfirmModal from '../../components/ConfirmModal';
-import { Activity, Search, Plus, FileText, Printer, Share2, CheckCircle2, Clock, FlaskConical, AlertCircle, X, ChevronLeft, Send, RefreshCw, Eye, Calendar, Filter, User, History, Check, AlertOctagon, Zap } from 'lucide-react';
+import { Activity, Search, Plus, FileText, Printer, Share2, CheckCircle2, Clock, FlaskConical, AlertCircle, X, ChevronLeft, Send, RefreshCw, Eye, Calendar, Filter, User, History, Check, AlertOctagon, Zap, CreditCard, DollarSign } from 'lucide-react';
 
 function SamplesContent() {
   const router = useRouter();
@@ -35,6 +34,54 @@ function SamplesContent() {
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [whatsappPhone, setWhatsappPhone] = useState('');
   const [whatsappText, setWhatsappText] = useState('');
+
+  // Quick Pay Modal & Thermal Voucher States
+  const [payModalSample, setPayModalSample] = useState<any | null>(null);
+  const [payAmount, setPayAmount] = useState<string>('');
+  const [payMethod, setPayMethod] = useState<string>('نقداً');
+  const [payNotes, setPayNotes] = useState<string>('');
+  const [paying, setPaying] = useState(false);
+  const [activeVoucher, setActiveVoucher] = useState<any | null>(null);
+  const [showVoucherModal, setShowVoucherModal] = useState(false);
+
+  const handlePaySample = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!payModalSample) return;
+    const amt = Number(payAmount);
+    if (!amt || amt <= 0) {
+      toast.warning('يرجى إدخال مبلغ صحيح', 'تنبيه');
+      return;
+    }
+    setPaying(true);
+    try {
+      const res = await apiRequest(`/samples/${payModalSample.id}/pay`, 'PATCH', {
+        paidAmount: amt,
+        paymentMethod: payMethod,
+        notes: payNotes,
+      });
+      toast.success(`تم تسجيل سداد الدفعة بنجاح! رقم السند: #${res.voucherNumber || ''}`, 'سداد دفعة');
+      setPayModalSample(null);
+      loadSamples();
+
+      if (res?.voucherNumber) {
+        setActiveVoucher({
+          voucherNumber: res.voucherNumber,
+          debtorName: payModalSample.patient?.name || 'مريض',
+          phone: payModalSample.patient?.phone,
+          amount: amt,
+          type: 'سند قبض مالي (سداد متبقي فحص)',
+          paymentMethod: payMethod,
+          date: new Date().toLocaleString('ar-IQ'),
+          notes: payNotes || `سداد متبقي فحص عينة #${payModalSample.sampleNumber}`,
+        });
+        setShowVoucherModal(true);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'فشل سداد الدفعة', 'خطأ');
+    } finally {
+      setPaying(false);
+    }
+  };
 
   const loadSamples = async (showToast = false, silent = false) => {
     if (!silent) setLoading(true);
@@ -492,9 +539,35 @@ function SamplesContent() {
                         {isPaid ? (
                           <span style={{ fontSize: '9.5px', color: '#10b981', fontWeight: 700 }}>✅ واصل كامل</span>
                         ) : (
-                          <span style={{ fontSize: '9.5px', color: '#ef4444', fontWeight: 700 }}>
-                            متبقي: {s.remainingAmount?.toLocaleString()} د.ع
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '3px' }}>
+                            <span style={{ fontSize: '9.5px', color: '#ef4444', fontWeight: 700 }}>
+                              متبقي: {s.remainingAmount?.toLocaleString()} د.ع
+                            </span>
+                            <button
+                              onClick={() => {
+                                setPayModalSample(s);
+                                setPayAmount(String(s.remainingAmount || 0));
+                                setPayMethod('نقداً');
+                                setPayNotes(`سداد متبقي فحص عينة #${s.sampleNumber}`);
+                              }}
+                              className="btn-secondary"
+                              style={{
+                                padding: '1px 6px',
+                                fontSize: '9.5px',
+                                height: '22px',
+                                color: '#10b981',
+                                borderColor: '#10b981',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                background: 'rgba(16, 185, 129, 0.08)'
+                              }}
+                              title="سداد متبقي الحساب وطباعة إيصال القبض"
+                            >
+                              <CreditCard size={11} />
+                              <span>سداد دين</span>
+                            </button>
+                          </div>
                         )}
                       </div>
                     </td>
@@ -697,6 +770,132 @@ function SamplesContent() {
                   <span>إرسال عبر واتساب الآن</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK PAY MODAL */}
+      {payModalSample && (
+        <div className="modal-overlay" onClick={() => setPayModalSample(null)}>
+          <div className="modal-content" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CreditCard size={18} color="var(--accent-emerald)" />
+                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                  سداد متبقي حساب عينة #{payModalSample.sampleNumber}
+                </h3>
+              </div>
+              <button onClick={() => setPayModalSample(null)} className="btn-icon">
+                <X size={15} />
+              </button>
+            </div>
+
+            <form onSubmit={handlePaySample} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div><strong>اسم المريض:</strong> {payModalSample.patient?.name}</div>
+                <div><strong>إجمالي كلفة الفحوصات:</strong> {payModalSample.priceTotal?.toLocaleString()} د.ع</div>
+                <div><strong>المسدد سابقاً:</strong> {(payModalSample.paidAmount || 0).toLocaleString()} د.ع</div>
+                <div style={{ color: 'var(--accent-rose)', fontWeight: 800, fontSize: '13px' }}>
+                  <strong>المتبقي بذمة المريض:</strong> {(payModalSample.remainingAmount || 0).toLocaleString()} د.ع
+                </div>
+              </div>
+
+              <div>
+                <label className="input-label">المبلغ المطلوب تسديده الآن (د.ع) *</label>
+                <input
+                  type="number"
+                  value={payAmount}
+                  onChange={(e) => setPayAmount(e.target.value)}
+                  className="input-control"
+                  style={{ fontSize: '15px', fontWeight: 800, color: 'var(--accent-emerald)' }}
+                  min="1"
+                  max={payModalSample.remainingAmount}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="input-label">طريقة الدفع</label>
+                <select
+                  value={payMethod}
+                  onChange={(e) => setPayMethod(e.target.value)}
+                  className="select-control"
+                >
+                  <option value="نقداً">نقداً (كاش - قاصة الصندوق)</option>
+                  <option value="زين كاش">زين كاش (ZainCash)</option>
+                  <option value="بطاقة دفع">بطاقة ماستركارد / كي كارد (POS)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="input-label">ملاحظات / بيان السند</label>
+                <input
+                  type="text"
+                  value={payNotes}
+                  onChange={(e) => setPayNotes(e.target.value)}
+                  className="input-control"
+                  placeholder="ملاحظات اختيارية..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+                <button type="button" onClick={() => setPayModalSample(null)} className="btn-secondary">
+                  إلغاء
+                </button>
+                <button type="submit" disabled={paying} className="btn-success">
+                  {paying ? <RefreshCw size={13} className="animate-spin" /> : <DollarSign size={13} />}
+                  <span>{paying ? 'جاري التسجيل...' : 'تأكيد السداد وطباعة السند'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* INSTANT THERMAL VOUCHER PREVIEW & PRINT */}
+      {showVoucherModal && activeVoucher && (
+        <div className="modal-overlay" onClick={() => setShowVoucherModal(false)}>
+          <div className="modal-content" style={{ maxWidth: '380px', padding: '16px' }} onClick={(e) => e.stopPropagation()}>
+            <div id="thermal-voucher-print" style={{ background: '#fff', color: '#000', padding: '16px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px', textAlign: 'center', border: '1px dashed #cbd5e1' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: 900, marginBottom: '2px', color: '#000' }}>
+                {labProfile?.labName || 'المختبر للتحليلات الطبية'}
+              </h2>
+              <p style={{ fontSize: '11px', color: '#475569', marginBottom: '8px' }}>
+                هاتف: {labProfile?.phone || '07701234567'} | {labProfile?.address || 'العراق'}
+              </p>
+              <div style={{ borderTop: '1px dashed #000', borderBottom: '1px dashed #000', padding: '6px 0', margin: '8px 0' }}>
+                <strong style={{ fontSize: '14px', display: 'block' }}>{activeVoucher.type}</strong>
+                <span style={{ fontSize: '12px' }}>رقم السند: #{activeVoucher.voucherNumber}</span>
+              </div>
+
+              <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '4px', margin: '10px 0', fontSize: '12px' }}>
+                <div><strong>التاريخ:</strong> {activeVoucher.date}</div>
+                <div><strong>المريض:</strong> {activeVoucher.debtorName}</div>
+                {activeVoucher.phone && <div><strong>الهاتف:</strong> {activeVoucher.phone}</div>}
+                <div><strong>طريقة الدفع:</strong> {activeVoucher.paymentMethod}</div>
+                <div><strong>البيان:</strong> {activeVoucher.notes}</div>
+              </div>
+
+              <div style={{ background: '#f1f5f9', padding: '8px', borderRadius: '4px', margin: '12px 0', border: '1px solid #cbd5e1' }}>
+                <span style={{ fontSize: '11px', color: '#334155', display: 'block' }}>المبلغ المقبوض:</span>
+                <strong style={{ fontSize: '18px', color: '#0f172a' }}>{activeVoucher.amount?.toLocaleString()} دينار عراقي</strong>
+              </div>
+
+              <p style={{ fontSize: '10px', color: '#64748b', marginTop: '10px' }}>
+                شكراً لتعاملكم معنا. يعتبر هذا السند إشعاراً رسمياً بالقبض.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+              <button onClick={() => window.print()} className="btn-primary" style={{ flex: 1 }}>
+                <Printer size={15} />
+                <span>طباعة السند فوري</span>
+              </button>
+              <button onClick={() => setShowVoucherModal(false)} className="btn-secondary">
+                إغلاق
+              </button>
             </div>
           </div>
         </div>

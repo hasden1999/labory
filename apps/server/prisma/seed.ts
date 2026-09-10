@@ -212,10 +212,11 @@ async function main() {
     { code: 'VDRL', name: 'VDRL / RPR (Syphilis Screen)', arabicName: 'فحص مرض الزهري (VDRL)', category: 'المناعة والأمصال', price: 10000, costEstimate: 1800, refRangeText: 'Non-reactive', unit: '', sampleType: 'مصل الدم (Serum)' },
     { code: 'ANA', name: 'Antinuclear Antibodies (ANA Screen)', arabicName: 'الأجسام المضادة للنواة (المناعة الذاتية)', category: 'المناعة والأمصال', price: 25000, costEstimate: 6000, refRangeText: 'Negative', unit: '', sampleType: 'مصل الدم (Serum)' },
 
-    // --- 9. فحص الإدرار العام (General Urine Examination) ---
+    // --- 9. فحص الإدرار العام والخروج والسائل المنوي (General Microscopic Examinations) ---
     { code: 'GUE', name: 'General Urine Examination (GUE)', arabicName: 'فحص الإدرار العام الشامل', category: 'الفحص المجهري العام', price: 5000, costEstimate: 800, refRangeText: 'Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)', unit: '', sampleType: 'إدرار صباحي' },
     { code: 'GSE', name: 'General Stool Examination (GSE)', arabicName: 'فحص الخروج العام الشامل', category: 'الفحص المجهري العام', price: 5000, costEstimate: 800, refRangeText: 'Normal (No Parasites / FOBT: Negative)', unit: '', sampleType: 'عينة خروج' },
     { code: 'FOBT', name: 'Fecal Occult Blood Test (FOBT)', arabicName: 'فحص الدم الخفي في الخروج', category: 'الفحص المجهري العام', price: 10000, costEstimate: 2000, refRangeText: 'Negative', unit: '', sampleType: 'عينة خروج' },
+    { code: 'SFA', name: 'Seminal Fluid Analysis (SFA)', arabicName: 'فحص السائل المنوي الشامل', category: 'الفحص المجهري العام', price: 15000, costEstimate: 2000, refRangeText: 'WHO Criteria: Count >= 15M/mL, PR >= 32%, Normal Forms >= 4%', unit: '', sampleType: 'سائل منوي (Semen)' },
 
     // --- 10. دلالات الأورام (Tumor Markers) ---
     { code: 'PSA-TOT', name: 'Total PSA (Prostate Specific Antigen)', arabicName: 'دلالات البروستات الكلية (PSA)', category: 'دلالات الأورام', price: 25000, costEstimate: 5000, refRangeLow: 0, refRangeHigh: 4.0, criticalHigh: 10.0, refRangeText: '< 4.0', unit: 'ng/mL', sampleType: 'مصل الدم (Serum)' },

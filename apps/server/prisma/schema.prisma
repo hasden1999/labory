@@ -27,6 +27,7 @@ model ReferringDoctor {
   commissionPercent Float    @default(0)
   createdAt         DateTime @default(now())
   samples           Sample[]
+  financialTransactions FinancialTransaction[]
 }
 
 model Patient {
@@ -39,6 +40,7 @@ model Patient {
   deletedAt DateTime?
   createdAt DateTime  @default(now())
   samples   Sample[]
+  financialTransactions FinancialTransaction[]
 
   @@index([name])
   @@index([phone])
@@ -70,6 +72,7 @@ model Sample {
   createdAt       DateTime         @default(now())
   tests           SampleTest[]
   debtRecords     DebtRecord[]
+  financialTransactions FinancialTransaction[]
 
   @@index([patientId])
   @@index([status])
@@ -223,26 +226,81 @@ model DeviceRawLog {
 }
 
 model Debtor {
-  id           String       @id @default(cuid())
-  name         String
-  phone        String?
-  notes        String?
-  createdAt    DateTime     @default(now())
-  transactions DebtRecord[]
+  id                    String                 @id @default(cuid())
+  name                  String
+  phone                 String?
+  notes                 String?
+  type                  String                 @default("PATIENT") // PATIENT / SUPPLIER / CLINIC / OTHER
+  patientId             String?
+  createdAt             DateTime               @default(now())
+  transactions          DebtRecord[]
+  financialTransactions FinancialTransaction[]
+
+  @@index([type])
+  @@index([patientId])
 }
 
 model DebtRecord {
-  id        String   @id @default(cuid())
-  debtorId  String
-  debtor    Debtor   @relation(fields: [debtorId], references: [id], onDelete: Cascade)
-  sampleId  String?
-  sample    Sample?  @relation(fields: [sampleId], references: [id])
-  type      String   // DEBT (إضافة دين) / PAYMENT (استلام دفعة)
-  amount    Float
-  notes     String?
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  debtorId      String
+  debtor        Debtor   @relation(fields: [debtorId], references: [id], onDelete: Cascade)
+  sampleId      String?
+  sample        Sample?  @relation(fields: [sampleId], references: [id])
+  type          String   // DEBT (إضافة دين) / PAYMENT (استلام دفعة)
+  amount        Float
+  paymentMethod String   @default("نقداً")
+  voucherNumber Int?
+  notes         String?
+  createdAt     DateTime @default(now())
 
   @@index([debtorId])
+  @@index([createdAt])
+}
+
+model FinancialTransaction {
+  id            String           @id @default(cuid())
+  voucherNumber Int              // رقم السند أو الإيصال المتسلسل
+  type          String           // INCOME_SAMPLE, DEBT_PAYMENT, EXPENSE, SUPPLIER_PAYMENT, DOCTOR_COMMISSION
+  category      String?          // تصنيف مالي (فحوصات، سداد دين، مصاريف، موردين، عمولات)
+  amount        Float
+  paymentMethod String           @default("نقداً") // نقداً / زين كاش / بطاقة / تحويل
+  patientId     String?
+  patient       Patient?         @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  sampleId      String?
+  sample        Sample?          @relation(fields: [sampleId], references: [id], onDelete: SetNull)
+  debtorId      String?
+  debtor        Debtor?          @relation(fields: [debtorId], references: [id], onDelete: SetNull)
+  doctorId      String?
+  doctor        ReferringDoctor? @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  createdById   String           @default("single_operator")
+  notes         String?
+  createdAt     DateTime         @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+  @@index([patientId])
+  @@index([debtorId])
+  @@index([doctorId])
+  @@index([paymentMethod])
+}
+
+model CashDrawerShift {
+  id           String    @id @default(cuid())
+  shiftNumber  Int       // رقم الوردية
+  openedById   String    @default("single_operator")
+  closedById   String?
+  openedAt     DateTime  @default(now())
+  closedAt     DateTime?
+  startingCash Float     @default(0)
+  expectedCash Float?
+  actualCash   Float?
+  discrepancy  Float?
+  status       String    @default("OPEN") // OPEN, CLOSED
+  notes        String?
+  createdAt    DateTime  @default(now())
+
+  @@index([status])
+  @@index([createdAt])
 }
 
 model InventoryItem {
@@ -270,11 +328,13 @@ model InventoryTransaction {
 }
 
 model Expense {
-  id          String   @id @default(cuid())
-  description String
-  amount      Float
-  category    String   @default("مصاريف تشغيلية") // إيجار / كواشف ومواد / صيانة / رواتب / كهرباء ووقود / قرطاسية ومطبوعات
-  date        DateTime @default(now())
+  id            String   @id @default(cuid())
+  voucherNumber Int?
+  description   String
+  amount        Float
+  category      String   @default("مصاريف تشغيلية") // إيجار / كواشف ومواد / صيانة / رواتب / كهرباء ووقود / قرطاسية ومطبوعات
+  paymentMethod String   @default("نقداً")
+  date          DateTime @default(now())
 }
 
 model ResultArchive {

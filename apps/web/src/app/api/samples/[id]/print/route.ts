@@ -110,7 +110,21 @@ export async function GET(request: Request, { params }: { params: { id: string }
   // Tests Categorization
   const allTests = sample.tests || [];
 
+  const isSfaTest = (t: any) => {
+    const code = (t.test?.code || t.testCode || '').toUpperCase();
+    const name = (t.test?.name || '').toLowerCase();
+    const val = typeof t.resultValue === 'string' ? t.resultValue : '';
+    return code === 'SFA' || 
+           val.includes('S.F.A') || 
+           val.includes('SEMINAL') || 
+           name.includes('semen') || 
+           name.includes('سائل منوي') || 
+           name.includes('نطف') || 
+           (val.includes('PHYSICAL:') && (val.includes('MOTILITY:') || val.includes('MORPHOLOGY:')));
+  };
+
   const isGueTest = (t: any) => {
+    if (isSfaTest(t)) return false;
     const code = (t.test?.code || t.testCode || '').toUpperCase();
     const name = (t.test?.name || '').toLowerCase();
     const val = typeof t.resultValue === 'string' ? t.resultValue : '';
@@ -118,15 +132,17 @@ export async function GET(request: Request, { params }: { params: { id: string }
   };
 
   const isGseTest = (t: any) => {
+    if (isSfaTest(t)) return false;
     const code = (t.test?.code || t.testCode || '').toUpperCase();
     const name = (t.test?.name || '').toLowerCase();
     const val = typeof t.resultValue === 'string' ? t.resultValue : '';
     return code === 'GSE' || val.includes('G.S.E') || name.includes('stool') || name.includes('خروج') || val.includes('PARASITOLOGY:');
   };
 
+  const sfaTests = allTests.filter(isSfaTest);
   const gueTests = allTests.filter(isGueTest);
   const gseTests = allTests.filter(isGseTest);
-  const generalTests = allTests.filter((t: any) => !isGueTest(t) && !isGseTest(t));
+  const generalTests = allTests.filter((t: any) => !isSfaTest(t) && !isGueTest(t) && !isGseTest(t));
 
   // Shared Helper: Digital or Pre-printed Header
   const renderHeader = (safeLabName: string, safeLabSubtitle: string, safeAddress: string, safePhone: string, safeDocName: string, safeDocTitle: string, safeLicense: string) => {
@@ -588,6 +604,122 @@ export async function GET(request: Request, { params }: { params: { id: string }
           ${noteText ? `
             <div style="background: #f8fafc; border-left: 4px solid #b45309; padding: 8px 12px; font-size: 11px; color: #334155; border-radius: 0 6px 6px 0; text-align: left; direction: ltr;">
               <strong>Clinical Note:</strong> <span style="unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(noteText)}</span>
+            </div>
+          ` : ''}
+        </div>
+
+        ${renderFooter(safeFooter, safeLabName)}
+      </div>
+    `);
+  }
+
+  // 4. Dedicated Seminal Fluid Analysis (S.F.A) Page
+  for (const sfa of sfaTests) {
+    const rawVal = sfa.resultValue ? String(sfa.resultValue) : '';
+    const clean = rawVal.replace(/\[.*?SEMINAL.*?\]/gi, '').trim();
+    const lines = clean.split('\n').filter(Boolean);
+    let physicalParts: string[] = [];
+    let countParts: string[] = [];
+    let motilityParts: string[] = [];
+    let morphologyParts: string[] = [];
+    let impressionText = '';
+    let noteText = '';
+
+    lines.forEach((line) => {
+      const cleanLine = line.trim();
+      if (cleanLine.toUpperCase().startsWith('PHYSICAL:')) {
+        physicalParts = cleanLine.replace(/PHYSICAL:/i, '').split('|').map(p => p.trim()).filter(Boolean);
+      } else if (cleanLine.toUpperCase().startsWith('COUNT:')) {
+        countParts = cleanLine.replace(/COUNT:/i, '').split('|').map(p => p.trim()).filter(Boolean);
+      } else if (cleanLine.toUpperCase().startsWith('MOTILITY:')) {
+        motilityParts = cleanLine.replace(/MOTILITY:/i, '').split('|').map(p => p.trim()).filter(Boolean);
+      } else if (cleanLine.toUpperCase().startsWith('MORPHOLOGY:')) {
+        morphologyParts = cleanLine.replace(/MORPHOLOGY:/i, '').split('|').map(p => p.trim()).filter(Boolean);
+      } else if (cleanLine.toUpperCase().startsWith('IMPRESSION:')) {
+        impressionText = cleanLine.replace(/IMPRESSION:/i, '').trim();
+      } else if (cleanLine.toUpperCase().startsWith('NOTES:')) {
+        noteText = cleanLine.replace(/NOTES?:/i, '').trim();
+      }
+    });
+
+    const isNormo = impressionText.toLowerCase().includes('normo') && 
+                    !impressionText.toLowerCase().includes('oligo') && 
+                    !impressionText.toLowerCase().includes('astheno') && 
+                    !impressionText.toLowerCase().includes('terato');
+
+    renderedPages.push(`
+      <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
+        ${renderWatermark()}
+        ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
+        ${renderPatientMetaBox(safePatientName, safeDoctorName)}
+        
+        <div style="background: #4338ca; color: #ffffff; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: 13px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+          <span>SEMINAL FLUID ANALYSIS (S.F.A) - WHO GUIDELINES</span>
+          <span style="font-size: 12px; font-weight: normal;" dir="rtl">تقرير فحص وتحليل السائل المنوي الشامل</span>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <!-- 1. Physical / Macroscopic Examination -->
+          <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+            <div style="background: #f8fafc; padding: 6px 12px; font-weight: 800; font-size: 11.5px; color: #4338ca; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+              <span>1. MACROSCOPIC / PHYSICAL EXAMINATION</span>
+              <span style="color: #64748b; font-weight: normal;" dir="rtl">الفحص العياني والفيزيائي</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px 12px; font-size: 11px;" dir="ltr">
+              ${physicalParts.length > 0 ? physicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
+            </div>
+          </div>
+
+          <!-- 2. Sperm Count & Microscopy -->
+          <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+            <div style="background: #f8fafc; padding: 6px 12px; font-weight: 800; font-size: 11.5px; color: #4338ca; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+              <span>2. SPERM COUNT & MICROSCOPY <span style="font-size: 10px; font-weight: normal; color: #64748b; margin-left: 6px;">(Ref: Conc &ge; 15 M/mL, Total &ge; 39 M/ejac, Pus &lt; 5 /HPF)</span></span>
+              <span style="color: #64748b; font-weight: normal;" dir="rtl">تعداد النطاف والمجهري</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px 12px; font-size: 11px;" dir="ltr">
+              ${countParts.length > 0 ? countParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
+            </div>
+          </div>
+
+          <!-- 3. Motility Assessment -->
+          <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+            <div style="background: #f8fafc; padding: 6px 12px; font-weight: 800; font-size: 11.5px; color: #0284c7; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+              <span>3. SPERM MOTILITY ASSESSMENT <span style="font-size: 10px; font-weight: normal; color: #64748b; margin-left: 6px;">(WHO Ref: PR &ge; 32%, PR+NP &ge; 40%, Vitality &ge; 58%)</span></span>
+              <span style="color: #64748b; font-weight: normal;" dir="rtl">حركية وحيوية النطاف</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px 12px; font-size: 11px;" dir="ltr">
+              ${motilityParts.length > 0 ? motilityParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
+            </div>
+          </div>
+
+          <!-- 4. Morphology -->
+          <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+            <div style="background: #f8fafc; padding: 6px 12px; font-weight: 800; font-size: 11.5px; color: #7c3aed; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+              <span>4. SPERM MORPHOLOGY <span style="font-size: 10px; font-weight: normal; color: #64748b; margin-left: 6px;">(Kruger Strict Criteria Ref: Normal Forms &ge; 4%)</span></span>
+              <span style="color: #64748b; font-weight: normal;" dir="rtl">مورفولوجيا وأشكال النطاف</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px 12px; font-size: 11px;" dir="ltr">
+              ${morphologyParts.length > 0 ? morphologyParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
+            </div>
+          </div>
+
+          <!-- Diagnostic Impression -->
+          ${impressionText ? `
+            <div style="margin-bottom: 10px; background: ${isNormo ? '#f0fdf4' : '#fef2f2'}; border: 1.5px solid ${isNormo ? '#bbf7d0' : '#fca5a5'}; border-radius: 8px; padding: 8px 14px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+              <div>
+                <span style="font-size: 11px; font-weight: 700; color: ${isNormo ? '#166534' : '#991b1b'}; text-transform: uppercase;">Diagnostic Impression:</span>
+                <span style="font-size: 13.5px; font-weight: 900; color: ${isNormo ? '#14532d' : '#7f1d1d'}; margin-left: 8px;">${escapeHtml(impressionText)}</span>
+              </div>
+              <span style="background: ${isNormo ? '#dcfce7' : '#fee2e2'}; color: ${isNormo ? '#15803d' : '#b91c1c'}; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 12px; border: 1px solid ${isNormo ? '#86efac' : '#fecaca'};">
+                ${isNormo ? 'NORMAL PARAMETERS' : 'CLINICAL VARIATION'}
+              </span>
+            </div>
+          ` : ''}
+
+          <!-- Laboratory Notes -->
+          ${noteText ? `
+            <div style="background: #f8fafc; border-left: 4px solid #4338ca; padding: 6px 12px; font-size: 11px; color: #334155; border-radius: 0 6px 6px 0; text-align: left; direction: ltr;">
+              <strong>Laboratory Notes:</strong> <span style="unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(noteText)}</span>
             </div>
           ` : ''}
         </div>

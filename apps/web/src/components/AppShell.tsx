@@ -25,7 +25,8 @@ import {
   X,
   Layers,
   Sparkles,
-  ChevronDown
+  ChevronDown,
+  CreditCard
 } from 'lucide-react';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -48,7 +49,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   // Secondary Navigation Routes (Grouped under 'المزيد ▾')
   const secondaryNavItems = [
-    { href: '/financials', label: 'المالية (Financials)', icon: TrendingUp },
+    { href: '/financials', label: 'المالية والصندوق (Financials)', icon: TrendingUp },
+    { href: '/debts', label: 'الديون والذمم (Debts)', icon: CreditCard },
     { href: '/catalog', label: 'الكتالوج (Tests)', icon: Layers },
     { href: '/devices', label: 'الأجهزة (LIS)', icon: Cpu },
     { href: '/settings', label: 'الإعدادات (Settings)', icon: SettingsIcon },
