@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { spawn, execSync } = require('child_process');
 const http = require('http');
+const net = require('net');
 
 // Disable hardware acceleration to eliminate Windows GPU crashes & black screen glitches
 app.disableHardwareAcceleration();
@@ -18,6 +19,7 @@ if (!gotTheLock) {
 }
 
 let mainWindow = null;
+let splashWindow = null;
 let backendProcess = null;
 let tray = null;
 let isQuitting = false;
@@ -89,18 +91,74 @@ function getStartCommand(projectRoot) {
   };
 }
 
-// Check if web server is responsive
-function isServerReady(port) {
+// Ultra-fast TCP port check (responds in 1-5ms without HTTP handshake overhead)
+function checkTcpPort(port, host = '127.0.0.1', timeoutMs = 250) {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    let settled = false;
+
+    socket.setTimeout(timeoutMs);
+
+    socket.on('connect', () => {
+      if (!settled) {
+        settled = true;
+        socket.destroy();
+        resolve(true);
+      }
+    });
+
+    socket.on('timeout', () => {
+      if (!settled) {
+        settled = true;
+        socket.destroy();
+        resolve(false);
+      }
+    });
+
+    socket.on('error', () => {
+      if (!settled) {
+        settled = true;
+        socket.destroy();
+        resolve(false);
+      }
+    });
+
+    socket.connect(port, host);
+  });
+}
+
+// Fast HTTP Health Check once port is open
+function checkHttpHealth(port, timeoutMs = 1200) {
   return new Promise((resolve) => {
     const req = http.get(`http://127.0.0.1:${port}/health`, (res) => {
       resolve(res.statusCode >= 200 && res.statusCode < 400);
     });
     req.on('error', () => resolve(false));
-    req.setTimeout(2500, () => {
+    req.setTimeout(timeoutMs, () => {
       try { req.abort(); } catch (e) {}
       resolve(false);
     });
   });
+}
+
+// Check if web server is responsive with 2-stage fast validation
+async function isServerReady(port) {
+  const portOpen = await checkTcpPort(port, '127.0.0.1', 200);
+  if (!portOpen) return false;
+  return await checkHttpHealth(port, 1000);
+}
+
+// Silent background route pre-warming to compile React RSC chunks before display
+function preWarmServer(port) {
+  try {
+    const req = http.get(`http://127.0.0.1:${port}/`, (res) => {
+      res.resume(); // Discard stream to release memory
+    });
+    req.on('error', () => {});
+    req.setTimeout(3000, () => {
+      try { req.abort(); } catch (e) {}
+    });
+  } catch (e) {}
 }
 
 // Kill backend process and all its tree cleanly
@@ -148,24 +206,24 @@ async function ensureServerStarted() {
   return false;
 }
 
-// Update loading screen text dynamically
-function updateLoadingStatus(targetWindow, text) {
-  if (targetWindow && !targetWindow.isDestroyed()) {
+// Update splash status text dynamically
+function updateSplashStatus(text) {
+  if (splashWindow && !splashWindow.isDestroyed()) {
     const script = `
       var el = document.getElementById('status-text');
       if (el) { el.innerText = ${JSON.stringify(text)}; }
     `;
-    targetWindow.webContents.executeJavaScript(script).catch(() => {});
+    splashWindow.webContents.executeJavaScript(script).catch(() => {});
   }
 }
 
-// Embedded loading screen HTML for immediate visual response
-function getLoadingHtml() {
+// Embedded instant splash screen HTML (renders in 30ms)
+function getSplashHtml() {
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>نظام إدارة المختبرات الطبية والتشخيص الذكي - Labryo LIMS</title>
+  <title>Labryo LIMS</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -173,55 +231,65 @@ function getLoadingHtml() {
       color: #f8fafc;
       font-family: 'Segoe UI', Tahoma, -apple-system, BlinkMacSystemFont, sans-serif;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
       overflow: hidden;
       user-select: none;
+      -webkit-app-region: drag;
     }
-    .container {
+    .card {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       text-align: center;
-      max-width: 480px;
-      padding: 36px 30px;
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+      padding: 30px;
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      background: radial-gradient(circle at center top, rgba(15, 23, 42, 0.95), #090d16);
+      box-shadow: inset 0 0 30px rgba(6, 182, 212, 0.05);
     }
     .icon-box {
-      width: 72px;
-      height: 72px;
-      margin: 0 auto 20px;
+      width: 68px;
+      height: 68px;
+      margin-bottom: 18px;
       background: rgba(6, 182, 212, 0.12);
       border-radius: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid rgba(6, 182, 212, 0.3);
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.25);
+      animation: pulse-glow 2.5s infinite ease-in-out;
+    }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 15px rgba(6, 182, 212, 0.2); transform: scale(1); }
+      50% { box-shadow: 0 0 25px rgba(6, 182, 212, 0.45); transform: scale(1.03); }
     }
     .title {
-      font-size: 20px;
+      font-size: 21px;
       font-weight: 800;
       color: #f8fafc;
-      margin-bottom: 6px;
+      letter-spacing: 0.3px;
+      margin-bottom: 5px;
     }
     .subtitle {
       font-size: 13px;
       color: #94a3b8;
       margin-bottom: 24px;
     }
-    .progress-bar {
-      width: 100%;
-      height: 6px;
+    .progress-track {
+      width: 280px;
+      height: 5px;
       background: #1e293b;
       border-radius: 6px;
       overflow: hidden;
       position: relative;
-      margin-bottom: 16px;
+      margin-bottom: 15px;
     }
-    .progress-bar::after {
-      content: '';
+    .progress-bar {
       position: absolute;
       top: 0;
       left: 0;
@@ -229,7 +297,7 @@ function getLoadingHtml() {
       width: 40%;
       background: linear-gradient(90deg, #06b6d4, #10b981);
       border-radius: 6px;
-      animation: indeterminate 1.5s infinite ease-in-out;
+      animation: indeterminate 1.4s infinite ease-in-out;
     }
     @keyframes indeterminate {
       0% { left: -40%; width: 40%; }
@@ -238,23 +306,25 @@ function getLoadingHtml() {
     }
     .status {
       font-size: 12.5px;
-      color: #06b6d4;
+      color: #38bdf8;
       font-weight: 600;
-      transition: all 0.3s ease;
+      transition: all 0.2s ease;
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="card">
     <div class="icon-box">
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
         <path d="m9 12 2 2 4-4"/>
       </svg>
     </div>
     <div class="title">نظام لابريو الطبي (Labryo LIMS)</div>
-    <div class="subtitle">النسخة المكتبية الرسمية — تشغيل فوري وآمن</div>
-    <div class="progress-bar"></div>
+    <div class="subtitle">نظام إدارة المختبرات الطبية والتشخيص الذكي المتقدم</div>
+    <div class="progress-track">
+      <div class="progress-bar"></div>
+    </div>
     <div class="status" id="status-text">جاري بدء تشغيل محرك النظام وقاعدة البيانات...</div>
   </div>
 </body>
@@ -399,10 +469,11 @@ function getErrorHtml() {
 </html>`;
 }
 
-// Main sequence to poll server and load main UI
-async function startAndLoadApp(targetWindow) {
+// Main sequence to poll server and seamlessly transition from splash to main window
+async function startAndLoadApp() {
   const appUrl = `http://localhost:${WEB_PORT}`;
 
+  updateSplashStatus('جاري فحص حالة الخادم المحلي...');
   await ensureServerStarted();
 
   let ready = false;
@@ -413,57 +484,82 @@ async function startAndLoadApp(targetWindow) {
     ready = await isServerReady(WEB_PORT);
     if (ready) break;
 
-    if (attempts === 5) {
-      updateLoadingStatus(targetWindow, 'جاري تشغيل محرك النظام وقاعدة البيانات المحلية...');
-    } else if (attempts === 20) {
-      updateLoadingStatus(targetWindow, 'جاري تهيئة خدمات المختبر والتحقق من الجاهزية...');
-    } else if (attempts === 45) {
-      updateLoadingStatus(targetWindow, 'جاري إتمام إقلاع النظام، يرجى الانتظار ثوانٍ معدودة...');
+    if (attempts === 4) {
+      updateSplashStatus('جاري تشغيل محرك النظام وقاعدة البيانات المحلية...');
+    } else if (attempts === 15) {
+      updateSplashStatus('جاري تهيئة خدمات الفحوصات والتحاليل الطبية...');
+    } else if (attempts === 35) {
+      updateSplashStatus('جاري استكمال إقلاع النظام، ثوانٍ معدودة...');
     }
 
     await new Promise((r) => setTimeout(r, 200));
     attempts++;
   }
 
-  if (targetWindow && !targetWindow.isDestroyed()) {
-    if (ready) {
-      targetWindow.loadURL(appUrl);
-    } else {
-      targetWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(getErrorHtml()));
+  if (ready) {
+    updateSplashStatus('اكتمل التجهيز — جاري فتح واجهة النظام...');
+    preWarmServer(WEB_PORT);
+
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      createMainWindow();
     }
+
+    // Load URL silently in background
+    mainWindow.loadURL(appUrl);
+
+    // Show seamlessly once first paint / ready
+    mainWindow.once('ready-to-show', () => {
+      if (splashWindow && !splashWindow.isDestroyed()) {
+        splashWindow.destroy();
+        splashWindow = null;
+      }
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show();
+        mainWindow.maximize();
+        mainWindow.focus();
+      }
+    });
+
+    // Safety fallback: if ready-to-show takes more than 3.5s, force show
+    setTimeout(() => {
+      if (splashWindow && !splashWindow.isDestroyed()) {
+        splashWindow.destroy();
+        splashWindow = null;
+      }
+      if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+        mainWindow.show();
+        mainWindow.maximize();
+        mainWindow.focus();
+      }
+    }, 3500);
+
+  } else {
+    // Server failed to start within timeout
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.destroy();
+      splashWindow = null;
+    }
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      createMainWindow();
+    }
+    mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(getErrorHtml()));
+    mainWindow.show();
   }
 }
 
-// Resolve tray icon reliably
-function getTrayIcon() {
-  const projectRoot = findProjectRoot();
-  const candidates = [
-    path.join(__dirname, 'assets', 'tray-icon.png'),
-    path.join(__dirname, 'assets', 'icon.png'),
-    path.join(projectRoot, 'apps', 'desktop', 'assets', 'tray-icon.png'),
-    path.join(projectRoot, 'apps', 'desktop', 'assets', 'icon.png'),
-    path.join(projectRoot, 'apps', 'web', 'public', 'logo.png'),
-  ];
-
-  for (const p of candidates) {
-    if (fs.existsSync(p)) {
-      try {
-        const img = nativeImage.createFromPath(p);
-        if (!img.isEmpty()) {
-          return img.resize({ width: 16, height: 16 });
-        }
-      } catch (e) {}
-    }
-  }
-  return nativeImage.createEmpty();
-}
-
-// Show or restore main window instantly (0.01s)
+// Show or restore main window instantly (0.01s instant response)
 function showMainWindow() {
+  if (splashWindow && !splashWindow.isDestroyed()) {
+    splashWindow.destroy();
+    splashWindow = null;
+  }
+
   if (!mainWindow || mainWindow.isDestroyed()) {
     createMainWindow();
+    startAndLoadApp();
     return;
   }
+
   if (!mainWindow.isVisible()) {
     mainWindow.show();
   }
@@ -471,9 +567,6 @@ function showMainWindow() {
     mainWindow.restore();
   }
   mainWindow.focus();
-  try {
-    mainWindow.webContents.reload();
-  } catch (e) {}
 }
 
 // Initialize system tray with Arabic controls
@@ -527,7 +620,7 @@ function createTray() {
             killBackendProcess();
             await ensureServerStarted();
             if (mainWindow && !mainWindow.isDestroyed()) {
-              startAndLoadApp(mainWindow);
+              mainWindow.loadURL(`http://localhost:${WEB_PORT}`);
             }
           },
         },
@@ -559,7 +652,47 @@ function createTray() {
   }
 }
 
+// Create native frameless instant splash screen window
+function createSplashWindow() {
+  if (splashWindow && !splashWindow.isDestroyed()) return;
+
+  const projectRoot = findProjectRoot();
+  const winIconPath = path.join(projectRoot, 'apps', 'desktop', 'assets', 'icon.png');
+  const winIcon = fs.existsSync(winIconPath) ? winIconPath : undefined;
+
+  splashWindow = new BrowserWindow({
+    width: 480,
+    height: 310,
+    resizable: false,
+    frame: false,
+    center: true,
+    show: false,
+    alwaysOnTop: true,
+    backgroundColor: '#090d16',
+    icon: winIcon,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  splashWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(getSplashHtml()));
+
+  splashWindow.once('ready-to-show', () => {
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.show();
+    }
+  });
+
+  splashWindow.on('closed', () => {
+    splashWindow = null;
+  });
+}
+
+// Create silent main window (initially hidden until content is ready)
 function createMainWindow() {
+  if (mainWindow && !mainWindow.isDestroyed()) return;
+
   const projectRoot = findProjectRoot();
   const winIconPath = path.join(projectRoot, 'apps', 'desktop', 'assets', 'icon.png');
   const winIcon = fs.existsSync(winIconPath) ? winIconPath : undefined;
@@ -581,16 +714,6 @@ function createMainWindow() {
       sandbox: false,
     },
   });
-
-  // 1. Immediately show window with loading screen
-  mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(getLoadingHtml()));
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-    mainWindow.maximize();
-  });
-
-  // 2. Start server and poll until ready, then load app
-  startAndLoadApp(mainWindow);
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
@@ -683,7 +806,24 @@ ipcMain.handle('print-document', async (event, { url, printOptions }) => {
 // App Lifecycle
 app.whenReady().then(() => {
   createTray();
-  createMainWindow();
+
+  const isHiddenLaunch = process.argv.includes('--hidden') || process.argv.includes('--minimized');
+
+  if (isHiddenLaunch) {
+    // Silent startup in tray (e.g. on Windows login)
+    createMainWindow();
+    ensureServerStarted().then(() => {
+      preWarmServer(WEB_PORT);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.loadURL(`http://localhost:${WEB_PORT}`);
+      }
+    });
+  } else {
+    // Normal user launch: show instant splash and load silently
+    createSplashWindow();
+    createMainWindow();
+    startAndLoadApp();
+  }
 
   app.on('activate', () => {
     showMainWindow();
