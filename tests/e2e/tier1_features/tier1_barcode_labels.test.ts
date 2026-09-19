@@ -6,6 +6,8 @@
 
 import { describe, test } from '../harness/testRunner';
 import { expect } from '../harness/assertions';
+import { GET as getBarcodeRoute } from '../../../apps/web/src/app/api/samples/[id]/barcode/route';
+import { getStore, addSample } from '../../../apps/web/src/lib/serverStore';
 
 describe('Tier 1: Barcode Thermal Labels', () => {
 
@@ -98,6 +100,68 @@ describe('Tier 1: Barcode Thermal Labels', () => {
     expect(batchHtml).toContain('#1001');
     expect(batchHtml).toContain('#1005');
     expect(sampleBatch.length).toBe(5);
+  });
+
+  test('R4.6: Multi-tube sample routing with integrated Arabic tube colors', async () => {
+    const testSample = addSample({
+      patient: { name: 'عمار عبد الكريم', age: 39, gender: 'MALE' },
+      tests: [
+        { testId: 't-cbc', code: 'CBC', name: 'Complete Blood Count', category: 'أمراض الدم والتخثر' },
+        { testId: 't-glu', code: 'GLU', name: 'Fasting Glucose', category: 'الكيمياء السريرية والسكري' },
+        { testId: 't-gue', code: 'GUE', name: 'General Urine Examination', category: 'الفحص المجهري العام' },
+        { testId: 't-pt', code: 'PT', name: 'Prothrombin Time', category: 'أمراض الدم والتخثر' }
+      ],
+      priceTotal: 40000,
+      paidAmount: 40000,
+      paymentMethod: 'CASH'
+    }, { forceDuplicate: true });
+
+    const req = new Request(`http://localhost:3000/api/samples/${testSample.id}/barcode`);
+    const res = await getBarcodeRoute(req, { params: { id: testSample.id } });
+
+    expect(res.status).toBe(200);
+    const html = await res.text();
+
+    // Verify 4 distinct partitioned tubes with their Arabic color labels
+    expect(html).toContain('أنبوب بنفسجي'); // Hematology / CBC
+    expect(html).toContain('أنبوب أزرق');    // Coagulation / PT
+    expect(html).toContain('أنبوب أصفر');   // Chemistry / Glucose
+    expect(html).toContain('عبوة إدرار');   // Urine / GUE
+  });
+
+  test('R4.7: Thermal printer 50x25mm height budgeting and zero-margin rules', async () => {
+    const store = getStore();
+    const testSample = store.samples[0] || addSample({
+      patient: { name: 'سناء محمود', age: 29, gender: 'FEMALE' },
+      tests: [{ testId: 't-cbc', code: 'CBC', name: 'Complete Blood Count' }]
+    }, { forceDuplicate: true });
+
+    const req = new Request(`http://localhost:3000/api/samples/${testSample.id}/barcode`);
+    const res = await getBarcodeRoute(req, { params: { id: testSample.id } });
+    const html = await res.text();
+
+    expect(html).toContain('size: 50mm 25mm');
+    expect(html).toContain('margin: 0');
+    expect(html).toContain('height: 24.4mm');
+    expect(html).toContain('printer-guidance-bar');
+    expect(html).toContain('break-after: page');
+  });
+
+  test('R4.8: Integrated Patient ID (PID), Sample # and Code 128 Barcode', async () => {
+    const testSample = addSample({
+      patient: { name: 'كرار باسم', age: 33, gender: 'MALE' },
+      tests: [{ testId: 't-fbs', code: 'FBS', name: 'Fasting Blood Sugar' }]
+    }, { forceDuplicate: true });
+
+    const req = new Request(`http://localhost:3000/api/samples/${testSample.id}/barcode`);
+    const res = await getBarcodeRoute(req, { params: { id: testSample.id } });
+    const html = await res.text();
+
+    expect(html).toContain(`#${testSample.sampleNumber}`);
+    expect(html).toContain(`*S${testSample.sampleNumber}*`);
+    expect(html).toContain('PID: #');
+    expect(html).toContain('كرار باسم');
+    expect(html).toContain('shape-rendering: crispEdges');
   });
 
 });

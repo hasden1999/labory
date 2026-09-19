@@ -8,6 +8,7 @@ import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import ConfirmModal from '../../components/ConfirmModal';
 import { Package, Plus, AlertTriangle, Clock, Trash2, X, Check, Calendar, AlertCircle, Search, ArrowUpRight, ArrowDownLeft, CheckCircle2, AlertOctagon } from 'lucide-react';
+import { toEnglishDigits, formatEnglishDate } from '../../lib/formatters';
 
 export default function InventoryPage() {
   const toast = useToast();
@@ -60,9 +61,9 @@ export default function InventoryPage() {
       await apiRequest('/inventory', 'POST', {
         name: itemName.trim(),
         unit,
-        quantity: Number(quantity),
-        reorderThreshold: Number(reorderThreshold),
-        costPerUnit: Number(costPerUnit),
+        quantity: Number(toEnglishDigits(quantity)),
+        reorderThreshold: Number(toEnglishDigits(reorderThreshold)),
+        costPerUnit: Number(toEnglishDigits(costPerUnit)),
         expiryDate: expiryDate ? expiryDate : undefined,
         supplier,
       });
@@ -301,7 +302,7 @@ export default function InventoryPage() {
                       
                       <td>
                         {item.expiryDate ? (
-                          <span>{new Date(item.expiryDate).toLocaleDateString('ar-IQ')}</span>
+                          <span>{formatEnglishDate(item.expiryDate)}</span>
                         ) : (
                           <span style={{ color: 'var(--text-dim)' }}>غير محدد</span>
                         )}

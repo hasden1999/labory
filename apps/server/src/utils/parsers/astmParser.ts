@@ -28,9 +28,9 @@ export interface ParsedAnalyzerMessage {
  */
 export function cleanAstmControlChars(raw: string): string {
   return raw
-    // Strip ETX/ETB followed by 2-character hex checksum (e.g. \x034E or \x172A)
-    .replace(/[\x03\x17][0-9A-Fa-f]{2}/g, '')
-    // Strip remaining control characters
+    // Strip trailing \r before ETX/ETB, followed by 2-character hex checksum and possible trailing \r\n
+    .replace(/\r?[\x03\x17][0-9A-Fa-f]{2}\r?\n?/g, '\n')
+    // Strip remaining control characters except \r and \n
     .replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/g, '')
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n');
@@ -57,8 +57,8 @@ export function parseAstm1394(raw: string): ParsedAnalyzerMessage {
   const items: ParsedItem[] = [];
 
   for (const line of lines) {
-    // Strip leading frame sequence number if present (e.g. "1H|...", "2P|...", "3O|...", "4R|...")
-    const matchFrame = line.match(/^(\d?)([HPORCL])\|(.*)$/i);
+    // Strip leading frame sequence number if present (e.g. "1H|...", "2P|...", "10O|...", "H|...")
+    const matchFrame = line.match(/^(\d*)([HPORCL])\|(.*)$/i);
     if (!matchFrame) continue;
 
     const recordType = matchFrame[2].toUpperCase();

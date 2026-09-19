@@ -22,6 +22,7 @@ import { financialRoutes } from './routes/financials';
 import { archiveRoutes } from './routes/archive';
 import { deviceRoutes } from './routes/devices';
 import { auditRoutes } from './routes/audit';
+import { startTcpDeviceServer } from './services/tcpDeviceServer';
 
 const server = Fastify({ logger: true });
 
@@ -100,6 +101,9 @@ async function bootstrap() {
     }
     console.log(`🚀 Lab Manager Backend running at: ${address}`);
     startMDNS(PORT);
+    startTcpDeviceServer().catch((err) => {
+      console.error('Failed to start TCP Device Server:', err);
+    });
   });
 }
 

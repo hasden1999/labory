@@ -18,7 +18,8 @@
       "criticalHigh": 20,
       "refRangeText": "12.0 - 16.0",
       "unit": "g/dL",
-      "sampleType": "دم كامل (EDTA)"
+      "sampleType": "دم كامل (EDTA)",
+      "loincCode": "58410-2"
     },
     {
       "id": "t-hb",
@@ -38,7 +39,8 @@
       "criticalHigh": 20,
       "refRangeText": "12.0 - 16.5",
       "unit": "g/dL",
-      "sampleType": "دم كامل (EDTA)"
+      "sampleType": "دم كامل (EDTA)",
+      "loincCode": "718-7"
     },
     {
       "id": "t-esr",
@@ -57,7 +59,8 @@
       "criticalHigh": 100,
       "refRangeText": "0 - 20",
       "unit": "mm/1st hr",
-      "sampleType": "دم كامل (Citrate)"
+      "sampleType": "دم كامل (Citrate)",
+      "loincCode": "4537-7"
     },
     {
       "id": "t-bg",
@@ -69,7 +72,8 @@
       "costEstimate": 800,
       "refRangeText": "A / B / AB / O (Pos/Neg)",
       "unit": "",
-      "sampleType": "دم كامل (EDTA)"
+      "sampleType": "دم كامل (EDTA)",
+      "loincCode": "882-1"
     },
     {
       "id": "t-plt",
@@ -85,7 +89,8 @@
       "criticalHigh": 1000000,
       "refRangeText": "150,000 - 450,000",
       "unit": "/uL",
-      "sampleType": "دم كامل (EDTA)"
+      "sampleType": "دم كامل (EDTA)",
+      "loincCode": "777-3"
     },
     {
       "id": "t-pt",
@@ -100,7 +105,8 @@
       "criticalHigh": 4.5,
       "refRangeText": "0.9 - 1.2",
       "unit": "Ratio",
-      "sampleType": "بلازما (Sodium Citrate)"
+      "sampleType": "بلازما (Sodium Citrate)",
+      "loincCode": "6301-6"
     },
     {
       "id": "t-ptt",
@@ -115,7 +121,8 @@
       "criticalHigh": 80,
       "refRangeText": "25 - 38",
       "unit": "sec",
-      "sampleType": "بلازما (Sodium Citrate)"
+      "sampleType": "بلازما (Sodium Citrate)",
+      "loincCode": "3173-2"
     },
     {
       "id": "t-ddimer",
@@ -130,7 +137,8 @@
       "criticalHigh": 5,
       "refRangeText": "< 0.5",
       "unit": "ug/mL",
-      "sampleType": "بلازما"
+      "sampleType": "بلازما",
+      "loincCode": "48065-7"
     },
     {
       "id": "t-fer",
@@ -149,7 +157,8 @@
       "criticalLow": 5,
       "refRangeText": "15 - 200",
       "unit": "ng/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2276-4"
     },
     {
       "id": "t-iron",
@@ -167,7 +176,8 @@
       "normalFemaleHigh": 170,
       "refRangeText": "50 - 170",
       "unit": "ug/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2498-4"
     },
     {
       "id": "t-tibc",
@@ -181,7 +191,8 @@
       "refRangeHigh": 450,
       "refRangeText": "250 - 450",
       "unit": "ug/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2500-7"
     },
     {
       "id": "t-fbs",
@@ -197,7 +208,8 @@
       "criticalHigh": 400,
       "refRangeText": "70 - 100 (Normal)",
       "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "1558-6"
     },
     {
       "id": "t-rbs",
@@ -213,7 +225,8 @@
       "criticalHigh": 450,
       "refRangeText": "70 - 140",
       "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2345-7"
     },
     {
       "id": "t-hba1c",
@@ -228,7 +241,8 @@
       "criticalHigh": 12,
       "refRangeText": "4.0 - 5.6 % (Non-diabetic)",
       "unit": "%",
-      "sampleType": "دم كامل (EDTA)"
+      "sampleType": "دم كامل (EDTA)",
+      "loincCode": "4548-4"
     },
     {
       "id": "t-ogtt",
@@ -242,7 +256,8 @@
       "refRangeHigh": 140,
       "refRangeText": "< 140",
       "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "20436-2"
     },
     {
       "id": "t-insulin",
@@ -256,7 +271,8 @@
       "refRangeHigh": 24.9,
       "refRangeText": "2.6 - 24.9",
       "unit": "uIU/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2484-4"
     },
     {
       "id": "t-cpep",
@@ -270,7 +286,8 @@
       "refRangeHigh": 3.8,
       "refRangeText": "0.8 - 3.8",
       "unit": "ng/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "1988-5"
     },
     {
       "id": "t-creat",
@@ -289,7 +306,8 @@
       "criticalHigh": 5,
       "refRangeText": "0.6 - 1.2",
       "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2160-0"
     },
     {
       "id": "t-urea",
@@ -304,7 +322,8 @@
       "criticalHigh": 120,
       "refRangeText": "15 - 45",
       "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "3094-0"
     },
     {
       "id": "t-bun",
@@ -318,7 +337,8 @@
       "refRangeHigh": 20,
       "refRangeText": "7 - 20",
       "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "3094-0"
     },
     {
       "id": "t-uric",
@@ -336,7 +356,8 @@
       "normalFemaleHigh": 6,
       "refRangeText": "3.5 - 7.2",
       "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "3084-1"
     },
     {
       "id": "t-na",
@@ -352,7 +373,8 @@
       "criticalHigh": 160,
       "refRangeText": "135 - 145",
       "unit": "mmol/L",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2951-2"
     },
     {
       "id": "t-k",
@@ -368,7 +390,8 @@
       "criticalHigh": 6.2,
       "refRangeText": "3.5 - 5.1",
       "unit": "mmol/L",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2823-3"
     },
     {
       "id": "t-cl",
@@ -382,7 +405,8 @@
       "refRangeHigh": 107,
       "refRangeText": "98 - 107",
       "unit": "mmol/L",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2075-0"
     },
     {
       "id": "t-malb",
@@ -396,7 +420,8 @@
       "refRangeHigh": 30,
       "refRangeText": "< 30",
       "unit": "mg/L",
-      "sampleType": "إدرار عشوائي"
+      "sampleType": "إدرار عشوائي",
+      "loincCode": "14957-5"
     },
     {
       "id": "t-got",
@@ -415,7 +440,8 @@
       "criticalHigh": 250,
       "refRangeText": "5 - 40",
       "unit": "U/L",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "1920-8"
     },
     {
       "id": "t-gpt",
@@ -434,7 +460,8 @@
       "criticalHigh": 250,
       "refRangeText": "5 - 45",
       "unit": "U/L",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "1742-6"
     },
     {
       "id": "t-alp",
@@ -448,7 +475,8 @@
       "refRangeHigh": 130,
       "refRangeText": "40 - 130",
       "unit": "U/L",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "6768-6"
     },
     {
       "id": "t-tsb",
@@ -463,7 +491,8 @@
       "criticalHigh": 15,
       "refRangeText": "0.2 - 1.2",
       "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "1975-2"
     },
     {
       "id": "t-dirbil",
@@ -477,7 +506,8 @@
       "refRangeHigh": 0.3,
       "refRangeText": "0.0 - 0.3",
       "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "1968-7"
     },
     {
       "id": "t-tp",
@@ -491,7 +521,8 @@
       "refRangeHigh": 8.3,
       "refRangeText": "6.4 - 8.3",
       "unit": "g/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2885-2"
     },
     {
       "id": "t-alb",
@@ -505,7 +536,8 @@
       "refRangeHigh": 5,
       "refRangeText": "3.5 - 5.0",
       "unit": "g/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "1751-7"
     },
     {
       "id": "t-chol",
@@ -520,7 +552,8 @@
       "criticalHigh": 300,
       "refRangeText": "< 200 (Desirable)",
       "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2093-3"
     },
     {
       "id": "t-tg",
@@ -535,7 +568,8 @@
       "criticalHigh": 500,
       "refRangeText": "< 150 (Normal)",
       "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2571-8"
     },
     {
       "id": "t-hdl",
@@ -553,7 +587,8 @@
       "normalFemaleHigh": 65,
       "refRangeText": "> 40 (Male) / > 50 (Female)",
       "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2085-9"
     },
     {
       "id": "t-ldl",
@@ -568,7 +603,8 @@
       "criticalHigh": 190,
       "refRangeText": "< 100 (Optimal)",
       "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2089-1"
     },
     {
       "id": "t-vldl",
@@ -582,7 +618,8 @@
       "refRangeHigh": 30,
       "refRangeText": "5 - 30",
       "unit": "mg/dL",
-      "sampleType": "محسوب"
+      "sampleType": "محسوب",
+      "loincCode": "13457-7"
     },
     {
       "id": "t-trop",
@@ -597,7 +634,8 @@
       "criticalHigh": 0.1,
       "refRangeText": "< 0.04 (Negative)",
       "unit": "ng/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "42757-5"
     },
     {
       "id": "t-tsh",
@@ -613,7 +651,8 @@
       "criticalHigh": 15,
       "refRangeText": "0.4 - 4.2",
       "unit": "uIU/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "3016-3"
     },
     {
       "id": "t-ft4",
@@ -627,7 +666,8 @@
       "refRangeHigh": 1.8,
       "refRangeText": "0.8 - 1.8",
       "unit": "ng/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "3024-7"
     },
     {
       "id": "t-ft3",
@@ -641,7 +681,8 @@
       "refRangeHigh": 4.4,
       "refRangeText": "2.0 - 4.4",
       "unit": "pg/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "3053-6"
     },
     {
       "id": "t-prl",
@@ -660,7 +701,8 @@
       "criticalHigh": 100,
       "refRangeText": "4.0 - 25.0 (Female)",
       "unit": "ng/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2842-3"
     },
     {
       "id": "t-fsh",
@@ -674,7 +716,8 @@
       "refRangeHigh": 12.4,
       "refRangeText": "1.5 - 12.4",
       "unit": "mIU/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "15067-2"
     },
     {
       "id": "t-lh",
@@ -688,7 +731,8 @@
       "refRangeHigh": 12.6,
       "refRangeText": "1.7 - 12.6",
       "unit": "mIU/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "10501-5"
     },
     {
       "id": "t-testo",
@@ -706,7 +750,8 @@
       "normalFemaleHigh": 0.8,
       "refRangeText": "2.8 - 8.0 (Male)",
       "unit": "ng/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2986-8"
     },
     {
       "id": "t-bhcg",
@@ -720,7 +765,8 @@
       "refRangeHigh": 5,
       "refRangeText": "< 5 (Non-pregnant)",
       "unit": "mIU/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "21198-7"
     },
     {
       "id": "t-amh",
@@ -734,7 +780,8 @@
       "refRangeHigh": 3.5,
       "refRangeText": "1.0 - 3.5",
       "unit": "ng/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "38476-8"
     },
     {
       "id": "t-vitd",
@@ -749,7 +796,8 @@
       "criticalLow": 10,
       "refRangeText": "30 - 100 (Sufficiency)",
       "unit": "ng/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "62292-8"
     },
     {
       "id": "t-vitb12",
@@ -764,7 +812,8 @@
       "criticalLow": 100,
       "refRangeText": "200 - 900",
       "unit": "pg/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2132-9"
     },
     {
       "id": "t-calc",
@@ -780,7 +829,8 @@
       "criticalHigh": 13,
       "refRangeText": "8.5 - 10.5",
       "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "17861-6"
     },
     {
       "id": "t-phos",
@@ -794,7 +844,8 @@
       "refRangeHigh": 4.5,
       "refRangeText": "2.5 - 4.5",
       "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2777-1"
     },
     {
       "id": "t-mg",
@@ -808,7 +859,8 @@
       "refRangeHigh": 2.4,
       "refRangeText": "1.7 - 2.4",
       "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "19123-9"
     },
     {
       "id": "t-zinc",
@@ -822,7 +874,8 @@
       "refRangeHigh": 120,
       "refRangeText": "70 - 120",
       "unit": "ug/dL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "3201-1"
     },
     {
       "id": "t-crp",
@@ -837,7 +890,8 @@
       "criticalHigh": 50,
       "refRangeText": "< 6.0 (Normal)",
       "unit": "mg/L",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "76485-2"
     },
     {
       "id": "t-rf",
@@ -851,7 +905,8 @@
       "refRangeHigh": 20,
       "refRangeText": "< 20 (Negative)",
       "unit": "IU/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "11572-5"
     },
     {
       "id": "t-aso",
@@ -865,7 +920,8 @@
       "refRangeHigh": 200,
       "refRangeText": "< 200 (Negative)",
       "unit": "IU/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "5370-1"
     },
     {
       "id": "t-rose",
@@ -877,7 +933,8 @@
       "costEstimate": 1200,
       "refRangeText": "Negative",
       "unit": "",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "22159-8"
     },
     {
       "id": "t-widal",
@@ -889,7 +946,8 @@
       "costEstimate": 1200,
       "refRangeText": "Negative (< 1:80)",
       "unit": "Titer",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "22263-8"
     },
     {
       "id": "t-hp",
@@ -901,7 +959,8 @@
       "costEstimate": 3000,
       "refRangeText": "Negative",
       "unit": "",
-      "sampleType": "عينة خروج"
+      "sampleType": "عينة خروج",
+      "loincCode": "50549-5"
     },
     {
       "id": "t-hbsag",
@@ -913,7 +972,8 @@
       "costEstimate": 2800,
       "refRangeText": "Negative (Non-reactive)",
       "unit": "",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "5196-1"
     },
     {
       "id": "t-hcv",
@@ -925,7 +985,8 @@
       "costEstimate": 2800,
       "refRangeText": "Negative (Non-reactive)",
       "unit": "",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "40726-2"
     },
     {
       "id": "t-hiv",
@@ -937,7 +998,8 @@
       "costEstimate": 4000,
       "refRangeText": "Negative (Non-reactive)",
       "unit": "",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "75622-1"
     },
     {
       "id": "t-gue",
@@ -949,7 +1011,8 @@
       "costEstimate": 800,
       "refRangeText": "Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)",
       "unit": "",
-      "sampleType": "إدرار صباحي"
+      "sampleType": "إدرار صباحي",
+      "loincCode": "24357-6"
     },
     {
       "id": "t-gse",
@@ -961,7 +1024,8 @@
       "costEstimate": 800,
       "refRangeText": "Normal (No Parasites / FOBT: Negative)",
       "unit": "",
-      "sampleType": "عينة خروج"
+      "sampleType": "عينة خروج",
+      "loincCode": "10701-1"
     },
     {
       "id": "t-fobt",
@@ -973,7 +1037,8 @@
       "costEstimate": 2000,
       "refRangeText": "Negative",
       "unit": "",
-      "sampleType": "عينة خروج"
+      "sampleType": "عينة خروج",
+      "loincCode": "14563-1"
     },
     {
       "id": "t-psa",
@@ -988,7 +1053,8 @@
       "criticalHigh": 10,
       "refRangeText": "< 4.0",
       "unit": "ng/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2857-1"
     },
     {
       "id": "t-cea",
@@ -1002,7 +1068,8 @@
       "refRangeHigh": 5,
       "refRangeText": "< 5.0",
       "unit": "ng/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2039-6"
     },
     {
       "id": "t-ca125",
@@ -1016,7 +1083,8 @@
       "refRangeHigh": 35,
       "refRangeText": "< 35.0",
       "unit": "U/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "10334-1"
     },
     {
       "id": "t-ca199",
@@ -1030,7 +1098,8 @@
       "refRangeHigh": 37,
       "refRangeText": "< 37.0",
       "unit": "U/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "24108-3"
     },
     {
       "id": "t-ca153",
@@ -1044,7 +1113,8 @@
       "refRangeHigh": 30,
       "refRangeText": "< 30.0",
       "unit": "U/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "17842-6"
     },
     {
       "id": "t-afp",
@@ -1058,7 +1128,8 @@
       "refRangeHigh": 7,
       "refRangeText": "< 7.0",
       "unit": "ng/mL",
-      "sampleType": "مصل الدم (Serum)"
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "1834-1"
     },
     {
       "id": "t-sfa",
@@ -1072,7 +1143,1012 @@
       "refRangeHigh": 200,
       "refRangeText": "Normal (Conc >= 15 M/mL, PR >= 32%, Normal Forms >= 4%)",
       "unit": "M/mL",
-      "sampleType": "سائل منوي"
+      "sampleType": "سائل منوي",
+      "loincCode": "10584-1"
+    },
+    {
+      "id": "t-bt",
+      "code": "BT",
+      "name": "Bleeding Time (BT - Ivy)",
+      "arabicName": "زمن النزف (BT)",
+      "category": "أمراض الدم والتخثر",
+      "price": 6000,
+      "costEstimate": 1000,
+      "refRangeLow": 2,
+      "refRangeHigh": 7,
+      "criticalHigh": 15,
+      "refRangeText": "2.0 - 7.0",
+      "unit": "min",
+      "sampleType": "دم شعيري (Capillary)",
+      "loincCode": "34555-3"
+    },
+    {
+      "id": "t-ct",
+      "code": "CT",
+      "name": "Clotting Time (CT - Lee-White)",
+      "arabicName": "زمن التخثر (CT)",
+      "category": "أمراض الدم والتخثر",
+      "price": 6000,
+      "costEstimate": 1000,
+      "refRangeLow": 5,
+      "refRangeHigh": 11,
+      "criticalHigh": 20,
+      "refRangeText": "5.0 - 11.0",
+      "unit": "min",
+      "sampleType": "دم كامل (أنابيب زجاجية)",
+      "loincCode": "3187-2"
+    },
+    {
+      "id": "t-fib",
+      "code": "FIB",
+      "name": "Fibrinogen (Factor I - Clauss)",
+      "arabicName": "الفيبرينوجين (عامل التخثر الأول)",
+      "category": "أمراض الدم والتخثر",
+      "price": 20000,
+      "costEstimate": 4500,
+      "refRangeLow": 200,
+      "refRangeHigh": 400,
+      "criticalLow": 100,
+      "criticalHigh": 700,
+      "refRangeText": "200 - 400",
+      "unit": "mg/dL",
+      "sampleType": "بلازما (Sodium Citrate)",
+      "loincCode": "3255-7"
+    },
+    {
+      "id": "t-tt",
+      "code": "TT",
+      "name": "Thrombin Time (TT)",
+      "arabicName": "زمن الثرومبين (TT)",
+      "category": "أمراض الدم والتخثر",
+      "price": 18000,
+      "costEstimate": 3800,
+      "refRangeLow": 14,
+      "refRangeHigh": 19,
+      "criticalHigh": 35,
+      "refRangeText": "14.0 - 19.0",
+      "unit": "sec",
+      "sampleType": "بلازما (Sodium Citrate)",
+      "loincCode": "3243-3"
+    },
+    {
+      "id": "t-prot-c",
+      "code": "PROT-C",
+      "name": "Protein C Activity",
+      "arabicName": "نشاط بروتين سي (مانع التخثر الطبيعي)",
+      "category": "أمراض الدم والتخثر",
+      "price": 35000,
+      "costEstimate": 8500,
+      "refRangeLow": 70,
+      "refRangeHigh": 140,
+      "criticalLow": 50,
+      "refRangeText": "70 - 140",
+      "unit": "%",
+      "sampleType": "بلازما (Sodium Citrate)",
+      "loincCode": "27817-6"
+    },
+    {
+      "id": "t-prot-s",
+      "code": "PROT-S",
+      "name": "Protein S Free Antigen",
+      "arabicName": "بروتين إس الحر (مانع التخثر الطبيعي)",
+      "category": "أمراض الدم والتخثر",
+      "price": 35000,
+      "costEstimate": 8500,
+      "refRangeLow": 65,
+      "refRangeHigh": 140,
+      "normalMaleLow": 75,
+      "normalMaleHigh": 140,
+      "normalFemaleLow": 65,
+      "normalFemaleHigh": 130,
+      "criticalLow": 50,
+      "refRangeText": "65 - 140",
+      "unit": "%",
+      "sampleType": "بلازما (Sodium Citrate)",
+      "loincCode": "27821-8"
+    },
+    {
+      "id": "t-at3",
+      "code": "AT-III",
+      "name": "Antithrombin III Activity (AT-III)",
+      "arabicName": "مضاد الثرومبين الثالث (AT-III)",
+      "category": "أمراض الدم والتخثر",
+      "price": 35000,
+      "costEstimate": 8500,
+      "refRangeLow": 80,
+      "refRangeHigh": 120,
+      "criticalLow": 50,
+      "refRangeText": "80 - 120",
+      "unit": "%",
+      "sampleType": "بلازما (Sodium Citrate)",
+      "loincCode": "3174-0"
+    },
+    {
+      "id": "t-amy",
+      "code": "AMY",
+      "name": "Serum Amylase",
+      "arabicName": "إنزيم الأميليز في مصل الدم",
+      "category": "الكيمياء السريرية والسكري",
+      "price": 12000,
+      "costEstimate": 2400,
+      "refRangeLow": 28,
+      "refRangeHigh": 100,
+      "criticalHigh": 300,
+      "refRangeText": "28 - 100",
+      "unit": "U/L",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "1798-8"
+    },
+    {
+      "id": "t-lip",
+      "code": "LIP",
+      "name": "Serum Lipase",
+      "arabicName": "إنزيم الليباز في مصل الدم",
+      "category": "الكيمياء السريرية والسكري",
+      "price": 15000,
+      "costEstimate": 3000,
+      "refRangeLow": 13,
+      "refRangeHigh": 60,
+      "criticalHigh": 180,
+      "refRangeText": "13 - 60",
+      "unit": "U/L",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "3040-3"
+    },
+    {
+      "id": "t-ldh",
+      "code": "LDH",
+      "name": "Lactate Dehydrogenase (LDH)",
+      "arabicName": "إنزيم نازعة هيدروجين اللاكتات (LDH)",
+      "category": "الكيمياء السريرية والسكري",
+      "price": 10000,
+      "costEstimate": 2000,
+      "refRangeLow": 140,
+      "refRangeHigh": 280,
+      "criticalHigh": 750,
+      "refRangeText": "140 - 280",
+      "unit": "U/L",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2532-0"
+    },
+    {
+      "id": "t-ck",
+      "code": "CK",
+      "name": "Creatine Kinase Total (CK / CPK)",
+      "arabicName": "إنزيم كرياتين كيناز الكلي (CPK)",
+      "category": "الكيمياء السريرية والسكري",
+      "price": 12000,
+      "costEstimate": 2500,
+      "refRangeLow": 30,
+      "refRangeHigh": 200,
+      "normalMaleLow": 39,
+      "normalMaleHigh": 308,
+      "normalFemaleLow": 26,
+      "normalFemaleHigh": 192,
+      "criticalHigh": 1000,
+      "refRangeText": "30 - 200",
+      "unit": "U/L",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2157-6"
+    },
+    {
+      "id": "t-ckmb",
+      "code": "CK-MB",
+      "name": "Creatine Kinase-MB (CK-MB)",
+      "arabicName": "إنزيم كرياتين كيناز القلبي (CK-MB)",
+      "category": "دهون الدم وصحة القلب",
+      "price": 18000,
+      "costEstimate": 3500,
+      "refRangeLow": 0,
+      "refRangeHigh": 25,
+      "criticalHigh": 50,
+      "refRangeText": "0 - 25",
+      "unit": "U/L",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2154-3"
+    },
+    {
+      "id": "t-ggt",
+      "code": "GGT",
+      "name": "Gamma-Glutamyl Transferase (GGT)",
+      "arabicName": "إنزيم غاما جلوتاميل ترانسفيريز (GGT)",
+      "category": "وظائف الكبد والمرارة",
+      "price": 10000,
+      "costEstimate": 2000,
+      "refRangeLow": 9,
+      "refRangeHigh": 48,
+      "normalMaleLow": 10,
+      "normalMaleHigh": 60,
+      "normalFemaleLow": 9,
+      "normalFemaleHigh": 36,
+      "criticalHigh": 250,
+      "refRangeText": "9 - 48",
+      "unit": "U/L",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2324-2"
+    },
+    {
+      "id": "t-ag-ratio",
+      "code": "AG-RATIO",
+      "name": "Albumin / Globulin Ratio (A/G Ratio)",
+      "arabicName": "نسبة الألبومين إلى الجلوبيولين (A/G Ratio)",
+      "category": "وظائف الكبد والمرارة",
+      "price": 5000,
+      "costEstimate": 0,
+      "refRangeLow": 1.1,
+      "refRangeHigh": 2.5,
+      "refRangeText": "1.1 - 2.5",
+      "unit": "Ratio",
+      "sampleType": "محسوب",
+      "loincCode": "1759-0"
+    },
+    {
+      "id": "t-osm",
+      "code": "OSM",
+      "name": "Serum Osmolality",
+      "arabicName": "الأسمولية في مصل الدم",
+      "category": "وظائف الكلى والأملاح",
+      "price": 15000,
+      "costEstimate": 3000,
+      "refRangeLow": 275,
+      "refRangeHigh": 295,
+      "criticalLow": 250,
+      "criticalHigh": 320,
+      "refRangeText": "275 - 295",
+      "unit": "mOsm/kg",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2692-2"
+    },
+    {
+      "id": "t-hscrp",
+      "code": "HS-CRP",
+      "name": "High-Sensitivity C-Reactive Protein (hs-CRP)",
+      "arabicName": "بروتين سي التفاعلي عالي الحساسية (hs-CRP)",
+      "category": "دهون الدم وصحة القلب",
+      "price": 20000,
+      "costEstimate": 4500,
+      "refRangeLow": 0,
+      "refRangeHigh": 3,
+      "criticalHigh": 10,
+      "refRangeText": "< 1.0 (Low risk) / 1.0 - 3.0 (Avg) / > 3.0 (High)",
+      "unit": "mg/L",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "30522-7"
+    },
+    {
+      "id": "t-nt-probnp",
+      "code": "NT-PROBNP",
+      "name": "N-Terminal Pro-B-Type Natriuretic Peptide (NT-proBNP)",
+      "arabicName": "ببتيد ناتريوريتك القلبي (NT-proBNP لقصور القلب)",
+      "category": "دهون الدم وصحة القلب",
+      "price": 45000,
+      "costEstimate": 12000,
+      "refRangeLow": 0,
+      "refRangeHigh": 125,
+      "criticalHigh": 900,
+      "refRangeText": "< 125 (Age < 75) / < 450 (Age >= 75)",
+      "unit": "pg/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "33762-6"
+    },
+    {
+      "id": "t-myo",
+      "code": "MYO",
+      "name": "Serum Myoglobin",
+      "arabicName": "الميوغلوبين في مصل الدم (إجهاد العضلات والقلب)",
+      "category": "دهون الدم وصحة القلب",
+      "price": 25000,
+      "costEstimate": 5500,
+      "refRangeLow": 25,
+      "refRangeHigh": 72,
+      "normalMaleLow": 28,
+      "normalMaleHigh": 72,
+      "normalFemaleLow": 25,
+      "normalFemaleHigh": 58,
+      "criticalHigh": 110,
+      "refRangeText": "25 - 72",
+      "unit": "ng/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2639-3"
+    },
+    {
+      "id": "t-hcy",
+      "code": "HCY",
+      "name": "Total Homocysteine",
+      "arabicName": "الهوموسيستين الكلي (تصلب الشرايين والتجلط)",
+      "category": "دهون الدم وصحة القلب",
+      "price": 35000,
+      "costEstimate": 8000,
+      "refRangeLow": 5,
+      "refRangeHigh": 15,
+      "criticalHigh": 30,
+      "refRangeText": "5.0 - 15.0",
+      "unit": "umol/L",
+      "sampleType": "بلازما (EDTA مفصولة فوراً)",
+      "loincCode": "13965-9"
+    },
+    {
+      "id": "t-egfr",
+      "code": "EGFR",
+      "name": "Estimated Glomerular Filtration Rate (eGFR - CKD-EPI)",
+      "arabicName": "معدل الترشيح الكبيبي المقدر (eGFR)",
+      "category": "وظائف الكلى والأملاح",
+      "price": 5000,
+      "costEstimate": 0,
+      "refRangeLow": 90,
+      "refRangeHigh": 120,
+      "criticalLow": 15,
+      "refRangeText": "> 90 (Normal) / 60 - 89 (Mild) / < 60 (CKD)",
+      "unit": "mL/min/1.73m2",
+      "sampleType": "محسوب",
+      "loincCode": "33914-3"
+    },
+    {
+      "id": "t-ca-ion",
+      "code": "CA-ION",
+      "name": "Ionized Calcium (Free Ca++)",
+      "arabicName": "الكالسيوم المتأين الحر (الكالسيوم الفعال)",
+      "category": "وظائف الكلى والأملاح",
+      "price": 15000,
+      "costEstimate": 3000,
+      "refRangeLow": 1.15,
+      "refRangeHigh": 1.33,
+      "criticalLow": 0.9,
+      "criticalHigh": 1.6,
+      "refRangeText": "1.15 - 1.33",
+      "unit": "mmol/L",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "1994-3"
+    },
+    {
+      "id": "t-u-prot-24h",
+      "code": "U-PROT-24H",
+      "name": "24-Hour Urine Total Protein",
+      "arabicName": "البروتين الكلي في إدرار 24 ساعة",
+      "category": "وظائف الكلى والأملاح",
+      "price": 15000,
+      "costEstimate": 2500,
+      "refRangeLow": 50,
+      "refRangeHigh": 150,
+      "criticalHigh": 3500,
+      "refRangeText": "< 150",
+      "unit": "mg/24h",
+      "sampleType": "إدرار 24 ساعة",
+      "loincCode": "2888-6"
+    },
+    {
+      "id": "t-upcr",
+      "code": "UPCR",
+      "name": "Urine Protein / Creatinine Ratio (UPCR)",
+      "arabicName": "نسبة البروتين إلى الكرياتينين في الإدرار (UPCR)",
+      "category": "وظائف الكلى والأملاح",
+      "price": 15000,
+      "costEstimate": 2500,
+      "refRangeLow": 0,
+      "refRangeHigh": 200,
+      "criticalHigh": 2000,
+      "refRangeText": "< 200",
+      "unit": "mg/g",
+      "sampleType": "إدرار عشوائي",
+      "loincCode": "2890-2"
+    },
+    {
+      "id": "t-u-phos-24h",
+      "code": "U-PHOS-24H",
+      "name": "24-Hour Urine Phosphorus (Phosphate)",
+      "arabicName": "الفوسفور في إدرار 24 ساعة",
+      "category": "وظائف الكلى والأملاح",
+      "price": 12000,
+      "costEstimate": 2000,
+      "refRangeLow": 0.4,
+      "refRangeHigh": 1.3,
+      "refRangeText": "0.4 - 1.3",
+      "unit": "g/24h",
+      "sampleType": "إدرار 24 ساعة",
+      "loincCode": "2779-7"
+    },
+    {
+      "id": "t-anti-tpo",
+      "code": "ANTI-TPO",
+      "name": "Anti-Thyroid Peroxidase Antibodies (Anti-TPO)",
+      "arabicName": "الأجسام المضادة لبيروكسيداز الدرقية (Anti-TPO)",
+      "category": "الغدة الدرقية والهرمونات",
+      "price": 25000,
+      "costEstimate": 5500,
+      "refRangeLow": 0,
+      "refRangeHigh": 34,
+      "refRangeText": "< 34 (Negative)",
+      "unit": "IU/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "8099-4"
+    },
+    {
+      "id": "t-anti-tg",
+      "code": "ANTI-TG",
+      "name": "Anti-Thyroglobulin Antibodies (Anti-TG)",
+      "arabicName": "الأجسام المضادة للثيروغلوبولين (Anti-TG)",
+      "category": "الغدة الدرقية والهرمونات",
+      "price": 25000,
+      "costEstimate": 5500,
+      "refRangeLow": 0,
+      "refRangeHigh": 115,
+      "refRangeText": "< 115 (Negative)",
+      "unit": "IU/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "8098-6"
+    },
+    {
+      "id": "t-cort-am",
+      "code": "CORT-AM",
+      "name": "Serum Cortisol (Morning 8 AM)",
+      "arabicName": "هرمون الكورتيزول الصباحي (8 صباحاً)",
+      "category": "الغدة الدرقية والهرمونات",
+      "price": 25000,
+      "costEstimate": 5000,
+      "refRangeLow": 6,
+      "refRangeHigh": 23,
+      "criticalLow": 3,
+      "criticalHigh": 40,
+      "refRangeText": "6.0 - 23.0",
+      "unit": "ug/dL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2143-6"
+    },
+    {
+      "id": "t-cort-pm",
+      "code": "CORT-PM",
+      "name": "Serum Cortisol (Evening 4 PM)",
+      "arabicName": "هرمون الكورتيزول المسائي (4 عصراً)",
+      "category": "الغدة الدرقية والهرمونات",
+      "price": 25000,
+      "costEstimate": 5000,
+      "refRangeLow": 3,
+      "refRangeHigh": 15,
+      "criticalHigh": 30,
+      "refRangeText": "3.0 - 15.0",
+      "unit": "ug/dL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2142-8"
+    },
+    {
+      "id": "t-acth",
+      "code": "ACTH",
+      "name": "Adrenocorticotropic Hormone (ACTH)",
+      "arabicName": "الهرمون الموجه لقشرة الكظر (ACTH)",
+      "category": "الغدة الدرقية والهرمونات",
+      "price": 35000,
+      "costEstimate": 8000,
+      "refRangeLow": 7.2,
+      "refRangeHigh": 63.3,
+      "refRangeText": "7.2 - 63.3",
+      "unit": "pg/mL",
+      "sampleType": "بلازما (EDTA مبردة)",
+      "loincCode": "2141-0"
+    },
+    {
+      "id": "t-dhea-s",
+      "code": "DHEA-S",
+      "name": "Dehydroepiandrosterone Sulfate (DHEA-S)",
+      "arabicName": "هرمون ديهيدرو إيبي آندروستيرون سلفات (DHEA-S)",
+      "category": "الغدة الدرقية والهرمونات",
+      "price": 30000,
+      "costEstimate": 6500,
+      "refRangeLow": 80,
+      "refRangeHigh": 450,
+      "normalMaleLow": 80,
+      "normalMaleHigh": 560,
+      "normalFemaleLow": 35,
+      "normalFemaleHigh": 430,
+      "refRangeText": "80 - 450",
+      "unit": "ug/dL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2198-0"
+    },
+    {
+      "id": "t-17-ohp",
+      "code": "17-OHP",
+      "name": "17-Hydroxyprogesterone (17-OHP)",
+      "arabicName": "هرمون 17-هيدروكسي بروجستيرون (17-OHP)",
+      "category": "الغدة الدرقية والهرمونات",
+      "price": 35000,
+      "costEstimate": 8000,
+      "refRangeLow": 0.2,
+      "refRangeHigh": 2,
+      "refRangeText": "0.2 - 2.0",
+      "unit": "ng/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "1667-5"
+    },
+    {
+      "id": "t-free-testo",
+      "code": "FREE-TESTO",
+      "name": "Free Testosterone",
+      "arabicName": "هرمون التستوستيرون الحر (الذكورة الفعال)",
+      "category": "الغدة الدرقية والهرمونات",
+      "price": 30000,
+      "costEstimate": 7000,
+      "refRangeLow": 8.8,
+      "refRangeHigh": 27,
+      "normalMaleLow": 8.8,
+      "normalMaleHigh": 27,
+      "normalFemaleLow": 0.2,
+      "normalFemaleHigh": 4.1,
+      "refRangeText": "8.8 - 27.0 (Male) / 0.2 - 4.1 (Female)",
+      "unit": "pg/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2991-8"
+    },
+    {
+      "id": "t-prg",
+      "code": "PRG",
+      "name": "Progesterone (PRG)",
+      "arabicName": "هرمون البروجسترون (هرمون التبويض والحمل)",
+      "category": "الغدة الدرقية والهرمونات",
+      "price": 25000,
+      "costEstimate": 5000,
+      "refRangeLow": 0.1,
+      "refRangeHigh": 25,
+      "normalMaleLow": 0.1,
+      "normalMaleHigh": 0.5,
+      "normalFemaleLow": 0.1,
+      "normalFemaleHigh": 25,
+      "refRangeText": "0.1 - 1.0 (Follicular) / 2.0 - 25.0 (Luteal)",
+      "unit": "ng/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2839-9"
+    },
+    {
+      "id": "t-e2",
+      "code": "E2",
+      "name": "Estradiol (E2)",
+      "arabicName": "هرمون الإستراديول (هرمون الأنوثة الرئيسي E2)",
+      "category": "الغدة الدرقية والهرمونات",
+      "price": 25000,
+      "costEstimate": 5000,
+      "refRangeLow": 15,
+      "refRangeHigh": 350,
+      "normalMaleLow": 15,
+      "normalMaleHigh": 50,
+      "normalFemaleLow": 30,
+      "normalFemaleHigh": 350,
+      "refRangeText": "30 - 120 (Follicular) / 130 - 370 (Mid-cycle)",
+      "unit": "pg/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2249-1"
+    },
+    {
+      "id": "t-gh",
+      "code": "GH",
+      "name": "Human Growth Hormone (hGH)",
+      "arabicName": "هرمون النمو البشري (GH)",
+      "category": "الغدة الدرقية والهرمونات",
+      "price": 30000,
+      "costEstimate": 6500,
+      "refRangeLow": 0.05,
+      "refRangeHigh": 5,
+      "refRangeText": "0.05 - 5.0 (Basal Fasting)",
+      "unit": "ng/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2965-2"
+    },
+    {
+      "id": "t-igf1",
+      "code": "IGF-1",
+      "name": "Insulin-like Growth Factor 1 (IGF-1 / Somatomedin C)",
+      "arabicName": "عامل النمو شبيه الأنسولين (IGF-1)",
+      "category": "الغدة الدرقية والهرمونات",
+      "price": 40000,
+      "costEstimate": 10000,
+      "refRangeLow": 115,
+      "refRangeHigh": 307,
+      "refRangeText": "115 - 307",
+      "unit": "ng/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2483-6"
+    },
+    {
+      "id": "t-pth",
+      "code": "PTH",
+      "name": "Intact Parathyroid Hormone (iPTH)",
+      "arabicName": "هرمون الغدة جار الدرقية السليم (iPTH)",
+      "category": "الغدة الدرقية والهرمونات",
+      "price": 30000,
+      "costEstimate": 7000,
+      "refRangeLow": 15,
+      "refRangeHigh": 65,
+      "criticalLow": 10,
+      "criticalHigh": 150,
+      "refRangeText": "15 - 65",
+      "unit": "pg/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2731-8"
+    },
+    {
+      "id": "t-vdrl",
+      "code": "VDRL",
+      "name": "VDRL / RPR (Syphilis Screen)",
+      "arabicName": "فحص مرض الزهري المصلي (VDRL / RPR)",
+      "category": "المناعة والأمصال",
+      "price": 10000,
+      "costEstimate": 1800,
+      "refRangeText": "Non-reactive",
+      "unit": "Titer",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "20507-0"
+    },
+    {
+      "id": "t-tpha",
+      "code": "TPHA",
+      "name": "Treponema Pallidum Hemagglutination (TPHA)",
+      "arabicName": "فحص التلزن الدموي التأكيدي للزهري (TPHA)",
+      "category": "المناعة والأمصال",
+      "price": 15000,
+      "costEstimate": 3000,
+      "refRangeText": "Negative (< 1:80)",
+      "unit": "Titer",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "22587-0"
+    },
+    {
+      "id": "t-toxo-g",
+      "code": "TOXO-G",
+      "name": "Toxoplasma gondii IgG (Quantitative)",
+      "arabicName": "الأجسام المضادة لداء المقوسات القطط (Toxoplasma IgG)",
+      "category": "المناعة والأمصال",
+      "price": 18000,
+      "costEstimate": 3500,
+      "refRangeLow": 0,
+      "refRangeHigh": 8,
+      "refRangeText": "< 7.2 (Negative) / >= 8.8 (Positive)",
+      "unit": "IU/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "22576-3"
+    },
+    {
+      "id": "t-toxo-m",
+      "code": "TOXO-M",
+      "name": "Toxoplasma gondii IgM (Acute)",
+      "arabicName": "الأجسام المضادة لداء القطط الحاد (Toxoplasma IgM)",
+      "category": "المناعة والأمصال",
+      "price": 18000,
+      "costEstimate": 3500,
+      "refRangeLow": 0,
+      "refRangeHigh": 0.8,
+      "refRangeText": "< 0.8 (Negative) / >= 1.0 (Positive)",
+      "unit": "Index",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "25537-2"
+    },
+    {
+      "id": "t-rub-g",
+      "code": "RUB-G",
+      "name": "Rubella Virus IgG (Immunity)",
+      "arabicName": "الأجسام المضادة لمناعة الحصبة الألمانية (Rubella IgG)",
+      "category": "المناعة والأمصال",
+      "price": 18000,
+      "costEstimate": 3500,
+      "refRangeLow": 10,
+      "refRangeHigh": 500,
+      "refRangeText": "> 10.0 (Immune) / < 10.0 (Non-immune)",
+      "unit": "IU/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "25528-1"
+    },
+    {
+      "id": "t-rub-m",
+      "code": "RUB-M",
+      "name": "Rubella Virus IgM (Acute)",
+      "arabicName": "الأجسام المضادة لعدوى الحصبة الألمانية الحادة (Rubella IgM)",
+      "category": "المناعة والأمصال",
+      "price": 18000,
+      "costEstimate": 3500,
+      "refRangeLow": 0,
+      "refRangeHigh": 0.8,
+      "refRangeText": "< 0.8 (Negative)",
+      "unit": "Index",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "25530-7"
+    },
+    {
+      "id": "t-cmv-g",
+      "code": "CMV-G",
+      "name": "Cytomegalovirus (CMV) IgG",
+      "arabicName": "الفيروس المضخم للخلايا لمناعة الجسم (CMV IgG)",
+      "category": "المناعة والأمصال",
+      "price": 18000,
+      "costEstimate": 3500,
+      "refRangeLow": 0,
+      "refRangeHigh": 6,
+      "refRangeText": "< 6.0 (Negative)",
+      "unit": "U/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "25416-9"
+    },
+    {
+      "id": "t-cmv-m",
+      "code": "CMV-M",
+      "name": "Cytomegalovirus (CMV) IgM (Acute)",
+      "arabicName": "الفيروس المضخم للخلايا للعدوى الحادة (CMV IgM)",
+      "category": "المناعة والأمصال",
+      "price": 18000,
+      "costEstimate": 3500,
+      "refRangeLow": 0,
+      "refRangeHigh": 0.7,
+      "refRangeText": "< 0.7 (Negative)",
+      "unit": "Index",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "25418-5"
+    },
+    {
+      "id": "t-hsv-g",
+      "code": "HSV-G",
+      "name": "Herpes Simplex Virus 1 & 2 IgG",
+      "arabicName": "فيروس الهربس البسيط النوع 1 و 2 (HSV 1+2 IgG)",
+      "category": "المناعة والأمصال",
+      "price": 20000,
+      "costEstimate": 4000,
+      "refRangeLow": 0,
+      "refRangeHigh": 0.9,
+      "refRangeText": "< 0.9 (Negative)",
+      "unit": "Index",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "26927-4"
+    },
+    {
+      "id": "t-hsv-m",
+      "code": "HSV-M",
+      "name": "Herpes Simplex Virus 1 & 2 IgM",
+      "arabicName": "فيروس الهربس البسيط للعدوى الحادة (HSV 1+2 IgM)",
+      "category": "المناعة والأمصال",
+      "price": 20000,
+      "costEstimate": 4000,
+      "refRangeLow": 0,
+      "refRangeHigh": 0.9,
+      "refRangeText": "< 0.9 (Negative)",
+      "unit": "Index",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "26928-2"
+    },
+    {
+      "id": "t-ebv-vca",
+      "code": "EBV-VCA",
+      "name": "Epstein-Barr Virus VCA IgG",
+      "arabicName": "فيروس إبشتاين-بار المحفظي (EBV VCA IgG)",
+      "category": "المناعة والأمصال",
+      "price": 25000,
+      "costEstimate": 5000,
+      "refRangeLow": 0,
+      "refRangeHigh": 20,
+      "refRangeText": "< 20 (Negative)",
+      "unit": "U/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "22297-6"
+    },
+    {
+      "id": "t-dengue",
+      "code": "DENGUE",
+      "name": "Dengue Duo Rapid (NS1 Ag & IgG/IgM Ab)",
+      "arabicName": "فحص حمى الضنك السريع المزدوج (Dengue NS1/Ab)",
+      "category": "المناعة والأمصال",
+      "price": 20000,
+      "costEstimate": 4500,
+      "refRangeText": "Negative",
+      "unit": "Qualitative",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "75378-0"
+    },
+    {
+      "id": "t-malaria",
+      "code": "MALARIA",
+      "name": "Malaria Antigen Rapid (P.f / Pan)",
+      "arabicName": "فحص الملاريا السريع المستضدي (Malaria Ag)",
+      "category": "المناعة والأمصال",
+      "price": 10000,
+      "costEstimate": 2000,
+      "refRangeText": "Negative",
+      "unit": "Qualitative",
+      "sampleType": "دم كامل (EDTA)",
+      "loincCode": "44558-5"
+    },
+    {
+      "id": "t-typh-rapid",
+      "code": "TYPH-RAPID",
+      "name": "Typhoid Rapid Card (S. typhi IgG/IgM)",
+      "arabicName": "فحص التيفوئيد السريع للأجسام المضادة (IgG/IgM)",
+      "category": "المناعة والأمصال",
+      "price": 10000,
+      "costEstimate": 2000,
+      "refRangeText": "Negative",
+      "unit": "Qualitative",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "49007-8"
+    },
+    {
+      "id": "t-bruc-sta",
+      "code": "BRUC-STA",
+      "name": "Brucella Standard Tube Agglutination (Wright Test)",
+      "arabicName": "فحص أنبوبة الرايت القياسي للبروسيلا (Wright STA)",
+      "category": "المناعة والأمصال",
+      "price": 15000,
+      "costEstimate": 2500,
+      "refRangeText": "Negative (< 1:80)",
+      "unit": "Titer",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "5070-2"
+    },
+    {
+      "id": "t-ana",
+      "code": "ANA",
+      "name": "Antinuclear Antibodies Screen (ANA / FANA)",
+      "arabicName": "فحص الأجسام المضادة للنواة لمناعة الجسم (ANA)",
+      "category": "أمراض المناعة الذاتية والروماتيزم",
+      "price": 30000,
+      "costEstimate": 7000,
+      "refRangeText": "Negative (< 1:80)",
+      "unit": "Titer",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "8061-4"
+    },
+    {
+      "id": "t-dsdna",
+      "code": "DSDNA",
+      "name": "Anti-Double Stranded DNA (Anti-dsDNA)",
+      "arabicName": "الأجسام المضادة للحمض النووي المزدوج (Anti-dsDNA)",
+      "category": "أمراض المناعة الذاتية والروماتيزم",
+      "price": 30000,
+      "costEstimate": 7000,
+      "refRangeLow": 0,
+      "refRangeHigh": 25,
+      "refRangeText": "< 25 (Negative) / 25 - 35 (Borderline) / > 35 (Positive)",
+      "unit": "IU/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "5130-0"
+    },
+    {
+      "id": "t-ccp",
+      "code": "CCP",
+      "name": "Anti-Cyclic Citrullinated Peptide (Anti-CCP)",
+      "arabicName": "الأجسام المضادة لسيترولين المفاصل المبكر (Anti-CCP)",
+      "category": "أمراض المناعة الذاتية والروماتيزم",
+      "price": 35000,
+      "costEstimate": 8500,
+      "refRangeLow": 0,
+      "refRangeHigh": 20,
+      "refRangeText": "< 20 (Negative) / 20 - 39 (Weak Pos) / >= 40 (Strong Pos)",
+      "unit": "U/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "33935-8"
+    },
+    {
+      "id": "t-c3",
+      "code": "C3",
+      "name": "Complement Component C3",
+      "arabicName": "المتممة المناعية C3 في مصل الدم",
+      "category": "أمراض المناعة الذاتية والروماتيزم",
+      "price": 20000,
+      "costEstimate": 4500,
+      "refRangeLow": 90,
+      "refRangeHigh": 180,
+      "criticalLow": 50,
+      "refRangeText": "90 - 180",
+      "unit": "mg/dL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "4485-9"
+    },
+    {
+      "id": "t-c4",
+      "code": "C4",
+      "name": "Complement Component C4",
+      "arabicName": "المتممة المناعية C4 في مصل الدم",
+      "category": "أمراض المناعة الذاتية والروماتيزم",
+      "price": 20000,
+      "costEstimate": 4500,
+      "refRangeLow": 10,
+      "refRangeHigh": 40,
+      "criticalLow": 5,
+      "refRangeText": "10 - 40",
+      "unit": "mg/dL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "4498-2"
+    },
+    {
+      "id": "t-folate",
+      "code": "FOLATE",
+      "name": "Serum Folate (Vitamin B9)",
+      "arabicName": "حمض الفوليك في الدم (فيتامين ب9)",
+      "category": "المعادن والفيتامينات",
+      "price": 25000,
+      "costEstimate": 5500,
+      "refRangeLow": 3,
+      "refRangeHigh": 20,
+      "criticalLow": 2,
+      "refRangeText": "3.0 - 20.0",
+      "unit": "ng/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2284-8"
+    },
+    {
+      "id": "t-copper",
+      "code": "COPPER",
+      "name": "Serum Copper (Cu)",
+      "arabicName": "النحاس في مصل الدم (مؤشر داء ويلسون)",
+      "category": "المعادن والفيتامينات",
+      "price": 30000,
+      "costEstimate": 7000,
+      "refRangeLow": 70,
+      "refRangeHigh": 140,
+      "normalMaleLow": 70,
+      "normalMaleHigh": 140,
+      "normalFemaleLow": 80,
+      "normalFemaleHigh": 155,
+      "refRangeText": "70 - 140",
+      "unit": "ug/dL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "2147-7"
+    },
+    {
+      "id": "t-doa",
+      "code": "DOA",
+      "name": "Drugs of Abuse 10-Panel Rapid Screen (DOA)",
+      "arabicName": "فحص كشف المخدرات والسموم السريع (10 مواد)",
+      "category": "السموم والمخدرات",
+      "price": 35000,
+      "costEstimate": 8000,
+      "refRangeText": "Negative for all 10 drug classes",
+      "unit": "Qualitative",
+      "sampleType": "إدرار طازج",
+      "loincCode": "69739-1"
+    },
+    {
+      "id": "t-fpsa",
+      "code": "FPSA",
+      "name": "Free PSA (Prostate Specific Antigen Free)",
+      "arabicName": "دلالات البروستات النوعية الحرة (Free PSA)",
+      "category": "دلالات الأورام",
+      "price": 30000,
+      "costEstimate": 6500,
+      "refRangeLow": 0,
+      "refRangeHigh": 0.9,
+      "refRangeText": "0.0 - 0.9 (Free/Total Ratio > 25% Favorable)",
+      "unit": "ng/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "10886-0"
+    },
+    {
+      "id": "t-b2m",
+      "code": "B2M",
+      "name": "Beta-2 Microglobulin (B2M)",
+      "arabicName": "بيتا-2 ميكروغلوبولين (دلالات أورام الدم B2M)",
+      "category": "دلالات الأورام",
+      "price": 30000,
+      "costEstimate": 6500,
+      "refRangeLow": 0.7,
+      "refRangeHigh": 2.5,
+      "criticalHigh": 4,
+      "refRangeText": "0.7 - 2.5",
+      "unit": "mg/L",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "1952-1"
+    },
+    {
+      "id": "t-calcitonin",
+      "code": "CALCITONIN",
+      "name": "Serum Calcitonin (Thyroid Medullary Marker)",
+      "arabicName": "هرمون الكالسيتونين (دلالات أورام الغدة الدرقية)",
+      "category": "دلالات الأورام",
+      "price": 40000,
+      "costEstimate": 10000,
+      "refRangeLow": 0,
+      "refRangeHigh": 10,
+      "normalMaleLow": 0,
+      "normalMaleHigh": 10,
+      "normalFemaleLow": 0,
+      "normalFemaleHigh": 5,
+      "criticalHigh": 100,
+      "refRangeText": "< 10.0 (Male) / < 5.0 (Female)",
+      "unit": "pg/mL",
+      "sampleType": "مصل الدم (Serum)",
+      "loincCode": "1992-7"
     }
   ],
   "panels": [
@@ -1194,11 +2270,435 @@
         "VITD",
         "ZINC"
       ]
+    },
+    {
+      "id": "p-9",
+      "name": "باقة تشخيص أمراض التخثر والميل للتجلط (Thrombophilia & Coagulation Profile)",
+      "description": "تشمل زمن البروثرومبين، PTT، الفيبرينوجين، زمن الثرومبين، بروتين C، بروتين S، ومضاد الثرومبين III ودي دايمر",
+      "price": 120000,
+      "testCodes": [
+        "PT-INR",
+        "PTT",
+        "FIB",
+        "TT",
+        "PROT-C",
+        "PROT-S",
+        "AT-III",
+        "DDIMER"
+      ]
+    },
+    {
+      "id": "p-10",
+      "name": "باقة إنزيمات البنكرياس والجهاز الهضمي (Pancreatic Health Panel)",
+      "description": "تشمل إنزيم الأميليز، إنزيم الليباز، ووظائف الكبد والمرارة",
+      "price": 30000,
+      "testCodes": [
+        "AMY",
+        "LIP",
+        "ALP",
+        "GOT",
+        "GPT"
+      ]
+    },
+    {
+      "id": "p-11",
+      "name": "باقة متلازمة القلب التاجية والمخاطر القلبية (Advanced Cardiac & Inflammation Panel)",
+      "description": "تشمل التروبونين، إنزيم CK-MB، بروتين hs-CRP عالي الحساسية، وببتيد NT-proBNP لقصور القلب، والهوموسيستين",
+      "price": 110000,
+      "testCodes": [
+        "TROP-I",
+        "CK-MB",
+        "HS-CRP",
+        "NT-PROBNP",
+        "HCY",
+        "LDH"
+      ]
+    },
+    {
+      "id": "p-12",
+      "name": "باقة الأمراض الروماتيزمية والمناعة الذاتية (Comprehensive Autoimmune & Rheumatology Panel)",
+      "description": "تشمل فحص النواة ANA، مضادات الحمض النووي dsDNA، مضادات المفاصل Anti-CCP، والمتممات C3 و C4، وعامل الروماتويد و CRP",
+      "price": 115000,
+      "testCodes": [
+        "ANA",
+        "DSDNA",
+        "CCP",
+        "C3",
+        "C4",
+        "RF",
+        "CRP"
+      ]
+    },
+    {
+      "id": "p-13",
+      "name": "باقة داء القطط والالتهابات الخلقية للحوامل (TORCH Full Panel)",
+      "description": "تشمل الأجسام المضادة IgG و IgM لداء المقوسات (التوكسوبلازما)، الحصبة الألمانية (Rubella)، الفيروس المضخم (CMV)، وفيروس الهربس (HSV 1&2)",
+      "price": 125000,
+      "testCodes": [
+        "TOXO-G",
+        "TOXO-M",
+        "RUB-G",
+        "RUB-M",
+        "CMV-G",
+        "CMV-M",
+        "HSV-G",
+        "HSV-M"
+      ]
+    },
+    {
+      "id": "p-14",
+      "name": "باقة الحميات والعدوى الإنتانية الحادة (Acute Infectious & Fevers Panel)",
+      "description": "تشمل فحص حمى التيفوئيد السريع والفيدال، حمى مالطا بأنبوبة الرايت والروز بنغال، فحص الملاريا السريع، وفحص الضنك السريع",
+      "price": 50000,
+      "testCodes": [
+        "TYPH-RAPID",
+        "WIDAL",
+        "BRUC-STA",
+        "ROSE",
+        "MALARIA",
+        "DENGUE",
+        "CBC"
+      ]
+    },
+    {
+      "id": "p-15",
+      "name": "باقة تقييم وظائف الكلى التخصصية المتقدمة (Advanced Renal & Proteinuria Panel)",
+      "description": "تشمل الكرياتينين، اليوريا، معدل الترشيح eGFR، الكالسيوم المتأين، بروتين الإدرار 24 ساعة، ونسبة UPCR",
+      "price": 45000,
+      "testCodes": [
+        "CREAT",
+        "UREA",
+        "EGFR",
+        "CA-ION",
+        "U-PROT-24H",
+        "UPCR",
+        "GUE"
+      ]
+    },
+    {
+      "id": "p-16",
+      "name": "باقة الغدد الصماء والكظرية الموسعة (Adrenal & Pituitary Hormonal Panel)",
+      "description": "تشمل الكورتيزول الصباحي والمسائي، هرمون ACTH، هرمون DHEA-S، وهرمون 17-OHP، وهرمون النمو GH",
+      "price": 130000,
+      "testCodes": [
+        "CORT-AM",
+        "CORT-PM",
+        "ACTH",
+        "DHEA-S",
+        "17-OHP",
+        "GH"
+      ]
+    },
+    {
+      "id": "p-17",
+      "name": "باقة دلالات الأورام الشاملة للرجال (Men's Comprehensive Tumor Markers)",
+      "description": "تشمل PSA الكلي والحر Free PSA، دلالات القولون CEA، ودلالات الكبد والجنين AFP",
+      "price": 75000,
+      "testCodes": [
+        "PSA-TOT",
+        "FPSA",
+        "CEA",
+        "AFP"
+      ]
+    },
+    {
+      "id": "p-18",
+      "name": "باقة كشف السموم والمخدرات الشاملة (Toxicology & Drug Screen Panel)",
+      "description": "فحص كشف المخدرات والمهدئات لـ 10 مواد مع الكحول والمخدرات في الإدرار",
+      "price": 35000,
+      "testCodes": [
+        "DOA"
+      ]
     }
   ],
   "doctors": [],
-  "patients": [],
-  "samples": [],
+  "patients": [
+    {
+      "id": "pat-1789852100355",
+      "name": "السيد",
+      "phone": "",
+      "age": null,
+      "gender": "MALE",
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-09-19T21:08:20.355Z",
+      "updatedAt": "2026-09-19T21:08:20.355Z",
+      "lastTestIds": [
+        "t-ptt",
+        "t-ddimer",
+        "t-fbs",
+        "t-hb",
+        "t-bg",
+        "t-gue"
+      ],
+      "lastTestNames": [
+        "Partial Thromboplastin Time (PTT/APTT)",
+        "D-Dimer (Quantitative)",
+        "Fasting Blood Sugar (FBS)",
+        "Hemoglobin (Hb)",
+        "Blood Group & Rh Factor",
+        "General Urine Examination (GUE)"
+      ]
+    }
+  ],
+  "samples": [
+    {
+      "id": "s-1002",
+      "sampleNumber": 1002,
+      "patientId": "pat-1789852100355",
+      "patient": {
+        "id": "pat-1789852100355",
+        "name": "السيد",
+        "phone": "",
+        "age": null,
+        "gender": "MALE",
+        "address": "",
+        "notes": "",
+        "createdAt": "2026-09-19T21:08:20.355Z",
+        "updatedAt": "2026-09-19T21:08:20.355Z",
+        "lastTestIds": [
+          "t-ptt",
+          "t-ddimer",
+          "t-fbs",
+          "t-hb",
+          "t-bg",
+          "t-gue"
+        ],
+        "lastTestNames": [
+          "Partial Thromboplastin Time (PTT/APTT)",
+          "D-Dimer (Quantitative)",
+          "Fasting Blood Sugar (FBS)",
+          "Hemoglobin (Hb)",
+          "Blood Group & Rh Factor",
+          "General Urine Examination (GUE)"
+        ]
+      },
+      "doctorId": null,
+      "doctor": null,
+      "doctorCommission": 0,
+      "status": "IN_PROGRESS",
+      "isUrgent": false,
+      "priceTotal": 60000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 50000,
+      "remainingAmount": 10000,
+      "paymentMethod": "CASH",
+      "notes": "",
+      "createdAt": "2026-09-19T21:08:20.366Z",
+      "tests": [
+        {
+          "id": "st-1789852100366-0",
+          "sampleId": "s-1002",
+          "testId": "t-ptt",
+          "test": {
+            "id": "t-ptt",
+            "code": "PTT",
+            "name": "Partial Thromboplastin Time (PTT/APTT)",
+            "arabicName": "زمن الترومبوبلاستين الجزئي",
+            "category": "أمراض الدم والتخثر",
+            "price": 15000,
+            "costEstimate": 3000,
+            "refRangeLow": 25,
+            "refRangeHigh": 38,
+            "criticalHigh": 80,
+            "refRangeText": "25 - 38",
+            "unit": "sec",
+            "sampleType": "بلازما (Sodium Citrate)",
+            "loincCode": "3173-2"
+          },
+          "resultValue": "",
+          "isAbnormal": false,
+          "status": "COMPLETED",
+          "interpretation": null
+        },
+        {
+          "id": "st-1789852100366-1",
+          "sampleId": "s-1002",
+          "testId": "t-ddimer",
+          "test": {
+            "id": "t-ddimer",
+            "code": "DDIMER",
+            "name": "D-Dimer (Quantitative)",
+            "arabicName": "فحص دي دايمر للتخثر والجلطات",
+            "category": "أمراض الدم والتخثر",
+            "price": 25000,
+            "costEstimate": 6000,
+            "refRangeLow": 0,
+            "refRangeHigh": 0.5,
+            "criticalHigh": 5,
+            "refRangeText": "< 0.5",
+            "unit": "ug/mL",
+            "sampleType": "بلازما",
+            "loincCode": "48065-7"
+          },
+          "resultValue": "",
+          "isAbnormal": false,
+          "status": "COMPLETED",
+          "interpretation": null
+        },
+        {
+          "id": "st-1789852100366-2",
+          "sampleId": "s-1002",
+          "testId": "t-fbs",
+          "test": {
+            "id": "t-fbs",
+            "code": "FBS",
+            "name": "Fasting Blood Sugar (FBS)",
+            "arabicName": "سكر الدم الصائم",
+            "category": "الكيمياء السريرية والسكري",
+            "price": 5000,
+            "costEstimate": 800,
+            "refRangeLow": 70,
+            "refRangeHigh": 100,
+            "criticalLow": 45,
+            "criticalHigh": 400,
+            "refRangeText": "70 - 100 (Normal)",
+            "unit": "mg/dL",
+            "sampleType": "مصل الدم (Serum)",
+            "loincCode": "1558-6"
+          },
+          "resultValue": "",
+          "isAbnormal": false,
+          "status": "COMPLETED",
+          "interpretation": null
+        },
+        {
+          "id": "st-1789852100366-3",
+          "sampleId": "s-1002",
+          "testId": "t-hb",
+          "test": {
+            "id": "t-hb",
+            "code": "HB",
+            "name": "Hemoglobin (Hb)",
+            "arabicName": "خضاب الدم (الهيموغلوبين)",
+            "category": "أمراض الدم والتخثر",
+            "price": 5000,
+            "costEstimate": 800,
+            "refRangeLow": 12,
+            "refRangeHigh": 16.5,
+            "normalMaleLow": 13.5,
+            "normalMaleHigh": 17.5,
+            "normalFemaleLow": 12,
+            "normalFemaleHigh": 15.5,
+            "criticalLow": 7,
+            "criticalHigh": 20,
+            "refRangeText": "12.0 - 16.5",
+            "unit": "g/dL",
+            "sampleType": "دم كامل (EDTA)",
+            "loincCode": "718-7"
+          },
+          "resultValue": "",
+          "isAbnormal": false,
+          "status": "COMPLETED",
+          "interpretation": null
+        },
+        {
+          "id": "st_1789852125083_i8mvf0",
+          "sampleId": "s-1002",
+          "testId": "t-bg",
+          "test": {
+            "id": "t-bg",
+            "code": "BG",
+            "name": "Blood Group & Rh Factor",
+            "arabicName": "فصيلة الدم والعامل الريسي",
+            "category": "أمراض الدم والتخثر",
+            "price": 5000,
+            "costEstimate": 800,
+            "refRangeText": "A / B / AB / O (Pos/Neg)",
+            "unit": "",
+            "sampleType": "دم كامل (EDTA)",
+            "loincCode": "882-1"
+          },
+          "resultValue": "AB+ (AB Positive)",
+          "isAbnormal": false,
+          "interpretation": null,
+          "status": "COMPLETED"
+        },
+        {
+          "id": "st_1789852445722_6cevf4",
+          "sampleId": "s-1002",
+          "testId": "t-gue",
+          "test": {
+            "id": "t-gue",
+            "code": "GUE",
+            "name": "General Urine Examination (GUE)",
+            "arabicName": "فحص الإدرار العام الشامل",
+            "category": "الفحص المجهري العام",
+            "price": 5000,
+            "costEstimate": 800,
+            "refRangeText": "Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)",
+            "unit": "",
+            "sampleType": "إدرار صباحي",
+            "loincCode": "24357-6"
+          },
+          "resultValue": null,
+          "isAbnormal": false,
+          "interpretation": null,
+          "status": "PENDING"
+        }
+      ],
+      "updatedAt": "2026-09-19T21:14:05.722Z"
+    },
+    {
+      "id": "test-sample-101",
+      "sampleNumber": 1001,
+      "createdAt": "2026-09-19T20:39:54.662Z",
+      "status": "READY",
+      "patient": {
+        "id": "p-1",
+        "name": "Zaid Ali Al-Khafaji",
+        "age": 34,
+        "gender": "MALE",
+        "phone": "07701234567"
+      },
+      "doctor": {
+        "id": "d-1",
+        "name": "Dr. Omar Al-Bayati"
+      },
+      "tests": [
+        {
+          "id": "st-cbc-1",
+          "testId": "t-cbc",
+          "testCode": "CBC",
+          "test": {
+            "code": "CBC",
+            "name": "Complete Blood Count (CBC)",
+            "unit": "g/dL",
+            "refRangeText": "12.0 - 16.0"
+          },
+          "resultValue": "[CBC - COMPLETE BLOOD COUNT & 5-PART DIFFERENTIAL]\nERYTHROID: RBC: 4.90 10^6/uL | HGB: 15.2 g/dL | HCT: 45.0 % | MCV: 91.8 fL | MCH: 31.0 pg | MCHC: 33.7 g/dL | RDW: 12.8 %\nPLATELETS: PLT: 280 10^3/uL | MPV: 9.4 fL | PDW: 11.0 % | PCT: 0.26 %\nLEUKOCYTES: Total WBC: 7.5 10^3/uL\nDIFFERENTIAL: Neut: 62.0% | Lymph: 28.0% | Mono: 6.0% | Eos: 3.0% | Baso: 1.0% (Sum: 100%)\nMORPHOLOGY: Normocytic Normochromic RBCs. Normal platelet morphology.\nCOMMENTS: Normal hematological parameters.",
+          "isAbnormal": false
+        },
+        {
+          "id": "st-fbs-1",
+          "testId": "t-fbs",
+          "testCode": "FBS",
+          "test": {
+            "code": "FBS",
+            "name": "Fasting Blood Sugar (FBS)",
+            "unit": "mg/dL",
+            "refRangeText": "70 - 100"
+          },
+          "resultValue": "95",
+          "isAbnormal": false
+        },
+        {
+          "id": "st-creat-1",
+          "testId": "t-creat",
+          "testCode": "CREAT",
+          "test": {
+            "code": "CREAT",
+            "name": "Serum Creatinine",
+            "unit": "mg/dL",
+            "refRangeText": "0.6 - 1.2"
+          },
+          "resultValue": "0.9",
+          "isAbnormal": false
+        }
+      ]
+    }
+  ],
   "settings": {
     "labName": "",
     "labSubtitle": "فحوصات مرضية وتطبيقية دقيقة - تشخيص إلكتروني متكامل ومعتمد",
@@ -1212,7 +2712,7 @@
     "phone": "",
     "reportHeader": "",
     "reportFooter": "هذا التقرير تم إخراجه وتدقيقه إلكترونياً، ويعتبر معتمداً رسمياً ومطابقاً لمواصفات الجودة المخبرية الدولية (ISO 15189).",
-    "headerMode": "PREPRINTED",
+    "headerMode": "DIGITAL",
     "reportTemplate": "MODERN",
     "topMarginMm": 28,
     "bottomMarginMm": 25,
@@ -1223,30 +2723,30 @@
     "enableQrCode": false,
     "qrCodePosition": "FOOTER",
     "defaultDiscountPercent": 0,
-    "isConfigured": false,
+    "isConfigured": true,
     "serverBaseUrl": "",
-    "showLabName": false,
+    "showLabName": true,
     "labNameFontSize": 22,
     "labNameColor": "#0284c7",
     "labNameAlignment": "RIGHT",
     "labNameStyle": "DEFAULT",
-    "showLabSubtitle": false,
-    "showContactInfo": false,
-    "showDoctorInfo": false,
+    "showLabSubtitle": true,
+    "showContactInfo": true,
+    "showDoctorInfo": true,
     "showPatientBox": true,
-    "showReportBorder": false,
-    "showFooter": false,
-    "showFooterSignature": false,
-    "enableWatermark": true,
+    "showReportBorder": true,
+    "showFooter": true,
+    "showFooterSignature": true,
+    "enableWatermark": false,
     "watermarkType": "TEXT",
     "watermarkText": "",
     "watermarkOpacity": 0.08,
     "watermarkAngle": -30,
     "watermarkSize": 46,
     "watermarkColor": "#0f172a",
-    "detectedLanIp": "192.168.0.114",
+    "detectedLanIp": "10.188.54.24",
     "detectedPort": 8080,
-    "detectedLanUrl": "http://192.168.0.114:8080"
+    "detectedLanUrl": "http://10.188.54.24:8080"
   },
   "expenses": [],
   "devices": [

@@ -8,6 +8,7 @@ import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useLab } from '../../components/LabContext';
 import { Settings as SettingsIcon, Save, Sparkles, Printer, CheckCircle2, Award, Phone, DollarSign, Building2, Layout, FileText, Maximize2, QrCode, Sliders, Palette, Eye, ShieldCheck, Check, TestTube, Zap, Database, Download, Upload, RefreshCw, HardDrive, AlertCircle, History, Share2, ExternalLink, Plus, Type, Droplet, AlignRight, AlignCenter, AlignLeft, Square, Layers, Trash2, EyeOff, CheckSquare, Sparkle } from 'lucide-react';
+import { toEnglishDigits, formatEnglishDate, formatEnglishDateTime } from '../../lib/formatters';
 
 export default function SettingsPage() {
   const toast = useToast();
@@ -1536,7 +1537,7 @@ export default function SettingsPage() {
                               {b.fileName}
                             </td>
                             <td style={{ padding: '8px 12px', color: 'var(--text-muted)' }}>
-                              {new Date(b.createdAt).toLocaleString('ar-IQ')}
+                              {formatEnglishDateTime(b.createdAt)}
                             </td>
                             <td style={{ padding: '8px 12px', color: 'var(--accent-cyan)', fontWeight: 700 }}>
                               {(b.sizeBytes / 1024).toFixed(1)} KB

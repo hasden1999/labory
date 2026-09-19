@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Test, Patient, Doctor, Sample } from '../types';
 import { FlaskConical, User, Phone, Calendar, Search, CheckCircle2, DollarSign, Printer, Sparkles, FileText, X, Check, Zap, Activity, Droplets, Heart, Shield, TestTube, GripVertical, Mail, ArrowRight, Stethoscope, Microscope, Dna, Layers, AlertTriangle, RotateCcw, Percent, Keyboard, CreditCard, Banknote, Plus, AlertOctagon, CircleAlert, Barcode, ClipboardList } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
+import { toEnglishDigits, formatEnglishDate } from '../lib/formatters';
 
 // English Clinical Category Mapping
 const CLINICAL_CATEGORIES = [
@@ -614,7 +615,8 @@ function IntakeContent() {
   };
 
   const handleCustomDiscountChange = (valStr: string) => {
-    const val = parseFloat(valStr) || 0;
+    const clean = toEnglishDigits(valStr);
+    const val = parseFloat(clean) || 0;
     setCustomDiscountAmount(val);
     if (grossTotal > 0) {
       setDiscountPercent(Math.round((val / grossTotal) * 100));
@@ -766,7 +768,7 @@ function IntakeContent() {
         if (e.key === 'Enter' || e.key === 'F9') {
           e.preventDefault();
           setDocPreviewUrl(`/api/samples/${createdSample.id}/barcode`);
-          setDocPreviewTitle(`طباعة ملصق الباركود (50x25mm) - عينة #${createdSample.sampleNumber}`);
+          setDocPreviewTitle(`طباعة ملصقات الباركود للأنابيب والتحاليل (50x25mm) - عينة #${createdSample.sampleNumber}`);
           return;
         }
         if (e.key === 'Escape' || e.key === 'F2') {
@@ -992,7 +994,7 @@ function IntakeContent() {
             </span>
           </div>
           <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '3px' }}>
-            منظومة الاستقبال السريع الذكية • {new Date().toLocaleDateString('ar-IQ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            منظومة الاستقبال السريع الذكية • {new Date().toLocaleDateString('ar-IQ-u-nu-latn', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
         </div>
 
@@ -1299,16 +1301,15 @@ function IntakeContent() {
                   inputRefs.current[1] = el;
                 }}
                 onKeyDown={(e) => handleInputKeyDown(e, 1)}
-                type="number"
-                min={0}
-                max={150}
+                type="text"
+                inputMode="numeric"
                 maxLength={3}
                 placeholder="العمر"
                 className="input-control"
                 style={{ height: '38px', fontSize: '13px', borderRadius: '8px' }}
                 value={patientAge}
                 onChange={(e) => {
-                  const val = e.target.value;
+                  const val = toEnglishDigits(e.target.value).replace(/[^0-9]/g, '');
                   if (val.length <= 3) {
                     setPatientAge(val);
                   }
@@ -1384,7 +1385,7 @@ function IntakeContent() {
                 style={{ height: '38px', fontSize: '12.5px', borderRadius: '8px' }}
                 value={patientPhone}
                 onChange={(e) => {
-                  const sanitized = e.target.value.replace(/[^0-9+\-\s]/g, '');
+                  const sanitized = toEnglishDigits(e.target.value).replace(/[^0-9+\-\s]/g, '');
                   setPatientPhone(sanitized);
                 }}
               />
@@ -1950,9 +1951,9 @@ function IntakeContent() {
                     style={{ height: '32px', fontSize: '12px', borderRadius: '6px', background: 'var(--bg-input-deep)' }}
                     value={paidAmount}
                     onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === '' || (!val.includes('-') && parseFloat(val) >= 0)) {
-                        setPaidAmount(val);
+                      const clean = toEnglishDigits(e.target.value);
+                      if (clean === '' || (!clean.includes('-') && parseFloat(clean) >= 0)) {
+                        setPaidAmount(clean);
                       }
                     }}
                   />
@@ -2019,13 +2020,13 @@ function IntakeContent() {
                 type="button"
                 onClick={() => {
                   setDocPreviewUrl(`/api/samples/${createdSample.id}/barcode`);
-                  setDocPreviewTitle(`طباعة ملصق الباركود (50x25mm) - عينة #${createdSample.sampleNumber}`);
+                  setDocPreviewTitle(`طباعة ملصقات الباركود للأنابيب والتحاليل (50x25mm) - عينة #${createdSample.sampleNumber}`);
                 }}
                 className="btn-cyan-primary"
                 style={{ width: '100%', justifyContent: 'center', height: '42px', fontSize: '13px', fontWeight: 800 }}
               >
                 <Printer size={16} />
-                <span><Barcode size={14} /> طباعة ملصق أنبوب التحليل (Print Barcode Label 50x25mm) <kbd style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', marginRight: '6px' }}>Enter / F9</kbd></span>
+                <span><Barcode size={14} /> طباعة ملصقات أنابيب التحليل (Print Tube Labels 50x25mm) <kbd style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', marginRight: '6px' }}>Enter / F9</kbd></span>
               </button>
 
               {/* 2. + New Patient Intake / استلام عينة جديدة (Escape or F2) (Secondary prominent button) */}

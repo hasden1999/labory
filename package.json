@@ -19,7 +19,9 @@
     "desktop": "electron apps/desktop",
     "desktop:dev": "electron apps/desktop",
     "desktop:dist": "npm run dist --workspace=apps/desktop",
-    "build:installer": "node tools/build-standalone-installer.js"
+    "build:installer": "node tools/build-standalone-installer.js",
+    "release": "node tools/build-standalone-installer.js --publish",
+    "test:devices": "python tests/integration/test_astm_analyzer.py"
   },
   "dependencies": {
     "lucide-react": "^0.368.0",

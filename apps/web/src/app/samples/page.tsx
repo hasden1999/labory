@@ -10,6 +10,7 @@ import { useToast } from '../../components/Toast';
 import { useLab } from '../../components/LabContext';
 import { getShareableUrl } from '../../lib/urlHelper';
 import { Activity, Search, Plus, FileText, Printer, Share2, CheckCircle2, Clock, FlaskConical, AlertCircle, X, ChevronLeft, Send, RefreshCw, Eye, Calendar, Filter, User, History, Check, AlertOctagon, Zap, CreditCard, DollarSign } from 'lucide-react';
+import { toEnglishDigits, formatEnglishDate, formatEnglishTime, formatEnglishDateTime } from '../../lib/formatters';
 
 function SamplesContent() {
   const router = useRouter();
@@ -65,14 +66,14 @@ function SamplesContent() {
 
       if (res?.voucherNumber) {
         setActiveVoucher({
-          voucherNumber: res.voucherNumber,
+          voucherNumber: toEnglishDigits(res.voucherNumber),
           debtorName: payModalSample.patient?.name || 'مريض',
-          phone: payModalSample.patient?.phone,
+          phone: payModalSample.patient?.phone ? toEnglishDigits(payModalSample.patient.phone) : undefined,
           amount: amt,
           type: 'سند قبض مالي (سداد متبقي فحص)',
           paymentMethod: payMethod,
-          date: new Date().toLocaleString('ar-IQ'),
-          notes: payNotes || `سداد متبقي فحص عينة #${payModalSample.sampleNumber}`,
+          date: formatEnglishDateTime(new Date()),
+          notes: payNotes || `سداد متبقي فحص عينة #${toEnglishDigits(payModalSample.sampleNumber)}`,
         });
         setShowVoucherModal(true);
       }
@@ -524,9 +525,9 @@ function SamplesContent() {
                     {/* Registration Time */}
                     <td>
                       <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
-                        {new Date(s.createdAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' })}
+                        {formatEnglishTime(s.createdAt)}
                         <br />
-                        <span style={{ fontSize: '9.5px' }}>{new Date(s.createdAt).toLocaleDateString('ar-IQ')}</span>
+                        <span style={{ fontSize: '9.5px' }}>{formatEnglishDate(s.createdAt)}</span>
                       </span>
                     </td>
 

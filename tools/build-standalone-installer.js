@@ -148,7 +148,29 @@ async function run() {
 
   logStep('5/5', 'حزم وتوليد ملف التثبيت الرسمي النهائي (Setup.exe) عبر electron-builder...');
   console.log('جاري تشغيل electron-builder لحزم تطبيق سطح المكتب بنظام NSIS...');
-  execSync('npx electron-builder --win nsis', { cwd: desktopDir, stdio: 'inherit' });
+  
+  const shouldPublish = process.argv.includes('--publish') || process.argv.includes('--release');
+  if (shouldPublish && !process.env.GH_TOKEN) {
+    try {
+      const envPath = path.join(rootDir, '.env');
+      if (fs.existsSync(envPath)) {
+        const envContent = fs.readFileSync(envPath, 'utf-8');
+        const match = envContent.match(/GH_TOKEN=([^\r\n]+)/);
+        if (match) {
+          process.env.GH_TOKEN = match[1].trim();
+        }
+      }
+    } catch (e) {
+      console.warn('تعذر قراءة .env:', e.message);
+    }
+  }
+
+  const publishFlag = shouldPublish ? '--publish always' : '--publish never';
+  execSync(`npx electron-builder --win nsis ${publishFlag}`, { 
+    cwd: desktopDir, 
+    stdio: 'inherit',
+    env: { ...process.env }
+  });
 
   console.log('\n======================================================');
   console.log('  🎉 تم إنجاز بناء ملف التثبيت المستقل بنجاح فائق!');

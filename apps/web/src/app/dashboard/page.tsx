@@ -11,6 +11,7 @@ import { useLab } from '../../components/LabContext';
 import { getShareableUrl } from '../../lib/urlHelper';
 import { LayoutDashboard, Plus, FileText, FlaskConical, Users, Search, Printer, Share2, Clock, AlertCircle, CheckCircle2, TrendingUp, DollarSign, CreditCard, Receipt, ChevronLeft, Activity, Flame, RefreshCw, Eye, Send, X, UserPlus, FileSearch, Check, AlertOctagon, AlertTriangle } from 'lucide-react';
 import { DashboardData, DashboardSummary, Sample } from '../../types';
+import { toEnglishDigits, formatEnglishDate, formatEnglishTime } from '../../lib/formatters';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -420,7 +421,7 @@ export default function DashboardPage() {
                   <tr key={s.id}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ fontWeight: 800, color: 'var(--accent-cyan)', fontSize: '12.5px' }}>#{s.sampleNumber}</span>
+                        <span style={{ fontWeight: 800, color: 'var(--accent-cyan)', fontSize: '12.5px' }}>#{toEnglishDigits(s.sampleNumber)}</span>
                         {s.isUrgent && <span className="stat-badge" style={{ fontSize: '9px' }}>STAT</span>}
                       </div>
                     </td>
@@ -459,7 +460,7 @@ export default function DashboardPage() {
                     </td>
 
                     <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      {new Date(s.createdAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' })}
+                      {formatEnglishTime(s.createdAt)}
                     </td>
 
                     {/* Quick 1-Click Inline Action Tools */}

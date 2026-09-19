@@ -47,6 +47,7 @@ import {
   HelpCircle,
   CheckCircle
 } from 'lucide-react';
+import { toEnglishDigits, formatEnglishDate, formatEnglishTime, formatEnglishDateTime } from '../../lib/formatters';
 
 // Helper to determine collection tubes used in a sample
 function getSampleTubes(tests: SampleTest[] = []) {
@@ -222,10 +223,12 @@ function PatientsContent() {
     }
 
     try {
+      const cleanPhone = patientPhone.trim() ? toEnglishDigits(patientPhone.trim()) : undefined;
+      const cleanAge = patientAge ? Number(toEnglishDigits(patientAge)) : undefined;
       const newP = await apiRequest('/patients', 'POST', {
         name: patientName.trim(),
-        phone: patientPhone.trim() || undefined,
-        age: patientAge ? Number(patientAge) : undefined,
+        phone: cleanPhone,
+        age: cleanAge,
         gender: patientGender,
       });
 
@@ -260,10 +263,12 @@ function PatientsContent() {
     if (!editingPatient || !patientName.trim()) return;
 
     try {
+      const cleanPhone = patientPhone.trim() ? toEnglishDigits(patientPhone.trim()) : undefined;
+      const cleanAge = patientAge ? Number(toEnglishDigits(patientAge)) : undefined;
       await apiRequest(`/patients/${editingPatient.id}`, 'PATCH', {
         name: patientName.trim(),
-        phone: patientPhone.trim() || undefined,
-        age: patientAge ? Number(patientAge) : undefined,
+        phone: cleanPhone,
+        age: cleanAge,
         gender: patientGender,
       });
 
@@ -297,7 +302,7 @@ function PatientsContent() {
   const handlePaySample = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!payModalSample) return;
-    const amt = Number(payAmount);
+    const amt = Number(toEnglishDigits(payAmount));
     if (!amt || amt <= 0) {
       toast.warning('يرجى إدخال مبلغ صحيح', 'تنبيه');
       return;
@@ -322,14 +327,14 @@ function PatientsContent() {
 
       if (res?.voucherNumber) {
         setActiveVoucher({
-          voucherNumber: res.voucherNumber,
+          voucherNumber: toEnglishDigits(res.voucherNumber),
           debtorName: payModalPatient?.name || payModalSample.patient?.name || 'مريض',
           phone: payModalPatient?.phone || payModalSample.patient?.phone,
           amount: amt,
           type: 'سند قبض مالي (سداد متبقي فحص)',
           paymentMethod: payMethod,
-          date: new Date().toLocaleString('ar-IQ'),
-          notes: payNotes || `سداد متبقي فحص عينة #${payModalSample.sampleNumber}`,
+          date: formatEnglishDateTime(new Date()),
+          notes: payNotes || `سداد متبقي فحص عينة #${toEnglishDigits(payModalSample.sampleNumber)}`,
         });
         setShowVoucherModal(true);
       }
@@ -901,7 +906,7 @@ function PatientsContent() {
                           {patient.createdAt && (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                               <Calendar size={12} style={{ color: '#94a3b8' }} />
-                              <span>مسجل: {new Date(patient.createdAt).toLocaleDateString('ar-IQ')}</span>
+                              <span>مسجل: {formatEnglishDate(patient.createdAt)}</span>
                             </span>
                           )}
                         </div>
@@ -1192,11 +1197,7 @@ function PatientsContent() {
 
                                     {/* Date and Time */}
                                     <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-                                      {new Date(sample.createdAt).toLocaleDateString('ar-IQ')} •{' '}
-                                      {new Date(sample.createdAt).toLocaleTimeString('ar-IQ', {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                      })}
+                                      {formatEnglishDate(sample.createdAt)} • {formatEnglishTime(sample.createdAt)}
                                     </span>
 
                                     {/* Tubes Chips */}
@@ -1545,19 +1546,19 @@ function PatientsContent() {
                     placeholder="مثال: 07701234567"
                     className="input-control"
                     value={patientPhone}
-                    onChange={(e) => setPatientPhone(e.target.value)}
+                    onChange={(e) => setPatientPhone(toEnglishDigits(e.target.value).replace(/[^0-9+\-\s]/g, ''))}
                   />
                 </div>
 
                 <div>
                   <label className="input-label">العمر (سنوات)</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="مثال: 35"
                     className="input-control"
                     value={patientAge}
-                    onChange={(e) => setPatientAge(e.target.value)}
-                    min="0"
+                    onChange={(e) => setPatientAge(toEnglishDigits(e.target.value).replace(/[^0-9]/g, ''))}
                   />
                 </div>
               </div>
@@ -1634,17 +1635,18 @@ function PatientsContent() {
                     type="text"
                     className="input-control"
                     value={patientPhone}
-                    onChange={(e) => setPatientPhone(e.target.value)}
+                    onChange={(e) => setPatientPhone(toEnglishDigits(e.target.value).replace(/[^0-9+\-\s]/g, ''))}
                   />
                 </div>
 
                 <div>
                   <label className="input-label">العمر</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     className="input-control"
                     value={patientAge}
-                    onChange={(e) => setPatientAge(e.target.value)}
+                    onChange={(e) => setPatientAge(toEnglishDigits(e.target.value).replace(/[^0-9]/g, ''))}
                   />
                 </div>
               </div>

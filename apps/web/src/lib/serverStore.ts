@@ -640,30 +640,33 @@ export function getStore(): ServerStore {
     global.__labStore.deviceRawLogs = [];
   }
 
-  // Ensure SFA (Seminal Fluid Analysis) is present in tests catalog
-  const sfaCatalogItem = INITIAL_TESTS_CATALOG.find(t => t.code === 'SFA');
-  if (sfaCatalogItem && Array.isArray(global.__labStore.tests)) {
-    const hasSfa = global.__labStore.tests.some((t: any) => (t.code || '').toUpperCase() === 'SFA');
-    if (!hasSfa) {
-      global.__labStore.tests.push(sfaCatalogItem);
-      saveStoreToFile();
-    }
-  }
-
-  // Ensure all tests have international LOINC codes populated
+  // Ensure all tests from INITIAL_TESTS_CATALOG are present in tests catalog
   const currentStore = global.__labStore;
   if (currentStore && Array.isArray(currentStore.tests)) {
-    let loincUpdated = false;
+    let storeUpdated = false;
     INITIAL_TESTS_CATALOG.forEach(catalogItem => {
-      if (catalogItem.loincCode) {
-        const found = currentStore.tests.find((t: any) => t.code === catalogItem.code || t.id === catalogItem.id);
-        if (found && !found.loincCode) {
-          found.loincCode = catalogItem.loincCode;
-          loincUpdated = true;
-        }
+      const found = currentStore.tests.find((t: any) => t.code === catalogItem.code || t.id === catalogItem.id);
+      if (!found) {
+        currentStore.tests.push(catalogItem);
+        storeUpdated = true;
+      } else if (catalogItem.loincCode && !found.loincCode) {
+        found.loincCode = catalogItem.loincCode;
+        storeUpdated = true;
       }
     });
-    if (loincUpdated) {
+
+    // Ensure all standard diagnostic panels are present
+    if (Array.isArray(currentStore.panels)) {
+      INITIAL_PANELS.forEach(panelItem => {
+        const foundPanel = currentStore.panels.find((p: any) => p.id === panelItem.id);
+        if (!foundPanel) {
+          currentStore.panels.push(panelItem);
+          storeUpdated = true;
+        }
+      });
+    }
+
+    if (storeUpdated) {
       saveStoreToFile();
     }
   }

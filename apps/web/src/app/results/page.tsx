@@ -17,6 +17,15 @@ import { compareSampleWithHistory, DeltaCheckResult } from '../../lib/deltaCheck
 import { Sample, SampleTest, Test } from '../../types';
 import ConfirmModal from '../../components/ConfirmModal';
 import { INITIAL_TESTS_CATALOG } from '../../lib/catalogData';
+import { 
+  toEnglishDigits, 
+  formatEnglishDate, 
+  formatEnglishDateTime, 
+  formatEnglishCurrency, 
+  isBloodGroupTest, 
+  BLOOD_GROUP_OPTIONS, 
+  evaluateQualitativeAbnormality 
+} from '../../lib/formatters';
 
 const UrineFormModal = nextDynamic(() => import('../../components/UrineFormModal'), { ssr: false });
 const GseModal = nextDynamic(() => import('../../components/workstations/GseModal'), { ssr: false });
@@ -103,6 +112,17 @@ function ResultsContent() {
     if (!codeOrName) return '';
     const match = INITIAL_TESTS_CATALOG.find(t => t.code === codeOrName || t.name === codeOrName);
     return match?.loincCode || '';
+  };
+
+  const formatTestDisplayName = (name?: string): string => {
+    if (!name) return '';
+    const cleaned = name
+      .replace(/[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/g, '')
+      .replace(/\(\s*\)/g, '')
+      .replace(/\[\s*\]/g, '')
+      .trim();
+    const trimmed = cleaned.replace(/^[\s\-–—/:]+|[\s\-–—/:]+$/g, '').trim();
+    return trimmed || name;
   };
 
   const handleConfirmRejectSample = async (rejection: {
@@ -456,34 +476,38 @@ function ResultsContent() {
   };
 
   // Real-time Lipid & Bilirubin calculations with safe non-numeric handling
-  const handleResultChange = (sampleTestId: string, val: string, test: any) => {
+  const handleResultChange = (sampleTestId: string, rawVal: string, test: any) => {
+    const val = toEnglishDigits(rawVal);
     const nextResults = { ...testResults };
     
     // Check abnormal / panic
     let isAbnormal = false;
-    const num = parseNumericResult(val);
-    if (!isNaN(num)) {
-      if (test?.refRangeLow !== null && test?.refRangeLow !== undefined && num < test.refRangeLow) isAbnormal = true;
-      if (test?.refRangeHigh !== null && test?.refRangeHigh !== undefined && num > test.refRangeHigh) isAbnormal = true;
+    if (isBloodGroupTest(test)) {
+      // Blood Group is normal physiological finding, NEVER abnormal (A+, B+, O+, AB+, etc.)
+      isAbnormal = false;
     } else {
-      // Safely check qualitative/non-numeric strings (e.g. ">1000", "<0.01", "Positive", "Reactive")
-      const lower = val.trim().toLowerCase();
-      if (['positive', 'reactive', 'pos', 'موجب', 'إيجابي'].includes(lower) || lower.includes('positive') || lower.includes('reactive')) {
-        isAbnormal = true;
-      } else if (lower.startsWith('>') && test?.refRangeHigh !== null && test?.refRangeHigh !== undefined) {
-        const threshold = parseFloat(lower.replace('>', '').trim());
-        if (!isNaN(threshold) && threshold >= test.refRangeHigh) {
-          isAbnormal = true;
-        }
-      } else if (lower.startsWith('<') && test?.refRangeLow !== null && test?.refRangeLow !== undefined) {
-        const threshold = parseFloat(lower.replace('<', '').trim());
-        if (!isNaN(threshold) && threshold <= test.refRangeLow) {
-          isAbnormal = true;
+      const num = parseNumericResult(val);
+      if (!isNaN(num)) {
+        if (test?.refRangeLow !== null && test?.refRangeLow !== undefined && num < test.refRangeLow) isAbnormal = true;
+        if (test?.refRangeHigh !== null && test?.refRangeHigh !== undefined && num > test.refRangeHigh) isAbnormal = true;
+      } else {
+        isAbnormal = evaluateQualitativeAbnormality(val, test);
+        const lower = val.trim().toLowerCase();
+        if (lower.startsWith('>') && test?.refRangeHigh !== null && test?.refRangeHigh !== undefined) {
+          const threshold = parseFloat(toEnglishDigits(lower.replace('>', '').trim()));
+          if (!isNaN(threshold) && threshold >= test.refRangeHigh) {
+            isAbnormal = true;
+          }
+        } else if (lower.startsWith('<') && test?.refRangeLow !== null && test?.refRangeLow !== undefined) {
+          const threshold = parseFloat(toEnglishDigits(lower.replace('<', '').trim()));
+          if (!isNaN(threshold) && threshold <= test.refRangeLow) {
+            isAbnormal = true;
+          }
         }
       }
     }
 
-    // Always store the raw entered text safely without breaking calculations or losing user input
+    // Always store the entered text safely without breaking calculations or losing user input
     nextResults[sampleTestId] = {
       ...nextResults[sampleTestId],
       resultValue: val,
@@ -1191,7 +1215,7 @@ function ResultsContent() {
                       {selectedSample.rejectedBy && <span style={{ marginRight: '8px' }}> • بواسطة: {selectedSample.rejectedBy}</span>}
                       {selectedSample.rejectedAt && (
                         <span style={{ marginRight: '8px' }}>
-                          • الوقت: {new Date(selectedSample.rejectedAt).toLocaleString('ar-IQ')}
+                          • الوقت: {formatEnglishDateTime(selectedSample.rejectedAt)}
                         </span>
                       )}
                     </div>
@@ -1220,10 +1244,9 @@ function ResultsContent() {
                 <thead>
                   <tr style={{ background: '#1c2436', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     <th style={{ padding: '10px 14px', textAlign: 'left' }}>PARAMETER (TEST NAME)</th>
-                    <th style={{ padding: '10px 14px', width: '220px', textAlign: 'left' }}>RESULT</th>
+                    <th style={{ padding: '10px 14px', width: '260px', textAlign: 'left' }}>RESULT</th>
                     <th style={{ padding: '10px 14px', textAlign: 'left' }}>RANGE</th>
                     <th style={{ padding: '10px 14px', textAlign: 'left' }}>UNITS</th>
-                    <th style={{ padding: '10px 14px', textAlign: 'left' }}>STATUS</th>
                     <th style={{ padding: '10px 10px', textAlign: 'center', width: '50px' }}>DEL</th>
                   </tr>
                 </thead>
@@ -1239,7 +1262,7 @@ function ResultsContent() {
                         <tr style={{ borderBottom: '1px solid #182233', background: isPanic ? 'rgba(239, 68, 68, 0.08)' : 'transparent' }}>
                           <td style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-main)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                              <span>{st.test?.name}</span>
+                              <span>{formatTestDisplayName(st.test?.name)}</span>
                               {st.test?.code && (
                                 <span style={{ fontSize: '10px', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.05)', padding: '1px 4px', borderRadius: '3px' }}>
                                   {st.test?.code}
@@ -1247,7 +1270,7 @@ function ResultsContent() {
                               )}
                               {(st.test?.loincCode || getLoincCode(st.test?.code || st.test?.name)) && (
                                 <span
-                                  title="LOINC International Medical Code (معيار الترميز الطبي الدولي)"
+                                  title="LOINC International Medical Code"
                                   style={{
                                     fontSize: '9.5px',
                                     fontFamily: 'monospace',
@@ -1266,7 +1289,7 @@ function ResultsContent() {
                                 <button
                                   type="button"
                                   onClick={() => setShowChemistryModal(true)}
-                                  title="فتح محطة الكيمياء السريرية"
+                                  title="Open Clinical Chemistry Workstation"
                                   style={{
                                     fontSize: '9.5px',
                                     color: '#c084fc',
@@ -1283,6 +1306,59 @@ function ResultsContent() {
                                   <Zap size={9} />
                                   <span>CHEM</span>
                                 </button>
+                              )}
+
+                              {/* Smart Delta Check Alert Badge directly beside Test Name */}
+                              {(() => {
+                                const code = st.test?.code || st.test?.name;
+                                const delta = deltaChecks[code] || (st.test?.code && deltaChecks[st.test.code]);
+                                if (delta && delta.isBreached) {
+                                  const isCrit = delta.badgeLevel === 'CRITICAL';
+                                  return (
+                                    <span
+                                      title={delta.message || `Delta Check Alert: significant deviation from previous result (${delta.previousValue})`}
+                                      style={{
+                                        fontSize: '9.5px',
+                                        fontWeight: 800,
+                                        padding: '1px 5px',
+                                        borderRadius: '4px',
+                                        background: isCrit ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                                        color: isCrit ? 'var(--color-danger)' : 'var(--color-warning)',
+                                        border: `1px solid ${isCrit ? 'var(--color-danger)' : 'var(--color-warning)'}`,
+                                        cursor: 'help',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '2px',
+                                      }}
+                                    >
+                                      Δ {delta.deltaPercent}% {delta.direction === 'increased' ? '↑' : '↓'}
+                                    </span>
+                                  );
+                                }
+                                return null;
+                              })()}
+
+                              {/* Smart Critical PANIC Badge directly beside Test Name */}
+                              {isPanic && (
+                                <span
+                                  title="Critical Panic Value"
+                                  style={{
+                                    fontSize: '9.5px',
+                                    fontWeight: 900,
+                                    color: '#fff',
+                                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                    border: '1px solid #f87171',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    letterSpacing: '0.5px',
+                                    boxShadow: '0 0 6px rgba(239, 68, 68, 0.5)'
+                                  }}
+                                >
+                                  <AlertOctagon size={10} /> PANIC
+                                </span>
                               )}
                             </div>
                           </td>
@@ -1308,11 +1384,12 @@ function ResultsContent() {
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
                                   gap: '8px',
+                                  transition: 'all 0.15s ease',
                                 }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   {currentVal ? <Check size={14} /> : <TestTube size={14} />}
-                                  <span>{currentVal ? 'تم إدخال فحص الإدرار (تعديل)' : 'فتح فورمة الإدرار G.U.E'}</span>
+                                  <span>{currentVal ? 'Edit G.U.E Report' : 'Open G.U.E Form'}</span>
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>G.U.E</span>
                               </button>
@@ -1335,15 +1412,16 @@ function ResultsContent() {
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
                                   gap: '8px',
+                                  transition: 'all 0.15s ease',
                                 }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   {currentVal ? <Check size={14} /> : <Microscope size={14} />}
-                                  <span>{currentVal ? 'تم إدخال فحص الخروج (تعديل)' : 'فتح فورمة الخروج G.S.E'}</span>
+                                  <span>{currentVal ? 'Edit G.S.E Report' : 'Open G.S.E Form'}</span>
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>G.S.E</span>
                               </button>
-                                                        ) : /* S.F.A Semen Analysis Button */ (st.test?.code === 'SFA' || st.test?.code === 'SEMEN' || st.test?.name?.toLowerCase().includes('semen') || st.test?.name?.toLowerCase().includes('seminal') || st.test?.name?.toLowerCase().includes('سائل منوي') || st.test?.name?.toLowerCase().includes('نطف') || st.test?.name?.toLowerCase().includes('مني')) ? (
+                            ) : /* S.F.A Semen Analysis Button */ (st.test?.code === 'SFA' || st.test?.code === 'SEMEN' || st.test?.name?.toLowerCase().includes('semen') || st.test?.name?.toLowerCase().includes('seminal') || st.test?.name?.toLowerCase().includes('سائل منوي') || st.test?.name?.toLowerCase().includes('نطف') || st.test?.name?.toLowerCase().includes('مني')) ? (
                               <button
                                 type="button"
                                 onClick={() => setShowSemenModal(true)}
@@ -1362,11 +1440,12 @@ function ResultsContent() {
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
                                   gap: '8px',
+                                  transition: 'all 0.15s ease',
                                 }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   {currentVal ? <Check size={14} /> : <Microscope size={14} />}
-                                  <span>{currentVal ? 'تم إدخال فحص السائل المنوي (تعديل)' : 'فتح فورمة السائل المنوي S.F.A'}</span>
+                                  <span>{currentVal ? 'Edit S.F.A Report' : 'Open S.F.A Form'}</span>
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>S.F.A</span>
                               </button>
@@ -1389,11 +1468,12 @@ function ResultsContent() {
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
                                   gap: '8px',
+                                  transition: 'all 0.15s ease',
                                 }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   {currentVal ? <Check size={14} /> : <Activity size={14} />}
-                                  <span>{currentVal ? 'تم إدخال فحص الدم (تعديل)' : 'فتح محطة الدمويات CBC'}</span>
+                                  <span>{currentVal ? 'Edit CBC Report' : 'Open CBC Workstation'}</span>
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>CBC</span>
                               </button>
@@ -1406,7 +1486,7 @@ function ResultsContent() {
                                   minHeight: '36px',
                                   padding: '6px 12px',
                                   borderRadius: '6px',
-                                  background: currentVal ? 'rgba(16, 185, 129, 0.16)' : 'rgba(13, 148, 136, 0.16)',
+                                  background: currentVal ? 'rgba(16, 185, 129, 0.16)' : 'rgba(139, 92, 246, 0.16)',
                                   border: `1.5px solid ${currentVal ? 'var(--accent-emerald)' : '#0d9488'}`,
                                   color: currentVal ? 'var(--accent-emerald)' : '#2dd4bf',
                                   fontSize: '12px',
@@ -1416,11 +1496,12 @@ function ResultsContent() {
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
                                   gap: '8px',
+                                  transition: 'all 0.15s ease',
                                 }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   {currentVal ? <Check size={14} /> : <Bug size={14} />}
-                                  <span>{currentVal ? 'تم إدخال المزرعة (تعديل)' : 'فتح محطة المزرعة Culture'}</span>
+                                  <span>{currentVal ? 'Edit Culture Report' : 'Open Culture Workstation'}</span>
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>Culture</span>
                               </button>
@@ -1443,14 +1524,67 @@ function ResultsContent() {
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
                                   gap: '8px',
+                                  transition: 'all 0.15s ease',
                                 }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   {currentVal ? <Check size={14} /> : <FlaskConical size={14} />}
-                                  <span>{currentVal ? 'تم إدخال فحص الكيمياء (تعديل)' : 'فتح محطة الكيمياء السريرية'}</span>
+                                  <span>{currentVal ? 'Edit Chemistry Panel' : 'Open Chemistry Workstation'}</span>
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>{st.test?.code || 'CHEM'}</span>
                               </button>
+                            ) : /* Blood Group & Rh Factor Complete Selector */ isBloodGroupTest(st.test) ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', width: '100%' }}>
+                                <select
+                                  ref={(el) => { resultInputRefs.current[index] = el as any; }}
+                                  value={currentVal}
+                                  onChange={(e) => handleResultChange(st.id, e.target.value, st.test)}
+                                  className="input-control"
+                                  style={{
+                                    height: '34px',
+                                    fontSize: '13px',
+                                    fontWeight: 800,
+                                    background: 'var(--bg-input)',
+                                    borderColor: currentVal ? 'var(--accent-cyan)' : 'var(--border-color)',
+                                    color: currentVal ? 'var(--accent-cyan)' : 'var(--text-main)',
+                                    cursor: 'pointer',
+                                    width: '100%',
+                                  }}
+                                >
+                                  <option value="">-- Select Blood Group (اختر فصيلة الدم) --</option>
+                                  {BLOOD_GROUP_OPTIONS.map((bg) => (
+                                    <option key={bg.value} value={bg.value}>
+                                      {bg.label}
+                                    </option>
+                                  ))}
+                                </select>
+                                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                  {BLOOD_GROUP_OPTIONS.map((bg) => {
+                                    const isSelected = currentVal === bg.value || currentVal.startsWith(bg.short);
+                                    return (
+                                      <button
+                                        key={bg.short}
+                                        type="button"
+                                        onClick={() => handleResultChange(st.id, bg.value, st.test)}
+                                        style={{
+                                          padding: '2px 6px',
+                                          fontSize: '10px',
+                                          fontWeight: 800,
+                                          borderRadius: '4px',
+                                          cursor: 'pointer',
+                                          background: isSelected ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.06)',
+                                          color: isSelected ? '#000' : 'var(--text-muted)',
+                                          border: `1px solid ${isSelected ? 'var(--accent-cyan)' : 'var(--border-color)'}`,
+                                          transition: 'all 0.1s ease',
+                                        }}
+                                        title={`Select ${bg.label}`}
+                                      >
+                                        {bg.short}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             ) : /* Chemistry Analyte (Input + Smart Quick Workstation Trigger) */ isChemistryAnalyte(st) ? (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <input
@@ -1472,10 +1606,36 @@ function ResultsContent() {
                                   value={currentVal}
                                   onChange={(e) => handleResultChange(st.id, e.target.value, st.test)}
                                 />
+                                {isPanic ? (
+                                  <span
+                                    title="Critical Panic Value!"
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      color: 'var(--color-danger)',
+                                      animation: 'pulse 1.5s infinite',
+                                      flexShrink: 0
+                                    }}
+                                  >
+                                    <CircleAlert size={16} />
+                                  </span>
+                                ) : isAbnormal ? (
+                                  <span
+                                    title="Abnormal Value"
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      color: 'var(--color-warning)',
+                                      flexShrink: 0
+                                    }}
+                                  >
+                                    <AlertTriangle size={15} />
+                                  </span>
+                                ) : null}
                                 <button
                                   type="button"
                                   onClick={() => setShowChemistryModal(true)}
-                                  title="فتح محطة الكيمياء السريرية والحسابات التلقائية"
+                                  title="Open Clinical Chemistry Workstation"
                                   style={{
                                     height: '34px',
                                     padding: '0 8px',
@@ -1495,28 +1655,57 @@ function ResultsContent() {
                                   }}
                                 >
                                   <Zap size={12} />
-                                  <span><FlaskConical size={14} /> محطة الكيمياء</span>
+                                  <span><FlaskConical size={14} /> CHEM</span>
                                 </button>
                               </div>
                             ) : (
-                              <input
-                                ref={(el) => { resultInputRefs.current[index] = el; }}
-                                onKeyDown={(e) => handleResultKeyDown(e, index)}
-                                type="text"
-                                className="input-control"
-                                style={{
-                                  height: '34px',
-                                  fontSize: '13px',
-                                  fontWeight: 800,
-                                  background: 'var(--bg-input)',
-                                  borderColor: isPanic ? 'var(--color-danger)' : isAbnormal ? 'var(--color-warning)' : currentVal ? 'var(--accent-cyan)' : 'var(--border-color)',
-                                  boxShadow: isPanic ? '0 0 10px rgba(239, 68, 68, 0.4)' : isAbnormal ? '0 0 8px rgba(245, 158, 11, 0.3)' : 'none',
-                                  color: isPanic ? 'var(--color-danger)' : isAbnormal ? 'var(--color-warning)' : 'var(--text-main)',
-                                }}
-                                placeholder="Enter value"
-                                value={currentVal}
-                                onChange={(e) => handleResultChange(st.id, e.target.value, st.test)}
-                              />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <input
+                                  ref={(el) => { resultInputRefs.current[index] = el; }}
+                                  onKeyDown={(e) => handleResultKeyDown(e, index)}
+                                  type="text"
+                                  className="input-control"
+                                  style={{
+                                    height: '34px',
+                                    fontSize: '13px',
+                                    fontWeight: 800,
+                                    background: 'var(--bg-input)',
+                                    borderColor: isPanic ? 'var(--color-danger)' : isAbnormal ? 'var(--color-warning)' : currentVal ? 'var(--accent-cyan)' : 'var(--border-color)',
+                                    boxShadow: isPanic ? '0 0 10px rgba(239, 68, 68, 0.4)' : isAbnormal ? '0 0 8px rgba(245, 158, 11, 0.3)' : 'none',
+                                    color: isPanic ? 'var(--color-danger)' : isAbnormal ? 'var(--color-warning)' : 'var(--text-main)',
+                                    flex: 1,
+                                  }}
+                                  placeholder="Enter value"
+                                  value={currentVal}
+                                  onChange={(e) => handleResultChange(st.id, e.target.value, st.test)}
+                                />
+                                {isPanic ? (
+                                  <span
+                                    title="Critical Panic Value!"
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      color: 'var(--color-danger)',
+                                      animation: 'pulse 1.5s infinite',
+                                      flexShrink: 0
+                                    }}
+                                  >
+                                    <CircleAlert size={16} />
+                                  </span>
+                                ) : isAbnormal ? (
+                                  <span
+                                    title="Abnormal Value"
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      color: 'var(--color-warning)',
+                                      flexShrink: 0
+                                    }}
+                                  >
+                                    <AlertTriangle size={15} />
+                                  </span>
+                                ) : null}
+                              </div>
                             )}
                           </td>
 
@@ -1528,58 +1717,11 @@ function ResultsContent() {
                             {st.test?.unit || '-'}
                           </td>
 
-                          <td style={{ padding: '12px 14px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                              {isPanic ? (
-                                <span style={{ color: 'var(--color-danger)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                  <CircleAlert size={12} /> PANIC
-                                </span>
-                              ) : isAbnormal ? (
-                                <span style={{ color: 'var(--color-warning)', fontWeight: 800 }}>
-                                  <AlertTriangle size={12} /> Abnormal
-                                </span>
-                              ) : currentVal ? (
-                                <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>
-                                  Normal
-                                </span>
-                              ) : (
-                                <span style={{ color: 'var(--text-dim)' }}>Pending</span>
-                              )}
-
-                              {/* Delta Check Alert Badge */}
-                              {(() => {
-                                const code = st.test?.code || st.test?.name;
-                                const delta = deltaChecks[code] || (st.test?.code && deltaChecks[st.test.code]);
-                                if (delta && delta.isBreached) {
-                                  const isCrit = delta.badgeLevel === 'CRITICAL';
-                                  return (
-                                    <span
-                                      title={delta.message || `تغير حاد مقارنة بالزيارة السابقة: ${delta.previousValue}`}
-                                      style={{
-                                        fontSize: '10px',
-                                        fontWeight: 800,
-                                        padding: '1px 5px',
-                                        borderRadius: '4px',
-                                        background: isCrit ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                                        color: isCrit ? 'var(--color-danger)' : 'var(--color-warning)',
-                                        border: `1px solid ${isCrit ? 'var(--color-danger)' : 'var(--color-warning)'}`,
-                                        cursor: 'help'
-                                      }}
-                                    >
-                                      Δ {delta.deltaPercent}% {delta.direction === 'increased' ? '↑' : '↓'}
-                                    </span>
-                                  );
-                                }
-                                return null;
-                              })()}
-                            </div>
-                          </td>
-
                           <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                             <button
                               type="button"
                               onClick={() => setTestToDelete(st)}
-                              title={`حذف فحص ${st.test?.name || ''} من هذه العينة`}
+                              title={`Delete ${formatTestDisplayName(st.test?.name) || 'test'}`}
                               style={{
                                 background: 'rgba(239, 68, 68, 0.1)',
                                 border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -1601,11 +1743,11 @@ function ResultsContent() {
 
                         {isPanic && (
                           <tr style={{ background: 'rgba(239, 68, 68, 0.08)', borderBottom: '1px solid rgba(239, 68, 68, 0.3)' }}>
-                            <td colSpan={6} style={{ padding: '8px 14px' }}>
+                            <td colSpan={5} style={{ padding: '8px 14px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                                 <div style={{ color: 'var(--color-danger)', fontSize: '11.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   <AlertTriangle size={13} />
-                                  <span>تنبيه قيمة حرجة (PANIC): {st.test?.name} ({currentVal} {st.test?.unit}) تتجاوز العتبة السريرية المهددة للحياة!</span>
+                                  <span>تنبيه قيمة حرجة (PANIC): {formatTestDisplayName(st.test?.name)} ({currentVal} {st.test?.unit}) تتجاوز العتبة السريرية المهددة للحياة!</span>
                                 </div>
                                 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1887,8 +2029,8 @@ function ResultsContent() {
                         alignItems: 'center',
                       }}
                     >
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: isChecked ? 'var(--accent-cyan)' : 'var(--text-main)' }}>{t.name}</span>
-                      <span style={{ fontSize: '11px', color: 'var(--accent-emerald)', fontWeight: 800 }}>{t.price?.toLocaleString()} د.ع</span>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: isChecked ? 'var(--accent-cyan)' : 'var(--text-main)' }}>{formatTestDisplayName(t.name)}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--accent-emerald)', fontWeight: 800 }}>{formatEnglishCurrency(t.price)}</span>
                     </div>
                   );
                 })}
@@ -1965,7 +2107,7 @@ function ResultsContent() {
         <ConfirmModal
           isOpen={!!testToDelete}
           title="تأكيد حذف / استبعاد الفحص"
-          message={`هل أنت متأكد من حذف فحص "${testToDelete.test?.name || ''}" من هذه العينة؟ سيتم استبعاد الفحص فوراً وتعديل ملخص الحسابات.`}
+          message={`هل أنت متأكد من حذف فحص "${formatTestDisplayName(testToDelete.test?.name) || ''}" من هذه العينة؟ سيتم استبعاد الفحص فوراً وتعديل ملخص الحسابات.`}
           type="danger"
           confirmText={deletingTest ? 'جاري الحذف...' : 'نعم، حذف الفحص'}
           cancelText="إلغاء"

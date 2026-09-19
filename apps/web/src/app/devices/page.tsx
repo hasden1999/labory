@@ -38,6 +38,7 @@ import {
   Eye,
   CheckCheck
 } from 'lucide-react';
+import { toEnglishDigits, formatEnglishDate, formatEnglishTime, formatEnglishDateTime } from '../../lib/formatters';
 import {
   CLINICAL_PROFILES,
   ClinicalProfileKey,
@@ -1183,7 +1184,7 @@ export default function DevicesPage() {
                       {/* Card Stats */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', padding: '0 4px' }}>
                         <span>🔗 الفحوصات المربوطة: <strong style={{ color: 'var(--text-main)' }}>{dev.mappings?.length || 0}</strong></span>
-                        <span>⏱️ آخر إشارة: <strong style={{ color: 'var(--text-main)' }}>{dev.lastCommunication ? new Date(dev.lastCommunication).toLocaleTimeString('ar-IQ') : 'لا يوجد'}</strong></span>
+                        <span>⏱️ آخر إشارة: <strong style={{ color: 'var(--text-main)' }}>{dev.lastCommunication ? formatEnglishTime(dev.lastCommunication) : 'لا يوجد'}</strong></span>
                       </div>
 
                       {/* Card Actions */}
@@ -1260,14 +1261,14 @@ export default function DevicesPage() {
                       return (
                         <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                           <td style={{ padding: '10px 14px', color: 'var(--text-muted)', fontSize: '11px' }}>
-                            {new Date(item.createdAt || item.receivedAt || Date.now()).toLocaleTimeString('ar-IQ')}
+                            {formatEnglishTime(item.createdAt || item.receivedAt || Date.now())}
                           </td>
                           <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-main)' }}>
                             {item.deviceName || item.device?.name || 'جهاز خارجي'}
                           </td>
                           <td style={{ padding: '10px 14px' }}>
                             <span style={{ padding: '2px 8px', borderRadius: '4px', background: 'rgba(6, 182, 212, 0.15)', color: 'var(--accent-cyan)', fontWeight: 800 }}>
-                              #{item.sampleNumber || item.sampleBarcode || 'غير محدد'}
+                              #{toEnglishDigits(item.sampleNumber || item.sampleBarcode) || 'غير محدد'}
                             </span>
                           </td>
                           <td style={{ padding: '10px 14px', fontWeight: 600 }}>
@@ -1697,7 +1698,7 @@ export default function DevicesPage() {
                     <div key={log.id} style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '8px 10px', fontSize: '11px', fontFamily: 'monospace' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', marginBottom: '4px' }}>
                         <span style={{ color: log.direction === 'INBOUND' ? '#4ade80' : '#f87171' }}>● {log.direction}</span>
-                        <span>{new Date(log.createdAt).toLocaleString('ar-IQ')}</span>
+                        <span>{formatEnglishDateTime(log.createdAt)}</span>
                       </div>
                       <div style={{ color: '#e2e8f0', marginBottom: '4px' }}>{log.summary}</div>
                       <pre style={{ margin: 0, whiteSpace: 'pre-wrap', color: 'var(--accent-cyan)' }}>{log.rawPayload}</pre>

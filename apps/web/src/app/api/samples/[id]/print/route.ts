@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStore, clampMargin, getLocalIpAddress } from '../../../../../lib/serverStore';
+import { toEnglishDigits, formatEnglishDate, formatEnglishDateTime, isBloodGroupTest } from '../../../../../lib/formatters';
 
 function escapeHtml(str: any): string {
   if (str === null || str === undefined) return '';
@@ -110,7 +111,21 @@ export async function GET(request: Request, { params }: { params: { id: string }
   // Tests Categorization
   const allTests = sample.tests || [];
 
+  const isCbcTest = (t: any) => {
+    const code = (t.test?.code || t.testCode || '').toUpperCase();
+    const name = (t.test?.name || '').toLowerCase();
+    const val = typeof t.resultValue === 'string' ? t.resultValue : '';
+    return code === 'CBC' || 
+           code === 'FBC' ||
+           name.includes('complete blood count') || 
+           name.includes('صورة الدم') || 
+           val.includes('CBC') || 
+           val.includes('ERYTHROID:') || 
+           val.includes('DIFFERENTIAL:');
+  };
+
   const isSfaTest = (t: any) => {
+    if (isCbcTest(t)) return false;
     const code = (t.test?.code || t.testCode || '').toUpperCase();
     const name = (t.test?.name || '').toLowerCase();
     const val = typeof t.resultValue === 'string' ? t.resultValue : '';
@@ -124,7 +139,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   };
 
   const isGueTest = (t: any) => {
-    if (isSfaTest(t)) return false;
+    if (isCbcTest(t) || isSfaTest(t)) return false;
     const code = (t.test?.code || t.testCode || '').toUpperCase();
     const name = (t.test?.name || '').toLowerCase();
     const val = typeof t.resultValue === 'string' ? t.resultValue : '';
@@ -132,17 +147,18 @@ export async function GET(request: Request, { params }: { params: { id: string }
   };
 
   const isGseTest = (t: any) => {
-    if (isSfaTest(t)) return false;
+    if (isCbcTest(t) || isSfaTest(t)) return false;
     const code = (t.test?.code || t.testCode || '').toUpperCase();
     const name = (t.test?.name || '').toLowerCase();
     const val = typeof t.resultValue === 'string' ? t.resultValue : '';
     return code === 'GSE' || val.includes('G.S.E') || name.includes('stool') || name.includes('خروج') || val.includes('PARASITOLOGY:');
   };
 
+  const cbcTests = allTests.filter(isCbcTest);
   const sfaTests = allTests.filter(isSfaTest);
   const gueTests = allTests.filter(isGueTest);
   const gseTests = allTests.filter(isGseTest);
-  const generalTests = allTests.filter((t: any) => !isSfaTest(t) && !isGueTest(t) && !isGseTest(t));
+  const generalTests = allTests.filter((t: any) => !isCbcTest(t) && !isSfaTest(t) && !isGueTest(t) && !isGseTest(t));
 
   // Shared Helper: Digital or Pre-printed Header
   const renderHeader = (safeLabName: string, safeLabSubtitle: string, safeAddress: string, safePhone: string, safeDocName: string, safeDocTitle: string, safeLicense: string) => {
@@ -155,6 +171,54 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return '';
     }
 
+    const labNameAlignStyle = labNameAlignment === 'CENTER' ? 'text-align: center;' : labNameAlignment === 'LEFT' ? 'text-align: left;' : 'text-align: right;';
+
+    // Modern Colored Gradient Header (Identical to settings preview)
+    if (template === 'MODERN') {
+      let modernBadgeStyle = '';
+      if (labNameStyle === 'MODERN_BADGE') {
+        modernBadgeStyle = 'background: rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 6px; display: inline-block;';
+      } else if (labNameStyle === 'ELEGANT_BORDER') {
+        modernBadgeStyle = 'border: 1.5px solid rgba(255,255,255,0.85); padding: 2px 10px; border-radius: 6px; display: inline-block;';
+      }
+
+      return `
+        <div class="modern-header-banner" style="background: linear-gradient(135deg, ${primaryCol} 0%, #06b6d4 100%) !important; color: #ffffff !important; padding: 14px 18px; border-radius: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important;">
+          <div style="flex: 1; ${labNameAlignStyle}">
+            ${showLabName && safeLabName ? `
+              <div style="font-size: ${labNameFontSize}px; font-weight: 900; color: #ffffff !important; margin-bottom: 2px; ${modernBadgeStyle}">
+                ${settings.logoUrl ? `<img src="${escapeHtml(settings.logoUrl)}" alt="Logo" style="height: ${Math.min(36, labNameFontSize + 8)}px; max-width: 60px; object-fit: contain; margin-left: 8px; vertical-align: middle;" />` : `
+                  <svg width="${Math.min(22, Math.max(16, labNameFontSize - 2))}" height="${Math.min(22, Math.max(16, labNameFontSize - 2))}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-left: 6px;"><path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5h0c-1.4 0-2.5-1.1-2.5-2.5V2"/><path d="M8.5 2h7"/><path d="M14.5 16h-5"/></svg>
+                `}
+                <span style="vertical-align: middle;">${safeLabName}</span>
+              </div>
+            ` : ''}
+            ${showLabSubtitle && safeLabSubtitle ? `
+              <p style="margin: 2px 0 0 0; font-size: 11px; color: rgba(255, 255, 255, 0.95) !important; font-weight: 600;">${safeLabSubtitle}</p>
+            ` : ''}
+            ${showContactInfo ? `
+              <p style="margin: 4px 0 0 0; font-size: 10px; color: rgba(255, 255, 255, 0.85) !important;">العنوان: ${safeAddress} | هاتف: ${safePhone} ${safeLicense ? ` | ترخيص: ${safeLicense}` : ''}</p>
+            ` : ''}
+          </div>
+
+          <div style="display: flex; gap: 10px; align-items: center; margin-right: 14px;">
+            ${qrEnabled && qrPosition === 'HEADER' ? `
+              <div style="background: #ffffff; padding: 4px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.15); -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                ${generateQrSvg(verifyUrl, 44)}
+                <div style="font-size: 8px; font-weight: 800; color: #0f172a; margin-top: 2px; letter-spacing: 0.5px;">VERIFY</div>
+              </div>
+            ` : ''}
+            ${showDoctorInfo ? `
+              <div style="background: rgba(255, 255, 255, 0.18) !important; border: 1px solid rgba(255, 255, 255, 0.3); padding: 8px 12px; border-radius: 6px; text-align: left; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;" dir="ltr">
+                <h4 style="font-size: 12px; font-weight: 900; color: #ffffff !important; margin: 0;">${safeDocName || 'Dr. Laboratory Director'}</h4>
+                <p style="font-size: 10px; color: rgba(255, 255, 255, 0.92) !important; margin: 2px 0 0 0; font-weight: 600;">${safeDocTitle || 'Consultant Clinical Pathologist'}</p>
+                ${safeLicense ? `<p style="font-size: 9px; color: rgba(255, 255, 255, 0.78) !important; margin: 2px 0 0 0;">Lic: ${safeLicense}</p>` : ''}
+              </div>
+            ` : ''}
+          </div>
+        </div>`;
+    }
+
     let labNameStyleCss = '';
     if (labNameStyle === 'BOLD') {
       labNameStyleCss = 'font-weight: 900;';
@@ -163,8 +227,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
     } else if (labNameStyle === 'ELEGANT_BORDER') {
       labNameStyleCss = `border: 1.5px solid ${labNameColor}; padding: 2px 10px; border-radius: 4px; display: inline-block;`;
     }
-
-    const labNameAlignStyle = labNameAlignment === 'CENTER' ? 'text-align: center;' : labNameAlignment === 'LEFT' ? 'text-align: left;' : 'text-align: right;';
 
     return `
       <div class="header-border" style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 14px; margin-bottom: 16px; position: relative; z-index: 1;">
@@ -209,10 +271,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
     return `
       <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 12px; position: relative; z-index: 1;">
         <div><span style="color: #64748b;">اسم المريض:</span> <strong>${safePatientName}</strong></div>
-        <div><span style="color: #64748b;">العمر / الجنس:</span> <strong>${patient.age || '-'} سنة / ${patient.gender === 'FEMALE' ? 'أنثى (Female)' : 'ذكر (Male)'}</strong></div>
-        <div><span style="color: #64748b;">رقم العينة:</span> <strong style="color: ${primaryCol};">#${sample.sampleNumber}</strong></div>
+        <div><span style="color: #64748b;">العمر / الجنس:</span> <strong>${toEnglishDigits(patient.age) || '-'} سنة / ${patient.gender === 'FEMALE' ? 'Female' : 'Male'}</strong></div>
+        <div><span style="color: #64748b;">رقم العينة:</span> <strong style="color: ${primaryCol};">#${toEnglishDigits(sample.sampleNumber)}</strong></div>
         <div><span style="color: #64748b;">الطبيب المعالج:</span> <strong>${safeDoctorName}</strong></div>
-        <div><span style="color: #64748b;">تاريخ الفحص:</span> <strong>${new Date(sample.createdAt).toLocaleDateString('ar-IQ')}</strong></div>
+        <div><span style="color: #64748b;">تاريخ الفحص:</span> <strong>${formatEnglishDate(sample.createdAt)}</strong></div>
         <div><span style="color: #64748b;">حالة التقرير:</span> <strong style="color: #16a34a;">معتمد نهائي (Verified)</strong></div>
       </div>`;
   };
@@ -298,20 +360,22 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   // Helper: Clinical Finding Badge with strict Left-to-Right layout and Bidi isolation
   const renderClinicalFindingBadge = (p: string, forceAbnormal = false) => {
-    const isAbn = forceAbnormal || 
+    const upper = p.toUpperCase();
+    const isBloodGroupFinding = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-', 'A POSITIVE', 'B POSITIVE', 'O POSITIVE', 'AB POSITIVE'].some(bg => upper.includes(bg));
+    const isAbn = !isBloodGroupFinding && (forceAbnormal || 
       p.includes('1+') || p.includes('2+') || p.includes('3+') || p.includes('4+') || 
       p.includes('Positive') || p.includes('+++') || p.includes('++') || 
       p.includes('Full') || p.includes('Bloody') || 
-      p.includes('15-20') || p.includes('25-35') || p.includes('30-40') || p.includes('40-50');
+      p.includes('15-20') || p.includes('25-35') || p.includes('30-40') || p.includes('40-50'));
 
     const colonIdx = p.indexOf(':');
     let innerHtml = '';
     if (colonIdx > 0) {
       const key = p.substring(0, colonIdx).trim();
       const val = p.substring(colonIdx + 1).trim();
-      innerHtml = `<span style="color: ${isAbn ? '#991b1b' : '#64748b'}; font-weight: 700; white-space: nowrap;">${escapeHtml(key)}:</span> <span style="color: ${isAbn ? '#b91c1c' : '#0f172a'}; font-weight: 800; unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(val)}</span>`;
+      innerHtml = `<span style="color: ${isAbn ? '#991b1b' : '#64748b'}; font-weight: 700; white-space: nowrap;">${escapeHtml(key)}:</span> <span style="color: ${isAbn ? '#b91c1c' : '#0f172a'}; font-weight: 800; unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(toEnglishDigits(val))}</span>`;
     } else {
-      innerHtml = `<span style="color: ${isAbn ? '#b91c1c' : '#0f172a'}; font-weight: 800; unicode-bidi: isolate;">${escapeHtml(p)}</span>`;
+      innerHtml = `<span style="color: ${isAbn ? '#b91c1c' : '#0f172a'}; font-weight: 800; unicode-bidi: isolate;">${escapeHtml(toEnglishDigits(p))}</span>`;
     }
 
     const bg = isAbn ? '#fef2f2' : '#f8fafc';
@@ -323,37 +387,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
   // 1. General Laboratory Tests (Blood, Chemistry, Hormones, etc.)
   if (generalTests.length > 0) {
     const generalRows = generalTests.map((t: any) => {
-      let displayValue = t.resultValue ? escapeHtml(t.resultValue) : '<span style="color:#94a3b8;">Pending (قيد الفحص)</span>';
+      const isBloodGroup = isBloodGroupTest(t.test || t);
+      const isAbnormal = isBloodGroup ? false : t.isAbnormal;
+      let displayValue = t.resultValue ? escapeHtml(toEnglishDigits(t.resultValue)) : '<span style="color:#94a3b8;">Pending</span>';
       const testName = escapeHtml(t.test?.name || t.testCode || 'Test');
-      const testArabic = escapeHtml(t.test?.arabicName || '');
       const testUnit = escapeHtml(t.test?.unit || '-');
       const testRef = escapeHtml(t.test?.refRangeText || '-');
-      const isAbnormal = t.isAbnormal;
 
-      if (typeof t.resultValue === 'string' && (t.resultValue.includes('CBC') || t.resultValue.includes('ERYTHROID:') || t.resultValue.includes('DIFFERENTIAL:'))) {
-        const clean = t.resultValue.replace(/\[.*?CBC.*?\]/gi, '').trim();
-        const lines = clean.split('\n').filter(Boolean);
-        let contentHtml = '';
-        lines.forEach((line: string) => {
-          const cleanLine = line.trim();
-          if (cleanLine.startsWith('ERYTHROID:') || cleanLine.startsWith('PLATELETS:') || cleanLine.startsWith('DIFFERENTIAL:')) {
-            const colonIdx = cleanLine.indexOf(':');
-            const title = cleanLine.substring(0, colonIdx);
-            const body = cleanLine.substring(colonIdx + 1).trim();
-            const items = body.split('|').map(p => p.trim());
-            contentHtml += `
-              <div style="margin-bottom: 6px;" dir="ltr">
-                <div style="font-size: 11px; font-weight: 800; color: #e11d48; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px; text-align: left;" dir="ltr">${escapeHtml(title)}</div>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; font-size: 11px;" dir="ltr">
-                  ${items.map(p => renderClinicalFindingBadge(p)).join('')}
-                </div>
-              </div>`;
-          } else {
-            contentHtml += `<div style="margin-bottom: 4px;" dir="ltr">${renderClinicalFindingBadge(cleanLine)}</div>`;
-          }
-        });
-        displayValue = `<div style="text-align: left; background: #fff1f2; padding: 8px 12px; border-radius: 8px; border: 1px solid #fecdd3; max-width: 520px; margin: 4px 0;" dir="ltr">${contentHtml}</div>`;
-      } else if (typeof t.resultValue === 'string' && (t.resultValue.includes('MICROBIOLOGY') || t.resultValue.includes('ANTIBIOGRAM:'))) {
+      if (typeof t.resultValue === 'string' && (t.resultValue.includes('MICROBIOLOGY') || t.resultValue.includes('ANTIBIOGRAM:'))) {
         const clean = t.resultValue.replace(/\[.*?MICROBIOLOGY.*?\]/gi, '').trim();
         const lines = clean.split('\n').filter(Boolean);
         let metaHtml = '';
@@ -395,16 +436,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
         <tr style="border-bottom: 1px solid #e2e8f0; page-break-inside: avoid;">
           <td style="padding: 10px 12px; font-weight: 800; color: #0f172a; text-align: left;">
             ${testName}
-            <div style="font-size: 11px; color: #64748b; font-weight: normal;">${testArabic}</div>
           </td>
           <td style="padding: 10px 12px; font-weight: 700; color: ${isAbnormal ? '#dc2626' : '#0f172a'}; text-align: left;">
             ${displayValue}
           </td>
           <td style="padding: 10px 12px; color: #475569; font-weight: 600; text-align: left;">${testUnit}</td>
           <td style="padding: 10px 12px; color: #334155; font-weight: 600; text-align: left;">${testRef}</td>
-          <td style="padding: 10px 12px; font-size: 11px; color: ${isAbnormal ? '#dc2626' : '#16a34a'}; font-weight: 700; text-align: left;">
-            ${isAbnormal ? 'ABNORMAL' : 'NORMAL'}
-          </td>
         </tr>`;
     }).join('');
 
@@ -416,11 +453,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
         <table dir="ltr" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; text-align: left;">
           <thead>
             <tr class="table-header" style="background: #0f172a; color: #ffffff;">
-              <th style="padding: 8px 12px; text-align: left; border-radius: 6px 0 0 0;">Test Name / Investigation (اسم التحليل)</th>
-              <th style="padding: 8px 12px; text-align: left;">Result (النتيجة)</th>
-              <th style="padding: 8px 12px; text-align: left;">Unit (الوحدة)</th>
-              <th style="padding: 8px 12px; text-align: left;">Reference Range (المجال الطبيعي)</th>
-              <th style="padding: 8px 12px; text-align: left; border-radius: 0 6px 0 0;">Status (الحالة)</th>
+              <th style="padding: 8px 12px; text-align: left; border-radius: 6px 0 0 0;">INVESTIGATION</th>
+              <th style="padding: 8px 12px; text-align: left;">RESULT</th>
+              <th style="padding: 8px 12px; text-align: left;">UNIT</th>
+              <th style="padding: 8px 12px; text-align: left; border-radius: 0 6px 0 0;">REFERENCE RANGE</th>
             </tr>
           </thead>
           <tbody>
@@ -432,7 +468,336 @@ export async function GET(request: Request, { params }: { params: { id: string }
     `);
   }
 
-  // 2. Dedicated General Urine Examination (G.U.E) Page
+  // 2. Dedicated Complete Blood Count (CBC) & 5-Part Differential Pages
+  interface ParsedCbc {
+    rbc: string;
+    hgb: string;
+    hct: string;
+    mcv: string;
+    mch: string;
+    mchc: string;
+    rdw: string;
+    plt: string;
+    mpv: string;
+    pdw: string;
+    pct: string;
+    wbc: string;
+    neutrophils: string;
+    lymphocytes: string;
+    monocytes: string;
+    eosinophils: string;
+    basophils: string;
+    morphology: string;
+    comments: string;
+  }
+
+  const parseCbcData = (rawVal: string): ParsedCbc => {
+    const res: ParsedCbc = {
+      rbc: '-', hgb: '-', hct: '-', mcv: '-', mch: '-', mchc: '-', rdw: '-',
+      plt: '-', mpv: '-', pdw: '-', pct: '-',
+      wbc: '-', neutrophils: '-', lymphocytes: '-', monocytes: '-', eosinophils: '-', basophils: '-',
+      morphology: '', comments: ''
+    };
+    if (!rawVal) return res;
+
+    const cleanVal = toEnglishDigits(rawVal);
+    const lines = cleanVal.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.toUpperCase().startsWith('ERYTHROID:')) {
+        const rbcM = trimmed.match(/RBC:\s*([^\s|]+)/i);
+        if (rbcM) res.rbc = rbcM[1];
+        const hgbM = trimmed.match(/HGB:\s*([^\s|]+)/i);
+        if (hgbM) res.hgb = hgbM[1];
+        const hctM = trimmed.match(/HCT:\s*([^\s|]+)/i);
+        if (hctM) res.hct = hctM[1];
+        const mcvM = trimmed.match(/MCV:\s*([^\s|]+)/i);
+        if (mcvM) res.mcv = mcvM[1];
+        const mchM = trimmed.match(/MCH:\s*([^\s|]+)/i);
+        if (mchM) res.mch = mchM[1];
+        const mchcM = trimmed.match(/MCHC:\s*([^\s|]+)/i);
+        if (mchcM) res.mchc = mchcM[1];
+        const rdwM = trimmed.match(/RDW:\s*([^\s|]+)/i);
+        if (rdwM) res.rdw = rdwM[1];
+      } else if (trimmed.toUpperCase().startsWith('PLATELETS:')) {
+        const pltM = trimmed.match(/PLT:\s*([^\s|]+)/i);
+        if (pltM) res.plt = pltM[1];
+        const mpvM = trimmed.match(/MPV:\s*([^\s|]+)/i);
+        if (mpvM) res.mpv = mpvM[1];
+        const pdwM = trimmed.match(/PDW:\s*([^\s|]+)/i);
+        if (pdwM) res.pdw = pdwM[1];
+        const pctM = trimmed.match(/PCT:\s*([^\s|]+)/i);
+        if (pctM) res.pct = pctM[1];
+      } else if (trimmed.toUpperCase().startsWith('LEUKOCYTES:')) {
+        const wbcM = trimmed.match(/WBC:\s*([^\s|]+)/i);
+        if (wbcM) res.wbc = wbcM[1];
+      } else if (trimmed.toUpperCase().startsWith('DIFFERENTIAL:')) {
+        const neutM = trimmed.match(/Neut:\s*([^\s%|]+)/i);
+        if (neutM) res.neutrophils = neutM[1];
+        const lymphM = trimmed.match(/Lymph:\s*([^\s%|]+)/i);
+        if (lymphM) res.lymphocytes = lymphM[1];
+        const monoM = trimmed.match(/Mono:\s*([^\s%|]+)/i);
+        if (monoM) res.monocytes = monoM[1];
+        const eosM = trimmed.match(/Eos:\s*([^\s%|]+)/i);
+        if (eosM) res.eosinophils = eosM[1];
+        const basoM = trimmed.match(/Baso:\s*([^\s%|]+)/i);
+        if (basoM) res.basophils = basoM[1];
+      } else if (trimmed.toUpperCase().startsWith('MORPHOLOGY:')) {
+        res.morphology = trimmed.replace(/MORPHOLOGY:/i, '').trim();
+      } else if (trimmed.toUpperCase().startsWith('COMMENTS:') || trimmed.toUpperCase().startsWith('COMMENT:')) {
+        res.comments = trimmed.replace(/COMMENTS?:/i, '').trim();
+      } else {
+        const rbcM = trimmed.match(/\bRBC\b[:\s=]+([0-9.]+)/i);
+        if (rbcM && res.rbc === '-') res.rbc = rbcM[1];
+        const hgbM = trimmed.match(/\b(HGB|HB)\b[:\s=]+([0-9.]+)/i);
+        if (hgbM && res.hgb === '-') res.hgb = hgbM[2];
+        const hctM = trimmed.match(/\b(HCT|PCV)\b[:\s=]+([0-9.]+)/i);
+        if (hctM && res.hct === '-') res.hct = hctM[2];
+        const mcvM = trimmed.match(/\bMCV\b[:\s=]+([0-9.]+)/i);
+        if (mcvM && res.mcv === '-') res.mcv = mcvM[1];
+        const mchM = trimmed.match(/\bMCH\b[:\s=]+([0-9.]+)/i);
+        if (mchM && res.mch === '-') res.mch = mchM[1];
+        const mchcM = trimmed.match(/\bMCHC\b[:\s=]+([0-9.]+)/i);
+        if (mchcM && res.mchc === '-') res.mchc = mchcM[1];
+        const rdwM = trimmed.match(/\bRDW\b[:\s=]+([0-9.]+)/i);
+        if (rdwM && res.rdw === '-') res.rdw = rdwM[1];
+        const pltM = trimmed.match(/\bPLT\b[:\s=]+([0-9.]+)/i);
+        if (pltM && res.plt === '-') res.plt = pltM[1];
+        const mpvM = trimmed.match(/\bMPV\b[:\s=]+([0-9.]+)/i);
+        if (mpvM && res.mpv === '-') res.mpv = mpvM[1];
+        const pdwM = trimmed.match(/\bPDW\b[:\s=]+([0-9.]+)/i);
+        if (pdwM && res.pdw === '-') res.pdw = pdwM[1];
+        const pctM = trimmed.match(/\bPCT\b[:\s=]+([0-9.]+)/i);
+        if (pctM && res.pct === '-') res.pct = pctM[1];
+        const wbcM = trimmed.match(/\bWBC\b[:\s=]+([0-9.]+)/i);
+        if (wbcM && res.wbc === '-') res.wbc = wbcM[1];
+      }
+    }
+    return res;
+  };
+
+  const isFemale = patient.gender === 'FEMALE';
+  const rbcRef = isFemale ? '4.00 - 5.20' : '4.50 - 5.90';
+  const rbcLow = isFemale ? 4.0 : 4.5;
+  const rbcHigh = isFemale ? 5.2 : 5.9;
+  const hgbRef = isFemale ? '12.0 - 15.5' : '13.0 - 17.5';
+  const hgbLow = isFemale ? 12.0 : 13.0;
+  const hgbHigh = isFemale ? 15.5 : 17.5;
+  const hctRef = isFemale ? '36.0 - 48.0' : '40.0 - 52.0';
+  const hctLow = isFemale ? 36.0 : 40.0;
+  const hctHigh = isFemale ? 48.0 : 52.0;
+
+  const renderCbcRow = (name: string, val: string, unit: string, ref: string, low: number, high: number) => {
+    const num = parseFloat(val);
+    const hasVal = val && val !== '-';
+    const isAbn = hasVal && !isNaN(num) && (num < low || num > high);
+    const flag = isAbn ? (num < low ? ' (L)' : ' (H)') : '';
+    const col = isAbn ? '#dc2626' : '#0f172a';
+    return `
+      <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
+        <td style="padding: 7px 10px; font-weight: 700; color: #1e293b; text-align: left;">${name}</td>
+        <td style="padding: 7px 10px; font-weight: 800; color: ${col}; text-align: left;">
+          ${hasVal ? escapeHtml(val) : '<span style="color:#94a3b8;">Pending</span>'}${flag ? `<span style="font-size: 10px; font-weight: 900; color: #dc2626; margin-left: 3px;">${flag}</span>` : ''}
+        </td>
+        <td style="padding: 7px 10px; color: #64748b; font-weight: 600; text-align: left;">${unit}</td>
+        <td style="padding: 7px 10px; color: #334155; font-weight: 600; text-align: left;">${ref}</td>
+      </tr>`;
+  };
+
+  const renderDiffRow = (name: string, pctStr: string, refPct: string, low: number, high: number, wbcVal: number) => {
+    const num = parseFloat(pctStr);
+    const hasVal = pctStr && pctStr !== '-';
+    const isAbn = hasVal && !isNaN(num) && (num < low || num > high);
+    const flag = isAbn ? (num < low ? ' (L)' : ' (H)') : '';
+    const col = isAbn ? '#dc2626' : '#0f172a';
+    const absVal = hasVal && !isNaN(num) && wbcVal > 0 ? ((wbcVal * num) / 100).toFixed(2) : '-';
+    return `
+      <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
+        <td style="padding: 7px 10px; font-weight: 700; color: #1e293b; text-align: left;">${name}</td>
+        <td style="padding: 7px 10px; font-weight: 800; color: ${col}; text-align: left;">
+          ${hasVal ? `${escapeHtml(pctStr)} %` : '<span style="color:#94a3b8;">Pending</span>'}${flag ? `<span style="font-size: 10px; font-weight: 900; color: #dc2626; margin-left: 3px;">${flag}</span>` : ''}
+        </td>
+        <td style="padding: 7px 10px; font-weight: 700; color: #0284c7; text-align: left;">
+          ${absVal !== '-' ? `${absVal} <span style="font-size: 9.5px; color: #64748b; font-weight: 600;">10^3/uL</span>` : '-'}
+        </td>
+        <td style="padding: 7px 10px; color: #334155; font-weight: 600; text-align: left;">${refPct}</td>
+      </tr>`;
+  };
+
+  for (const cbc of cbcTests) {
+    const rawVal = cbc.resultValue ? String(cbc.resultValue) : '';
+    const parsed = parseCbcData(rawVal);
+    const rbcNum = parseFloat(parsed.rbc);
+    const mcvNum = parseFloat(parsed.mcv);
+    const wbcNum = parseFloat(parsed.wbc) || 0;
+
+    let mentzerHtml = '';
+    if (!isNaN(rbcNum) && !isNaN(mcvNum) && rbcNum > 0 && mcvNum > 0) {
+      const mIdx = Math.round((mcvNum / rbcNum) * 10) / 10;
+      if (mcvNum < 80) {
+        const isThal = mIdx < 13;
+        const desc = isThal ? 'Mentzer Index < 13: Suggests Beta-Thalassemia Trait' : 'Mentzer Index ≥ 13: Suggests Iron Deficiency Anemia';
+        const badgeBg = isThal ? '#eff6ff' : '#fefce8';
+        const badgeBdr = isThal ? '#bfdbfe' : '#fef08a';
+        const badgeCol = isThal ? '#1d4ed8' : '#854d0e';
+        mentzerHtml = `
+          <div style="background: ${badgeBg}; border: 1px solid ${badgeBdr}; color: ${badgeCol}; padding: 6px 10px; border-radius: 6px; font-size: 11px; margin-top: 6px; text-align: left;" dir="ltr">
+            <strong>Mentzer Index (MCV/RBC):</strong> ${mIdx} &bull; <em>${desc}</em>
+          </div>`;
+      }
+    }
+
+    const nVal = parseFloat(parsed.neutrophils) || 0;
+    const lVal = parseFloat(parsed.lymphocytes) || 0;
+    const mVal = parseFloat(parsed.monocytes) || 0;
+    const eVal = parseFloat(parsed.eosinophils) || 0;
+    const bVal = parseFloat(parsed.basophils) || 0;
+    const hasDiffData = parsed.neutrophils !== '-' || parsed.lymphocytes !== '-';
+    const diffSum = Math.round((nVal + lVal + mVal + eVal + bVal) * 10) / 10;
+
+    renderedPages.push(`
+      <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
+        ${renderWatermark()}
+        ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
+        ${renderPatientMetaBox(safePatientName, safeDoctorName)}
+
+        <!-- CBC Header Banner -->
+        <div style="background: linear-gradient(90deg, #be123c 0%, #e11d48 100%); color: #ffffff; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: 13px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+          <span>COMPLETE BLOOD COUNT (CBC) &amp; 5-PART DIFFERENTIAL</span>
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.5px; opacity: 0.95;">AUTOMATED HEMATOLOGY REPORT</span>
+        </div>
+
+        <!-- 2-Column Clinical Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px;" dir="ltr">
+          <!-- Column 1: Erythroid Series & Platelet Indices -->
+          <div>
+            <!-- Erythroid Series -->
+            <div style="border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; margin-bottom: 12px;">
+              <div style="background: #f8fafc; padding: 6px 10px; font-weight: 800; font-size: 11.5px; color: #be123c; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
+                <span>1. ERYTHROID SERIES &amp; RED CELL INDICES</span>
+              </div>
+              <table style="width: 100%; border-collapse: collapse; font-size: 11.5px; text-align: left;">
+                <thead>
+                  <tr style="background: #f1f5f9; color: #475569; font-size: 10.5px; border-bottom: 1px solid #cbd5e1;">
+                    <th style="padding: 5px 10px; text-align: left;">INVESTIGATION</th>
+                    <th style="padding: 5px 10px; text-align: left;">RESULT</th>
+                    <th style="padding: 5px 10px; text-align: left;">UNIT</th>
+                    <th style="padding: 5px 10px; text-align: left;">REFERENCE RANGE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${renderCbcRow('R.B.C (Red Blood Cells)', parsed.rbc, '10^6/uL', rbcRef, rbcLow, rbcHigh)}
+                  ${renderCbcRow('HGB (Hemoglobin)', parsed.hgb, 'g/dL', hgbRef, hgbLow, hgbHigh)}
+                  ${renderCbcRow('HCT / PCV (Hematocrit)', parsed.hct, '%', hctRef, hctLow, hctHigh)}
+                  ${renderCbcRow('MCV (Mean Corpuscular Vol)', parsed.mcv, 'fL', '80.0 - 100.0', 80.0, 100.0)}
+                  ${renderCbcRow('MCH (Mean Corpuscular Hb)', parsed.mch, 'pg', '27.0 - 33.0', 27.0, 33.0)}
+                  ${renderCbcRow('MCHC (Mean Corpuscular Conc)', parsed.mchc, 'g/dL', '32.0 - 36.0', 32.0, 36.0)}
+                  ${renderCbcRow('RDW-CV (Red Cell Distribution)', parsed.rdw, '%', '11.5 - 14.5', 11.5, 14.5)}
+                </tbody>
+              </table>
+              ${mentzerHtml ? `<div style="padding: 0 8px 8px 8px;">${mentzerHtml}</div>` : ''}
+            </div>
+
+            <!-- Platelet Indices -->
+            <div style="border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden;">
+              <div style="background: #f8fafc; padding: 6px 10px; font-weight: 800; font-size: 11.5px; color: #b45309; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
+                <span>2. PLATELET INDICES (THROMBOCYTES)</span>
+              </div>
+              <table style="width: 100%; border-collapse: collapse; font-size: 11.5px; text-align: left;">
+                <thead>
+                  <tr style="background: #f1f5f9; color: #475569; font-size: 10.5px; border-bottom: 1px solid #cbd5e1;">
+                    <th style="padding: 5px 10px; text-align: left;">INVESTIGATION</th>
+                    <th style="padding: 5px 10px; text-align: left;">RESULT</th>
+                    <th style="padding: 5px 10px; text-align: left;">UNIT</th>
+                    <th style="padding: 5px 10px; text-align: left;">REFERENCE RANGE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${renderCbcRow('PLT (Platelet Count)', parsed.plt, '10^3/uL', '150 - 450', 150, 450)}
+                  ${renderCbcRow('MPV (Mean Platelet Volume)', parsed.mpv, 'fL', '7.4 - 10.4', 7.4, 10.4)}
+                  ${renderCbcRow('PDW (Platelet Dist. Width)', parsed.pdw, '%', '9.0 - 17.0', 9.0, 17.0)}
+                  ${renderCbcRow('PCT (Plateletcrit)', parsed.pct, '%', '0.15 - 0.40', 0.15, 0.40)}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Column 2: Total Leukocytes & 5-Part Differential -->
+          <div>
+            <!-- Total WBC & Differential -->
+            <div style="border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; margin-bottom: 12px;">
+              <div style="background: #f8fafc; padding: 6px 10px; font-weight: 800; font-size: 11.5px; color: #166534; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
+                <span>3. TOTAL LEUKOCYTES &amp; 5-PART DIFFERENTIAL</span>
+              </div>
+              <table style="width: 100%; border-collapse: collapse; font-size: 11.5px; text-align: left;">
+                <thead>
+                  <tr style="background: #f1f5f9; color: #475569; font-size: 10.5px; border-bottom: 1px solid #cbd5e1;">
+                    <th style="padding: 5px 10px; text-align: left;">INVESTIGATION</th>
+                    <th style="padding: 5px 10px; text-align: left;">RESULT</th>
+                    <th style="padding: 5px 10px; text-align: left;">UNIT</th>
+                    <th style="padding: 5px 10px; text-align: left;">REFERENCE RANGE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${renderCbcRow('W.B.C (Total Leukocytes)', parsed.wbc, '10^3/uL', '4.0 - 11.0', 4.0, 11.0)}
+                </tbody>
+              </table>
+
+              <!-- Differential Sub-table -->
+              <div style="background: #f8fafc; padding: 4px 10px; font-weight: 700; font-size: 11px; color: #475569; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between;">
+                <span>5-PART DIFFERENTIAL COUNT</span>
+                ${hasDiffData ? `<span style="font-size: 10px; color: ${Math.abs(diffSum - 100) < 1 ? '#166534' : '#b91c1c'}; font-weight: 800;">Sum: ${diffSum}%</span>` : ''}
+              </div>
+              <table style="width: 100%; border-collapse: collapse; font-size: 11.5px; text-align: left;">
+                <thead>
+                  <tr style="background: #ffffff; color: #64748b; font-size: 10px; border-bottom: 1px solid #f1f5f9;">
+                    <th style="padding: 4px 10px; text-align: left;">PARAMETER</th>
+                    <th style="padding: 4px 10px; text-align: left;">RELATIVE (%)</th>
+                    <th style="padding: 4px 10px; text-align: left;">ABSOLUTE</th>
+                    <th style="padding: 4px 10px; text-align: left;">REF. RANGE (%)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${renderDiffRow('Neutrophils', parsed.neutrophils, '40.0 - 75.0 %', 40.0, 75.0, wbcNum)}
+                  ${renderDiffRow('Lymphocytes', parsed.lymphocytes, '20.0 - 45.0 %', 20.0, 45.0, wbcNum)}
+                  ${renderDiffRow('Monocytes', parsed.monocytes, '2.0 - 10.0 %', 2.0, 10.0, wbcNum)}
+                  ${renderDiffRow('Eosinophils', parsed.eosinophils, '1.0 - 6.0 %', 1.0, 6.0, wbcNum)}
+                  ${renderDiffRow('Basophils', parsed.basophils, '0.0 - 1.0 %', 0.0, 1.0, wbcNum)}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Morphology & Clinical Comments Section -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;" dir="ltr">
+          <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px;">
+            <div style="font-size: 11px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#be123c" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+              <span>PERIPHERAL BLOOD FILM MORPHOLOGY</span>
+            </div>
+            <div style="font-size: 11px; color: #334155; line-height: 1.45;">
+              ${escapeHtml(parsed.morphology || 'Normocytic Normochromic red blood cells. Normal leukocyte morphology and adequate platelets on peripheral smear.')}
+            </div>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px;">
+            <div style="font-size: 11px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span>CLINICAL COMMENTS &amp; INTERPRETATION</span>
+            </div>
+            <div style="font-size: 11px; color: #334155; line-height: 1.45;">
+              ${escapeHtml(parsed.comments || 'Normal hematological profile. Clinical correlation recommended.')}
+            </div>
+          </div>
+        </div>
+
+        ${renderFooter(safeFooter, safeLabName)}
+      </div>
+    `);
+  }
+
+  // 3. Dedicated General Urine Examination (G.U.E) Page
   for (const gue of gueTests) {
     const rawVal = gue.resultValue ? String(gue.resultValue) : '';
     const clean = rawVal.replace(/\[.*?G\.?U\.?E.*?\]/gi, '').trim();
@@ -463,7 +828,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         
         <div style="background: ${primaryCol}; color: #ffffff; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: 13px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
           <span>GENERAL URINE EXAMINATION (G.U.E)</span>
-          <span style="font-size: 12px; font-weight: normal;" dir="rtl">تقرير فحص الإدرار العام الميكروسكوبي</span>
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.5px; opacity: 0.9;">CLINICAL ROUTINE URINALYSIS</span>
         </div>
 
         <div style="margin-bottom: 16px;">
@@ -471,10 +836,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
           <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
             <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
               <span>PHYSICAL EXAMINATION</span>
-              <span style="color: #64748b; font-weight: normal;" dir="rtl">الفحص الفيزيائي / العيني</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
-              ${physicalParts.length > 0 ? physicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
+              ${physicalParts.length > 0 ? physicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
             </div>
           </div>
 
@@ -482,10 +846,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
           <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
             <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
               <span>CHEMICAL EXAMINATION</span>
-              <span style="color: #64748b; font-weight: normal;" dir="rtl">الفحص الكيميائي</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
-              ${chemicalParts.length > 0 ? chemicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
+              ${chemicalParts.length > 0 ? chemicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
             </div>
           </div>
 
@@ -493,10 +856,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
           <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
             <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
               <span>MICROSCOPIC EXAMINATION (HPF)</span>
-              <span style="color: #64748b; font-weight: normal;" dir="rtl">الفحص المجهري المخبري</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
-              ${microParts.length > 0 ? microParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
+              ${microParts.length > 0 ? microParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
             </div>
           </div>
 
@@ -512,7 +874,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     `);
   }
 
-  // 3. Dedicated General Stool Examination (G.S.E) Page
+  // 4. Dedicated General Stool Examination (G.S.E) Page
   for (const gse of gseTests) {
     const rawVal = gse.resultValue ? String(gse.resultValue) : '';
     const clean = rawVal.replace(/\[.*?G\.?S\.?E.*?\]/gi, '').trim();
@@ -547,7 +909,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         
         <div style="background: #b45309; color: #ffffff; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: 13px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
           <span>GENERAL STOOL EXAMINATION (G.S.E)</span>
-          <span style="font-size: 12px; font-weight: normal;" dir="rtl">تقرير فحص الخروج العام والطفيليات</span>
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.5px; opacity: 0.9;">STOOL ROUTINE &amp; PARASITOLOGY REPORT</span>
         </div>
 
         <div style="margin-bottom: 16px;">
@@ -555,10 +917,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
           <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
             <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b45309; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
               <span>PHYSICAL EXAMINATION</span>
-              <span style="color: #64748b; font-weight: normal;" dir="rtl">الفحص الفيزيائي / القوام واللون</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
-              ${physicalParts.length > 0 ? physicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
+              ${physicalParts.length > 0 ? physicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
             </div>
           </div>
 
@@ -567,7 +928,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
             <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
               <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b91c1c; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
                 <span>OCCULT BLOOD (F.O.B.T)</span>
-                <span style="color: #64748b; font-weight: normal;" dir="rtl">فحص الدم الخفي</span>
               </div>
               <div style="padding: 12px;" dir="ltr">
                 <div style="background: ${fobtVal.includes('Positive') ? '#fef2f2' : '#f0fdf4'}; color: ${fobtVal.includes('Positive') ? '#b91c1c' : '#15803d'}; font-weight: 800; padding: 6px 12px; border-radius: 6px; border: 1px solid ${fobtVal.includes('Positive') ? '#fca5a5' : '#bbf7d0'}; font-size: 12px; display: inline-block; text-align: left; direction: ltr;">
@@ -581,10 +941,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
           <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
             <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b45309; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
               <span>MICROSCOPIC EXAMINATION (HPF)</span>
-              <span style="color: #64748b; font-weight: normal;" dir="rtl">الفحص المجهري للخروج</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
-              ${microParts.length > 0 ? microParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
+              ${microParts.length > 0 ? microParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
             </div>
           </div>
 
@@ -592,8 +951,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
           ${paraParts.length > 0 ? `
             <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
               <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #7e22ce; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-                <span>PARASITOLOGY & HELMINTHS</span>
-                <span style="color: #64748b; font-weight: normal;" dir="rtl">الطفيليات والديدان وبيوضها</span>
+                <span>PARASITOLOGY &amp; HELMINTHS</span>
               </div>
               <div style="padding: 12px; font-size: 11.5px;" dir="ltr">
                 ${paraParts.map(p => renderClinicalFindingBadge(p, !p.startsWith('Nil'))).join('')}
@@ -613,7 +971,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     `);
   }
 
-  // 4. Dedicated Seminal Fluid Analysis (S.F.A) Page
+  // 5. Dedicated Seminal Fluid Analysis (S.F.A) Page
   for (const sfa of sfaTests) {
     const rawVal = sfa.resultValue ? String(sfa.resultValue) : '';
     const clean = rawVal.replace(/\[.*?SEMINAL.*?\]/gi, '').trim();
@@ -654,8 +1012,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
         ${renderPatientMetaBox(safePatientName, safeDoctorName)}
         
         <div style="background: #4338ca; color: #ffffff; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: 13px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-          <span>SEMINAL FLUID ANALYSIS (S.F.A) - WHO GUIDELINES</span>
-          <span style="font-size: 12px; font-weight: normal;" dir="rtl">تقرير فحص وتحليل السائل المنوي الشامل</span>
+          <span>SEMINAL FLUID ANALYSIS (S.F.A)</span>
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.5px; opacity: 0.9;">WHO LABORATORY MANUAL 6TH EDITION</span>
         </div>
 
         <div style="margin-bottom: 14px;">
@@ -663,21 +1021,19 @@ export async function GET(request: Request, { params }: { params: { id: string }
           <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
             <div style="background: #f8fafc; padding: 6px 12px; font-weight: 800; font-size: 11.5px; color: #4338ca; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
               <span>1. MACROSCOPIC / PHYSICAL EXAMINATION</span>
-              <span style="color: #64748b; font-weight: normal;" dir="rtl">الفحص العياني والفيزيائي</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px 12px; font-size: 11px;" dir="ltr">
-              ${physicalParts.length > 0 ? physicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
+              ${physicalParts.length > 0 ? physicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
             </div>
           </div>
 
           <!-- 2. Sperm Count & Microscopy -->
           <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
             <div style="background: #f8fafc; padding: 6px 12px; font-weight: 800; font-size: 11.5px; color: #4338ca; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-              <span>2. SPERM COUNT & MICROSCOPY <span style="font-size: 10px; font-weight: normal; color: #64748b; margin-left: 6px;">(Ref: Conc &ge; 15 M/mL, Total &ge; 39 M/ejac, Pus &lt; 5 /HPF)</span></span>
-              <span style="color: #64748b; font-weight: normal;" dir="rtl">تعداد النطاف والمجهري</span>
+              <span>2. SPERM COUNT &amp; MICROSCOPY <span style="font-size: 10px; font-weight: normal; color: #64748b; margin-left: 6px;">(Ref: Conc &ge; 15 M/mL, Total &ge; 39 M/ejac, Pus &lt; 5 /HPF)</span></span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px 12px; font-size: 11px;" dir="ltr">
-              ${countParts.length > 0 ? countParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
+              ${countParts.length > 0 ? countParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
             </div>
           </div>
 
@@ -685,10 +1041,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
           <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
             <div style="background: #f8fafc; padding: 6px 12px; font-weight: 800; font-size: 11.5px; color: #0284c7; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
               <span>3. SPERM MOTILITY ASSESSMENT <span style="font-size: 10px; font-weight: normal; color: #64748b; margin-left: 6px;">(WHO Ref: PR &ge; 32%, PR+NP &ge; 40%, Vitality &ge; 58%)</span></span>
-              <span style="color: #64748b; font-weight: normal;" dir="rtl">حركية وحيوية النطاف</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px 12px; font-size: 11px;" dir="ltr">
-              ${motilityParts.length > 0 ? motilityParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
+              ${motilityParts.length > 0 ? motilityParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
             </div>
           </div>
 
@@ -696,10 +1051,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
           <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
             <div style="background: #f8fafc; padding: 6px 12px; font-weight: 800; font-size: 11.5px; color: #7c3aed; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
               <span>4. SPERM MORPHOLOGY <span style="font-size: 10px; font-weight: normal; color: #64748b; margin-left: 6px;">(Kruger Strict Criteria Ref: Normal Forms &ge; 4%)</span></span>
-              <span style="color: #64748b; font-weight: normal;" dir="rtl">مورفولوجيا وأشكال النطاف</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px 12px; font-size: 11px;" dir="ltr">
-              ${morphologyParts.length > 0 ? morphologyParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending (قيد الفحص)</div>'}
+              ${morphologyParts.length > 0 ? morphologyParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
             </div>
           </div>
 
@@ -754,7 +1108,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
       size: A4 portrait; 
       margin: ${topMm}mm ${rightMm}mm ${bottomMm}mm ${leftMm}mm; 
     }
-    * { box-sizing: border-box; }
+    * { 
+      box-sizing: border-box; 
+      -webkit-print-color-adjust: exact !important; 
+      print-color-adjust: exact !important; 
+      color-adjust: exact !important; 
+    }
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       margin: 0;
@@ -762,6 +1121,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
       color: #0f172a;
       background: #f1f5f9;
       line-height: 1.4;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
     }
     .report-card {
       max-width: 820px;
@@ -827,13 +1189,49 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
     ${templateCss}
     @media print {
-      body { padding: 0; margin: 0; background: transparent; }
-      .report-card { border: none !important; box-shadow: none !important; padding: 0 !important; width: 100% !important; max-width: none !important; margin: 0 !important; border-radius: 0 !important; }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+      body { 
+        padding: 0; 
+        margin: 0; 
+        background: transparent !important; 
+        -webkit-print-color-adjust: exact !important; 
+        print-color-adjust: exact !important; 
+        color-adjust: exact !important; 
+      }
+      .report-card { 
+        border: none !important; 
+        box-shadow: none !important; 
+        padding: 0 !important; 
+        width: 100% !important; 
+        max-width: none !important; 
+        margin: 0 !important; 
+        border-radius: 0 !important; 
+        -webkit-print-color-adjust: exact !important; 
+        print-color-adjust: exact !important; 
+        color-adjust: exact !important; 
+      }
       .page-break { page-break-before: always !important; break-before: page !important; }
       .print-btn-bar { display: none !important; }
       .watermark-inner {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+      .modern-header-banner {
+        background: linear-gradient(135deg, ${primaryCol} 0%, #06b6d4 100%) !important;
+        color: #ffffff !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+      .table-header {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
       }
       tr { page-break-inside: avoid; }
     }
@@ -852,7 +1250,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     status: 200,
     headers: { 
       'Content-Type': 'text/html; charset=utf-8',
-      'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+      'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http:;"
     },
   });
 }

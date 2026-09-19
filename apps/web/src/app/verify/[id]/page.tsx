@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2, ShieldCheck, FileText, Printer, Building2, Clock, Calendar, AlertTriangle, User, Share2, ExternalLink, Check } from 'lucide-react';
 import Link from 'next/link';
+import { toEnglishDigits, formatEnglishDate, formatEnglishTime } from '../../../lib/formatters';
 
 export default function VerifyPage({ params }: { params: { id: string } }) {
   const [sample, setSample] = useState<any | null>(null);
@@ -101,12 +102,12 @@ export default function VerifyPage({ params }: { params: { id: string } }) {
         <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4 space-y-3 text-xs">
           <div className="flex justify-between items-center py-1 border-b border-slate-800/60">
             <span className="text-slate-400">رقم العينة (Sample #):</span>
-            <span className="font-black text-cyan-400 text-sm">#{sample.sampleNumber}</span>
+            <span className="font-black text-cyan-400 text-sm">#{toEnglishDigits(sample.sampleNumber)}</span>
           </div>
 
           <div className="flex justify-between items-center py-1 border-b border-slate-800/60">
             <span className="text-slate-400">اسم المريض (حماية الخصوصية):</span>
-            <span className="font-bold text-slate-200">{maskedName} ({sample.patient?.gender === 'FEMALE' ? 'أنثى' : 'ذكر'})</span>
+            <span className="font-bold text-slate-200">{maskedName} ({sample.patient?.gender === 'FEMALE' ? 'أنثى' : 'ذكر'}{sample.patient?.age ? ` - ${toEnglishDigits(sample.patient.age)} سنة` : ''})</span>
           </div>
 
           <div className="flex justify-between items-center py-1 border-b border-slate-800/60">
@@ -119,7 +120,7 @@ export default function VerifyPage({ params }: { params: { id: string } }) {
           <div className="flex justify-between items-center py-1 border-b border-slate-800/60">
             <span className="text-slate-400">تاريخ ووقت الإصدار:</span>
             <span className="font-medium text-slate-300">
-              {new Date(sample.createdAt).toLocaleDateString('ar-IQ')} - {new Date(sample.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              {formatEnglishDate(sample.createdAt)} - {formatEnglishTime(sample.createdAt)}
             </span>
           </div>
 

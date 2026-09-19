@@ -19,6 +19,7 @@ import {
   HelpCircle,
   KeyRound
 } from 'lucide-react';
+import { toEnglishDigits, formatEnglishDate } from '../../lib/formatters';
 
 export default function LicensePage() {
   const toast = useToast();
@@ -114,7 +115,7 @@ export default function LicensePage() {
               <div style={{ textAlign: 'left' }}>
                 <span style={{ fontSize: '11.5px', color: 'var(--text-dim)', display: 'block' }}>تاريخ انتهاء الصلاحية</span>
                 <strong style={{ fontSize: '14px', color: licenseInfo.isLicensed ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
-                  {new Date(licenseInfo.expiryDate).toLocaleDateString('ar-IQ')}
+                  {formatEnglishDate(licenseInfo.expiryDate)}
                 </strong>
               </div>
             )}

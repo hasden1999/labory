@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { Plus, DollarSign } from 'lucide-react';
+import { toEnglishDigits, formatEnglishDate } from '../../lib/formatters';
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -35,7 +36,7 @@ export default function ExpensesPage() {
     try {
       await apiRequest('/expenses', 'POST', {
         description,
-        amount: Number(amount),
+        amount: Number(toEnglishDigits(amount)),
         category,
       });
       setShowModal(false);
@@ -91,7 +92,7 @@ export default function ExpensesPage() {
                     <td style={{ fontWeight: 700 }}>{e.description}</td>
                     <td><span className="badge badge-progress">{e.category}</span></td>
                     <td style={{ fontWeight: 800, color: 'var(--accent-rose)' }}>{e.amount.toLocaleString()} د.ع</td>
-                    <td>{new Date(e.date).toLocaleDateString('ar-IQ')}</td>
+                    <td>{formatEnglishDate(e.date)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -124,7 +125,7 @@ export default function ExpensesPage() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '4px' }}>المبلغ (د.ع)</label>
-                <input type="number" className="input-field" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+                <input type="text" inputMode="numeric" className="input-field" value={amount} onChange={(e) => setAmount(toEnglishDigits(e.target.value).replace(/[^0-9.]/g, ''))} required />
               </div>
 
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '16px' }}>

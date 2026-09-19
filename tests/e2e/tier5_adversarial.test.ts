@@ -108,6 +108,7 @@ describe('Tier 5: Adversarial & Stress Testing', () => {
       patientName: patient.name,
       testIds: ['t-fbs'],
       notes: '<svg/onload=alert(1)>',
+      forceDuplicate: true,
     });
 
     expect(sample.id).toBeTruthy();

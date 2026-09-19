@@ -19,6 +19,7 @@ import {
   Search,
   FileSpreadsheet
 } from 'lucide-react';
+import { toEnglishDigits, formatEnglishDate, formatEnglishTime, formatEnglishDateTime } from '../../lib/formatters';
 
 export default function FinancialsPage() {
   const toast = useToast();
@@ -159,12 +160,12 @@ export default function FinancialsPage() {
       loadFinancials();
       if (res?.voucherNumber) {
         setActiveVoucher({
-          voucherNumber: res.voucherNumber,
+          voucherNumber: toEnglishDigits(res.voucherNumber),
           debtorName: 'مصروف تشغيلي: ' + expenseDesc.trim(),
           amount: Number(expenseAmount),
           type: 'سند صرف رسمي',
           paymentMethod: expenseMethod,
-          date: new Date().toLocaleString('ar-IQ'),
+          date: formatEnglishDateTime(new Date()),
           notes: expenseCat,
         });
         setShowVoucherModal(true);
@@ -233,13 +234,13 @@ export default function FinancialsPage() {
 
     const headers = ['رقم السند', 'النوع', 'المبلغ', 'طريقة الدفع', 'الجهة / المريض', 'البيان', 'التاريخ والوقت'];
     const rows = transactions.map(t => [
-      t.voucherNumber ? `#${t.voucherNumber}` : '',
+      t.voucherNumber ? `#${toEnglishDigits(t.voucherNumber)}` : '',
       `"${t.type}"`,
       t.amount,
       `"${t.paymentMethod || 'نقداً'}"`,
       `"${t.patient?.name || t.debtor?.name || ''}"`,
       `"${t.notes || ''}"`,
-      `"${new Date(t.createdAt).toLocaleString('ar-IQ')}"`,
+      `"${formatEnglishDateTime(t.createdAt)}"`,
     ]);
 
     const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -520,10 +521,10 @@ export default function FinancialsPage() {
                 </div>
                 <div>
                   <strong style={{ fontSize: '15px', color: 'var(--text-main)', display: 'block' }}>
-                    {currentShiftData ? `الوردية الحالية رقم #${currentShiftData.shiftNumber} (مفتوحة)` : 'الصندوق اليومي مغلق حالياً'}
+                    {currentShiftData ? `الوردية الحالية رقم #${toEnglishDigits(currentShiftData.shiftNumber)} (مفتوحة)` : 'الصندوق اليومي مغلق حالياً'}
                   </strong>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {currentShiftData ? `تم الفتح: ${new Date(currentShiftData.openedAt).toLocaleDateString('ar-IQ')} ${new Date(currentShiftData.openedAt).toLocaleTimeString('ar-IQ')} بواسطة: ${currentShiftData.openedById}` : 'اضغط على زر فتح الوردية لبدء تسجيل حركات الصندوق'}
+                    {currentShiftData ? `تم الفتح: ${formatEnglishDate(currentShiftData.openedAt)} ${formatEnglishTime(currentShiftData.openedAt)} بواسطة: ${currentShiftData.openedById}` : 'اضغط على زر فتح الوردية لبدء تسجيل حركات الصندوق'}
                   </span>
                 </div>
               </div>
@@ -607,9 +608,9 @@ export default function FinancialsPage() {
                       const disc = sh.discrepancy ?? 0;
                       return (
                         <tr key={sh.id}>
-                          <td><strong>#{sh.shiftNumber}</strong></td>
-                          <td>{new Date(sh.openedAt).toLocaleDateString('ar-IQ')} {new Date(sh.openedAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' })}</td>
-                          <td>{sh.closedAt ? `${new Date(sh.closedAt).toLocaleDateString('ar-IQ')} ${new Date(sh.closedAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' })}` : '-'}</td>
+                          <td><strong>#{toEnglishDigits(sh.shiftNumber)}</strong></td>
+                          <td>{formatEnglishDate(sh.openedAt)} {formatEnglishTime(sh.openedAt)}</td>
+                          <td>{sh.closedAt ? `${formatEnglishDate(sh.closedAt)} ${formatEnglishTime(sh.closedAt)}` : '-'}</td>
                           <td>{sh.closedById || sh.openedById}</td>
                           <td>{(sh.startingCash || 0).toLocaleString()} د.ع</td>
                           <td>{(sh.expectedCash || 0).toLocaleString()} د.ع</td>
@@ -733,9 +734,9 @@ export default function FinancialsPage() {
                       const isIncome = tx.type === 'INCOME_SAMPLE' || tx.type === 'DEBT_PAYMENT';
                       return (
                         <tr key={tx.id}>
-                          <td><strong>#{tx.voucherNumber || '-'}</strong></td>
+                          <td><strong>#{toEnglishDigits(tx.voucherNumber) || '-'}</strong></td>
                           <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                            {new Date(tx.createdAt).toLocaleDateString('ar-IQ')} {new Date(tx.createdAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' })}
+                            {formatEnglishDate(tx.createdAt)} {formatEnglishTime(tx.createdAt)}
                           </td>
                           <td>
                             <span className={`badge ${isIncome ? 'badge-ready' : 'badge-urgent'}`} style={{ fontSize: '10.5px' }}>
@@ -754,13 +755,13 @@ export default function FinancialsPage() {
                             <button
                               onClick={() => {
                                 setActiveVoucher({
-                                  voucherNumber: tx.voucherNumber,
+                                  voucherNumber: toEnglishDigits(tx.voucherNumber),
                                   debtorName: tx.patient?.name || tx.debtor?.name || tx.doctor?.name || 'حساب نقدي',
-                                  phone: tx.patient?.phone || tx.debtor?.phone || '',
+                                  phone: tx.patient?.phone ? toEnglishDigits(tx.patient.phone) : (tx.debtor?.phone ? toEnglishDigits(tx.debtor.phone) : ''),
                                   amount: tx.amount,
                                   type: isIncome ? 'سند قبض مالي' : 'سند صرف رسمي',
                                   paymentMethod: tx.paymentMethod || 'نقداً',
-                                  date: new Date(tx.createdAt).toLocaleString('ar-IQ'),
+                                  date: formatEnglishDateTime(tx.createdAt),
                                   notes: tx.notes || tx.category || '',
                                 });
                                 setShowVoucherModal(true);
@@ -818,8 +819,8 @@ export default function FinancialsPage() {
                   ) : (
                     summary.expensesList.map((ex: any) => (
                       <tr key={ex.id}>
-                        <td><strong>#{ex.voucherNumber || '-'}</strong></td>
-                        <td>{new Date(ex.date).toLocaleDateString('ar-IQ')}</td>
+                        <td><strong>#{toEnglishDigits(ex.voucherNumber) || '-'}</strong></td>
+                        <td>{formatEnglishDate(ex.date)}</td>
                         <td><strong>{ex.description}</strong></td>
                         <td><span className="badge badge-progress">{ex.category}</span></td>
                         <td>{ex.paymentMethod || 'نقداً'}</td>

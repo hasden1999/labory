@@ -31,6 +31,7 @@ import {
   Building2,
   Users
 } from 'lucide-react';
+import { toEnglishDigits, formatEnglishDate, formatEnglishTime, formatEnglishDateTime } from '../../lib/formatters';
 
 export default function DebtsPage() {
   const toast = useToast();
@@ -107,12 +108,14 @@ export default function DebtsPage() {
     }
 
     try {
+      const cleanPhone = newDebtorPhone.trim() ? toEnglishDigits(newDebtorPhone.trim()) : undefined;
+      const cleanDebt = initialDebtInput ? Number(toEnglishDigits(initialDebtInput)) : undefined;
       await apiRequest('/debts', 'POST', {
         name: newDebtorName.trim(),
-        phone: newDebtorPhone.trim() || undefined,
+        phone: cleanPhone,
         notes: newDebtorNotes.trim() || undefined,
         type: newDebtorType,
-        initialDebt: initialDebtInput ? Number(initialDebtInput) : undefined,
+        initialDebt: cleanDebt,
       });
 
       setShowAddDebtorModal(false);
@@ -129,7 +132,8 @@ export default function DebtsPage() {
 
   const handleRecordTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedDebtor || !txAmount || Number(txAmount) <= 0) {
+    const cleanAmount = Number(toEnglishDigits(txAmount));
+    if (!selectedDebtor || !cleanAmount || cleanAmount <= 0) {
       toast.warning('الرجاء إدخال مبلغ صحيح للعملية', 'مبلغ غير صالح');
       return;
     }
@@ -137,7 +141,7 @@ export default function DebtsPage() {
     try {
       const res = await apiRequest(`/debts/${selectedDebtor.id}/transaction`, 'POST', {
         type: txType,
-        amount: Number(txAmount),
+        amount: cleanAmount,
         paymentMethod: txMethod,
         notes: txNotes,
       });
@@ -148,20 +152,20 @@ export default function DebtsPage() {
 
       toast.success(
         txType === 'PAYMENT' 
-          ? `تم استلام الدفعة بنجاح! رقم السند: #${res?.voucherNumber || 'سداد'}` 
+          ? `تم استلام الدفعة بنجاح! رقم السند: #${toEnglishDigits(res?.voucherNumber) || 'سداد'}` 
           : 'تم تقييد الدين الإضافي بنجاح!',
         'تسجيل حركة مالية'
       );
 
       if (txType === 'PAYMENT' && res?.voucherNumber) {
         setActiveVoucher({
-          voucherNumber: res.voucherNumber,
+          voucherNumber: toEnglishDigits(res.voucherNumber),
           debtorName: selectedDebtor.name,
-          phone: selectedDebtor.phone,
-          amount: Number(txAmount),
+          phone: selectedDebtor.phone ? toEnglishDigits(selectedDebtor.phone) : undefined,
+          amount: cleanAmount,
           type: selectedDebtor.type === 'SUPPLIER' ? 'سند صرف مورد' : 'سند قبض مالي',
           paymentMethod: txMethod,
-          date: new Date().toLocaleString('ar-IQ'),
+          date: formatEnglishDateTime(new Date()),
           notes: txNotes || (selectedDebtor.type === 'SUPPLIER' ? 'دفعة سداد حساب مورد' : 'استلام دفعة سداد دين'),
         });
         setShowVoucherModal(true);
@@ -188,13 +192,13 @@ export default function DebtsPage() {
 
       if (res?.voucherNumber) {
         setActiveVoucher({
-          voucherNumber: res.voucherNumber,
+          voucherNumber: toEnglishDigits(res.voucherNumber),
           debtorName: debtor.name,
-          phone: debtor.phone,
+          phone: debtor.phone ? toEnglishDigits(debtor.phone) : undefined,
           amount: res.paidAmount,
           type: debtor.type === 'SUPPLIER' ? 'سند صرف مورد' : 'سند قبض مالي',
           paymentMethod: 'نقداً',
-          date: new Date().toLocaleString('ar-IQ'),
+          date: formatEnglishDateTime(new Date()),
           notes: 'تسوية وتصفية كامل الرصيد المستحق',
         });
         setShowVoucherModal(true);
@@ -829,7 +833,7 @@ export default function DebtsPage() {
                     كشف حساب مالي تفصيلي: {statementData.debtor?.name}
                   </h3>
                   <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-                    هاتف: {statementData.debtor?.phone || 'غير مسجل'} | تاريخ فتح الحساب: {new Date(statementData.debtor?.createdAt).toLocaleDateString('ar-IQ')}
+                    هاتف: {statementData.debtor?.phone ? toEnglishDigits(statementData.debtor.phone) : 'غير مسجل'} | تاريخ فتح الحساب: {formatEnglishDate(statementData.debtor?.createdAt)}
                   </span>
                 </div>
               </div>
@@ -881,7 +885,7 @@ export default function DebtsPage() {
                   {statementData.debtor?.transactions?.map((tx: any) => (
                     <tr key={tx.id}>
                       <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        {new Date(tx.createdAt).toLocaleDateString('ar-IQ')} - {new Date(tx.createdAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' })}
+                        {formatEnglishDate(tx.createdAt)} - {formatEnglishTime(tx.createdAt)}
                       </td>
                       <td>
                         <span className={`badge ${tx.type === 'PAYMENT' ? 'badge-ready' : 'badge-urgent'}`} style={{ fontSize: '10.5px' }}>
@@ -894,7 +898,7 @@ export default function DebtsPage() {
                         </strong>
                       </td>
                       <td>{tx.paymentMethod || 'نقداً'}</td>
-                      <td>{tx.voucherNumber ? `#${tx.voucherNumber}` : '-'}</td>
+                      <td>{tx.voucherNumber ? `#${toEnglishDigits(tx.voucherNumber)}` : '-'}</td>
                       <td style={{ color: 'var(--text-muted)' }}>{tx.notes || '-'}</td>
                     </tr>
                   ))}
@@ -923,8 +927,8 @@ export default function DebtsPage() {
                     <tbody>
                       {statementData.patientSamples.map((s: any) => (
                         <tr key={s.id}>
-                          <td><strong>#{s.sampleNumber}</strong></td>
-                          <td>{new Date(s.createdAt).toLocaleDateString('ar-IQ')}</td>
+                          <td><strong>#{toEnglishDigits(s.sampleNumber)}</strong></td>
+                          <td>{formatEnglishDate(s.createdAt)}</td>
                           <td>{s.tests?.map((t: any) => t.test?.name).join(', ') || '-'}</td>
                           <td>{(s.priceTotal || 0).toLocaleString()} د.ع</td>
                           <td style={{ color: 'var(--accent-emerald)' }}>{(s.paidAmount || 0).toLocaleString()} د.ع</td>

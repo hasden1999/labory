@@ -90,30 +90,112 @@ CONFIG.devices.forEach((dev) => {
       const clientIp = socket.remoteAddress;
       console.log(`🔌 [${dev.name}] Analyzer connected from IP: ${clientIp}`);
 
-      let buffer = '';
+      let buf = Buffer.alloc(0);
+      let frames = [];
+      let hasChecksumError = false;
+
+      function calculateAstmChecksum(bytes) {
+        let sum = 0;
+        for (let i = 0; i < bytes.length; i++) {
+          sum = (sum + bytes[i]) & 0xff;
+        }
+        return sum.toString(16).toUpperCase().padStart(2, '0');
+      }
 
       socket.on('data', (chunk) => {
-        const rawStr = chunk.toString();
-        buffer += rawStr;
+        buf = Buffer.concat([buf, chunk]);
+        let progress = true;
 
-        // Auto ACK for ASTM / HL7 handshakes
-        // ASTM: ENQ (0x05) -> ACK (0x06)
-        if (rawStr.includes(String.fromCharCode(5))) {
-          socket.write(String.fromCharCode(6));
-        }
-        // HL7: ACK response
-        if (rawStr.startsWith('MSH|')) {
-          const fields = rawStr.split('|');
-          const msgControlId = fields[9] || '1';
-          const ackMsg = `\x0bMSH|^~\\&|LIS|LAB|||${new Date().toISOString()}||ACK^R01|${msgControlId}|P|2.3.1\rMSA|AA|${msgControlId}\r\x1c\r`;
-          socket.write(ackMsg);
+        while (progress && buf.length > 0) {
+          progress = false;
+
+          // ENQ (0x05)
+          if (buf[0] === 0x05) {
+            frames = [];
+            hasChecksumError = false;
+            socket.write(Buffer.from([0x06])); // ACK
+            buf = buf.subarray(1);
+            progress = true;
+            continue;
+          }
+
+          // EOT (0x04)
+          if (buf[0] === 0x04) {
+            buf = buf.subarray(1);
+            if (hasChecksumError) {
+              console.warn(`🚫 [${dev.name}] Discarding ASTM transmission due to checksum error.`);
+            } else if (frames.length > 0) {
+              console.log(`✅ [${dev.name}] ASTM complete (${frames.length} frames). Sending to cloud...`);
+              sendPayloadToCloud(dev.apiKey, frames.join('\r\n'));
+            }
+            frames = [];
+            hasChecksumError = false;
+            progress = true;
+            continue;
+          }
+
+          // STX (0x02)
+          const stxIdx = buf.indexOf(0x02);
+          if (stxIdx !== -1) {
+            if (stxIdx > 0) buf = buf.subarray(stxIdx);
+
+            let endIdx = -1;
+            for (let i = 1; i < buf.length; i++) {
+              if (buf[i] === 0x03 || buf[i] === 0x17) {
+                endIdx = i;
+                break;
+              }
+            }
+
+            if (endIdx !== -1 && buf.length >= endIdx + 3) {
+              const receivedChecksum = buf.toString('ascii', endIdx + 1, endIdx + 3).trim().toUpperCase();
+              const bytesToVerify = buf.subarray(1, endIdx + 1);
+              const expectedChecksum = calculateAstmChecksum(bytesToVerify);
+
+              if (receivedChecksum === expectedChecksum) {
+                frames.push(buf.toString('utf8', 1, endIdx));
+                socket.write(Buffer.from([0x06])); // ACK
+              } else {
+                hasChecksumError = true;
+                console.warn(`❌ [${dev.name}] Checksum mismatch: expected ${expectedChecksum}, got ${receivedChecksum}`);
+                socket.write(Buffer.from([0x15])); // NAK
+              }
+
+              let advanceIdx = endIdx + 3;
+              if (advanceIdx < buf.length && buf[advanceIdx] === 0x0d) advanceIdx++;
+              if (advanceIdx < buf.length && buf[advanceIdx] === 0x0a) advanceIdx++;
+              buf = buf.subarray(advanceIdx);
+              progress = true;
+              continue;
+            }
+          }
+
+          // HL7 MLLP (0x0B ... 0x1C 0x0D)
+          if (buf[0] === 0x0b) {
+            const fsIdx = buf.indexOf(0x1c);
+            if (fsIdx !== -1 && buf.length > fsIdx + 1 && buf[fsIdx + 1] === 0x0d) {
+              const hl7Msg = buf.toString('utf8', 1, fsIdx);
+              buf = buf.subarray(fsIdx + 2);
+              sendPayloadToCloud(dev.apiKey, hl7Msg);
+
+              const msgControlId = hl7Msg.split('\r')[0]?.split('|')[9] || '1';
+              const ackMsg = `\x0bMSH|^~\\&|LIS|LAB|||${new Date().toISOString()}||ACK^R01|${msgControlId}|P|2.3.1\rMSA|AA|${msgControlId}\r\x1c\r`;
+              socket.write(ackMsg);
+              progress = true;
+              continue;
+            }
+          }
+
+          if (buf.length > 0 && buf[0] !== 0x02 && buf[0] !== 0x04 && buf[0] !== 0x05 && buf[0] !== 0x0b) {
+            buf = buf.subarray(1);
+            progress = true;
+          }
         }
       });
 
       socket.on('end', () => {
-        console.log(`📥 [${dev.name}] Transmission complete (${buffer.length} bytes)`);
-        if (buffer.trim()) {
-          sendPayloadToCloud(dev.apiKey, buffer);
+        if (!hasChecksumError && frames.length > 0) {
+          sendPayloadToCloud(dev.apiKey, frames.join('\r\n'));
         }
       });
 
