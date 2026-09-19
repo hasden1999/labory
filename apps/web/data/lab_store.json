@@ -2414,6 +2414,17 @@
   "doctors": [],
   "patients": [
     {
+      "id": "pat-1789853456105",
+      "name": "انور",
+      "phone": "",
+      "age": null,
+      "gender": "MALE",
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-09-19T21:30:56.105Z",
+      "updatedAt": "2026-09-19T21:30:56.105Z"
+    },
+    {
       "id": "pat-1789852100355",
       "name": "السيد",
       "phone": "",
@@ -2442,6 +2453,65 @@
     }
   ],
   "samples": [
+    {
+      "id": "s-1003",
+      "sampleNumber": 1003,
+      "patientId": "pat-1789853456105",
+      "patient": {
+        "id": "pat-1789853456105",
+        "name": "انور",
+        "phone": "",
+        "age": null,
+        "gender": "MALE",
+        "address": "",
+        "notes": "",
+        "createdAt": "2026-09-19T21:30:56.105Z",
+        "updatedAt": "2026-09-19T21:30:56.105Z"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "doctorCommission": 0,
+      "status": "RECEIVED",
+      "isUrgent": false,
+      "priceTotal": 5000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 5000,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": "",
+      "createdAt": "2026-09-19T21:30:56.113Z",
+      "tests": [
+        {
+          "id": "st-1789853456113-0",
+          "sampleId": "s-1003",
+          "testId": "t-esr",
+          "test": {
+            "id": "t-esr",
+            "code": "ESR",
+            "name": "Erythrocyte Sedimentation Rate (ESR)",
+            "arabicName": "سرعة ترسب كريات الدم الحمر",
+            "category": "أمراض الدم والتخثر",
+            "price": 5000,
+            "costEstimate": 600,
+            "refRangeLow": 0,
+            "refRangeHigh": 20,
+            "normalMaleLow": 0,
+            "normalMaleHigh": 15,
+            "normalFemaleLow": 0,
+            "normalFemaleHigh": 20,
+            "criticalHigh": 100,
+            "refRangeText": "0 - 20",
+            "unit": "mm/1st hr",
+            "sampleType": "دم كامل (Citrate)",
+            "loincCode": "4537-7"
+          },
+          "resultValue": null,
+          "isAbnormal": false,
+          "status": "PENDING"
+        }
+      ]
+    },
     {
       "id": "s-1002",
       "sampleNumber": 1002,
