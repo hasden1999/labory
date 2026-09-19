@@ -7,7 +7,7 @@ import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useSearchParams } from 'next/navigation';
-import { FileText, Search, Printer, Save, AlertTriangle, Check, User, Clock, CheckCircle2, Share2, History, Calculator, FlaskConical, X, Eye, Cpu, TestTube, Plus, MoreHorizontal, ChevronDown, Microscope, Bug, Activity, Zap, Sparkles, MessageCircle, AlertOctagon, CircleAlert, Barcode, Trash2 } from 'lucide-react';
+import { FileText, Search, Printer, Save, AlertTriangle, Check, User, Clock, CheckCircle2, Share2, History, Calculator, FlaskConical, X, Eye, Cpu, TestTube, Plus, MoreHorizontal, ChevronDown, Microscope, Bug, Activity, Zap, Sparkles, MessageCircle, AlertOctagon, CircleAlert, Barcode, Trash2, PhoneCall, Ban } from 'lucide-react';
 import Link from 'next/link';
 import { useLab } from '../../components/LabContext';
 import { getShareableUrl } from '../../lib/urlHelper';
@@ -16,6 +16,7 @@ import type { UrineAnalysisData } from '../../components/UrineFormModal';
 import { compareSampleWithHistory, DeltaCheckResult } from '../../lib/deltaCheck';
 import { Sample, SampleTest, Test } from '../../types';
 import ConfirmModal from '../../components/ConfirmModal';
+import { INITIAL_TESTS_CATALOG } from '../../lib/catalogData';
 
 const UrineFormModal = nextDynamic(() => import('../../components/UrineFormModal'), { ssr: false });
 const GseModal = nextDynamic(() => import('../../components/workstations/GseModal'), { ssr: false });
@@ -23,6 +24,8 @@ const CbcModal = nextDynamic(() => import('../../components/workstations/CbcModa
 const ChemistryModal = nextDynamic(() => import('../../components/workstations/ChemistryModal'), { ssr: false });
 const MicrobiologyModal = nextDynamic(() => import('../../components/workstations/MicrobiologyModal'), { ssr: false });
 const SemenFormModal = nextDynamic(() => import('../../components/workstations/SemenFormModal'), { ssr: false });
+const CriticalCallModal = nextDynamic(() => import('../../components/CriticalCallModal'), { ssr: false });
+const SampleRejectionModal = nextDynamic(() => import('../../components/SampleRejectionModal'), { ssr: false });
 import type { SemenAnalysisData } from '../../components/workstations/SemenFormModal';
 
 function ResultsContent() {
@@ -90,6 +93,66 @@ function ResultsContent() {
   const [addingTests, setAddingTests] = useState(false);
   const [testToDelete, setTestToDelete] = useState<any | null>(null);
   const [deletingTest, setDeletingTest] = useState(false);
+
+  // ISO 15189 & CLSI GP47 Modals State
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [showCriticalCallModal, setShowCriticalCallModal] = useState(false);
+  const [criticalCallTargetTest, setCriticalCallTargetTest] = useState<{ id: string; name: string; resultValue: string } | null>(null);
+
+  const getLoincCode = (codeOrName?: string) => {
+    if (!codeOrName) return '';
+    const match = INITIAL_TESTS_CATALOG.find(t => t.code === codeOrName || t.name === codeOrName);
+    return match?.loincCode || '';
+  };
+
+  const handleConfirmRejectSample = async (rejection: {
+    reason: string;
+    notes?: string;
+    rejectedBy?: string;
+  }) => {
+    if (!selectedSample) return;
+    try {
+      const res = await apiRequest(`/samples/${selectedSample.id}/reject`, 'POST', rejection);
+      const updatedSample = res?.sample || {
+        ...selectedSample,
+        status: 'REJECTED',
+        rejectionReason: rejection.reason,
+        rejectionNotes: rejection.notes,
+        rejectedBy: rejection.rejectedBy,
+        rejectedAt: new Date().toISOString()
+      };
+      setSelectedSample(updatedSample);
+      setSamples(prev => prev.map(s => s.id === updatedSample.id ? updatedSample : s));
+      setShowRejectionModal(false);
+      toast.success('تم توثيق رفض العينة وإصدار إشعار إعادة السحب وفق معايير ISO 15189', 'رفض العينة');
+    } catch (err: any) {
+      toast.error(err.message || 'فشل توثيق رفض العينة', 'خطأ');
+    }
+  };
+
+  const handleSaveCriticalCallLog = async (logData: any) => {
+    if (!selectedSample) return;
+    try {
+      const res = await apiRequest(`/samples/${selectedSample.id}/critical-call`, 'POST', logData);
+      const newCallLog = res?.callLog || { id: `call-${Date.now()}`, sampleId: selectedSample.id, ...logData };
+      setSelectedSample((prev: any) => {
+        if (!prev) return prev;
+        const updatedLogs = [...(prev.criticalCallLogs || []), newCallLog];
+        return { ...prev, criticalCallLogs: updatedLogs };
+      });
+      setSamples(prev => prev.map(s => {
+        if (s.id === selectedSample.id) {
+          return { ...s, criticalCallLogs: [...(s.criticalCallLogs || []), newCallLog] };
+        }
+        return s;
+      }));
+      setShowCriticalCallModal(false);
+      setCriticalCallTargetTest(null);
+      toast.success('تم توثيق مكالمة القيمة الحرجة وتأكيد القراءة العكسية بنجاح (CLSI GP47)', 'توثيق سريري معتمد');
+    } catch (err: any) {
+      toast.error(err.message || 'فشل توثيق مكالمة القيمة الحرجة', 'خطأ');
+    }
+  };
 
   // Load Samples
   const loadSamples = async (silent = false) => {
@@ -934,7 +997,11 @@ function ResultsContent() {
                     </div>
 
                     <div>
-                      {s.isUrgent ? (
+                      {s.status === 'REJECTED' ? (
+                        <span className="badge" style={{ fontSize: '9px', background: 'rgba(239, 68, 68, 0.25)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', fontWeight: 800 }}>
+                          REJECTED
+                        </span>
+                      ) : s.isUrgent ? (
                         <span className="badge badge-urgent" style={{ fontSize: '9px', background: 'rgba(239, 68, 68, 0.25)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)' }}>
                           <AlertOctagon size={12} /> STAT
                         </span>
@@ -1006,6 +1073,30 @@ function ResultsContent() {
                   <span>طباعة ملصق الباركود</span>
                 </button>
 
+                {/* ISO 15189 Sample Rejection Action */}
+                {selectedSample.status !== 'REJECTED' && (
+                  <button
+                    type="button"
+                    onClick={() => setShowRejectionModal(true)}
+                    className="btn-secondary"
+                    style={{
+                      color: '#ef4444',
+                      borderColor: 'rgba(239, 68, 68, 0.45)',
+                      height: '32px',
+                      fontSize: '11px',
+                      padding: '0 10px',
+                      background: 'rgba(239, 68, 68, 0.08)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                    title="توثيق رفض العينة غير المطابقة وإصدار إشعار إعادة السحب (ISO 15189)"
+                  >
+                    <Ban size={13} />
+                    <span>رفض العينة (ISO 15189)</span>
+                  </button>
+                )}
+
                 {/* Fast Pathologist Approval Hotkey Button */}
                 <button
                   type="button"
@@ -1070,6 +1161,59 @@ function ResultsContent() {
               </div>
             </div>
 
+            {/* ISO 15189 Non-conformance Rejection Banner */}
+            {selectedSample.status === 'REJECTED' && (
+              <div
+                style={{
+                  background: 'linear-gradient(90deg, rgba(239, 68, 68, 0.15) 0%, rgba(185, 28, 28, 0.08) 100%)',
+                  border: '1.5px solid #ef4444',
+                  borderRadius: '8px',
+                  padding: '14px 18px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '14px',
+                  boxShadow: '0 2px 10px rgba(239, 68, 68, 0.15)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                  <div style={{ background: '#ef4444', color: '#fff', padding: '6px', borderRadius: '50%', display: 'flex' }}>
+                    <Ban size={18} />
+                  </div>
+                  <div>
+                    <div style={{ color: '#ef4444', fontWeight: 800, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      عينة مرفوضة وغير مطابقة للمواصفات الطبية (ISO 15189 Non-Conforming Sample)
+                    </div>
+                    <div style={{ color: '#fca5a5', fontSize: '12px', marginTop: '4px', lineHeight: '1.5' }}>
+                      السبب الإكلينيكي: <strong style={{ color: '#fff' }}>{selectedSample.rejectionReason}</strong>
+                      {selectedSample.rejectionNotes && <span style={{ marginRight: '8px' }}> • ملاحظات: {selectedSample.rejectionNotes}</span>}
+                      {selectedSample.rejectedBy && <span style={{ marginRight: '8px' }}> • بواسطة: {selectedSample.rejectedBy}</span>}
+                      {selectedSample.rejectedAt && (
+                        <span style={{ marginRight: '8px' }}>
+                          • الوقت: {new Date(selectedSample.rejectedAt).toLocaleString('ar-IQ')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    background: 'rgba(239, 68, 68, 0.25)',
+                    color: '#f87171',
+                    border: '1px solid #ef4444',
+                    padding: '4px 10px',
+                    borderRadius: '5px',
+                    display: 'inline-block'
+                  }}>
+                    إعادة السحب مطلوبة (Re-collection Required)
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Results Table (Image 2 Exact Layout) */}
             <div style={{ overflowX: 'auto', flex: 1, border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-input-deep)' }} dir="ltr">
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px', textAlign: 'left' }} dir="ltr">
@@ -1099,6 +1243,23 @@ function ResultsContent() {
                               {st.test?.code && (
                                 <span style={{ fontSize: '10px', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.05)', padding: '1px 4px', borderRadius: '3px' }}>
                                   {st.test?.code}
+                                </span>
+                              )}
+                              {(st.test?.loincCode || getLoincCode(st.test?.code || st.test?.name)) && (
+                                <span
+                                  title="LOINC International Medical Code (معيار الترميز الطبي الدولي)"
+                                  style={{
+                                    fontSize: '9.5px',
+                                    fontFamily: 'monospace',
+                                    color: '#38bdf8',
+                                    background: 'rgba(56, 189, 248, 0.12)',
+                                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                                    padding: '1px 4px',
+                                    borderRadius: '3px',
+                                    fontWeight: 700
+                                  }}
+                                >
+                                  LOINC: {st.test?.loincCode || getLoincCode(st.test?.code || st.test?.name)}
                                 </span>
                               )}
                               {isChemistryAnalyte(st) && (
@@ -1439,9 +1600,72 @@ function ResultsContent() {
                         </tr>
 
                         {isPanic && (
-                          <tr style={{ background: 'var(--bg-stat-row)' }}>
-                            <td colSpan={6} style={{ padding: '6px 14px', color: 'var(--color-danger)', fontSize: '11.5px', fontWeight: 700 }}>
-                              <AlertTriangle size={12} /> PANIC LIMIT WARNING: {st.test?.name} value ({currentVal}) exceeds critical clinical threshold!
+                          <tr style={{ background: 'rgba(239, 68, 68, 0.08)', borderBottom: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                            <td colSpan={6} style={{ padding: '8px 14px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                                <div style={{ color: 'var(--color-danger)', fontSize: '11.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <AlertTriangle size={13} />
+                                  <span>تنبيه قيمة حرجة (PANIC): {st.test?.name} ({currentVal} {st.test?.unit}) تتجاوز العتبة السريرية المهددة للحياة!</span>
+                                </div>
+                                
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  {(() => {
+                                    const callLog = (selectedSample.criticalCallLogs || []).find(
+                                      (log: any) => log.testName === st.test?.name || log.testName === st.test?.code
+                                    );
+                                    if (callLog) {
+                                      return (
+                                        <span style={{
+                                          fontSize: '11px',
+                                          color: '#10b981',
+                                          background: 'rgba(16, 185, 129, 0.15)',
+                                          border: '1px solid rgba(16, 185, 129, 0.35)',
+                                          padding: '3px 8px',
+                                          borderRadius: '5px',
+                                          fontWeight: 700,
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '4px'
+                                        }}>
+                                          <CheckCircle2 size={12} />
+                                          <span>تم تبليغ د. {callLog.physicianName} هاتفياً (قراءة عكسية ✓)</span>
+                                        </span>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setCriticalCallTargetTest({
+                                        id: st.id,
+                                        name: st.test?.name || st.test?.code,
+                                        resultValue: `${currentVal} ${st.test?.unit || ''}`.trim()
+                                      });
+                                      setShowCriticalCallModal(true);
+                                    }}
+                                    style={{
+                                      fontSize: '11px',
+                                      fontWeight: 800,
+                                      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                      color: '#fff',
+                                      border: '1px solid #f87171',
+                                      padding: '4px 10px',
+                                      borderRadius: '5px',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      boxShadow: '0 2px 4px rgba(239, 68, 68, 0.25)'
+                                    }}
+                                    title="توثيق التبليغ الهاتفي الفوري للطبيب مع القراءة العكسية وفق معيار CLSI GP47"
+                                  >
+                                    <PhoneCall size={12} />
+                                    <span>توثيق تبليغ الطبيب (CLSI GP47)</span>
+                                  </button>
+                                </div>
+                              </div>
                             </td>
                           </tr>
                         )}
@@ -1747,6 +1971,33 @@ function ResultsContent() {
           cancelText="إلغاء"
           onConfirm={handleConfirmDeleteTest}
           onCancel={() => setTestToDelete(null)}
+        />
+      )}
+
+      {/* ISO 15189 SAMPLE REJECTION MODAL */}
+      <SampleRejectionModal
+        isOpen={showRejectionModal && !!selectedSample}
+        sampleNumber={selectedSample?.sampleNumber || ''}
+        patientName={selectedSample?.patient?.name || ''}
+        onClose={() => setShowRejectionModal(false)}
+        onConfirmReject={handleConfirmRejectSample}
+      />
+
+      {/* CLSI GP47 CRITICAL CALL DOCUMENTATION MODAL */}
+      {selectedSample && criticalCallTargetTest && (
+        <CriticalCallModal
+          isOpen={showCriticalCallModal}
+          sampleId={selectedSample.id}
+          sampleNumber={selectedSample.sampleNumber}
+          patientName={selectedSample.patient?.name || ''}
+          testName={criticalCallTargetTest.name}
+          resultValue={criticalCallTargetTest.resultValue}
+          defaultDoctorName={selectedSample.doctor?.name || ''}
+          onClose={() => {
+            setShowCriticalCallModal(false);
+            setCriticalCallTargetTest(null);
+          }}
+          onSave={handleSaveCriticalCallLog}
         />
       )}
 

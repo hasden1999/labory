@@ -30,6 +30,7 @@ export interface Test {
   refRangeText?: string;
   panicLow?: number | null;
   panicHigh?: number | null;
+  loincCode?: string;
 }
 
 export interface SampleTest {
@@ -40,6 +41,20 @@ export interface SampleTest {
   isAbnormal?: boolean;
   isCritical?: boolean;
   interpretation?: string;
+}
+
+export interface CriticalCallLog {
+  id: string;
+  sampleId: string;
+  testName: string;
+  resultValue: string;
+  physicianName: string;
+  physicianPhone?: string;
+  callerName: string;
+  calledAt: string;
+  readBackConfirmed: boolean;
+  actionTaken?: string;
+  notes?: string;
 }
 
 export interface Doctor {
@@ -58,7 +73,7 @@ export interface Sample {
   doctorId?: string;
   doctor?: Doctor;
   tests: SampleTest[];
-  status: 'RECEIVED' | 'IN_PROGRESS' | 'READY' | 'DELIVERED';
+  status: 'RECEIVED' | 'IN_PROGRESS' | 'READY' | 'DELIVERED' | 'REJECTED';
   isUrgent: boolean;
   priceTotal: number;
   discount?: number;
@@ -67,6 +82,11 @@ export interface Sample {
   remainingAmount?: number;
   paymentMethod?: 'CASH' | 'DEBT' | 'CARD';
   notes?: string;
+  rejectionReason?: string;
+  rejectionNotes?: string;
+  rejectedAt?: string;
+  rejectedBy?: string;
+  criticalCallLogs?: CriticalCallLog[];
   createdAt: string;
 }
 

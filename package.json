@@ -10,6 +10,7 @@
     "dev": "concurrently -n \"server,web\" -c \"cyan.bold,magenta.bold\" \"npm run dev:server\" \"npm run start --workspace=apps/web\"",
     "dev:server": "npm run dev --workspace=apps/server",
     "dev:web": "npm run dev --workspace=apps/web",
+    "dev:staging": "npm run staging --workspace=apps/web",
     "start:web": "npm run start --workspace=apps/web",
     "build:server": "npm run build --workspace=apps/server",
     "build:web": "npm run build --workspace=apps/web",

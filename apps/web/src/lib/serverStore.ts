@@ -144,6 +144,20 @@ export interface SampleTestRecord {
   [key: string]: any;
 }
 
+export interface CriticalCallLog {
+  id: string;
+  sampleId: string;
+  testName: string;
+  resultValue: string;
+  physicianName: string;
+  physicianPhone?: string;
+  callerName: string;
+  calledAt: string;
+  readBackConfirmed: boolean;
+  actionTaken?: string;
+  notes?: string;
+}
+
 export interface SampleRecord {
   id: string;
   sampleNumber: number;
@@ -152,7 +166,7 @@ export interface SampleRecord {
   doctorId?: string | null;
   doctor?: DoctorRecord | null;
   doctorCommission?: number;
-  status: 'RECEIVED' | 'IN_PROGRESS' | 'READY' | 'DELIVERED';
+  status: 'RECEIVED' | 'IN_PROGRESS' | 'READY' | 'DELIVERED' | 'REJECTED';
   isUrgent: boolean;
   priceTotal: number;
   discount: number;
@@ -161,6 +175,11 @@ export interface SampleRecord {
   remainingAmount: number;
   paymentMethod: 'CASH' | 'DEBT' | 'CARD';
   notes?: string;
+  rejectionReason?: string | null;
+  rejectionNotes?: string | null;
+  rejectedAt?: string | null;
+  rejectedBy?: string | null;
+  criticalCallLogs?: CriticalCallLog[];
   createdAt: string;
   tests: SampleTestRecord[];
 }
@@ -631,7 +650,25 @@ export function getStore(): ServerStore {
     }
   }
 
-  return global.__labStore;
+  // Ensure all tests have international LOINC codes populated
+  const currentStore = global.__labStore;
+  if (currentStore && Array.isArray(currentStore.tests)) {
+    let loincUpdated = false;
+    INITIAL_TESTS_CATALOG.forEach(catalogItem => {
+      if (catalogItem.loincCode) {
+        const found = currentStore.tests.find((t: any) => t.code === catalogItem.code || t.id === catalogItem.id);
+        if (found && !found.loincCode) {
+          found.loincCode = catalogItem.loincCode;
+          loincUpdated = true;
+        }
+      }
+    });
+    if (loincUpdated) {
+      saveStoreToFile();
+    }
+  }
+
+  return global.__labStore!;
 }
 
 // -------------------------------------------------------------
