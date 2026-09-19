@@ -26,6 +26,62 @@ let isQuitting = false;
 let hasShownTrayNotice = false;
 const WEB_PORT = 8080;
 
+let autoUpdater = null;
+try {
+  autoUpdater = require('electron-updater').autoUpdater;
+} catch (e) {
+  console.warn('[Desktop] electron-updater not loaded:', e.message);
+}
+
+function initAutoUpdater() {
+  if (!autoUpdater || !app.isPackaged) return;
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on('checking-for-update', () => {
+    console.log('[AutoUpdater] Checking for updates via GitHub Releases...');
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    console.log('[AutoUpdater] Update available:', info.version);
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    console.log('[AutoUpdater] System is up to date.');
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.warn('[AutoUpdater] Update check failed (offline or network unreachable):', err?.message || err);
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('[AutoUpdater] Update downloaded:', info.version);
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'تحديث جديد لنظام لابريو الطبي',
+      message: `تم تنزيل الإصدار الجديد (${info.version}) بنجاح!`,
+      detail: 'هل تريد إعادة تشغيل البرنامج الآن لتطبيق التحديث؟',
+      buttons: ['إعادة التشغيل الآن', 'لاحقاً عند الإغلاق'],
+      defaultId: 0,
+      cancelId: 1,
+    }).then((result) => {
+      if (result.response === 0) {
+        isQuitting = true;
+        killBackendProcess();
+        autoUpdater.quitAndInstall(false, true);
+      }
+    });
+  });
+
+  // Delay initial check by 15 seconds after launch to ensure smooth startup
+  setTimeout(() => {
+    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+      console.warn('[AutoUpdater] Silent check warning:', err?.message);
+    });
+  }, 15000);
+}
+
 // Resolve project root reliably across dev and packaged modes
 function findProjectRoot() {
   const candidates = [
@@ -53,8 +109,78 @@ function findProjectRoot() {
   return 'D:\\lab';
 }
 
-// Find Next.js CLI binary to spawn Node directly (starts in 2s vs 20s via npm wrappers)
+// Find Next.js CLI binary or bundled standalone server to spawn Node directly
 function getStartCommand(projectRoot) {
+  // 1. Packaged standalone production mode (for installer & client PCs)
+  if (app.isPackaged) {
+    const engineDir = path.join(process.resourcesPath, 'engine');
+    const nodeBin = path.join(engineDir, 'node.exe');
+
+    let serverScript = path.join(engineDir, 'standalone', 'apps', 'web', 'server.js');
+    let workingDir = path.join(engineDir, 'standalone', 'apps', 'web');
+    if (!fs.existsSync(serverScript)) {
+      serverScript = path.join(engineDir, 'standalone', 'server.js');
+      workingDir = path.join(engineDir, 'standalone');
+    }
+
+    const userDataDir = path.join(app.getPath('userData'), 'data');
+    if (!fs.existsSync(userDataDir)) {
+      fs.mkdirSync(userDataDir, { recursive: true });
+    }
+
+    // Seed initial database if not yet existing on client's machine
+    const userDbFile = path.join(userDataDir, 'lab_store.json');
+    if (!fs.existsSync(userDbFile)) {
+      const seedCandidates = [
+        path.join(engineDir, 'standalone', 'apps', 'web', 'data', 'lab_store.json'),
+        path.join(engineDir, 'standalone', 'data', 'lab_store.json'),
+        path.join(engineDir, 'data', 'lab_store.json'),
+      ];
+      for (const sc of seedCandidates) {
+        if (fs.existsSync(sc)) {
+          try {
+            const rawSeed = fs.readFileSync(sc, 'utf-8');
+            const seedData = JSON.parse(rawSeed);
+            seedData.patients = [];
+            seedData.samples = [];
+            seedData.expenses = [];
+            seedData.doctors = [];
+            seedData.incomingResults = [];
+            seedData.deviceRawLogs = [];
+            if (!seedData.settings) seedData.settings = {};
+            seedData.settings.labName = '';
+            seedData.settings.doctorName = '';
+            seedData.settings.phone = '';
+            seedData.settings.whatsappNumber = '';
+            seedData.settings.address = '';
+            seedData.settings.reportHeader = '';
+            seedData.settings.isConfigured = false;
+            delete seedData.license;
+
+            fs.writeFileSync(userDbFile, JSON.stringify(seedData, null, 2), 'utf-8');
+            console.log('[Desktop] Copied and sanitized seed database to:', userDbFile);
+            break;
+          } catch (e) {
+            console.error('[Desktop] Failed to copy seed DB:', e);
+          }
+        }
+      }
+    }
+
+    return {
+      cmd: fs.existsSync(nodeBin) ? nodeBin : 'node',
+      args: [serverScript],
+      cwd: workingDir,
+      extraEnv: {
+        LABRYO_DATA_DIR: userDataDir,
+        HOSTNAME: '0.0.0.0',
+        PORT: String(WEB_PORT),
+        NODE_ENV: 'production',
+      },
+    };
+  }
+
+  // 2. Development / local monorepo mode
   const nextBinCandidates = [
     path.join(projectRoot, 'node_modules', 'next', 'dist', 'bin', 'next'),
     path.join(projectRoot, 'apps', 'web', 'node_modules', 'next', 'dist', 'bin', 'next'),
@@ -190,13 +316,20 @@ async function ensureServerStarted() {
   const startConfig = getStartCommand(projectRoot);
   console.log('[Desktop] Spawning server:', startConfig.cmd, startConfig.args.join(' '));
 
+  const env = {
+    ...process.env,
+    NODE_ENV: 'production',
+    PORT: String(WEB_PORT),
+    ...(startConfig.extraEnv || {}),
+  };
+
   backendProcess = spawn(startConfig.cmd, startConfig.args, {
     cwd: startConfig.cwd,
     shell: startConfig.cmd.endsWith('.cmd') || startConfig.cmd.endsWith('.bat'),
     stdio: 'ignore',
     windowsHide: true,
     detached: false,
-    env: { ...process.env, NODE_ENV: 'production', PORT: String(WEB_PORT) },
+    env,
   });
 
   backendProcess.on('error', (err) => {
@@ -624,6 +757,37 @@ function createTray() {
             }
           },
         },
+        {
+          label: '☁️ التحقق من وجود تحديثات...',
+          click: () => {
+            if (autoUpdater && app.isPackaged) {
+              autoUpdater.checkForUpdates().then((res) => {
+                if (!res || !res.downloadPromise) {
+                  dialog.showMessageBox({
+                    type: 'info',
+                    title: 'تحديث النظام',
+                    message: 'نظامك محدث إلى آخر إصدار رسمي!',
+                    buttons: ['حسناً'],
+                  });
+                }
+              }).catch(() => {
+                dialog.showMessageBox({
+                  type: 'info',
+                  title: 'تحديث النظام',
+                  message: 'تعذر الاتصال بخادم التحديثات حالياً. يرجى التحقق من اتصال الإنترنت.',
+                  buttons: ['حسناً'],
+                });
+              });
+            } else {
+              dialog.showMessageBox({
+                type: 'info',
+                title: 'تحديث النظام',
+                message: 'البرنامج يعمل حالياً بنمط التطوير المحلي (Dev Mode). التحديث التلقائي يعمل في النسخة المثبتة الرسمية.',
+                buttons: ['حسناً'],
+              });
+            }
+          },
+        },
         { type: 'separator' },
         {
           label: '❌ خروج نهائي وإيقاف الخدمات (Exit)',
@@ -806,6 +970,7 @@ ipcMain.handle('print-document', async (event, { url, printOptions }) => {
 // App Lifecycle
 app.whenReady().then(() => {
   createTray();
+  initAutoUpdater();
 
   const isHiddenLaunch = process.argv.includes('--hidden') || process.argv.includes('--minimized');
 

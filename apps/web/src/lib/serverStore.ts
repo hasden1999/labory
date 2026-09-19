@@ -5,7 +5,9 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-const DATA_DIR = path.resolve(process.cwd().includes('apps') ? process.cwd() : path.join(process.cwd(), 'apps', 'web'), 'data');
+const DATA_DIR = process.env.LABRYO_DATA_DIR
+  ? path.resolve(process.env.LABRYO_DATA_DIR)
+  : path.resolve(process.cwd().includes('apps') ? process.cwd() : path.join(process.cwd(), 'apps', 'web'), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'lab_store.json');
 
 export function getLocalIpAddress(): string {
@@ -99,6 +101,9 @@ export interface LicenseStore {
   expiryDate?: string;
   activatedAt?: string;
   labName?: string;
+  firstRunDate?: string;
+  trialExpiresAt?: string;
+  lastClockCheck?: string;
 }
 
 export interface PatientRecord {
@@ -391,161 +396,13 @@ declare global {
 }
 
 function initStore(): ServerStore {
-  const patient1: PatientRecord = { id: 'pat-1', name: 'حيدر عبد الحسين الخفاجي', phone: '07701239988', age: 48, gender: 'MALE', createdAt: new Date(Date.now() - 86400000 * 3).toISOString() };
-  const patient2: PatientRecord = { id: 'pat-2', name: 'زينب جاسم محمد الجبوري', phone: '07804445566', age: 29, gender: 'FEMALE', createdAt: new Date(Date.now() - 86400000 * 2).toISOString() };
-  const patient3: PatientRecord = { id: 'pat-3', name: 'عمر طارق السامرائي', phone: '07707778899', age: 62, gender: 'MALE', createdAt: new Date(Date.now() - 86400000 * 1).toISOString() };
-
-  const gueTest = INITIAL_TESTS_CATALOG.find(t => t.code === 'GUE') || INITIAL_TESTS_CATALOG[0];
-  const cbcTest = INITIAL_TESTS_CATALOG.find(t => t.code === 'CBC') || INITIAL_TESTS_CATALOG[0];
-  const fbsTest = INITIAL_TESTS_CATALOG.find(t => t.code === 'FBS') || INITIAL_TESTS_CATALOG[1];
-  const lipidTest = INITIAL_TESTS_CATALOG.find(t => t.code === 'LIPID' || t.code === 'CHO') || INITIAL_TESTS_CATALOG[2];
-
-  const sample1: SampleRecord = {
-    id: 's-1001',
-    sampleNumber: 1001,
-    patientId: patient1.id,
-    patient: patient1,
-    doctorId: 'doc-1',
-    doctor: INITIAL_DOCTORS[0],
-    doctorCommission: 3000,
-    status: 'READY',
-    isUrgent: false,
-    priceTotal: 25000,
-    discount: 5000,
-    discountPercent: 20,
-    paidAmount: 20000,
-    remainingAmount: 0,
-    paymentMethod: 'CASH',
-    notes: 'فحص دوري - يعاني من حرقان في البول',
-    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    tests: [
-      {
-        id: 'st-1',
-        sampleId: 's-1001',
-        testId: gueTest.id,
-        test: gueTest,
-        resultValue: 'Color: Yellow, Clarity: Turbid, Pus: 15-20, RBCs: 4-6, Ca. Oxalate: ++, Bacteria: Moderate (++)',
-        isAbnormal: true,
-        status: 'COMPLETED',
-        notes: 'G.U.E Result Recorded',
-      },
-      {
-        id: 'st-2',
-        sampleId: 's-1001',
-        testId: cbcTest.id,
-        test: cbcTest,
-        resultValue: '13.8',
-        isAbnormal: false,
-        status: 'COMPLETED',
-      }
-    ],
-  };
-
-  const sample2: SampleRecord = {
-    id: 's-1002',
-    sampleNumber: 1002,
-    patientId: patient2.id,
-    patient: patient2,
-    doctorId: 'doc-2',
-    doctor: INITIAL_DOCTORS[1],
-    doctorCommission: 1500,
-    status: 'IN_PROGRESS',
-    isUrgent: true,
-    priceTotal: 15000,
-    discount: 0,
-    discountPercent: 0,
-    paidAmount: 15000,
-    remainingAmount: 0,
-    paymentMethod: 'CASH',
-    notes: 'متابعة الحمل وسكر الدم',
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    tests: [
-      {
-        id: 'st-3',
-        sampleId: 's-1002',
-        testId: fbsTest.id,
-        test: fbsTest,
-        resultValue: null,
-        isAbnormal: false,
-        status: 'PENDING',
-      },
-      {
-        id: 'st-4',
-        sampleId: 's-1002',
-        testId: gueTest.id,
-        test: gueTest,
-        resultValue: null,
-        isAbnormal: false,
-        status: 'PENDING',
-      }
-    ],
-  };
-
-  const sample3: SampleRecord = {
-    id: 's-1003',
-    sampleNumber: 1003,
-    patientId: patient3.id,
-    patient: patient3,
-    doctorId: 'doc-3',
-    doctor: INITIAL_DOCTORS[2],
-    doctorCommission: 3000,
-    status: 'READY',
-    isUrgent: false,
-    priceTotal: 30000,
-    discount: 0,
-    discountPercent: 0,
-    paidAmount: 15000,
-    remainingAmount: 15000, // Outstanding debt
-    paymentMethod: 'DEBT',
-    notes: 'مريض سكري وضغط - متبقي دين 15,000 د.ع',
-    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-    tests: [
-      {
-        id: 'st-5',
-        sampleId: 's-1003',
-        testId: fbsTest.id,
-        test: fbsTest,
-        resultValue: '215',
-        isAbnormal: true,
-        status: 'COMPLETED',
-        notes: 'سكر صائم مرتفع',
-      },
-      {
-        id: 'st-6',
-        sampleId: 's-1003',
-        testId: lipidTest.id,
-        test: lipidTest,
-        resultValue: '240',
-        isAbnormal: true,
-        status: 'COMPLETED',
-      }
-    ],
-  };
-
   return {
     tests: INITIAL_TESTS_CATALOG,
     panels: INITIAL_PANELS,
-    doctors: [...INITIAL_DOCTORS],
-    patients: [patient1, patient2, patient3],
-    samples: [sample1, sample2, sample3],
-    expenses: [
-      {
-        id: 'exp-1',
-        description: 'شراء أشرطة فحص وكواشف مخبرية',
-        amount: 85000,
-        category: 'كواشف ومواد',
-        createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-        date: new Date(Date.now() - 86400000 * 2).toISOString(),
-      },
-      {
-        id: 'exp-2',
-        description: 'وقود مولدة سحب كهربائي إضافي',
-        amount: 35000,
-        category: 'كهرباء ووقود',
-        createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-        date: new Date(Date.now() - 86400000 * 1).toISOString(),
-      },
-    ],
+    doctors: [],
+    patients: [],
+    samples: [],
+    expenses: [],
     settings: {
       labName: '',
       labSubtitle: 'فحوصات مرضية وتطبيقية دقيقة - تشخيص إلكتروني متكامل ومعتمد',
@@ -772,56 +629,6 @@ export function getStore(): ServerStore {
       global.__labStore.tests.push(sfaCatalogItem);
       saveStoreToFile();
     }
-  }
-
-  // Ensure there is at least one sample with SFA for immediate testing in results
-  const hasSampleWithSfa = (global.__labStore.samples || []).some(s => 
-    (s.tests || []).some((st: any) => (st.test?.code || st.testCode || '').toUpperCase() === 'SFA')
-  );
-  if (!hasSampleWithSfa && sfaCatalogItem && Array.isArray(global.__labStore.samples)) {
-    const sampleSfa: SampleRecord = {
-      id: 's-1004',
-      sampleNumber: 1004,
-      patientId: 'pat-4',
-      patient: {
-        id: 'pat-4',
-        name: 'كرار جاسم العبيدي',
-        phone: '07705556677',
-        age: 32,
-        gender: 'MALE',
-        createdAt: new Date().toISOString(),
-      },
-      doctorId: 'doc-1',
-      doctor: INITIAL_DOCTORS[0],
-      doctorCommission: 2000,
-      status: 'IN_PROGRESS',
-      isUrgent: false,
-      priceTotal: 15000,
-      discount: 0,
-      discountPercent: 0,
-      paidAmount: 15000,
-      remainingAmount: 0,
-      paymentMethod: 'CASH',
-      notes: 'تحليل سائل منوي - استشارة عقم وخصوبة',
-      createdAt: new Date().toISOString(),
-      tests: [
-        {
-          id: 'st-sfa-1004',
-          sampleId: 's-1004',
-          testId: sfaCatalogItem.id,
-          test: sfaCatalogItem,
-          resultValue: null,
-          isAbnormal: false,
-          status: 'PENDING',
-          notes: 'فحص السائل المنوي - قيد الفحص في محطة S.F.A',
-        }
-      ]
-    };
-    global.__labStore.samples.unshift(sampleSfa);
-    if (!global.__labStore.patients.some(p => p.id === 'pat-4')) {
-      global.__labStore.patients.push(sampleSfa.patient);
-    }
-    saveStoreToFile();
   }
 
   return global.__labStore;

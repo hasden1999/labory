@@ -172,13 +172,17 @@ export default function TrialLockGuard({ children }: { children: React.ReactNode
           <h2 style={{ fontSize: '22px', fontWeight: 900, color: '#ffffff', margin: '0 0 8px 0' }}>
             {licenseStatus.isClockTampered 
               ? 'تم اكتشاف تلاعب في ساعة النظام!' 
-              : 'تفعيل نسخة البرنامج لسطح المكتب'}
+              : licenseStatus.isExpired
+                ? 'انتهت الفترة التجريبية المجانية (7 أيام)'
+                : 'تفعيل نسخة البرنامج لسطح المكتب'}
           </h2>
 
           <p style={{ fontSize: '13.5px', color: '#94a3b8', lineHeight: 1.6, margin: '0 0 20px 0' }}>
             {licenseStatus.isClockTampered 
               ? 'يرجى ضبط تاريخ ووقت الكمبيوتر بشكل دقيق لإعادة تنشيط النظام.'
-              : 'تم تثبيت البرنامج بنجاح. لتشغيل النظام وإعداد بيانات مختبرك، يرجى إرسال كود بصمة الجهاز إلى الأدمن للحصول على كود التفعيل.'}
+              : licenseStatus.isExpired
+                ? 'لقد انتهت فترة التجربة المجانية للنظام. للاستمرار في استخدام البرنامج وتفعيل نسختك الدائمة، يرجى إرسال كود بصمة الجهاز إلى المطور للحصول على مفتاح التفعيل.'
+                : 'تم تثبيت البرنامج بنجاح. لتشغيل النظام وإعداد بيانات مختبرك، يرجى إرسال كود بصمة الجهاز إلى الأدمن للحصول على كود التفعيل.'}
           </p>
 
           {/* Steps Card */}
@@ -345,5 +349,53 @@ export default function TrialLockGuard({ children }: { children: React.ReactNode
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {licenseStatus?.isTrial && !licenseStatus?.isExpired && (
+        <div style={{
+          background: 'linear-gradient(90deg, #0284c7 0%, #0369a1 100%)',
+          color: '#ffffff',
+          padding: '6px 16px',
+          fontSize: '12.5px',
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          zIndex: 9999,
+          position: 'sticky',
+          top: 0,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Sparkles size={16} color="#38bdf8" />
+            <span>فترة تجريبية مجانية لنظام مختبر الرضا — متبقي {licenseStatus.daysLeft} {licenseStatus.daysLeft === 1 ? 'يوم واحد' : 'أيام'}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <span>للتفعيل الدائم: <strong>{DEVELOPER_PHONE}</strong></span>
+            <button
+              type="button"
+              onClick={handleCopyHWID}
+              style={{
+                background: 'rgba(255,255,255,0.2)',
+                border: '1px solid rgba(255,255,255,0.4)',
+                borderRadius: '6px',
+                color: '#fff',
+                padding: '4px 10px',
+                fontSize: '11px',
+                cursor: 'pointer',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Copy size={13} />
+              <span>نسخ كود الجهاز ({licenseStatus.hardwareId})</span>
+            </button>
+          </div>
+        </div>
+      )}
+      {children}
+    </>
+  );
 }

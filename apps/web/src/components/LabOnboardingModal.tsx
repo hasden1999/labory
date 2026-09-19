@@ -165,14 +165,16 @@ export default function LabOnboardingModal() {
               </p>
             </div>
           </div>
-          <button 
-            type="button" 
-            onClick={() => dismissSetupWizard()}
-            className="toast-close"
-            title="إغلاق وتخطي"
-          >
-            <X size={20} />
-          </button>
+          {labProfile.isConfigured && (
+            <button 
+              type="button" 
+              onClick={() => setShowSetupModal(false)}
+              className="toast-close"
+              title="إغلاق"
+            >
+              <X size={20} />
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -358,24 +360,26 @@ export default function LabOnboardingModal() {
           </div>
 
           {/* Actions */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginTop: '4px' }}>
-            <button
-              type="button"
-              onClick={() => dismissSetupWizard()}
-              className="btn-secondary"
-              style={{
-                padding: '10px 18px',
-                fontSize: '13px',
-                fontWeight: 700,
-                color: 'var(--text-muted)',
-                background: 'transparent',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                cursor: 'pointer',
-              }}
-            >
-              المتابعة لاحقاً وتخطي هذه الخطوة
-            </button>
+          <div style={{ display: 'flex', justifyContent: labProfile.isConfigured ? 'space-between' : 'flex-end', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginTop: '4px' }}>
+            {labProfile.isConfigured && (
+              <button
+                type="button"
+                onClick={() => dismissSetupWizard()}
+                className="btn-secondary"
+                style={{
+                  padding: '10px 18px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  background: 'transparent',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                }}
+              >
+                إغلاق
+              </button>
+            )}
             <button
               type="submit"
               disabled={saving}
