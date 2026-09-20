@@ -1,6 +1,7 @@
 import { INITIAL_TESTS_CATALOG, INITIAL_PANELS, INITIAL_DOCTORS } from './catalogData';
 import { DEVICE_PRESETS, DevicePreset } from './devicePresets';
 import { parseDeviceMessage, ParsedAnalyzerMessage, ParsedItem } from './deviceEngine';
+import { calculateConversionMultiplier, roundPriceForCurrency, findCurrency } from './currencies';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -1317,6 +1318,86 @@ export function updateSettings(data: Partial<LabSettings>): LabSettings {
   };
   saveStoreToFile();
   return store.settings;
+}
+
+/**
+ * تحويل وتعديل أسعار جميع الفحوصات والباقات في الكتالوج بما يتناسب مع العملة الجديدة
+ */
+export function convertAllTestPrices(targetCurrency: string, customMultiplier?: number) {
+  const store = getStore();
+  const fromCurrency = store.settings.currency || 'د.ع';
+  const targetCurrDef = findCurrency(targetCurrency);
+  const targetSymbol = targetCurrDef?.symbol || targetCurrency.trim();
+
+  const multiplier = customMultiplier !== undefined && customMultiplier > 0
+    ? customMultiplier
+    : calculateConversionMultiplier(fromCurrency, targetCurrency);
+
+  let updatedTestsCount = 0;
+  if (Array.isArray(store.tests)) {
+    store.tests = store.tests.map((test) => {
+      const oldPrice = Number(test.price) || 0;
+      const newPrice = roundPriceForCurrency(oldPrice * multiplier, targetCurrency);
+      let newCost = test.costEstimate;
+      if (test.costEstimate !== undefined && test.costEstimate !== null) {
+        newCost = roundPriceForCurrency(Number(test.costEstimate) * multiplier, targetCurrency);
+      }
+      updatedTestsCount++;
+      return {
+        ...test,
+        price: newPrice,
+        ...(newCost !== undefined ? { costEstimate: newCost } : {}),
+      };
+    });
+  }
+
+  let updatedPanelsCount = 0;
+  if (Array.isArray(store.panels)) {
+    store.panels = store.panels.map((panel) => {
+      const oldPrice = Number(panel.price) || 0;
+      const newPrice = roundPriceForCurrency(oldPrice * multiplier, targetCurrency);
+      updatedPanelsCount++;
+      return {
+        ...panel,
+        price: newPrice,
+      };
+    });
+  }
+
+  // Update currency in settings
+  store.settings.currency = targetSymbol;
+  saveStoreToFile();
+
+  return {
+    success: true,
+    fromCurrency,
+    toCurrency: targetSymbol,
+    multiplier,
+    updatedTestsCount,
+    updatedPanelsCount,
+    tests: store.tests,
+    panels: store.panels,
+  };
+}
+
+/**
+ * استعادة أسعار وتكاليف كافة الفحوصات والباقات إلى التسعير العراقي الأصلي المعتمد (IQD - د.ع)
+ */
+export function resetAllTestPricesToDefault() {
+  const store = getStore();
+  store.tests = JSON.parse(JSON.stringify(INITIAL_TESTS_CATALOG));
+  store.panels = JSON.parse(JSON.stringify(INITIAL_PANELS));
+  store.settings.currency = 'د.ع';
+  saveStoreToFile();
+
+  return {
+    success: true,
+    currency: 'د.ع',
+    testsCount: store.tests.length,
+    panelsCount: store.panels.length,
+    tests: store.tests,
+    panels: store.panels,
+  };
 }
 
 // -------------------------------------------------------------

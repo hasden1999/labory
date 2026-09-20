@@ -22,9 +22,12 @@ import {
   Check,
   Sparkles
 } from 'lucide-react';
+import { useLab } from '../../components/LabContext';
 
 export default function CatalogPage() {
   const toast = useToast();
+  const { labProfile } = useLab();
+  const currency = labProfile?.currency || 'د.ع';
   const [tests, setTests] = useState<any[]>([]);
   const [panels, setPanels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -270,7 +273,28 @@ export default function CatalogPage() {
           <p className="page-subtitle">إدارة أسعار التحاليل، المعدلات الطبيعية، الحدود الحرجة، وتجميع الباقات الشاملة</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <a
+            href="/settings"
+            title="تعديل العملة وتحويل الأسعار تلقائياً"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: '1px solid rgba(2, 132, 199, 0.3)',
+              background: 'rgba(2, 132, 199, 0.08)',
+              color: 'var(--accent-cyan)',
+              fontSize: '12px',
+              fontWeight: 800,
+              textDecoration: 'none'
+            }}
+          >
+            <DollarSign size={14} />
+            <span>العملة المعتمدة: <strong>{currency}</strong></span>
+          </a>
+
           {activeTab === 'tests' ? (
             <button onClick={handleOpenAddTest} className="btn-primary">
               <Plus size={16} />
@@ -391,8 +415,8 @@ export default function CatalogPage() {
                         <td>
                           <span className="badge badge-received" style={{ fontSize: '10px' }}>{t.category || 'عام'}</span>
                         </td>
-                        <td style={{ fontWeight: 900, color: 'var(--accent-cyan)' }}>{t.price?.toLocaleString()} د.ع</td>
-                        <td style={{ color: 'var(--text-muted)' }}>{t.costEstimate ? `${t.costEstimate.toLocaleString()} د.ع` : '-'}</td>
+                        <td style={{ fontWeight: 900, color: 'var(--accent-cyan)' }}>{t.price?.toLocaleString()} {currency}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{t.costEstimate ? `${t.costEstimate.toLocaleString()} ${currency}` : '-'}</td>
                         <td style={{ fontSize: '11.5px' }}>
                           {t.refRangeText || (t.refRangeLow !== null ? `${t.refRangeLow} - ${t.refRangeHigh}` : '-')}
                         </td>
@@ -442,7 +466,7 @@ export default function CatalogPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                   <strong style={{ fontSize: '15px', color: 'var(--text-main)' }}>{p.name}</strong>
                   <span style={{ fontSize: '14px', fontWeight: 900, color: 'var(--accent-emerald)' }}>
-                    {p.price?.toLocaleString()} د.ع
+                    {p.price?.toLocaleString()} {currency}
                   </span>
                 </div>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>
@@ -556,7 +580,7 @@ export default function CatalogPage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label className="input-label">سعر الفحص (د.ع) *</label>
+                  <label className="input-label">سعر الفحص ({currency}) *</label>
                   <input
                     type="number"
                     placeholder="مثال: 10000"
@@ -569,7 +593,7 @@ export default function CatalogPage() {
                 </div>
 
                 <div>
-                  <label className="input-label">التكلفة التقديرية (د.ع)</label>
+                  <label className="input-label">التكلفة التقديرية ({currency})</label>
                   <input
                     type="number"
                     placeholder="مثال: 3000"
@@ -735,7 +759,7 @@ export default function CatalogPage() {
                 </div>
 
                 <div>
-                  <label className="input-label">سعر الباقة (د.ع) *</label>
+                  <label className="input-label">سعر الباقة ({currency}) *</label>
                   <input
                     type="number"
                     placeholder="مثال: 25000"

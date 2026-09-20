@@ -3,7 +3,7 @@ import https from 'https';
 
 export const dynamic = 'force-dynamic';
 
-const CURRENT_VERSION = 'v1.0.5';
+const CURRENT_VERSION = 'v1.0.6';
 const REPO_OWNER = 'hasden1999';
 const REPO_NAME = 'lab-releases';
 

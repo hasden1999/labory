@@ -7,11 +7,14 @@ import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import ConfirmModal from '../../components/ConfirmModal';
+import { useLab } from '../../components/LabContext';
 import { Package, Plus, AlertTriangle, Clock, Trash2, X, Check, Calendar, AlertCircle, Search, ArrowUpRight, ArrowDownLeft, CheckCircle2, AlertOctagon } from 'lucide-react';
 import { toEnglishDigits, formatEnglishDate } from '../../lib/formatters';
 
 export default function InventoryPage() {
   const toast = useToast();
+  const { labProfile } = useLab();
+  const currency = labProfile?.currency || 'د.ع';
   const [items, setItems] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any>({ expiredCount: 0, expiringSoonCount: 0, lowStockCount: 0 });
   const [loading, setLoading] = useState(true);
@@ -394,7 +397,7 @@ export default function InventoryPage() {
                       </td>
 
                       <td style={{ fontSize: '11.5px' }}>
-                        <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{item.costPerUnit?.toLocaleString()} د.ع</div>
+                        <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{item.costPerUnit?.toLocaleString()} {currency}</div>
                         <div style={{ color: 'var(--text-dim)', fontSize: '10.5px' }}>{item.supplier || '-'}</div>
                       </td>
 
@@ -567,7 +570,7 @@ export default function InventoryPage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label className="input-label">سعر التكلفة للوحدة (د.ع) *</label>
+                  <label className="input-label">سعر التكلفة للوحدة ({currency}) *</label>
                   <input
                     type="number"
                     placeholder="25000"

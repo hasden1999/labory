@@ -59,5 +59,28 @@ export const catalogCache = {
       console.warn('[CatalogCache] Background refresh failed, using cached catalog:', err);
     }
     return { tests: cachedTests, panels: cachedPanels, doctors: cachedDoctors };
-  }
+  },
+  update(tests?: TestItem[], panels?: PanelItem[], doctors?: DoctorItem[]) {
+    if (tests && Array.isArray(tests)) cachedTests = tests;
+    if (panels && Array.isArray(panels)) cachedPanels = panels;
+    if (doctors && Array.isArray(doctors)) cachedDoctors = doctors;
+    lastFetchTime = Date.now();
+    if (typeof window !== 'undefined') {
+      try {
+        if (tests) localStorage.setItem('labryo_cached_tests', JSON.stringify(tests));
+        if (panels) localStorage.setItem('labryo_cached_panels', JSON.stringify(panels));
+        if (doctors) localStorage.setItem('labryo_cached_doctors', JSON.stringify(doctors));
+      } catch {}
+    }
+    notifySubscribers();
+  },
+  clear() {
+    lastFetchTime = 0;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('labryo_cached_tests');
+        localStorage.removeItem('labryo_cached_panels');
+      } catch {}
+    }
+  },
 };

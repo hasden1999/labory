@@ -17,6 +17,7 @@ function SamplesContent() {
   const searchParams = useSearchParams();
   const toast = useToast();
   const { labProfile } = useLab();
+  const currency = labProfile?.currency || 'د.ع';
 
   const [samples, setSamples] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -555,14 +556,14 @@ function SamplesContent() {
                     <td>
                       <div>
                         <strong style={{ fontSize: '11.5px', color: 'var(--text-main)', display: 'block' }}>
-                          {s.priceTotal?.toLocaleString()} د.ع
+                          {s.priceTotal?.toLocaleString()} {currency}
                         </strong>
                         {isPaid ? (
                           <span style={{ fontSize: '9.5px', color: '#10b981', fontWeight: 700 }}>✅ واصل كامل</span>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '3px' }}>
                             <span style={{ fontSize: '9.5px', color: '#ef4444', fontWeight: 700 }}>
-                              متبقي: {s.remainingAmount?.toLocaleString()} د.ع
+                              متبقي: {s.remainingAmount?.toLocaleString()} {currency}
                             </span>
                             <button
                               onClick={() => {
@@ -812,15 +813,15 @@ function SamplesContent() {
             <form onSubmit={handlePaySample} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <div><strong>اسم المريض:</strong> {payModalSample.patient?.name}</div>
-                <div><strong>إجمالي كلفة الفحوصات:</strong> {payModalSample.priceTotal?.toLocaleString()} د.ع</div>
-                <div><strong>المسدد سابقاً:</strong> {(payModalSample.paidAmount || 0).toLocaleString()} د.ع</div>
+                <div><strong>إجمالي كلفة الفحوصات:</strong> {payModalSample.priceTotal?.toLocaleString()} {currency}</div>
+                <div><strong>المسدد سابقاً:</strong> {(payModalSample.paidAmount || 0).toLocaleString()} {currency}</div>
                 <div style={{ color: 'var(--accent-rose)', fontWeight: 800, fontSize: '13px' }}>
-                  <strong>المتبقي بذمة المريض:</strong> {(payModalSample.remainingAmount || 0).toLocaleString()} د.ع
+                  <strong>المتبقي بذمة المريض:</strong> {(payModalSample.remainingAmount || 0).toLocaleString()} {currency}
                 </div>
               </div>
 
               <div>
-                <label className="input-label">المبلغ المطلوب تسديده الآن (د.ع) *</label>
+                <label className="input-label">المبلغ المطلوب تسديده الآن ({currency}) *</label>
                 <input
                   type="number"
                   value={payAmount}

@@ -12,6 +12,7 @@ import { FlaskConical, User, Phone, Calendar, Search, CheckCircle2, DollarSign, 
 import ConfirmModal from '../components/ConfirmModal';
 import { toEnglishDigits, formatEnglishDate } from '../lib/formatters';
 import { catalogCache } from '../lib/catalogCache';
+import { useLab } from '../components/LabContext';
 
 // English Clinical Category Mapping
 const CLINICAL_CATEGORIES = [
@@ -49,6 +50,8 @@ function IntakeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
+  const { labProfile } = useLab();
+  const currency = labProfile?.currency || 'د.ع';
 
   // Preview Modal
   const [docPreviewUrl, setDocPreviewUrl] = useState<string | null>(null);
@@ -161,7 +164,7 @@ function IntakeContent() {
     let unmounted = false;
     const loadInitialData = async () => {
       try {
-        const refreshed = await catalogCache.refresh();
+        const refreshed = await catalogCache.refresh(true);
         if (!unmounted && refreshed) {
           if (refreshed.tests.length > 0) setTests(refreshed.tests as unknown as Test[]);
           if (refreshed.panels.length > 0) setPanels(refreshed.panels);
@@ -187,6 +190,17 @@ function IntakeContent() {
     loadInitialData();
     return () => { unmounted = true; };
   }, [searchParams]);
+
+  // Subscribe to live catalog updates (e.g. currency conversion or test edits)
+  useEffect(() => {
+    const unsub = catalogCache.subscribe(() => {
+      setTests(catalogCache.getTests() as unknown as Test[]);
+      setPanels(catalogCache.getPanels());
+      setDoctors(catalogCache.getDoctors() as unknown as Doctor[]);
+    });
+    return () => unsub();
+  }, []);
+
 
   // 2. Autocomplete Search
   useEffect(() => {
@@ -1150,7 +1164,7 @@ function IntakeContent() {
                           </div>
                           {((p.outstandingDebt || 0) > 0) && (
                             <div style={{ fontSize: '10.5px', color: 'var(--color-danger)', fontWeight: 800, marginTop: '2px' }}>
-                              ديون سابقة: {p.outstandingDebt?.toLocaleString()} د.ع
+                              ديون سابقة: {p.outstandingDebt?.toLocaleString()} {currency}
                             </div>
                           )}
                         </div>
@@ -1180,7 +1194,7 @@ function IntakeContent() {
                 {((selectedPatientHistory.outstandingDebt || 0) > 0) && (
                   <span style={{ background: 'rgba(239, 68, 68, 0.12)', color: 'var(--color-danger)', border: '1px solid rgba(239, 68, 68, 0.3)', fontSize: '11px', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>
                     <AlertTriangle size={12} style={{ display: 'inline', marginLeft: '4px' }} />
-                    متبقي ديون سابقة: {selectedPatientHistory.outstandingDebt?.toLocaleString()} د.ع
+                    متبقي ديون سابقة: {selectedPatientHistory.outstandingDebt?.toLocaleString()} {currency}
                   </span>
                 )}
               </div>
@@ -1687,7 +1701,7 @@ function IntakeContent() {
                       {/* Bottom Row: Price & Action Add Button */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid var(--border-subtle)' }}>
                         <strong style={{ fontSize: '13px', color: 'var(--accent-cyan)', fontWeight: 800 }}>
-                          {t.price?.toLocaleString()} د.ع
+                          {t.price?.toLocaleString()} {currency}
                         </strong>
 
                         <span
@@ -1778,7 +1792,7 @@ function IntakeContent() {
                       <span style={{ color: 'var(--text-main)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                      <strong style={{ color: 'var(--text-main)', fontWeight: 800 }}>{t.price?.toLocaleString()} د.ع</strong>
+                      <strong style={{ color: 'var(--text-main)', fontWeight: 800 }}>{t.price?.toLocaleString()} {currency}</strong>
                       <button
                         type="button"
                         onClick={() => handleToggleTest(t)}
@@ -1823,7 +1837,7 @@ function IntakeContent() {
                 </label>
                 {calculatedDiscount > 0 && (
                   <span style={{ fontSize: '11px', color: 'var(--accent-rose)', fontWeight: 800 }}>
-                    - {calculatedDiscount.toLocaleString()} د.ع ({discountPercent}%)
+                    - {calculatedDiscount.toLocaleString()} {currency} ({discountPercent}%)
                   </span>
                 )}
               </div>
@@ -1854,7 +1868,7 @@ function IntakeContent() {
                 })}
               </div>
 
-              {/* Custom IQD Discount Input */}
+              {/* Custom Currency Discount Input */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <input
                   id="custom-discount-input"
@@ -1865,7 +1879,7 @@ function IntakeContent() {
                   onKeyDown={(e) => handleInputKeyDown(e, 7)}
                   type="number"
                   min={0}
-                  placeholder="أدخل خصم مخصص (بالدينار)..."
+                  placeholder={`أدخل خصم مخصص (${currency})...`}
                   className="input-control"
                   style={{ height: '32px', fontSize: '12px', borderRadius: '6px', background: 'var(--bg-input-deep)' }}
                   value={customDiscountAmount || ''}
@@ -1893,7 +1907,7 @@ function IntakeContent() {
                   عمولة د. {selectedDoctor.name} ({selectedDoctor.commissionPercent || 0}%):
                 </span>
                 <strong style={{ color: 'var(--text-main)', fontWeight: 900 }}>
-                  {doctorCommission.toLocaleString()} د.ع
+                  {doctorCommission.toLocaleString()} {currency}
                 </strong>
               </div>
             )}
@@ -1902,12 +1916,12 @@ function IntakeContent() {
             <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-muted)' }}>
                 <span>المجموع الإجمالي:</span>
-                <span>{grossTotal.toLocaleString()} د.ع</span>
+                <span>{grossTotal.toLocaleString()} {currency}</span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', fontWeight: 900, color: 'var(--text-main)' }}>
                 <span>الصافي المطلوب:</span>
-                <span style={{ color: 'var(--accent-cyan)', fontSize: '18px' }}>{netTotal.toLocaleString()} د.ع</span>
+                <span style={{ color: 'var(--accent-cyan)', fontSize: '18px' }}>{netTotal.toLocaleString()} {currency}</span>
               </div>
 
               {/* Payment Method Segmented Buttons */}
@@ -1960,7 +1974,7 @@ function IntakeContent() {
                 <div>
                   <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>المتبقي</span>
                   <div style={{ height: '32px', background: 'var(--bg-input-deep)', border: '1px solid var(--border-color)', borderRadius: '6px', display: 'flex', alignItems: 'center', padding: '0 8px', fontSize: '12px', fontWeight: 800, color: remainingBalance > 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
-                    {remainingBalance.toLocaleString()} د.ع
+                    {remainingBalance.toLocaleString()} {currency}
                   </div>
                 </div>
               </div>
@@ -2009,7 +2023,7 @@ function IntakeContent() {
                 تم تسجيل العينة #{createdSample.sampleNumber} بنجاح!
               </h3>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
-                المريض: <strong style={{ color: 'var(--text-main)' }}>{createdSample.patient?.name}</strong> • الصافي المطلوب: {createdSample.priceTotal} د.ع {createdSample.discount > 0 ? `(الخصم المطبّق: ${createdSample.discount} د.ع)` : ''}
+                المريض: <strong style={{ color: 'var(--text-main)' }}>{createdSample.patient?.name}</strong> • الصافي المطلوب: {createdSample.priceTotal} {currency} {createdSample.discount > 0 ? `(الخصم المطبّق: ${createdSample.discount} ${currency})` : ''}
               </p>
             </div>
 

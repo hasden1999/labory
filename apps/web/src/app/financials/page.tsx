@@ -26,9 +26,12 @@ import {
   Sparkles
 } from 'lucide-react';
 import { toEnglishDigits, formatEnglishDate, formatEnglishTime, formatEnglishDateTime } from '../../lib/formatters';
+import { useLab } from '../../components/LabContext';
 
 export default function FinancialsPage() {
   const toast = useToast();
+  const { labProfile } = useLab();
+  const currency = labProfile?.currency || 'د.ع';
   const [activeTab, setActiveTab] = useState<'summary' | 'shifts' | 'transactions' | 'debts' | 'expenses' | 'profitability'>('summary');
   const [financialData, setFinancialData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -288,9 +291,9 @@ export default function FinancialsPage() {
       if (disc === 0) {
         toast.success('تم إغلاق الوردية بنجاح! الصندوق مطابق 100%', 'تقفيل الصندوق');
       } else if (disc > 0) {
-        toast.warning(`تم إغلاق الوردية مع وجود زيادة في الصندوق قدرها ${disc.toLocaleString()} د.ع`, 'فائض نقد');
+        toast.warning(`تم إغلاق الوردية مع وجود زيادة في الصندوق قدرها ${disc.toLocaleString()} ${currency}`, 'فائض نقد');
       } else {
-        toast.error(`تم إغلاق الوردية مع وجود عجز في الصندوق قدره ${Math.abs(disc).toLocaleString()} د.ع`, 'عجز نقد');
+        toast.error(`تم إغلاق الوردية مع وجود عجز في الصندوق قدره ${Math.abs(disc).toLocaleString()} ${currency}`, 'عجز نقد');
       }
 
       loadCurrentShift();
@@ -511,7 +514,7 @@ export default function FinancialsPage() {
             <div className="stat-card" style={{ borderRight: '4px solid var(--accent-cyan)' }}>
               <span className="stat-title">إجمالي المبيعات (Gross Sales)</span>
               <span className="stat-value" style={{ color: 'var(--accent-cyan)' }}>
-                {(summary.pnl?.grossRevenue ?? summary.totalRevenue ?? 0).toLocaleString()} د.ع
+                {(summary.pnl?.grossRevenue ?? summary.totalRevenue ?? 0).toLocaleString()} {currency}
               </span>
               <span className="stat-desc">القيمة الإجمالية لكل الفحوصات المنفذة</span>
             </div>
@@ -519,7 +522,7 @@ export default function FinancialsPage() {
             <div className="stat-card" style={{ borderRight: '4px solid var(--accent-emerald)' }}>
               <span className="stat-title">النقد المستلم الفعلي (Cash In)</span>
               <span className="stat-value" style={{ color: 'var(--accent-emerald)' }}>
-                {(summary.totalPaid || 0).toLocaleString()} د.ع
+                {(summary.totalPaid || 0).toLocaleString()} {currency}
               </span>
               <span className="stat-desc">المبالغ المقبوضة فعلياً بالصندوق</span>
             </div>
@@ -527,7 +530,7 @@ export default function FinancialsPage() {
             <div className="stat-card" style={{ borderRight: '4px solid #14b8a6' }}>
               <span className="stat-title">مجمل الربح الطبي (GOP)</span>
               <span className="stat-value" style={{ color: '#14b8a6' }}>
-                {(summary.pnl?.grossOperatingProfit ?? 0).toLocaleString()} د.ع
+                {(summary.pnl?.grossOperatingProfit ?? 0).toLocaleString()} {currency}
               </span>
               <span className="stat-desc">الإيراد بعد خصم الكواشف والعمولات</span>
             </div>
@@ -535,7 +538,7 @@ export default function FinancialsPage() {
             <div className="stat-card" style={{ borderRight: '4px solid #38bdf8' }}>
               <span className="stat-title">صافي الربح التشغيلي (Net Profit)</span>
               <span className="stat-value" style={{ color: '#38bdf8' }}>
-                {(summary.pnl?.netProfit ?? summary.netProfit ?? 0).toLocaleString()} د.ع
+                {(summary.pnl?.netProfit ?? summary.netProfit ?? 0).toLocaleString()} {currency}
               </span>
               <span className="stat-desc">
                 هامش الربح التشغيلي: <strong>{summary.pnl?.operatingMarginPct ?? 0}%</strong>
@@ -567,7 +570,7 @@ export default function FinancialsPage() {
                     <th style={{ width: '45px', textAlign: 'center' }}>#</th>
                     <th>بند القائمة المالية</th>
                     <th>التصنيف المحاسبي</th>
-                    <th style={{ textAlign: 'left' }}>القيمة (دينار عراقي)</th>
+                    <th style={{ textAlign: 'left' }}>القيمة ({currency})</th>
                     <th style={{ textAlign: 'center' }}>التأثير</th>
                   </tr>
                 </thead>
@@ -577,7 +580,7 @@ export default function FinancialsPage() {
                     <td><strong>إجمالي مبيعات الفحوصات (Gross Test Revenue)</strong></td>
                     <td style={{ color: 'var(--text-muted)' }}>إيرادات مخبرية إجمالية</td>
                     <td style={{ textAlign: 'left', fontWeight: 800, color: 'var(--accent-cyan)' }}>
-                      {(summary.pnl?.grossRevenue ?? summary.totalRevenue ?? 0).toLocaleString()} د.ع
+                      {(summary.pnl?.grossRevenue ?? summary.totalRevenue ?? 0).toLocaleString()} {currency}
                     </td>
                     <td style={{ textAlign: 'center' }}><span className="badge badge-ready">+ إيراد</span></td>
                   </tr>
@@ -587,7 +590,7 @@ export default function FinancialsPage() {
                     <td>خصومات وتخفيضات المرضى (Discounts Given)</td>
                     <td style={{ color: 'var(--text-muted)' }}>تخفيضات مبيعات</td>
                     <td style={{ textAlign: 'left', fontWeight: 700, color: 'var(--accent-rose)' }}>
-                      -{(summary.pnl?.discounts ?? summary.totalDiscounts ?? 0).toLocaleString()} د.ع
+                      -{(summary.pnl?.discounts ?? summary.totalDiscounts ?? 0).toLocaleString()} {currency}
                     </td>
                     <td style={{ textAlign: 'center' }}><span className="badge badge-urgent">- خصم</span></td>
                   </tr>
@@ -597,7 +600,7 @@ export default function FinancialsPage() {
                     <td><strong>صافي إيرادات الفحوصات المنفذة (Net Sales Revenue)</strong></td>
                     <td style={{ color: 'var(--text-muted)' }}>صافي المبيعات المحققة</td>
                     <td style={{ textAlign: 'left', fontWeight: 800, color: 'var(--accent-cyan)', fontSize: '13px' }}>
-                      {(summary.pnl?.netSalesRevenue ?? ((summary.pnl?.grossRevenue ?? summary.totalRevenue ?? 0) - (summary.pnl?.discounts ?? summary.totalDiscounts ?? 0))).toLocaleString()} د.ع
+                      {(summary.pnl?.netSalesRevenue ?? ((summary.pnl?.grossRevenue ?? summary.totalRevenue ?? 0) - (summary.pnl?.discounts ?? summary.totalDiscounts ?? 0))).toLocaleString()} {currency}
                     </td>
                     <td style={{ textAlign: 'center' }}><span className="badge badge-progress">= صافي مبيعات</span></td>
                   </tr>
@@ -607,7 +610,7 @@ export default function FinancialsPage() {
                     <td>تكلفة الكواشف والمحاليل المستهلكة (Direct Reagent Cost / COGS)</td>
                     <td style={{ color: 'var(--text-muted)' }}>تكلفة بضاعة مباعة مباشرة</td>
                     <td style={{ textAlign: 'left', fontWeight: 700, color: '#f59e0b' }}>
-                      -{(summary.pnl?.directReagentCost ?? summary.outgoings?.totalTestCosts ?? 0).toLocaleString()} د.ع
+                      -{(summary.pnl?.directReagentCost ?? summary.outgoings?.totalTestCosts ?? 0).toLocaleString()} {currency}
                     </td>
                     <td style={{ textAlign: 'center' }}><span className="badge badge-urgent">- كلفة مباشرة</span></td>
                   </tr>
@@ -617,7 +620,7 @@ export default function FinancialsPage() {
                     <td>عمولات وحوافز الأطباء المحيلين (Referring Doctor Commissions)</td>
                     <td style={{ color: 'var(--text-muted)' }}>أتعاب إحالة طبية</td>
                     <td style={{ textAlign: 'left', fontWeight: 700, color: '#8b5cf6' }}>
-                      -{(summary.pnl?.doctorCommissions ?? summary.totalDoctorCommissions ?? 0).toLocaleString()} د.ع
+                      -{(summary.pnl?.doctorCommissions ?? summary.totalDoctorCommissions ?? 0).toLocaleString()} {currency}
                     </td>
                     <td style={{ textAlign: 'center' }}><span className="badge badge-urgent">- عمولة</span></td>
                   </tr>
@@ -627,7 +630,7 @@ export default function FinancialsPage() {
                     <td><strong>مجمل الربح التشغيلي الطبي (Gross Operating Profit - GOP)</strong></td>
                     <td style={{ color: 'var(--text-muted)' }}>الربح الطبي المباشر</td>
                     <td style={{ textAlign: 'left', fontWeight: 800, color: '#14b8a6', fontSize: '13px' }}>
-                      {(summary.pnl?.grossOperatingProfit ?? 0).toLocaleString()} د.ع
+                      {(summary.pnl?.grossOperatingProfit ?? 0).toLocaleString()} {currency}
                     </td>
                     <td style={{ textAlign: 'center' }}><span className="badge badge-ready">= مجمل ربح</span></td>
                   </tr>
@@ -637,7 +640,7 @@ export default function FinancialsPage() {
                     <td>المصاريف التشغيلية والإدارية العامة (OPEX)</td>
                     <td style={{ color: 'var(--text-muted)' }}>إيجارات، رواتب، كهرباء ونثريات</td>
                     <td style={{ textAlign: 'left', fontWeight: 700, color: 'var(--accent-rose)' }}>
-                      -{(summary.pnl?.operatingExpenses ?? summary.totalExpenses ?? 0).toLocaleString()} د.ع
+                      -{(summary.pnl?.operatingExpenses ?? summary.totalExpenses ?? 0).toLocaleString()} {currency}
                     </td>
                     <td style={{ textAlign: 'center' }}><span className="badge badge-urgent">- مصاريف تشغيل</span></td>
                   </tr>
@@ -647,7 +650,7 @@ export default function FinancialsPage() {
                     <td><strong>صافي الربح التشغيلي النهائي (Net Operating Profit)</strong></td>
                     <td style={{ color: 'var(--text-muted)' }}>صافي عائد المختبر للفترة</td>
                     <td style={{ textAlign: 'left', fontWeight: 900, color: '#38bdf8', fontSize: '15px' }}>
-                      {(summary.pnl?.netProfit ?? summary.netProfit ?? 0).toLocaleString()} د.ع
+                      {(summary.pnl?.netProfit ?? summary.netProfit ?? 0).toLocaleString()} {currency}
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <span className="badge badge-ready" style={{ fontWeight: 800 }}>
@@ -688,7 +691,7 @@ export default function FinancialsPage() {
                   <span className="badge badge-ready" style={{ fontSize: '10px' }}>اعتيادي</span>
                 </div>
                 <strong style={{ fontSize: '17px', color: 'var(--accent-emerald)', display: 'block', marginBottom: '4px' }}>
-                  {(summary.debtAging?.current ?? 0).toLocaleString()} د.ع
+                  {(summary.debtAging?.current ?? 0).toLocaleString()} {currency}
                 </strong>
                 <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>ضمن الدورة الائتمانية المقبولة</span>
               </div>
@@ -699,7 +702,7 @@ export default function FinancialsPage() {
                   <span className="badge badge-urgent" style={{ fontSize: '10px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', borderColor: '#f59e0b' }}>متابعة</span>
                 </div>
                 <strong style={{ fontSize: '17px', color: '#f59e0b', display: 'block', marginBottom: '4px' }}>
-                  {(summary.debtAging?.medium ?? 0).toLocaleString()} د.ع
+                  {(summary.debtAging?.medium ?? 0).toLocaleString()} {currency}
                 </strong>
                 <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>تتطلب إشعار تذكير ومتابعة ودية</span>
               </div>
@@ -710,7 +713,7 @@ export default function FinancialsPage() {
                   <span className="badge badge-urgent" style={{ fontSize: '10px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', borderColor: '#ef4444' }}>حرجة</span>
                 </div>
                 <strong style={{ fontSize: '17px', color: '#ef4444', display: 'block', marginBottom: '4px' }}>
-                  {(summary.debtAging?.critical ?? 0).toLocaleString()} د.ع
+                  {(summary.debtAging?.critical ?? 0).toLocaleString()} {currency}
                 </strong>
                 <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>متأخرة وتتطلب اتخاذ إجراء فوري</span>
               </div>
@@ -729,28 +732,28 @@ export default function FinancialsPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg-card-subtle)', borderRadius: '8px' }}>
                   <span style={{ color: 'var(--text-muted)' }}>نقد ورقي (كاش الصندوق):</span>
                   <strong style={{ color: 'var(--accent-emerald)', fontSize: '14px' }}>
-                    {(summary.paymentMethodBreakdown?.cash || 0).toLocaleString()} د.ع
+                    {(summary.paymentMethodBreakdown?.cash || 0).toLocaleString()} {currency}
                   </strong>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg-card-subtle)', borderRadius: '8px' }}>
                   <span style={{ color: 'var(--text-muted)' }}>محافظ إلكترونية (زين كاش):</span>
                   <strong style={{ color: 'var(--accent-cyan)', fontSize: '14px' }}>
-                    {(summary.paymentMethodBreakdown?.zainCash || 0).toLocaleString()} د.ع
+                    {(summary.paymentMethodBreakdown?.zainCash || 0).toLocaleString()} {currency}
                   </strong>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg-card-subtle)', borderRadius: '8px' }}>
                   <span style={{ color: 'var(--text-muted)' }}>بطاقات مصرفية / POS:</span>
                   <strong style={{ color: '#a855f7', fontSize: '14px' }}>
-                    {(summary.paymentMethodBreakdown?.card || 0).toLocaleString()} د.ع
+                    {(summary.paymentMethodBreakdown?.card || 0).toLocaleString()} {currency}
                   </strong>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', background: 'rgba(244, 63, 94, 0.08)', borderRadius: '8px', border: '1px solid rgba(244, 63, 94, 0.2)' }}>
                   <span style={{ color: 'var(--accent-rose)' }}>إجمالي الذمم غير المحصلة (أرصدة المدينين):</span>
                   <strong style={{ color: 'var(--accent-rose)', fontSize: '14px' }}>
-                    {(summary.debtAging?.total ?? summary.totalRemainingDebts ?? 0).toLocaleString()} د.ع
+                    {(summary.debtAging?.total ?? summary.totalRemainingDebts ?? 0).toLocaleString()} {currency}
                   </strong>
                 </div>
               </div>
@@ -772,7 +775,7 @@ export default function FinancialsPage() {
                   summary.expenseCategories.map((ec: any) => (
                     <div key={ec.category} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 10px', background: 'var(--bg-card-subtle)', borderRadius: '6px', fontSize: '12px' }}>
                       <span>{ec.category}</span>
-                      <strong style={{ color: 'var(--accent-rose)' }}>{ec.amount?.toLocaleString()} د.ع</strong>
+                      <strong style={{ color: 'var(--accent-rose)' }}>{ec.amount?.toLocaleString()} {currency}</strong>
                     </div>
                   ))
                 )}
@@ -822,14 +825,14 @@ export default function FinancialsPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginTop: '14px' }}>
                 <div className="stat-card" style={{ padding: '12px' }}>
                   <span className="stat-title">العهدة الافتتاحية (Float)</span>
-                  <span className="stat-value" style={{ fontSize: '16px' }}>{(currentShiftData.startingCash || 0).toLocaleString()} د.ع</span>
+                  <span className="stat-value" style={{ fontSize: '16px' }}>{(currentShiftData.startingCash || 0).toLocaleString()} {currency}</span>
                   <span className="stat-desc">رصيد القاصة عند البدء</span>
                 </div>
 
                 <div className="stat-card" style={{ padding: '12px', borderRight: '3px solid var(--accent-emerald)' }}>
                   <span className="stat-title">المقبوض كاش بالوردية</span>
                   <span className="stat-value" style={{ fontSize: '16px', color: 'var(--accent-emerald)' }}>
-                    {(currentShiftData.cashIn ?? currentShiftData.cashCollected ?? 0).toLocaleString()} د.ع
+                    {(currentShiftData.cashIn ?? currentShiftData.cashCollected ?? 0).toLocaleString()} {currency}
                   </span>
                   <span className="stat-desc">وارد نقدي ورقي</span>
                 </div>
@@ -837,7 +840,7 @@ export default function FinancialsPage() {
                 <div className="stat-card" style={{ padding: '12px', borderRight: '3px solid var(--accent-cyan)' }}>
                   <span className="stat-title">مقبوض إلكتروني</span>
                   <span className="stat-value" style={{ fontSize: '16px', color: 'var(--accent-cyan)' }}>
-                    {((currentShiftData.cardIn || 0) + (currentShiftData.zainCashIn || 0)).toLocaleString()} د.ع
+                    {((currentShiftData.cardIn || 0) + (currentShiftData.zainCashIn || 0)).toLocaleString()} {currency}
                   </span>
                   <span className="stat-desc">زين كاش وبطاقات POS</span>
                 </div>
@@ -845,7 +848,7 @@ export default function FinancialsPage() {
                 <div className="stat-card" style={{ padding: '12px', borderRight: '3px solid var(--accent-rose)' }}>
                   <span className="stat-title">المصروف نقداً بالوردية</span>
                   <span className="stat-value" style={{ fontSize: '16px', color: 'var(--accent-rose)' }}>
-                    {(currentShiftData.cashOut ?? currentShiftData.cashExpenses ?? 0).toLocaleString()} د.ع
+                    {(currentShiftData.cashOut ?? currentShiftData.cashExpenses ?? 0).toLocaleString()} {currency}
                   </span>
                   <span className="stat-desc">سندات صرف نقدي</span>
                 </div>
@@ -853,7 +856,7 @@ export default function FinancialsPage() {
                 <div className="stat-card" style={{ padding: '12px', borderRight: '3px solid #38bdf8', background: 'rgba(56, 189, 248, 0.06)' }}>
                   <span className="stat-title">النقد المتوقع بالقاصة</span>
                   <span className="stat-value" style={{ fontSize: '17px', color: '#38bdf8' }}>
-                    {(currentShiftData.expectedCash ?? currentShiftData.expectedCashInDrawer ?? 0).toLocaleString()} د.ع
+                    {(currentShiftData.expectedCash ?? currentShiftData.expectedCashInDrawer ?? 0).toLocaleString()} {currency}
                   </span>
                   <span className="stat-desc">المبلغ المطلوب حسابه الآن</span>
                 </div>
@@ -899,9 +902,9 @@ export default function FinancialsPage() {
                           <td>{formatEnglishDate(sh.openedAt)} {formatEnglishTime(sh.openedAt)}</td>
                           <td>{sh.closedAt ? `${formatEnglishDate(sh.closedAt)} ${formatEnglishTime(sh.closedAt)}` : '-'}</td>
                           <td>{sh.closedById || sh.openedById}</td>
-                          <td>{(sh.startingCash || 0).toLocaleString()} د.ع</td>
-                          <td>{(sh.expectedCash || 0).toLocaleString()} د.ع</td>
-                          <td><strong>{(sh.actualCash || 0).toLocaleString()} د.ع</strong></td>
+                          <td>{(sh.startingCash || 0).toLocaleString()} {currency}</td>
+                          <td>{(sh.expectedCash || 0).toLocaleString()} {currency}</td>
+                          <td><strong>{(sh.actualCash || 0).toLocaleString()} {currency}</strong></td>
                           <td>
                             {sh.status === 'OPEN' ? (
                               <span style={{ color: 'var(--text-dim)' }}>قيد التشغيل</span>
@@ -1032,7 +1035,7 @@ export default function FinancialsPage() {
                           </td>
                           <td>
                             <strong style={{ color: isIncome ? 'var(--accent-emerald)' : 'var(--accent-rose)', fontSize: '13px' }}>
-                              {isIncome ? '+' : '-'}{tx.amount?.toLocaleString()} د.ع
+                              {isIncome ? '+' : '-'}{tx.amount?.toLocaleString()} {currency}
                             </strong>
                           </td>
                           <td>{tx.paymentMethod || 'نقداً'}</td>
@@ -1080,7 +1083,7 @@ export default function FinancialsPage() {
             <div className="stat-card" style={{ borderRight: '4px solid #ef4444' }}>
               <span className="stat-title">إجمالي الذمم المطلوبة (Total Debts)</span>
               <span className="stat-value" style={{ color: '#ef4444' }}>
-                {debtorsList.reduce((acc, d) => acc + (d.totalDebt || 0), 0).toLocaleString()} د.ع
+                {debtorsList.reduce((acc, d) => acc + (d.totalDebt || 0), 0).toLocaleString()} {currency}
               </span>
               <span className="stat-desc">إجمالي مبالغ الذمم والديون المسجلة على الزبائن والجهات</span>
             </div>
@@ -1088,7 +1091,7 @@ export default function FinancialsPage() {
             <div className="stat-card" style={{ borderRight: '4px solid var(--accent-emerald)' }}>
               <span className="stat-title">المبالغ المسددة (Total Paid)</span>
               <span className="stat-value" style={{ color: 'var(--accent-emerald)' }}>
-                {debtorsList.reduce((acc, d) => acc + (d.totalPaid || 0), 0).toLocaleString()} د.ع
+                {debtorsList.reduce((acc, d) => acc + (d.totalPaid || 0), 0).toLocaleString()} {currency}
               </span>
               <span className="stat-desc">إجمالي دفعات السداد المقبوضة فعلياً</span>
             </div>
@@ -1096,7 +1099,7 @@ export default function FinancialsPage() {
             <div className="stat-card" style={{ borderRight: '4px solid #f59e0b' }}>
               <span className="stat-title">الرصيد المتبقي بذمة المدينين (Outstanding Balance)</span>
               <span className="stat-value" style={{ color: '#f59e0b' }}>
-                {debtorsList.reduce((acc, d) => acc + (d.balance || 0), 0).toLocaleString()} د.ع
+                {debtorsList.reduce((acc, d) => acc + (d.balance || 0), 0).toLocaleString()} {currency}
               </span>
               <span className="stat-desc">صافي الديون المستحقة واجبة التحصيل</span>
             </div>
@@ -1211,11 +1214,11 @@ export default function FinancialsPage() {
                             )}
                           </td>
                           <td>{d.phone ? toEnglishDigits(d.phone) : '-'}</td>
-                          <td><strong>{(d.totalDebt || 0).toLocaleString()} د.ع</strong></td>
-                          <td style={{ color: 'var(--accent-emerald)' }}>{(d.totalPaid || 0).toLocaleString()} د.ع</td>
+                          <td><strong>{(d.totalDebt || 0).toLocaleString()} {currency}</strong></td>
+                          <td style={{ color: 'var(--accent-emerald)' }}>{(d.totalPaid || 0).toLocaleString()} {currency}</td>
                           <td>
                             <strong style={{ color: (d.balance || 0) > 0 ? '#ef4444' : 'var(--text-dim)', fontSize: '13px' }}>
-                              {(d.balance || 0).toLocaleString()} د.ع
+                              {(d.balance || 0).toLocaleString()} {currency}
                             </strong>
                           </td>
                           <td>
@@ -1290,7 +1293,7 @@ export default function FinancialsPage() {
                         <td><strong>{ex.description}</strong></td>
                         <td><span className="badge badge-progress">{ex.category}</span></td>
                         <td>{ex.paymentMethod || 'نقداً'}</td>
-                        <td><strong style={{ color: 'var(--accent-rose)' }}>{ex.amount?.toLocaleString()} د.ع</strong></td>
+                        <td><strong style={{ color: 'var(--accent-rose)' }}>{ex.amount?.toLocaleString()} {currency}</strong></td>
                       </tr>
                     ))
                   )}
@@ -1334,19 +1337,19 @@ export default function FinancialsPage() {
 
                   <div className="stat-card" style={{ borderRight: '4px solid var(--accent-emerald)' }}>
                     <span className="stat-title">إجمالي عوائد الفحوصات</span>
-                    <span className="stat-value" style={{ color: 'var(--accent-emerald)' }}>{totalRevenueSum.toLocaleString()} د.ع</span>
+                    <span className="stat-value" style={{ color: 'var(--accent-emerald)' }}>{totalRevenueSum.toLocaleString()} {currency}</span>
                     <span className="stat-desc">القيمة البيعية الإجمالية</span>
                   </div>
 
                   <div className="stat-card" style={{ borderRight: '4px solid #f59e0b' }}>
                     <span className="stat-title">تكلفة الكواشف المباشرة</span>
-                    <span className="stat-value" style={{ color: '#f59e0b' }}>{totalCostSum.toLocaleString()} د.ع</span>
+                    <span className="stat-value" style={{ color: '#f59e0b' }}>{totalCostSum.toLocaleString()} {currency}</span>
                     <span className="stat-desc">كلفة المستهلكات والمحاليل الفعلية</span>
                   </div>
 
                   <div className="stat-card" style={{ borderRight: '4px solid #38bdf8' }}>
                     <span className="stat-title">صافي المساهمة الربحية</span>
-                    <span className="stat-value" style={{ color: '#38bdf8' }}>{totalProfitSum.toLocaleString()} د.ع</span>
+                    <span className="stat-value" style={{ color: '#38bdf8' }}>{totalProfitSum.toLocaleString()} {currency}</span>
                     <span className="stat-desc">متوسط هامش الربح الإجمالي: <strong>{avgMargin}%</strong></span>
                   </div>
                 </div>
@@ -1410,8 +1413,8 @@ export default function FinancialsPage() {
                                   )}
                                 </td>
                                 <td><span className="badge badge-progress">{t.category || 'عام'}</span></td>
-                                <td>{(t.price ?? t.unitPrice ?? 0).toLocaleString()} د.ع</td>
-                                <td style={{ color: 'var(--text-muted)' }}>{(t.costEstimate ?? t.unitCost ?? 0).toLocaleString()} د.ع</td>
+                                <td>{(t.price ?? t.unitPrice ?? 0).toLocaleString()} {currency}</td>
+                                <td style={{ color: 'var(--text-muted)' }}>{(t.costEstimate ?? t.unitCost ?? 0).toLocaleString()} {currency}</td>
                                 <td>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     <span style={{ color: margin >= 60 ? 'var(--accent-emerald)' : margin >= 40 ? '#f59e0b' : 'var(--accent-rose)', fontWeight: 800 }}>
@@ -1429,10 +1432,10 @@ export default function FinancialsPage() {
                                   </div>
                                 </td>
                                 <td><strong>{t.count || 0}</strong></td>
-                                <td>{(t.totalRevenue || 0).toLocaleString()} د.ع</td>
+                                <td>{(t.totalRevenue || 0).toLocaleString()} {currency}</td>
                                 <td>
                                   <strong style={{ color: (t.totalProfit ?? t.netProfit ?? 0) >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
-                                    {(t.totalProfit ?? t.netProfit ?? 0).toLocaleString()} د.ع
+                                    {(t.totalProfit ?? t.netProfit ?? 0).toLocaleString()} {currency}
                                   </strong>
                                 </td>
                               </tr>
@@ -1478,7 +1481,7 @@ export default function FinancialsPage() {
               </div>
 
               <div>
-                <label className="input-label">المبلغ المطلوب صرفه (د.ع) *</label>
+                <label className="input-label">المبلغ المطلوب صرفه ({currency}) *</label>
                 <input
                   type="number"
                   placeholder="مثال: 35000"
@@ -1574,7 +1577,7 @@ export default function FinancialsPage() {
               </div>
 
               <div>
-                <label className="input-label">المبلغ المقبوض (د.ع) *</label>
+                <label className="input-label">المبلغ المقبوض ({currency}) *</label>
                 <input
                   type="number"
                   placeholder="مثال: 50000"
@@ -1603,7 +1606,7 @@ export default function FinancialsPage() {
                   <option value="">-- بدون ربط بحساب مدين (مقبوضات عامة) --</option>
                   {debtorsList.map((d: any) => (
                     <option key={d.id} value={d.id}>
-                      {d.name} ({d.type === 'COMPANY' ? 'شركة' : d.type === 'CLINIC' ? 'عيادة' : 'فرد'}) - الرصيد المتبقي: {(d.balance || 0).toLocaleString()} د.ع
+                      {d.name} ({d.type === 'COMPANY' ? 'شركة' : d.type === 'CLINIC' ? 'عيادة' : 'فرد'}) - الرصيد المتبقي: {(d.balance || 0).toLocaleString()} {currency}
                     </option>
                   ))}
                 </select>
@@ -1674,7 +1677,7 @@ export default function FinancialsPage() {
 
             <form onSubmit={handleOpenShift} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label className="input-label">العهدة النقدية الافتتاحية في القاصة (د.ع)</label>
+                <label className="input-label">العهدة النقدية الافتتاحية في القاصة ({currency})</label>
                 <input
                   type="number"
                   placeholder="مثال: 50000"
@@ -1737,7 +1740,7 @@ export default function FinancialsPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '12px' }}>
                       <span>النقد المتوقع حسابه بالقاصة:</span>
                       <strong style={{ fontSize: '14px', color: 'var(--accent-cyan)' }}>
-                        {expectedVal.toLocaleString()} د.ع
+                        {expectedVal.toLocaleString()} {currency}
                       </strong>
                     </div>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -1747,7 +1750,7 @@ export default function FinancialsPage() {
 
                   <form onSubmit={handleCloseShift} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div>
-                      <label className="input-label">المبلغ النقدي الفعلي المعدود في القاصة (د.ع) *</label>
+                      <label className="input-label">المبلغ النقدي الفعلي المعدود في القاصة ({currency}) *</label>
                       <input
                         type="number"
                         placeholder="أدخل المبلغ بعد العد الفعلي..."
@@ -1766,11 +1769,11 @@ export default function FinancialsPage() {
                           <span style={{ color: 'var(--accent-emerald)', fontWeight: 800 }}>✓ المبلغ مطابق تماماً للمتوقع (لا يوجد عجز أو زيادة)</span>
                         ) : diffVal > 0 ? (
                           <span style={{ color: 'var(--accent-emerald)', fontWeight: 800 }}>
-                            + زيادة في الصندوق: {diffVal.toLocaleString()} د.ع
+                            + زيادة في الصندوق: {diffVal.toLocaleString()} {currency}
                           </span>
                         ) : (
                           <span style={{ color: 'var(--accent-rose)', fontWeight: 800 }}>
-                            - عجز في الصندوق: {Math.abs(diffVal).toLocaleString()} د.ع
+                            - عجز في الصندوق: {Math.abs(diffVal).toLocaleString()} {currency}
                           </span>
                         )}
                       </div>

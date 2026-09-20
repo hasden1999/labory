@@ -2459,9 +2459,11 @@
     "watermarkAngle": -30,
     "watermarkSize": 46,
     "watermarkColor": "#0f172a",
-    "detectedLanIp": "10.188.54.24",
+    "detectedLanIp": "192.168.0.116",
     "detectedPort": 8080,
-    "detectedLanUrl": "http://10.188.54.24:8080"
+    "detectedLanUrl": "http://192.168.0.116:8080",
+    "fontFamily": "Tajawal",
+    "fontSize": "MEDIUM"
   },
   "expenses": [],
   "devices": [

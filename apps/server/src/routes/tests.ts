@@ -173,4 +173,46 @@ export async function testCatalogRoutes(fastify: FastifyInstance) {
 
   fastify.delete('/panels/:id', handleDeletePanel);
   fastify.delete('/tests/panels/:id', handleDeletePanel);
+
+  // Batch convert test catalog prices according to currency
+  fastify.post('/tests/convert-currency', async (request, reply) => {
+    const { targetCurrency, rate } = request.body as any;
+    const multiplier = Number(rate) || 1;
+
+    if (multiplier > 0) {
+      const tests = await prisma.testCatalog.findMany();
+      for (const t of tests) {
+        const newPrice = Math.round(t.price * multiplier);
+        const newCost = t.costEstimate ? Math.round(t.costEstimate * multiplier) : t.costEstimate;
+        await prisma.testCatalog.update({
+          where: { id: t.id },
+          data: { price: newPrice, costEstimate: newCost },
+        });
+      }
+
+      const panels = await prisma.testPanel.findMany();
+      for (const p of panels) {
+        const newPrice = Math.round(p.price * multiplier);
+        await prisma.testPanel.update({
+          where: { id: p.id },
+          data: { price: newPrice },
+        });
+      }
+
+      if (targetCurrency) {
+        await prisma.settings.upsert({
+          where: { id: 'singleton' },
+          update: { currency: targetCurrency },
+          create: { id: 'singleton', currency: targetCurrency },
+        });
+      }
+    }
+
+    const updatedTests = await prisma.testCatalog.findMany({
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
+    });
+    const updatedPanels = await prisma.testPanel.findMany();
+
+    return reply.send({ success: true, tests: updatedTests, panels: updatedPanels });
+  });
 }

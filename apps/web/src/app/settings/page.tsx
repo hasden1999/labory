@@ -7,7 +7,15 @@ import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useLab } from '../../components/LabContext';
-import { Settings as SettingsIcon, Save, Sparkles, Printer, CheckCircle2, Award, Phone, DollarSign, Building2, Layout, FileText, Maximize2, QrCode, Sliders, Palette, Eye, ShieldCheck, Check, TestTube, Zap, Database, Download, Upload, RefreshCw, HardDrive, AlertCircle, History, Share2, ExternalLink, Plus, Type, Droplet, AlignRight, AlignCenter, AlignLeft, Square, Layers, Trash2, EyeOff, CheckSquare, Sparkle } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Sparkles, Printer, CheckCircle2, Award, Phone, DollarSign, Building2, Layout, FileText, Maximize2, QrCode, Sliders, Palette, Eye, ShieldCheck, Check, TestTube, Zap, Database, Download, Upload, RefreshCw, HardDrive, AlertCircle, History, Share2, ExternalLink, Plus, Type, Droplet, AlignRight, AlignCenter, AlignLeft, Square, Layers, Trash2, EyeOff, CheckSquare, Sparkle, RotateCcw } from 'lucide-react';
+import { 
+  SUPPORTED_CURRENCIES, 
+  findCurrency, 
+  calculateConversionMultiplier, 
+  roundPriceForCurrency, 
+  getSamplePriceConversions 
+} from '../../lib/currencies';
+import { catalogCache } from '../../lib/catalogCache';
 import { toEnglishDigits, formatEnglishDate, formatEnglishDateTime } from '../../lib/formatters';
 
 export default function SettingsPage() {
@@ -26,6 +34,16 @@ export default function SettingsPage() {
   const [phone, setPhone] = useState(labProfile.phone);
   const [reportHeader, setReportHeader] = useState(labProfile.reportHeader);
   const [reportFooter, setReportFooter] = useState(labProfile.reportFooter);
+  const [selectedCurrencyCode, setSelectedCurrencyCode] = useState<string>(() => {
+    const found = findCurrency(labProfile.currency || 'د.ع');
+    return found ? found.code : 'IQD';
+  });
+  const [isCustomCurrency, setIsCustomCurrency] = useState<boolean>(false);
+  const [customMultiplier, setCustomMultiplier] = useState<string>('');
+  const [convertingPrices, setConvertingPrices] = useState<boolean>(false);
+  const [resettingPrices, setResettingPrices] = useState<boolean>(false);
+  const [conversionSuccessMsg, setConversionSuccessMsg] = useState<string | null>(null);
+  const [showPreviewSamples, setShowPreviewSamples] = useState<boolean>(false);
 
   // Milestone M4: Universal Visual Form Designer Settings
   const [headerMode, setHeaderMode] = useState<'DIGITAL' | 'PREPRINTED'>(
@@ -225,6 +243,90 @@ export default function SettingsPage() {
   };
 
   // Backup & Restore Handlers
+  const handleSelectCurrency = (code: string) => {
+    setSelectedCurrencyCode(code);
+    setConversionSuccessMsg(null);
+    if (code === 'CUSTOM') {
+      setIsCustomCurrency(true);
+    } else {
+      setIsCustomCurrency(false);
+      const currDef = SUPPORTED_CURRENCIES.find((c) => c.code === code);
+      if (currDef) {
+        setCurrency(currDef.symbol);
+        const fromCurr = labProfile.currency || 'د.ع';
+        const mult = calculateConversionMultiplier(fromCurr, currDef.code);
+        setCustomMultiplier(String(mult < 0.001 ? mult.toFixed(7) : mult < 0.01 ? mult.toFixed(5) : mult < 1 ? mult.toFixed(4) : mult.toFixed(2)));
+      }
+    }
+  };
+
+  const handleConvertPrices = async () => {
+    if (!currency.trim()) {
+      toast.warning('يرجى تحديد رمز العملة أولاً', 'تنبيه');
+      return;
+    }
+    setConvertingPrices(true);
+    try {
+      const multVal = customMultiplier ? Number(customMultiplier) : undefined;
+      const res = await apiRequest('/tests/convert-currency', 'POST', {
+        targetCurrency: currency.trim(),
+        rate: multVal && multVal > 0 ? multVal : undefined,
+      });
+
+      if (res && res.success) {
+        toast.success(
+          `تم بنجاح تحويل وتعديل أسعار ${res.updatedTestsCount} فحصاً و ${res.updatedPanelsCount} باقة بالعملة الجديدة (${res.toCurrency})!`,
+          'اكتمل التحويل'
+        );
+        setConversionSuccessMsg(
+          `تم تحويل وتحديث أسعار كافة الفحوصات بالكتالوج بنجاح لتناسب ${res.toCurrency}`
+        );
+        if (res.tests && res.panels) {
+          catalogCache.update(res.tests, res.panels);
+        }
+        if (updateLabProfile) {
+          await updateLabProfile({ currency: res.toCurrency } as any);
+        }
+      } else {
+        throw new Error(res?.message || 'فشل التحويل');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'فشل تحويل أسعار الفحوصات', 'خطأ التحويل');
+    } finally {
+      setConvertingPrices(false);
+    }
+  };
+
+  const handleResetPricesToDefault = async () => {
+    setResettingPrices(true);
+    try {
+      const res = await apiRequest('/tests/reset-prices', 'POST');
+      if (res && res.success) {
+        setCurrency('د.ع');
+        setSelectedCurrencyCode('IQD');
+        setIsCustomCurrency(false);
+        setCustomMultiplier('1');
+        if (res.tests && res.panels) {
+          catalogCache.update(res.tests, res.panels);
+        }
+        if (updateLabProfile) {
+          await updateLabProfile({ currency: 'د.ع' } as any);
+        }
+        toast.success(
+          `تمت استعادة كافة أسعار الفحوصات (${res.testsCount} فحصاً) والتكاليف بالدينار العراقي (د.ع) بنجاح!`,
+          'تمت استعادة التسعير العراقي'
+        );
+        setConversionSuccessMsg('تمت استعادة الكتالوج بالكامل إلى التسعير العراقي الأصلي المعتمد (د.ع)');
+      } else {
+        throw new Error(res?.message || 'فشل استعادة الأسعار');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'فشل استعادة الأسعار الأصلية', 'خطأ');
+    } finally {
+      setResettingPrices(false);
+    }
+  };
+
   const loadBackups = async () => {
     setLoadingBackups(true);
     try {
@@ -1070,15 +1172,274 @@ export default function SettingsPage() {
                       />
                     </div>
 
-                    <div>
-                      <label className="input-label">رمز العملة الافتراضية</label>
-                      <input
-                        type="text"
-                        className="input-control"
-                        value={currency}
-                        onChange={(e) => setCurrency(e.target.value)}
-                        placeholder="د.ع"
-                      />
+                    <div style={{ gridColumn: '1 / -1', background: 'rgba(2, 132, 199, 0.05)', border: '1px solid rgba(2, 132, 199, 0.25)', borderRadius: '12px', padding: '16px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <DollarSign size={18} color="var(--accent-cyan)" />
+                          <strong style={{ fontSize: '14px', color: 'var(--text-main)' }}>
+                            التحكم بالعملة والتسعير المخبري (Currency & Pricing)
+                          </strong>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>العملة المعتمدة حالياً:</span>
+                          <span style={{ fontSize: '13px', fontWeight: 900, color: '#10b981', background: 'rgba(16, 185, 129, 0.15)', padding: '2px 10px', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                            {currency || 'د.ع'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* شبكة اختيار العملات العربية والعالمية */}
+                      <label className="input-label" style={{ marginBottom: '8px', display: 'block' }}>
+                        اختر عملة الفحوصات (الافتراضية: الدينار العراقي):
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '6px', marginBottom: '14px' }}>
+                        {SUPPORTED_CURRENCIES.map((curr) => {
+                          const isSelected = selectedCurrencyCode === curr.code;
+                          return (
+                            <button
+                              key={curr.code}
+                              type="button"
+                              onClick={() => handleSelectCurrency(curr.code)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '6px 10px',
+                                borderRadius: '8px',
+                                border: `1.5px solid ${isSelected ? 'var(--accent-cyan)' : 'var(--border-color)'}`,
+                                background: isSelected ? 'rgba(2, 132, 199, 0.18)' : 'var(--bg-main)',
+                                color: isSelected ? 'var(--accent-cyan)' : 'var(--text-main)',
+                                cursor: 'pointer',
+                                fontSize: '11.5px',
+                                fontWeight: isSelected ? 800 : 500,
+                                transition: 'all 0.15s ease',
+                                textAlign: 'right'
+                              }}
+                            >
+                              <span style={{ fontSize: '16px' }}>{curr.flag}</span>
+                              <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                                <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{curr.nameAr}</span>
+                                <span style={{ fontSize: '9.5px', color: isSelected ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>
+                                  ({curr.symbol})
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+
+                        <button
+                          type="button"
+                          onClick={() => handleSelectCurrency('CUSTOM')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '6px 10px',
+                            borderRadius: '8px',
+                            border: `1.5px solid ${selectedCurrencyCode === 'CUSTOM' ? 'var(--accent-cyan)' : 'var(--border-color)'}`,
+                            background: selectedCurrencyCode === 'CUSTOM' ? 'rgba(2, 132, 199, 0.18)' : 'var(--bg-main)',
+                            color: selectedCurrencyCode === 'CUSTOM' ? 'var(--accent-cyan)' : 'var(--text-muted)',
+                            cursor: 'pointer',
+                            fontSize: '11.5px',
+                            fontWeight: selectedCurrencyCode === 'CUSTOM' ? 800 : 500
+                          }}
+                        >
+                          ➕ عملة مخصصة
+                        </button>
+                      </div>
+
+                      {/* حقول التعديل والمعامل */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: isCustomCurrency ? '1fr 1fr' : '1fr',
+                        gap: '10px',
+                        marginBottom: '14px'
+                      }}>
+                        <div>
+                          <label className="input-label">رمز العملة المعروض في الواجهة والتقارير</label>
+                          <input
+                            type="text"
+                            className="input-control"
+                            value={currency}
+                            onChange={(e) => setCurrency(e.target.value)}
+                            placeholder="مثلاً: د.ع أو ر.س أو ل.س"
+                            style={{ fontWeight: 800, fontSize: '14px', color: 'var(--accent-cyan)' }}
+                          />
+                        </div>
+                        {isCustomCurrency && (
+                          <div>
+                            <label className="input-label">معامل التحويل اليدوي مقابل الدينار (Multiplier)</label>
+                            <input
+                              type="number"
+                              step="any"
+                              className="input-control"
+                              value={customMultiplier}
+                              onChange={(e) => setCustomMultiplier(e.target.value)}
+                              placeholder="مثلاً: 0.00285 أو 10"
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* صندوق المعاينة والتحويل التلقائي لأسعار التحاليل */}
+                      <div style={{
+                        background: 'rgba(0, 0, 0, 0.15)',
+                        border: '1px solid rgba(2, 132, 199, 0.2)',
+                        borderRadius: '10px',
+                        padding: '12px',
+                        marginBottom: '10px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Sparkles size={16} color="#10b981" />
+                            <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                              التحويل الذكي لأسعار الكتالوج لعملة ({currency})
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowPreviewSamples(!showPreviewSamples)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--accent-cyan)',
+                              fontSize: '11px',
+                              cursor: 'pointer',
+                              textDecoration: 'underline',
+                              fontWeight: 700
+                            }}
+                          >
+                            {showPreviewSamples ? 'إخفاء جدول المعاينة' : '👁️ عرض معاينة حية للأسعار قبل وبعد'}
+                          </button>
+                        </div>
+
+                        {/* جدول المعاينة الحية */}
+                        {showPreviewSamples && (
+                          <div style={{
+                            marginBottom: '12px',
+                            overflowX: 'auto',
+                            background: 'var(--bg-main)',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            padding: '8px'
+                          }}>
+                            <table style={{ width: '100%', fontSize: '11.5px', borderCollapse: 'collapse', textAlign: 'right' }}>
+                              <thead>
+                                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                                  <th style={{ padding: '6px' }}>الفحص المخبري</th>
+                                  <th style={{ padding: '6px' }}>السعر المرجعي ({labProfile.currency || 'د.ع'})</th>
+                                  <th style={{ padding: '6px', color: '#10b981' }}>السعر المحسوب الجديد ({currency})</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {getSamplePriceConversions(labProfile.currency || 'د.ع', currency, customMultiplier ? Number(customMultiplier) : undefined).map((sample) => (
+                                  <tr key={sample.code} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <td style={{ padding: '6px', fontWeight: 700 }}>{sample.name}</td>
+                                    <td style={{ padding: '6px', color: 'var(--text-muted)' }}>{sample.oldPrice.toLocaleString()} {labProfile.currency || 'د.ع'}</td>
+                                    <td style={{ padding: '6px', fontWeight: 900, color: 'var(--accent-cyan)' }}>
+                                      {sample.newPrice.toLocaleString()} {currency}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+
+                        {/* أزرار الإجراءات */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              onClick={handleConvertPrices}
+                              disabled={convertingPrices || !currency.trim()}
+                              className="btn-primary"
+                              style={{
+                                padding: '8px 16px',
+                                fontSize: '12.5px',
+                                fontWeight: 800,
+                                background: 'linear-gradient(135deg, #0284c7 0%, #10b981 100%)',
+                                border: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                cursor: convertingPrices ? 'not-allowed' : 'pointer'
+                              }}
+                            >
+                              {convertingPrices ? (
+                                <>
+                                  <RefreshCw size={14} className="spin" />
+                                  <span>جارٍ تحويل أسعار الكتالوج...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Zap size={14} />
+                                  <span>تطبيق وتعديل أسعار كافة التحاليل لتناسب ({currency})</span>
+                                </>
+                              )}
+                            </button>
+
+                            {/* زر استعادة الأسعار والكتالوج العراقي الأصلي */}
+                            <button
+                              type="button"
+                              onClick={handleResetPricesToDefault}
+                              disabled={resettingPrices}
+                              className="btn-secondary"
+                              style={{
+                                padding: '8px 14px',
+                                fontSize: '12px',
+                                fontWeight: 800,
+                                color: 'var(--accent-amber)',
+                                borderColor: 'rgba(245, 158, 11, 0.4)',
+                                background: 'rgba(245, 158, 11, 0.08)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                cursor: resettingPrices ? 'not-allowed' : 'pointer'
+                              }}
+                              title="استعادة كافة أسعار الفحوصات والباقات الأصلية بالدينار العراقي"
+                            >
+                              {resettingPrices ? (
+                                <>
+                                  <RefreshCw size={14} className="spin" />
+                                  <span>جارٍ استعادة الكتالوج العراقي...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <RotateCcw size={14} />
+                                  <span>استعادة الأسعار العراقية الأصلية (IQD - د.ع)</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {customMultiplier && (
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                              معامل الصرف المطبق: <strong style={{ color: 'var(--accent-cyan)' }}>{customMultiplier}</strong>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* رسالة نجاح التحويل */}
+                        {conversionSuccessMsg && (
+                          <div style={{
+                            marginTop: '10px',
+                            padding: '8px 12px',
+                            background: 'rgba(16, 185, 129, 0.15)',
+                            border: '1px solid #10b981',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            color: '#10b981',
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}>
+                            <CheckCircle2 size={15} />
+                            <span>{conversionSuccessMsg}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 

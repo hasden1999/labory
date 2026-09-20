@@ -85,6 +85,7 @@ function PatientsContent() {
   const searchParams = useSearchParams();
   const toast = useToast();
   const { labProfile } = useLab();
+  const currency = labProfile?.currency || 'د.ع';
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -889,7 +890,7 @@ function PatientsContent() {
                               }}
                             >
                               <AlertCircle size={12} />
-                              <span>متبقي دين: {debt.toLocaleString()} د.ع</span>
+                              <span>متبقي دين: {debt.toLocaleString()} {currency}</span>
                             </span>
                           )}
                         </div>
@@ -1017,7 +1018,7 @@ function PatientsContent() {
                                 border: '1px solid #fecaca',
                               }}
                             >
-                              إجمالي الدين المعلق: {debt.toLocaleString()} د.ع
+                              إجمالي الدين المعلق: {debt.toLocaleString()} {currency}
                             </span>
                           )}
                         </div>
@@ -1452,10 +1453,10 @@ function PatientsContent() {
                                 >
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '14px', color: 'var(--text-muted)' }}>
                                     <span>
-                                      المبلغ الإجمالي: <strong style={{ color: 'var(--text-main)' }}>{sample.priceTotal?.toLocaleString()} د.ع</strong>
+                                      المبلغ الإجمالي: <strong style={{ color: 'var(--text-main)' }}>{sample.priceTotal?.toLocaleString()} {currency}</strong>
                                     </span>
                                     <span>
-                                      المسدد: <strong style={{ color: '#10b981' }}>{(sample.paidAmount || 0).toLocaleString()} د.ع</strong>
+                                      المسدد: <strong style={{ color: '#10b981' }}>{(sample.paidAmount || 0).toLocaleString()} {currency}</strong>
                                     </span>
                                   </div>
 
@@ -1463,7 +1464,7 @@ function PatientsContent() {
                                     {sampleDebt > 0 ? (
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <span style={{ color: '#ef4444', fontWeight: 800 }}>
-                                          متبقي دين: {sampleDebt.toLocaleString()} د.ع
+                                          متبقي دين: {sampleDebt.toLocaleString()} {currency}
                                         </span>
                                         <button
                                           onClick={() => {
@@ -1857,18 +1858,18 @@ function PatientsContent() {
                   <strong>اسم المريض:</strong> {payModalPatient?.name || payModalSample.patient?.name}
                 </div>
                 <div>
-                  <strong>إجمالي كلفة الفحوصات:</strong> {payModalSample.priceTotal?.toLocaleString()} د.ع
+                  <strong>إجمالي كلفة الفحوصات:</strong> {payModalSample.priceTotal?.toLocaleString()} {currency}
                 </div>
                 <div>
-                  <strong>المسدد سابقاً:</strong> {(payModalSample.paidAmount || 0).toLocaleString()} د.ع
+                  <strong>المسدد سابقاً:</strong> {(payModalSample.paidAmount || 0).toLocaleString()} {currency}
                 </div>
                 <div style={{ color: '#dc2626', fontWeight: 800, fontSize: '13px', marginTop: '2px' }}>
-                  <strong>المتبقي بذمة المريض:</strong> {(payModalSample.remainingAmount || 0).toLocaleString()} د.ع
+                  <strong>المتبقي بذمة المريض:</strong> {(payModalSample.remainingAmount || 0).toLocaleString()} {currency}
                 </div>
               </div>
 
               <div>
-                <label className="input-label">المبلغ المطلوب تسديده الآن (د.ع) *</label>
+                <label className="input-label">المبلغ المطلوب تسديده الآن ({currency}) *</label>
                 <input
                   type="number"
                   value={payAmount}
