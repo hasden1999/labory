@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 import { execSync } from 'child_process';
 
+declare const __non_webpack_require__: any;
+
 // Master Secret for HMAC signatures (Private to system)
 export const MASTER_SECRET = 'LAB_MANAGER_OFFLINE_SECRET_KEY_v2026_HMAC_SECURE_981247';
 
@@ -35,8 +37,11 @@ export function getMachineHWID(): string {
   if (!rawId) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { machineIdSync } = require('node-machine-id');
-      rawId = machineIdSync();
+      const req = typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : eval('require');
+      const { machineIdSync } = req('node-machine-id');
+      if (typeof machineIdSync === 'function') {
+        rawId = machineIdSync();
+      }
     } catch {
       // Fallback
     }

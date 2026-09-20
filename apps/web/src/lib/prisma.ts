@@ -13,6 +13,7 @@ function resolveDatabaseUrl(): string {
   const candidates = [
     process.env.LABRYO_DATA_DIR ? path.resolve(process.env.LABRYO_DATA_DIR) : null,
     path.resolve(process.cwd(), 'apps', 'server', 'prisma'),
+    path.resolve(process.cwd(), 'apps', 'web', 'prisma'),
     path.resolve(process.cwd(), 'prisma'),
     path.resolve(process.cwd(), 'data'),
     path.resolve(process.cwd(), 'apps', 'web', 'data'),
@@ -44,25 +45,50 @@ function resolveDatabaseUrl(): string {
   return `file:${normalized}?connection_limit=1&socket_timeout=10000&busy_timeout=5000`;
 }
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient; walInitialized?: boolean };
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient; walInitialized?: boolean };
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    datasources: {
-      db: {
-        url: resolveDatabaseUrl(),
+function initPrismaClient(): PrismaClient | null {
+  if (globalForPrisma.prisma) {
+    return globalForPrisma.prisma;
+  }
+  try {
+    const instance = new PrismaClient({
+      datasources: {
+        db: {
+          url: resolveDatabaseUrl(),
+        },
       },
-    },
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  });
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
+      log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    });
+    if (process.env.NODE_ENV !== 'production') {
+      globalForPrisma.prisma = instance;
+    }
+    return instance;
+  } catch (err: any) {
+    console.warn('⚠️ [Prisma SQLite] PrismaClient could not be initialized (falling back to memory/JSON store):', err?.message || err);
+    return null;
+  }
 }
 
+const rawPrisma = initPrismaClient();
+
+// Safe fallback Proxy: If Prisma is missing or uninitialized on the cloud, prevents crashes and rejects gracefully
+export const prisma: PrismaClient = rawPrisma || (new Proxy({}, {
+  get(_target, prop) {
+    if (prop === 'then') return undefined;
+    return new Proxy({}, {
+      get(_target2, method) {
+        if (method === 'then') return undefined;
+        return async () => {
+          throw new Error(`Prisma is not available in this environment. Method: ${String(prop)}.${String(method)}`);
+        };
+      }
+    });
+  }
+}) as unknown as PrismaClient);
+
 export async function initDbWAL() {
-  if (globalForPrisma.walInitialized) return;
+  if (!rawPrisma || globalForPrisma.walInitialized) return;
   const pragmas = [
     'PRAGMA journal_mode = WAL;',
     'PRAGMA synchronous = NORMAL;',
@@ -73,7 +99,7 @@ export async function initDbWAL() {
   ];
   for (const p of pragmas) {
     try {
-      await prisma.$queryRawUnsafe(p);
+      await rawPrisma.$queryRawUnsafe(p);
     } catch (e) {
       // Ignored if non-fatal
     }
@@ -83,8 +109,9 @@ export async function initDbWAL() {
 }
 
 export async function checkpointDbWAL() {
+  if (!rawPrisma) return;
   try {
-    await prisma.$queryRawUnsafe('PRAGMA wal_checkpoint(TRUNCATE);');
+    await rawPrisma.$queryRawUnsafe('PRAGMA wal_checkpoint(TRUNCATE);');
     console.log('📦 [Prisma SQLite] WAL journal checkpointed and truncated.');
   } catch (error) {
     console.error('[Prisma SQLite] Failed to checkpoint WAL journal:', error);
