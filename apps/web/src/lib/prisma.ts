@@ -29,9 +29,11 @@ function resolveDatabaseUrl(): string {
   }
 
   if (!dbFile) {
-    const defaultDir = process.env.LABRYO_DATA_DIR
-      ? path.resolve(process.env.LABRYO_DATA_DIR)
-      : path.resolve(process.cwd(), 'apps', 'server', 'prisma');
+    const defaultDir = process.env.VERCEL
+      ? '/tmp'
+      : (process.env.LABRYO_DATA_DIR
+          ? path.resolve(process.env.LABRYO_DATA_DIR)
+          : path.resolve(process.cwd(), 'apps', 'server', 'prisma'));
     if (!fs.existsSync(defaultDir)) {
       try { fs.mkdirSync(defaultDir, { recursive: true }); } catch {}
     }

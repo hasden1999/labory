@@ -1,5 +1,7 @@
 import fs from 'fs';
 
+declare const __non_webpack_require__: any;
+
 export function getSystemBrowserPath(): string | undefined {
   const candidatePaths = [
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -17,7 +19,15 @@ export function getSystemBrowserPath(): string | undefined {
 }
 
 export async function launchBrowser() {
-  const puppeteer = (await import('puppeteer')).default;
+  let puppeteer: any;
+  try {
+    const req = typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : eval('require');
+    const mod = req('puppeteer');
+    puppeteer = mod.default || mod;
+  } catch (err: any) {
+    throw new Error('محرك Puppeteer غير متوفر في هذه البيئة السحابية. ميزة توليد الصور الطبية تعمل على تطبيق سطح المكتب المحلي.');
+  }
+
   const execPath = getSystemBrowserPath();
 
   const launchOptions: any = {

@@ -21,7 +21,9 @@ import os from 'os';
 
 const DATA_DIR = process.env.LABRYO_DATA_DIR
   ? path.resolve(process.env.LABRYO_DATA_DIR)
-  : path.resolve(process.cwd().includes('apps') ? process.cwd() : path.join(process.cwd(), 'apps', 'web'), 'data');
+  : (process.env.VERCEL
+      ? path.join('/tmp', 'labryo_data')
+      : path.resolve(process.cwd().includes('apps') ? process.cwd() : path.join(process.cwd(), 'apps', 'web'), 'data'));
 const DATA_FILE = path.join(DATA_DIR, 'lab_store.json');
 
 export function getLocalIpAddress(): string {
