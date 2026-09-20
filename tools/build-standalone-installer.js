@@ -90,6 +90,21 @@ async function run() {
     fs.cpSync(publicSrc, publicDest2, { recursive: true });
   }
 
+  // Copy Prisma client runtime and query engine to standalone node_modules
+  const prismaClientSrc = path.join(rootDir, 'node_modules', '.prisma');
+  const prismaClientDest = path.join(targetStandalone, 'node_modules', '.prisma');
+  if (fs.existsSync(prismaClientSrc)) {
+    console.log('نسخ محرك Prisma (.prisma)...');
+    fs.cpSync(prismaClientSrc, prismaClientDest, { recursive: true });
+  }
+
+  const atPrismaSrc = path.join(rootDir, 'node_modules', '@prisma');
+  const atPrismaDest = path.join(targetStandalone, 'node_modules', '@prisma');
+  if (fs.existsSync(atPrismaSrc)) {
+    console.log('نسخ مكتبة @prisma...');
+    fs.cpSync(atPrismaSrc, atPrismaDest, { recursive: true });
+  }
+
   // Copy initial seed data (with clean unlicensed state for new customer installs)
   const dataSrc = path.join(webDir, 'data');
   if (fs.existsSync(dataSrc)) {
@@ -98,6 +113,22 @@ async function run() {
     fs.cpSync(dataSrc, dataDest, { recursive: true });
     const directDataDest = path.join(engineDir, 'data');
     fs.cpSync(dataSrc, directDataDest, { recursive: true });
+
+    // Seed SQLite database for new customer installations
+    const sqliteDbSrc = path.join(rootDir, 'apps', 'server', 'prisma', 'lab.db');
+    if (fs.existsSync(sqliteDbSrc)) {
+      console.log('نسخ وتجهيز قاعدة بيانات SQLite المدمجة (lab.db)...');
+      try {
+        fs.copyFileSync(sqliteDbSrc, path.join(dataDest, 'lab.db'));
+        fs.copyFileSync(sqliteDbSrc, path.join(directDataDest, 'lab.db'));
+        const altDest = path.join(targetStandalone, 'data');
+        if (!fs.existsSync(altDest)) fs.mkdirSync(altDest, { recursive: true });
+        fs.copyFileSync(sqliteDbSrc, path.join(altDest, 'lab.db'));
+        console.log('✅ تم دمج قاعدة بيانات SQLite (lab.db) ضمن الحزمة المستقلة بنجاح!');
+      } catch (err) {
+        console.warn('تحذير أثناء نسخ lab.db:', err.message);
+      }
+    }
 
     // Ensure bundled seed lab_store.json has zero patients/samples, empty lab profile, and clean license for 7-day trial!
     const bundledStoreFile = path.join(dataDest, 'lab_store.json');

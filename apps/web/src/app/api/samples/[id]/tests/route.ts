@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStore, saveStoreToFile } from '../../../../../lib/serverStore';
+import { syncSampleToSqlite } from '../../../../../lib/sqliteSync';
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -62,6 +63,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     }
 
     saveStoreToFile();
+    syncSampleToSqlite(sample).catch(err => console.warn('[SqliteSync] Add sample test sync error:', err?.message));
 
     return NextResponse.json(sample);
   } catch (err: any) {
@@ -109,6 +111,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     sample.remainingAmount = Math.max(0, netTotal - (sample.paidAmount || 0));
 
     saveStoreToFile();
+    syncSampleToSqlite(sample).catch(err => console.warn('[SqliteSync] Delete sample test sync error:', err?.message));
 
     return NextResponse.json({
       success: true,

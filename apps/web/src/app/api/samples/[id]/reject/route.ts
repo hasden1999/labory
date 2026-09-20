@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStore, saveStoreToFile } from '../../../../../lib/serverStore';
+import { syncSampleToSqlite } from '../../../../../lib/sqliteSync';
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -18,6 +19,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     sample.rejectedBy = body.rejectedBy || 'مختبر التحليلات';
 
     saveStoreToFile();
+    syncSampleToSqlite(sample).catch(err => console.warn('[SqliteSync] Reject sync error:', err?.message));
 
     return NextResponse.json({ success: true, sample });
   } catch (err: any) {

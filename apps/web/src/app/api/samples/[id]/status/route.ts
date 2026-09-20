@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStore, saveStoreToFile } from '../../../../../lib/serverStore';
+import { syncSampleToSqlite } from '../../../../../lib/sqliteSync';
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const body = await request.json();
@@ -12,6 +13,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     sample.status = body.status;
     (sample as any).updatedAt = new Date().toISOString();
     saveStoreToFile();
+    syncSampleToSqlite(sample).catch(err => console.warn('[SqliteSync] Status sync error:', err?.message));
   }
   return NextResponse.json(sample);
 }

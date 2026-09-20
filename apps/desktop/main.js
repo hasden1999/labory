@@ -198,6 +198,27 @@ async function seedDatabaseAsync(engineDir, userDbFile) {
   console.warn('[Desktop] No seed database found in any candidate path');
 }
 
+// Synchronous seed SQLite database copy (first install only)
+function seedSqliteDatabaseSync(engineDir, userSqliteDb) {
+  const seedCandidates = [
+    path.join(engineDir, 'standalone', 'apps', 'web', 'data', 'lab.db'),
+    path.join(engineDir, 'standalone', 'data', 'lab.db'),
+    path.join(engineDir, 'data', 'lab.db'),
+    path.join(engineDir, 'lab.db'),
+  ];
+  for (const sc of seedCandidates) {
+    try {
+      if (fs.existsSync(sc)) {
+        fs.copyFileSync(sc, userSqliteDb);
+        console.log('[Desktop] Copied seed SQLite database to:', userSqliteDb);
+        return;
+      }
+    } catch (e) {
+      console.warn('[Desktop] Error copying seed sqlite db:', e?.message);
+    }
+  }
+}
+
 // Find Next.js CLI binary or bundled standalone server to spawn Node directly
 function getStartCommand(projectRoot) {
   // 1. Packaged standalone production mode (for installer & client PCs)
@@ -217,11 +238,19 @@ function getStartCommand(projectRoot) {
       fs.mkdirSync(userDataDir, { recursive: true });
     }
 
-    // Seed initial database asynchronously in background (non-blocking, first install only)
+    // Seed initial SQLite database (non-destructive, first install only)
+    const userSqliteDb = path.join(userDataDir, 'lab.db');
+    if (!fs.existsSync(userSqliteDb)) {
+      seedSqliteDatabaseSync(engineDir, userSqliteDb);
+    }
+
+    // Seed initial JSON database asynchronously in background (non-blocking fallback)
     const userDbFile = path.join(userDataDir, 'lab_store.json');
     if (!fs.existsSync(userDbFile)) {
       seedDatabaseAsync(engineDir, userDbFile);
     }
+
+    const normalizedDbUrl = 'file:' + userSqliteDb.replace(/\\/g, '/') + '?connection_limit=1&socket_timeout=10000&busy_timeout=5000';
 
     return {
       cmd: fs.existsSync(nodeBin) ? nodeBin : 'node',
@@ -229,6 +258,7 @@ function getStartCommand(projectRoot) {
       cwd: workingDir,
       extraEnv: {
         LABRYO_DATA_DIR: userDataDir,
+        DATABASE_URL: normalizedDbUrl,
         HOSTNAME: '0.0.0.0',
         PORT: String(WEB_PORT),
         NODE_ENV: 'production',

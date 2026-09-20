@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStore, saveStoreToFile } from '../../../../../lib/serverStore';
+import { syncSampleToSqlite } from '../../../../../lib/sqliteSync';
 
 async function handleSaveResults(request: Request, params: { id: string }) {
   let body: any;
@@ -64,6 +65,7 @@ async function handleSaveResults(request: Request, params: { id: string }) {
   }
 
   saveStoreToFile();
+  syncSampleToSqlite(sample).catch(err => console.warn('[SqliteSync] Results sync error:', err?.message));
 
   return NextResponse.json(sample);
 }

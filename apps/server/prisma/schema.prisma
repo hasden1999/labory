@@ -1,6 +1,6 @@
 datasource db {
   provider = "sqlite"
-  url      = "file:./lab.db?connection_limit=1&socket_timeout=10000&busy_timeout=5000"
+  url      = env("DATABASE_URL")
 }
 
 generator client {

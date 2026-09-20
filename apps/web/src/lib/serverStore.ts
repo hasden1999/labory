@@ -2,6 +2,19 @@ import { INITIAL_TESTS_CATALOG, INITIAL_PANELS, INITIAL_DOCTORS } from './catalo
 import { DEVICE_PRESETS, DevicePreset } from './devicePresets';
 import { parseDeviceMessage, ParsedAnalyzerMessage, ParsedItem } from './deviceEngine';
 import { calculateConversionMultiplier, roundPriceForCurrency, findCurrency } from './currencies';
+import {
+  loadStoreFromSqlite,
+  syncPatientToSqlite,
+  deletePatientFromSqlite,
+  syncDoctorToSqlite,
+  deleteDoctorFromSqlite,
+  syncSampleToSqlite,
+  deleteSampleFromSqlite,
+  syncSettingsToSqlite,
+  syncExpenseToSqlite,
+  deleteExpenseFromSqlite,
+} from './sqliteSync';
+import { prisma } from './prisma';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -735,7 +748,34 @@ export function loadStoreFromFile(): ServerStore | null {
   return null;
 }
 
+let sqliteSyncTriggered = false;
+
+export function triggerSqliteSync(): void {
+  if (sqliteSyncTriggered) return;
+  sqliteSyncTriggered = true;
+  loadStoreFromSqlite().then((fromSqlite) => {
+    if (fromSqlite && fromSqlite.tests && fromSqlite.tests.length > 0) {
+      global.__labStore = fromSqlite;
+      console.log('💎 [ServerStore] Authoritative state active from SQLite lab.db');
+    }
+  }).catch((e) => console.warn('[ServerStore] SQLite load warning:', e?.message));
+}
+
+// Eagerly initiate SQLite database load
+triggerSqliteSync();
+
+export async function getStoreAsync(): Promise<ServerStore> {
+  if (!global.__labStore || !global.__labStore.tests || global.__labStore.tests.length === 0) {
+    const fromSqlite = await loadStoreFromSqlite();
+    if (fromSqlite) {
+      global.__labStore = fromSqlite;
+    }
+  }
+  return getStore();
+}
+
 export function getStore(): ServerStore {
+  triggerSqliteSync();
   if (!global.__labStore) {
     const fromFile = loadStoreFromFile();
     if (fromFile) {
@@ -940,6 +980,7 @@ export function addPatient(data: Partial<PatientRecord> & { name: string; gender
   };
   store.patients.unshift(newPatient);
   saveStoreToFile();
+  syncPatientToSqlite(newPatient).catch((e) => console.warn('[SqliteSync] addPatient error:', e?.message));
   return newPatient;
 }
 
@@ -962,6 +1003,7 @@ export function updatePatient(id: string, data: Partial<PatientRecord>): Patient
   });
 
   saveStoreToFile();
+  syncPatientToSqlite(updated).catch((e) => console.warn('[SqliteSync] updatePatient error:', e?.message));
   return updated;
 }
 
@@ -971,6 +1013,7 @@ export function deletePatient(id: string): boolean {
   if (index === -1) return false;
   store.patients.splice(index, 1);
   saveStoreToFile();
+  deletePatientFromSqlite(id).catch((e) => console.warn('[SqliteSync] deletePatient error:', e?.message));
   return true;
 }
 
@@ -1120,6 +1163,7 @@ export function addDoctor(data: Partial<DoctorRecord> & { name: string }): Docto
   };
   store.doctors.push(newDoctor);
   saveStoreToFile();
+  syncDoctorToSqlite(newDoctor).catch((e) => console.warn('[SqliteSync] addDoctor error:', e?.message));
   return newDoctor;
 }
 
@@ -1141,6 +1185,7 @@ export function updateDoctor(id: string, data: Partial<DoctorRecord>): DoctorRec
   });
 
   saveStoreToFile();
+  syncDoctorToSqlite(updated).catch((e) => console.warn('[SqliteSync] updateDoctor error:', e?.message));
   return updated;
 }
 
@@ -1150,6 +1195,7 @@ export function deleteDoctor(id: string): boolean {
   if (index === -1) return false;
   store.doctors.splice(index, 1);
   saveStoreToFile();
+  deleteDoctorFromSqlite(id).catch((e) => console.warn('[SqliteSync] deleteDoctor error:', e?.message));
   return true;
 }
 
@@ -1276,6 +1322,7 @@ export function addSample(data: any): SampleRecord {
 
   store.samples.unshift(newSample);
   saveStoreToFile();
+  syncSampleToSqlite(newSample).catch((e) => console.warn('[SqliteSync] addSample error:', e?.message));
   return newSample;
 }
 
@@ -1294,6 +1341,7 @@ export function updateSample(id: string, data: Partial<SampleRecord>): SampleRec
   };
   store.samples[index] = updated;
   saveStoreToFile();
+  syncSampleToSqlite(updated).catch((e) => console.warn('[SqliteSync] updateSample error:', e?.message));
   return updated;
 }
 
@@ -1303,6 +1351,7 @@ export function deleteSample(id: string): boolean {
   if (index === -1) return false;
   store.samples.splice(index, 1);
   saveStoreToFile();
+  deleteSampleFromSqlite(id).catch((e) => console.warn('[SqliteSync] deleteSample error:', e?.message));
   return true;
 }
 
@@ -1345,6 +1394,7 @@ export function updateSettings(data: Partial<LabSettings>): LabSettings {
     isConfigured: finalConfigured,
   };
   saveStoreToFile();
+  syncSettingsToSqlite(store.settings).catch((e) => console.warn('[SqliteSync] updateSettings error:', e?.message));
   return store.settings;
 }
 
@@ -1446,6 +1496,7 @@ export function addExpense(data: { description: string; amount: number; category
   };
   store.expenses = [newExp, ...(store.expenses || [])];
   saveStoreToFile();
+  syncExpenseToSqlite(newExp).catch((e) => console.warn('[SqliteSync] addExpense error:', e?.message));
   return newExp;
 }
 
@@ -1455,6 +1506,7 @@ export function deleteExpense(id: string): boolean {
   store.expenses = store.expenses.filter((e) => e.id !== id);
   if (store.expenses.length !== initialLen) {
     saveStoreToFile();
+    deleteExpenseFromSqlite(id).catch((e) => console.warn('[SqliteSync] deleteExpense error:', e?.message));
     return true;
   }
   return false;
@@ -2659,6 +2711,7 @@ export function paySampleRemaining(
   }
 
   saveStoreToFile();
+  syncSampleToSqlite(sample).catch((e) => console.warn('[SqliteSync] paySampleRemaining error:', e?.message));
 
   return {
     success: true,
