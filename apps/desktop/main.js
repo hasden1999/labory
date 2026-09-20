@@ -54,6 +54,7 @@ let splashWindow = null;
 let backendProcess = null;
 let tray = null;
 let isQuitting = false;
+let isShuttingDown = false; // Atomic idempotency lock for instant zero-lag teardown
 let hasShownTrayNotice = false;
 let isPreWarmed = false;
 let isStartingUp = false;
@@ -115,6 +116,13 @@ function initAutoUpdater() {
       cancelId: 1,
     }).then((result) => {
       if (result.response === 0) {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.hide();
+        }
+        if (splashWindow && !splashWindow.isDestroyed()) {
+          splashWindow.destroy();
+          splashWindow = null;
+        }
         isQuitting = true;
         killBackendProcess();
         autoUpdater.quitAndInstall(false, true);
@@ -219,6 +227,135 @@ function seedSqliteDatabaseSync(engineDir, userSqliteDb) {
   }
 }
 
+// Helper to ensure standalone directory has required static and public assets (R5)
+function ensureStandaloneAssets(targetAppDir, webDir) {
+  try {
+    const targetNextDir = path.join(targetAppDir, '.next');
+    if (!fs.existsSync(targetNextDir)) {
+      fs.mkdirSync(targetNextDir, { recursive: true });
+    }
+
+    // Ensure .next/static is linked (junction) or copied
+    const staticSrc = path.join(webDir, '.next', 'static');
+    const staticDest = path.join(targetNextDir, 'static');
+    if (fs.existsSync(staticSrc)) {
+      let needsLink = true;
+      try {
+        const stat = fs.lstatSync(staticDest);
+        if (stat) needsLink = false;
+      } catch (e) {
+        needsLink = true;
+      }
+      if (needsLink) {
+        try {
+          fs.symlinkSync(staticSrc, staticDest, 'junction');
+          console.log('[Desktop] Linked .next/static junction into standalone engine');
+        } catch (e) {
+          try {
+            fs.cpSync(staticSrc, staticDest, { recursive: true });
+            console.log('[Desktop] Copied .next/static into standalone engine');
+          } catch (cpErr) {}
+        }
+      }
+    }
+
+    // Ensure public assets are linked (junction) or copied
+    const publicSrc = path.join(webDir, 'public');
+    const publicDest = path.join(targetAppDir, 'public');
+    if (fs.existsSync(publicSrc)) {
+      let needsLink = true;
+      try {
+        const stat = fs.lstatSync(publicDest);
+        if (stat) needsLink = false;
+      } catch (e) {
+        needsLink = true;
+      }
+      if (needsLink) {
+        try {
+          fs.symlinkSync(publicSrc, publicDest, 'junction');
+          console.log('[Desktop] Linked public junction into standalone engine');
+        } catch (e) {
+          try {
+            fs.cpSync(publicSrc, publicDest, { recursive: true });
+            console.log('[Desktop] Copied public into standalone engine');
+          } catch (cpErr) {}
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Desktop] Non-critical warning ensuring standalone assets:', err?.message);
+  }
+}
+
+// Detect and prioritize the freshest standalone build (R5)
+function findFreshestStandaloneServer(projectRoot) {
+  const webDir = path.join(projectRoot, 'apps', 'web');
+  const candidates = [
+    {
+      name: 'web_standalone_monorepo',
+      script: path.join(projectRoot, 'apps', 'web', '.next', 'standalone', 'apps', 'web', 'server.js'),
+      cwd: path.join(projectRoot, 'apps', 'web', '.next', 'standalone', 'apps', 'web'),
+      appDir: path.join(projectRoot, 'apps', 'web', '.next', 'standalone', 'apps', 'web'),
+      dataDir: path.join(projectRoot, 'apps', 'web', 'data'),
+      priorityWeight: 100, // Highest priority: active Next.js build
+    },
+    {
+      name: 'web_standalone_root',
+      script: path.join(projectRoot, 'apps', 'web', '.next', 'standalone', 'server.js'),
+      cwd: path.join(projectRoot, 'apps', 'web', '.next', 'standalone'),
+      appDir: path.join(projectRoot, 'apps', 'web', '.next', 'standalone'),
+      dataDir: path.join(projectRoot, 'apps', 'web', 'data'),
+      priorityWeight: 90,
+    },
+    {
+      name: 'desktop_engine_bundled',
+      script: path.join(projectRoot, 'apps', 'desktop', 'engine', 'standalone', 'apps', 'web', 'server.js'),
+      cwd: path.join(projectRoot, 'apps', 'desktop', 'engine', 'standalone', 'apps', 'web'),
+      appDir: path.join(projectRoot, 'apps', 'desktop', 'engine', 'standalone', 'apps', 'web'),
+      dataDir: path.join(projectRoot, 'apps', 'web', 'data'),
+      priorityWeight: 10,
+    },
+    {
+      name: 'desktop_engine_root',
+      script: path.join(projectRoot, 'apps', 'desktop', 'engine', 'standalone', 'server.js'),
+      cwd: path.join(projectRoot, 'apps', 'desktop', 'engine', 'standalone'),
+      appDir: path.join(projectRoot, 'apps', 'desktop', 'engine', 'standalone'),
+      dataDir: path.join(projectRoot, 'apps', 'web', 'data'),
+      priorityWeight: 5,
+    },
+  ];
+
+  const valid = [];
+  for (const c of candidates) {
+    if (fs.existsSync(c.script)) {
+      try {
+        const stat = fs.statSync(c.script);
+        valid.push({ ...c, mtimeMs: stat.mtimeMs });
+      } catch (e) {}
+    }
+  }
+
+  if (valid.length === 0) return null;
+
+  // Sort by modification time (freshest first)
+  // If timestamps are within 2 seconds of each other, prioritize active web_standalone
+  valid.sort((a, b) => {
+    const timeDiff = b.mtimeMs - a.mtimeMs;
+    if (Math.abs(timeDiff) > 2000) {
+      return timeDiff;
+    }
+    return b.priorityWeight - a.priorityWeight;
+  });
+
+  const selected = valid[0];
+  console.log(`[Desktop] Prioritizing standalone engine: ${selected.name} (${selected.script}) [Modified: ${new Date(selected.mtimeMs).toISOString()}]`);
+
+  // Ensure assets are linked/copied
+  ensureStandaloneAssets(selected.appDir, webDir);
+
+  return selected;
+}
+
 // Find Next.js CLI binary or bundled standalone server to spawn Node directly
 function getStartCommand(projectRoot) {
   // 1. Packaged standalone production mode (for installer & client PCs)
@@ -295,34 +432,20 @@ function getStartCommand(projectRoot) {
     }
   }
 
-  // Check for ultra-fast standalone server first (starts in ~1s vs ~6s for Next.js CLI)
-  const standaloneCandidates = [
-    {
-      script: path.join(projectRoot, 'apps', 'desktop', 'engine', 'standalone', 'apps', 'web', 'server.js'),
-      cwd: path.join(projectRoot, 'apps', 'desktop', 'engine', 'standalone', 'apps', 'web'),
-      dataDir: path.join(projectRoot, 'apps', 'web', 'data'),
-    },
-    {
-      script: path.join(projectRoot, 'apps', 'web', '.next', 'standalone', 'apps', 'web', 'server.js'),
-      cwd: path.join(projectRoot, 'apps', 'web', '.next', 'standalone', 'apps', 'web'),
-      dataDir: path.join(projectRoot, 'apps', 'web', 'data'),
-    },
-  ];
-
-  for (const sc of standaloneCandidates) {
-    if (fs.existsSync(sc.script)) {
-      return {
-        cmd: nodeCmd,
-        args: [sc.script],
-        cwd: sc.cwd,
-        extraEnv: {
-          LABRYO_DATA_DIR: sc.dataDir,
-          HOSTNAME: '0.0.0.0',
-          PORT: String(WEB_PORT),
-          NODE_ENV: 'production',
-        },
-      };
-    }
+  // Check for ultra-fast standalone server (freshest build prioritized)
+  const standalone = findFreshestStandaloneServer(projectRoot);
+  if (standalone) {
+    return {
+      cmd: nodeCmd,
+      args: [standalone.script],
+      cwd: standalone.cwd,
+      extraEnv: {
+        LABRYO_DATA_DIR: standalone.dataDir,
+        HOSTNAME: '0.0.0.0',
+        PORT: String(WEB_PORT),
+        NODE_ENV: 'production',
+      },
+    };
   }
 
   const nextBinCandidates = [
@@ -385,8 +508,8 @@ function checkTcpPort(port, host = '127.0.0.1', timeoutMs = 40) {
   });
 }
 
-// Fast HTTP Health Check once port is open (responds in 1-5ms)
-function checkHttpHealth(port, timeoutMs = 120) {
+// Fast HTTP Health Check once port is open (responds in 5-20ms normally, permits up to 1500ms on cold compilation)
+function checkHttpHealth(port, timeoutMs = 1500) {
   return new Promise((resolve) => {
     const req = http.get(`http://127.0.0.1:${port}/health`, (res) => {
       resolve(res.statusCode >= 200 && res.statusCode < 400);
@@ -403,7 +526,7 @@ function checkHttpHealth(port, timeoutMs = 120) {
 async function isServerReady(port) {
   const portOpen = await checkTcpPort(port, '127.0.0.1', 40);
   if (!portOpen) return false;
-  return await checkHttpHealth(port, 120);
+  return await checkHttpHealth(port, 1500);
 }
 
 // No-op or non-competing pre-warm to avoid double-request SSR stalls
@@ -411,21 +534,43 @@ function preWarmServer(port) {
   // Directly loaded by mainWindow.loadURL to avoid double-render CPU competition
 }
 
-// Kill backend process and all its tree cleanly, ensuring port is liberated
-function killBackendProcess() {
+// Kill backend process cleanly with atomic idempotency and non-blocking port liberation (<15ms)
+function killBackendProcess(options = {}) {
+  const isForRestart = options.forRestart === true;
+  if (!isForRestart) {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+  }
+
   if (backendProcess && backendProcess.pid) {
+    const pid = backendProcess.pid;
+    backendProcess = null;
     try {
       if (process.platform === 'win32') {
-        execSync(`taskkill /pid ${backendProcess.pid} /T /F`, { stdio: 'ignore' });
+        // Fast synchronous native taskkill (<15ms)
+        execSync(`taskkill /pid ${pid} /T /F`, { stdio: 'ignore', windowsHide: true });
       } else {
-        backendProcess.kill();
+        try {
+          process.kill(pid, 'SIGKILL');
+        } catch (e) {}
       }
     } catch (e) {}
-    backendProcess = null;
   }
+
+  // Completely non-blocking asynchronous fallback to liberate port without freezing Electron UI
   if (process.platform === 'win32') {
     try {
-      execSync(`powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${WEB_PORT} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"`, { stdio: 'ignore' });
+      const fallbackProc = spawn('powershell', [
+        '-NoProfile',
+        '-WindowStyle', 'Hidden',
+        '-Command',
+        `Get-NetTCPConnection -LocalPort ${WEB_PORT} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }`
+      ], {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true,
+      });
+      fallbackProc.unref();
     } catch (e) {}
   }
 }
@@ -587,7 +732,7 @@ function getSplashHtml() {
     <div class="progress-track">
       <div class="progress-bar"></div>
     </div>
-    <div class="status" id="status-text">جاري بدء تشغيل محرك النظام وقاعدة البيانات...</div>
+    <div class="status" id="status-text">جاري إقلاع محرك النظام المحلي...</div>
   </div>
 </body>
 </html>`;
@@ -736,12 +881,13 @@ async function startAndLoadApp() {
   const appUrl = `http://localhost:${WEB_PORT}`;
 
   tracer.mark('Server Startup Sequence Triggered (T2)');
-  updateSplashStatus('جاري فحص حالة الخادم المحلي...');
+  updateSplashStatus('جاري إقلاع محرك النظام المحلي...');
   await ensureServerStarted();
 
   let ready = false;
   let attempts = 0;
-  const maxAttempts = 200; // Fast sub-30ms polling for instant readiness detection
+  const maxAttempts = 100; // 25-second polling budget (100 attempts at 250ms)
+  const pollIntervalMs = 250;
 
   while (attempts < maxAttempts) {
     ready = await isServerReady(WEB_PORT);
@@ -750,16 +896,17 @@ async function startAndLoadApp() {
       break;
     }
 
-    if (attempts === 6) {
-      updateSplashStatus('جاري تشغيل محرك النظام وقاعدة البيانات المحلية...');
-    } else if (attempts === 25) {
-      updateSplashStatus('جاري تهيئة خدمات الفحوصات والتحاليل الطبية...');
-    } else if (attempts === 60) {
-      updateSplashStatus('جاري استكمال إقلاع النظام، لحظات معدودة...');
+    if (attempts === 0) {
+      updateSplashStatus('جاري إقلاع محرك النظام المحلي...');
+    } else if (attempts === 12) { // ~3 seconds
+      updateSplashStatus('جاري فحص وتأمين قاعدة البيانات...');
+    } else if (attempts === 36) { // ~9 seconds
+      updateSplashStatus('جاري تحميل واجهات التحاليل...');
+    } else if (attempts === 68) { // ~17 seconds
+      updateSplashStatus('جاري استكمال إعدادات النظام وتجهيز الواجهة...');
     }
 
-    const interval = attempts < 20 ? 15 : 35;
-    await new Promise((r) => setTimeout(r, interval));
+    await new Promise((r) => setTimeout(r, pollIntervalMs));
     attempts++;
   }
 
@@ -935,7 +1082,7 @@ function createTray() {
         {
           label: '🔄 إعادة تشغيل محرك النظام',
           click: async () => {
-            killBackendProcess();
+            killBackendProcess({ forRestart: true });
             await ensureServerStarted();
             if (mainWindow && !mainWindow.isDestroyed()) {
               mainWindow.loadURL(`http://localhost:${WEB_PORT}`);
@@ -977,6 +1124,13 @@ function createTray() {
         {
           label: '❌ خروج نهائي وإيقاف الخدمات (Exit)',
           click: () => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.hide();
+            }
+            if (splashWindow && !splashWindow.isDestroyed()) {
+              splashWindow.destroy();
+              splashWindow = null;
+            }
             isQuitting = true;
             killBackendProcess();
             app.quit();
@@ -1090,8 +1244,18 @@ function createMainWindow() {
     }
   });
 
-  // Clean exit: closing main window terminates all services and exits completely
+  // Clean instant exit: hide window in first tick (<50ms) and terminate all services
   mainWindow.on('close', () => {
+    try {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.hide();
+      }
+      if (splashWindow && !splashWindow.isDestroyed()) {
+        splashWindow.destroy();
+        splashWindow = null;
+      }
+    } catch (err) {}
+
     isQuitting = true;
     killBackendProcess();
     app.quit();
@@ -1118,10 +1282,20 @@ ipcMain.on('window-maximize', () => {
 });
 
 ipcMain.on('window-close', () => {
-  if (mainWindow) mainWindow.close();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.hide();
+    mainWindow.close();
+  }
 });
 
 ipcMain.on('app-exit', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.hide();
+  }
+  if (splashWindow && !splashWindow.isDestroyed()) {
+    splashWindow.destroy();
+    splashWindow = null;
+  }
   isQuitting = true;
   killBackendProcess();
   app.quit();
@@ -1172,13 +1346,13 @@ async function startBackgroundPreWarm() {
 
     let ready = false;
     let attempts = 0;
-    const maxAttempts = 200; // Fast sub-30ms dynamic polling
+    const maxAttempts = 100; // 25-second polling budget (100 attempts at 250ms)
+    const pollIntervalMs = 250;
 
     while (attempts < maxAttempts) {
       ready = await isServerReady(WEB_PORT);
       if (ready) break;
-      const interval = attempts < 30 ? 25 : 50;
-      await new Promise((r) => setTimeout(r, interval));
+      await new Promise((r) => setTimeout(r, pollIntervalMs));
       attempts++;
     }
 
@@ -1226,6 +1400,12 @@ app.on('second-instance', () => {
 });
 
 app.on('before-quit', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    try { mainWindow.hide(); } catch (e) {}
+  }
+  if (splashWindow && !splashWindow.isDestroyed()) {
+    try { splashWindow.destroy(); splashWindow = null; } catch (e) {}
+  }
   isQuitting = true;
   killBackendProcess();
 });

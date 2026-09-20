@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build:web",
+    "build": "npx prisma generate --schema=apps/server/prisma/schema.prisma && npm run build:web",
     "dev": "concurrently -n \"server,web\" -c \"cyan.bold,magenta.bold\" \"npm run dev:server\" \"npm run start --workspace=apps/web\"",
     "dev:server": "npm run dev --workspace=apps/server",
     "dev:web": "npm run dev --workspace=apps/web",
@@ -29,6 +29,8 @@
     "test:devices": "python tests/integration/test_astm_analyzer.py"
   },
   "dependencies": {
+    "@prisma/client": "^5.12.1",
+    "prisma": "^5.12.1",
     "lucide-react": "^0.368.0",
     "next": "^14.2.1",
     "react": "^18.2.0",

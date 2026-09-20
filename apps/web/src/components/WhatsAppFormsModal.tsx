@@ -124,15 +124,22 @@ export default function WhatsAppFormsModal({
   const handleDispatchViaServer = async () => {
     try {
       setDispatching(true);
-      await apiRequest('/whatsapp/send-result', 'POST', {
+      const res = await apiRequest('/whatsapp/send-result', 'POST', {
         sampleId,
         phone: customPhone,
         autoSend: true,
       });
-      setDispatchedSuccess(true);
-      toast.success(`تم إرسال ${forms.length} صور إلى هاتف المريض بنجاح!`);
+      if (res && res.delivered) {
+        setDispatchedSuccess(true);
+        toast.success(res.message || 'تم إرسال التقرير الطبي المعتمد إلى هاتف المريض بنجاح!');
+      } else if (res && res.success === false) {
+        toast.error(res.message || 'فشل الإرسال عبر واتساب', 'تنبيه');
+      } else {
+        setDispatchedSuccess(true);
+        toast.success(res?.message || 'تم إرسال التقرير بنجاح!');
+      }
     } catch (err: any) {
-      toast.error(err.message || 'فشل الإرسال التلقائي', 'خطأ');
+      toast.error(err.message || 'فشل الإرسال التلقائي عبر واتساب', 'خطأ');
     } finally {
       setDispatching(false);
     }

@@ -187,6 +187,20 @@ export async function GET(request: Request, { params }: { params: { id: string }
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>تنبيه سريري: لا يمكن طباعة التقرير الطبي</title>
         <style>
+          @font-face {
+            font-family: 'Cairo';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: local('Cairo Regular'), local('Cairo'), url('/fonts/Cairo-Regular.ttf') format('truetype');
+          }
+          @font-face {
+            font-family: 'Cairo';
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: local('Cairo Bold'), local('Cairo-Bold'), url('/fonts/Cairo-Bold.ttf') format('truetype');
+          }
           @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
           body {
             font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1461,6 +1475,36 @@ export async function GET(request: Request, { params }: { params: { id: string }
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Cairo:wght@400;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
   <style>
+    /* Offline Local Fonts (Tajawal & Cairo) with local() and /fonts/ fallback */
+    @font-face {
+      font-family: 'Tajawal';
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: local('Tajawal Regular'), local('Tajawal'), url('/fonts/Tajawal-Regular.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'Tajawal';
+      font-style: normal;
+      font-weight: 700;
+      font-display: swap;
+      src: local('Tajawal Bold'), local('Tajawal-Bold'), url('/fonts/Tajawal-Bold.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'Cairo';
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: local('Cairo Regular'), local('Cairo'), url('/fonts/Cairo-Regular.ttf') format('truetype');
+    }
+    @font-face {
+      font-family: 'Cairo';
+      font-style: normal;
+      font-weight: 700;
+      font-display: swap;
+      src: local('Cairo Bold'), local('Cairo-Bold'), url('/fonts/Cairo-Bold.ttf') format('truetype');
+    }
+
     @page { 
       size: A4 portrait; 
       margin: ${topMm}mm ${rightMm}mm ${bottomMm}mm ${leftMm}mm; 

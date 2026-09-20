@@ -11,6 +11,9 @@ import { useLab } from '../../components/LabContext';
 import { getShareableUrl } from '../../lib/urlHelper';
 import { Activity, Search, Plus, FileText, Printer, Share2, CheckCircle2, Clock, FlaskConical, AlertCircle, X, ChevronLeft, Send, RefreshCw, Eye, Calendar, Filter, User, History, Check, AlertOctagon, Zap, CreditCard, DollarSign } from 'lucide-react';
 import { toEnglishDigits, formatEnglishDate, formatEnglishTime, formatEnglishDateTime } from '../../lib/formatters';
+import nextDynamic from 'next/dynamic';
+
+const WhatsAppFormsModal = nextDynamic(() => import('../../components/WhatsAppFormsModal'), { ssr: false });
 
 function SamplesContent() {
   const router = useRouter();
@@ -34,6 +37,7 @@ function SamplesContent() {
   const [docPreviewUrl, setDocPreviewUrl] = useState<string | null>(null);
   const [docPreviewTitle, setDocPreviewTitle] = useState('');
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [selectedWhatsAppSample, setSelectedWhatsAppSample] = useState<any | null>(null);
   const [whatsappPhone, setWhatsappPhone] = useState('');
   const [whatsappText, setWhatsappText] = useState('');
 
@@ -155,16 +159,7 @@ function SamplesContent() {
       return;
     }
 
-    const phone = sample.patient?.phone || '';
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    const formattedPhone = cleanPhone.startsWith('0') ? `964${cleanPhone.slice(1)}` : cleanPhone;
-    setWhatsappPhone(formattedPhone);
-
-    const reportUrl = getShareableUrl(`/api/samples/${sample.id}/print`, labProfile);
-    const currentLabName = labProfile?.labName || 'المختبر للتحليلات الطبية';
-    setWhatsappText(
-      `مرحباً ${sample.patient?.name || ''}،\nيسر ${currentLabName} إعلامكم بصدور نتائج فحصكم رقم (#${sample.sampleNumber}).\nيمكنكم الاطلاع على التقرير المعتمد وتحميله مباشرة من الرابط:\n${reportUrl}\n\nنتمنى لكم دوام الصحة والعافية.`
-    );
+    setSelectedWhatsAppSample(sample);
     setShowWhatsAppModal(true);
   };
 
@@ -735,63 +730,19 @@ function SamplesContent() {
         </div>
       )}
 
-      {/* 7. WhatsApp Share Modal */}
-      {showWhatsAppModal && (
-        <div className="modal-overlay" onClick={() => setShowWhatsAppModal(false)}>
-          <div className="modal-content" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Share2 size={16} color="#22c55e" />
-                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>إرسال التقرير عبر واتساب</h3>
-              </div>
-              <button onClick={() => setShowWhatsAppModal(false)} className="btn-icon">
-                <X size={15} />
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div>
-                <label className="input-label">رقم هاتف المريض (مع الرمز الدولي):</label>
-                <input
-                  type="text"
-                  value={whatsappPhone}
-                  onChange={(e) => setWhatsappPhone(e.target.value)}
-                  className="input-control"
-                  placeholder="9647701234567"
-                />
-              </div>
-
-              <div>
-                <label className="input-label">نص الرسالة ورابط التقرير:</label>
-                <textarea
-                  rows={6}
-                  value={whatsappText}
-                  onChange={(e) => setWhatsappText(e.target.value)}
-                  className="textarea-control"
-                  style={{ fontSize: '11px', lineHeight: 1.4 }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
-                <button onClick={() => setShowWhatsAppModal(false)} className="btn-secondary">
-                  إلغاء
-                </button>
-                <button
-                  onClick={() => {
-                    const url = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(whatsappText)}`;
-                    window.open(url, '_blank');
-                    setShowWhatsAppModal(false);
-                    toast.success('تم فتح محادثة واتساب لإرسال التقرير بنجاح!', 'تم الإرسال');
-                  }}
-                  className="btn-success"
-                >
-                  <Send size={13} />
-                  <span>إرسال عبر واتساب الآن</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* 7. WhatsApp Multi-Form Image & PDF Direct Dispatch Modal */}
+      {selectedWhatsAppSample && (
+        <WhatsAppFormsModal
+          isOpen={showWhatsAppModal}
+          onClose={() => {
+            setShowWhatsAppModal(false);
+            setSelectedWhatsAppSample(null);
+          }}
+          sampleId={selectedWhatsAppSample.id}
+          sampleNumber={selectedWhatsAppSample.sampleNumber}
+          patientName={selectedWhatsAppSample.patient?.name || 'مريض'}
+          patientPhone={selectedWhatsAppSample.patient?.phone || ''}
+        />
       )}
 
       {/* QUICK PAY MODAL */}

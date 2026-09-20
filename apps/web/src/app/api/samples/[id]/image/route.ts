@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStore } from '../../../../../lib/serverStore';
-import { launchBrowser } from '../../../../../lib/puppeteerLauncher';
+import { getSharedBrowser } from '../../../../../lib/puppeteerLauncher';
 import { GET as getPrintReport } from '../print/route';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
@@ -28,11 +28,20 @@ export async function GET(request: Request, { params }: { params: { id: string }
     });
 
     const printResponse = await getPrintReport(customRequest, { params });
-    const html = await printResponse.text();
+    let html = await printResponse.text();
 
-    const browser = await launchBrowser();
+    // Determine baseUrl from the incoming request (e.g. http://localhost:8080)
+    const reqUrl = new URL(request.url);
+    const baseUrl = `${reqUrl.protocol}//${reqUrl.host}`;
+
+    // Inject <base href="${baseUrl}/"> into HTML <head> so relative assets and local fonts load correctly
+    if (!html.includes('<base ')) {
+      html = html.replace('<head>', `<head>\n  <base href="${baseUrl}/">`);
+    }
+
+    const browser = await getSharedBrowser();
+    const page = await browser.newPage();
     try {
-      const page = await browser.newPage();
       // Use 2x Retina scale factor so medical report image is ultra sharp on high-DPI smartphone displays
       await page.setViewport({
         width: 840,
@@ -41,8 +50,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
       });
 
       await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 15000 });
-      // Allow Google Fonts or icons a short moment to render
-      await new Promise(r => setTimeout(r, 200));
+
+      // Wait for document fonts to finish loading (replaces arbitrary setTimeout delay)
+      await page.evaluateHandle('document.fonts.ready').catch(() => {});
 
       const screenshotBuffer = await page.screenshot({
         type: 'jpeg',
@@ -59,7 +69,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
         },
       });
     } finally {
-      await browser.close().catch(() => {});
+      // Guarantee page/tab is closed in all cases without closing shared browser instance
+      await page.close().catch(() => {});
     }
   } catch (err: any) {
     console.error('[ImageRoute] Failed generating image snapshot:', err);

@@ -108,8 +108,42 @@ export async function POST(request: Request) {
     const defaultGreeting = `السلام عليكم ورحمة الله وبركاته.\nالأخ/الأخت الفاضل(ة): ${patient.name}\n\nمرفق لكم تقرير نتائج الفحوصات الطبية المعتمدة من (${labName}) بعدد (${totalForms} ${totalForms === 1 ? 'صورة' : 'صور منفصلة'}).\nرقم العينة: #${sample.sampleNumber}\n\nنتمنى لكم دوام الصحة والعافية!`;
     const waLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultGreeting)}` : null;
 
+    // Active Server Dispatch via Authentic Baileys Engine
+    if (body.autoSend === true) {
+      const SERVER_URL = process.env.FASTIFY_URL || process.env.BACKEND_URL || 'http://127.0.0.1:8000';
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+        const serverRes = await fetch(`${SERVER_URL}/whatsapp/send-result/${sample.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sampleId: sample.id,
+            phone: patientPhone,
+            autoSend: true,
+          }),
+          signal: controller.signal,
+          cache: 'no-store',
+        }).finally(() => clearTimeout(timeoutId));
+
+        const serverData = await serverRes.json();
+        return NextResponse.json(serverData, { status: serverRes.status });
+      } catch (fErr: any) {
+        return NextResponse.json(
+          {
+            success: false,
+            delivered: false,
+            message: 'تعذر الاتصال بمحرك واتساب المحلي لإرسال التقرير للمريض.',
+          },
+          { status: 503 }
+        );
+      }
+    }
+
     return NextResponse.json({
       success: true,
+      delivered: false,
       sampleId: sample.id,
       sampleNumber: sample.sampleNumber,
       patientName: patient.name,
