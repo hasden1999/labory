@@ -90,6 +90,51 @@ function generateHistogramSvg(type: 'WBC' | 'RBC' | 'PLT', points?: number[], wi
   `;
 }
 
+export const isCbcTest = (t: any) => {
+  const code = (t.test?.code || t.testCode || '').toUpperCase();
+  const name = (t.test?.name || '').toLowerCase();
+  const val = typeof t.resultValue === 'string' ? t.resultValue : '';
+  return code === 'CBC' || 
+         code === 'FBC' ||
+         name.includes('complete blood count') || 
+         name.includes('صورة الدم') || 
+         val.includes('CBC') || 
+         val.includes('ERYTHROID:') || 
+         val.includes('DIFFERENTIAL:');
+};
+
+export const isSfaTest = (t: any) => {
+  if (isCbcTest(t)) return false;
+  const code = (t.test?.code || t.testCode || '').toUpperCase();
+  const name = (t.test?.name || '').toLowerCase();
+  const val = typeof t.resultValue === 'string' ? t.resultValue : '';
+  return code === 'SFA' || 
+         val.includes('S.F.A') || 
+         val.includes('SEMINAL') || 
+         name.includes('semen') || 
+         name.includes('سائل منوي') || 
+         name.includes('نطف') || 
+         (val.includes('PHYSICAL:') && (val.includes('MOTILITY:') || val.includes('MORPHOLOGY:')));
+};
+
+export const isGueTest = (t: any) => {
+  if (isCbcTest(t) || isSfaTest(t)) return false;
+  const code = (t.test?.code || t.testCode || '').toUpperCase();
+  const name = (t.test?.name || '').toLowerCase();
+  const val = typeof t.resultValue === 'string' ? t.resultValue : '';
+  return code === 'GUE' || val.includes('G.U.E') || name.includes('urine') || name.includes('إدرار') || (val.includes('PHYSICAL:') && !val.includes('G.S.E') && !val.includes('PARASITOLOGY:'));
+};
+
+export const isGseTest = (t: any) => {
+  if (isCbcTest(t) || isSfaTest(t)) return false;
+  const code = (t.test?.code || t.testCode || '').toUpperCase();
+  const name = (t.test?.name || '').toLowerCase();
+  const val = typeof t.resultValue === 'string' ? t.resultValue : '';
+  return code === 'GSE' || val.includes('G.S.E') || name.includes('stool') || name.includes('خروج') || val.includes('PARASITOLOGY:');
+};
+
+export const isGeneralTest = (t: any) => !isCbcTest(t) && !isSfaTest(t) && !isGueTest(t) && !isGseTest(t);
+
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const store = getStore();
   const sample = store.samples.find(s => s.id === params.id || String(s.sampleNumber) === params.id);
@@ -101,13 +146,29 @@ export async function GET(request: Request, { params }: { params: { id: string }
     });
   }
 
-  // Clinical Safety Rule: Prevent printing when there are unperformed / incomplete tests
-  const incompleteTests = (sample.tests || []).filter(t => {
-    return !t.resultValue || String(t.resultValue).trim() === '';
-  });
-
   const { searchParams } = new URL(request.url);
   const allowForce = searchParams.get('force') === 'true';
+  const sectionParam = (searchParams.get('section') || 'all').toLowerCase();
+  const isSingleMode = searchParams.get('mode') === 'single' || searchParams.get('mode') === 'image';
+
+  // Filter tests by requested section for completeness checking
+  let targetTestsToCheck = sample.tests || [];
+  if (sectionParam === 'cbc' || sectionParam === 'fbc') {
+    targetTestsToCheck = targetTestsToCheck.filter(isCbcTest);
+  } else if (sectionParam === 'gue' || sectionParam === 'urine') {
+    targetTestsToCheck = targetTestsToCheck.filter(isGueTest);
+  } else if (sectionParam === 'gse' || sectionParam === 'stool') {
+    targetTestsToCheck = targetTestsToCheck.filter(isGseTest);
+  } else if (sectionParam === 'sfa' || sectionParam === 'semen') {
+    targetTestsToCheck = targetTestsToCheck.filter(isSfaTest);
+  } else if (sectionParam === 'general' || sectionParam === 'chemistry') {
+    targetTestsToCheck = targetTestsToCheck.filter(isGeneralTest);
+  }
+
+  // Clinical Safety Rule: Prevent printing when there are unperformed / incomplete tests in the targeted section
+  const incompleteTests = targetTestsToCheck.filter(t => {
+    return !t.resultValue || String(t.resultValue).trim() === '';
+  });
 
   if (incompleteTests.length > 0 && !allowForce) {
     const patientName = escapeHtml(sample.patient?.name || 'مريض غير محدد');
@@ -349,55 +410,28 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   // Tests Categorization
   const allTests = sample.tests || [];
-
-  const isCbcTest = (t: any) => {
-    const code = (t.test?.code || t.testCode || '').toUpperCase();
-    const name = (t.test?.name || '').toLowerCase();
-    const val = typeof t.resultValue === 'string' ? t.resultValue : '';
-    return code === 'CBC' || 
-           code === 'FBC' ||
-           name.includes('complete blood count') || 
-           name.includes('صورة الدم') || 
-           val.includes('CBC') || 
-           val.includes('ERYTHROID:') || 
-           val.includes('DIFFERENTIAL:');
-  };
-
-  const isSfaTest = (t: any) => {
-    if (isCbcTest(t)) return false;
-    const code = (t.test?.code || t.testCode || '').toUpperCase();
-    const name = (t.test?.name || '').toLowerCase();
-    const val = typeof t.resultValue === 'string' ? t.resultValue : '';
-    return code === 'SFA' || 
-           val.includes('S.F.A') || 
-           val.includes('SEMINAL') || 
-           name.includes('semen') || 
-           name.includes('سائل منوي') || 
-           name.includes('نطف') || 
-           (val.includes('PHYSICAL:') && (val.includes('MOTILITY:') || val.includes('MORPHOLOGY:')));
-  };
-
-  const isGueTest = (t: any) => {
-    if (isCbcTest(t) || isSfaTest(t)) return false;
-    const code = (t.test?.code || t.testCode || '').toUpperCase();
-    const name = (t.test?.name || '').toLowerCase();
-    const val = typeof t.resultValue === 'string' ? t.resultValue : '';
-    return code === 'GUE' || val.includes('G.U.E') || name.includes('urine') || name.includes('إدرار') || (val.includes('PHYSICAL:') && !val.includes('G.S.E') && !val.includes('PARASITOLOGY:'));
-  };
-
-  const isGseTest = (t: any) => {
-    if (isCbcTest(t) || isSfaTest(t)) return false;
-    const code = (t.test?.code || t.testCode || '').toUpperCase();
-    const name = (t.test?.name || '').toLowerCase();
-    const val = typeof t.resultValue === 'string' ? t.resultValue : '';
-    return code === 'GSE' || val.includes('G.S.E') || name.includes('stool') || name.includes('خروج') || val.includes('PARASITOLOGY:');
-  };
-
   const cbcTests = allTests.filter(isCbcTest);
   const sfaTests = allTests.filter(isSfaTest);
   const gueTests = allTests.filter(isGueTest);
   const gseTests = allTests.filter(isGseTest);
-  const generalTests = allTests.filter((t: any) => !isCbcTest(t) && !isSfaTest(t) && !isGueTest(t) && !isGseTest(t));
+  const generalTests = allTests.filter(isGeneralTest);
+
+  // Section visibility flags based on ?section= query param
+  const shouldRenderGeneral = generalTests.length > 0 && (sectionParam === 'all' || sectionParam === 'general' || sectionParam === 'chemistry');
+  const shouldRenderCbc = cbcTests.length > 0 && (sectionParam === 'all' || sectionParam === 'cbc' || sectionParam === 'fbc');
+  const shouldRenderGue = gueTests.length > 0 && (sectionParam === 'all' || sectionParam === 'gue' || sectionParam === 'urine');
+  const shouldRenderGse = gseTests.length > 0 && (sectionParam === 'all' || sectionParam === 'gse' || sectionParam === 'stool');
+  const shouldRenderSfa = sfaTests.length > 0 && (sectionParam === 'all' || sectionParam === 'sfa' || sectionParam === 'semen');
+
+  // Patient prior visits for Historical Delta display on report
+  const patId = sample.patientId || sample.patient?.id;
+  const patName = sample.patient?.name;
+  const priorSamples = (store.samples || [])
+    .filter(s => s.id !== sample.id && 
+      ((patId && (s.patientId === patId || s.patient?.id === patId)) || (patName && s.patient?.name === patName)) && 
+      new Date(s.createdAt).getTime() < new Date(sample.createdAt).getTime()
+    )
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   // Shared Helper: Digital or Pre-printed Header
   const renderHeader = (safeLabName: string, safeLabSubtitle: string, safeAddress: string, safePhone: string, safeDocName: string, safeDocTitle: string, safeLicense: string) => {
@@ -634,7 +668,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
   };
 
   // 1. General Laboratory Tests (Blood, Chemistry, Hormones, etc.)
-  if (generalTests.length > 0) {
+  if (shouldRenderGeneral) {
+    const hasAnyGeneralPrior = generalTests.some((t: any) => {
+      const code = (t.test?.code || t.testCode || t.test?.name || '').toUpperCase();
+      return priorSamples.some(ps => (ps.tests || []).some((x: any) => {
+        const c = (x.test?.code || x.testCode || x.test?.name || '').toUpperCase();
+        return (c && c === code) || (t.testId && x.testId === t.testId);
+      }));
+    });
+
     const generalRows = generalTests.map((t: any) => {
       const isBloodGroup = isBloodGroupTest(t.test || t);
       const isAbnormal = isBloodGroup ? false : t.isAbnormal;
@@ -642,6 +684,21 @@ export async function GET(request: Request, { params }: { params: { id: string }
       const testName = escapeHtml(t.test?.name || t.testCode || 'Test');
       const testUnit = escapeHtml(t.test?.unit || '-');
       const testRef = escapeHtml(t.test?.refRangeText || '-');
+
+      let priorValDisplay = '-';
+      if (hasAnyGeneralPrior) {
+        const testCode = (t.test?.code || t.testCode || t.test?.name || '').toUpperCase();
+        for (const ps of priorSamples) {
+          const pt = (ps.tests || []).find((x: any) => {
+            const c = (x.test?.code || x.testCode || x.test?.name || '').toUpperCase();
+            return (c && c === testCode) || (t.testId && x.testId === t.testId);
+          });
+          if (pt && pt.resultValue && String(pt.resultValue).trim() !== '') {
+            priorValDisplay = `${escapeHtml(toEnglishDigits(pt.resultValue))} <span style="font-size: 9px; color: #64748b; font-weight: 600;">(${formatEnglishDate(ps.createdAt)})</span>`;
+            break;
+          }
+        }
+      }
 
       if (typeof t.resultValue === 'string' && (t.resultValue.includes('MICROBIOLOGY') || t.resultValue.includes('ANTIBIOGRAM:'))) {
         const clean = t.resultValue.replace(/\[.*?MICROBIOLOGY.*?\]/gi, '').trim();
@@ -689,6 +746,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
           <td style="padding: 10px 12px; font-weight: 700; color: ${isAbnormal ? '#dc2626' : '#0f172a'}; text-align: left;">
             ${displayValue}
           </td>
+          ${hasAnyGeneralPrior ? `
+            <td style="padding: 10px 12px; color: #475569; font-weight: 700; text-align: left;">
+              ${priorValDisplay}
+            </td>
+          ` : ''}
           <td style="padding: 10px 12px; color: #475569; font-weight: 600; text-align: left;">${testUnit}</td>
           <td style="padding: 10px 12px; color: #334155; font-weight: 600; text-align: left;">${testRef}</td>
         </tr>`;
@@ -704,6 +766,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
             <tr class="table-header" style="background: #0f172a; color: #ffffff;">
               <th style="padding: 8px 12px; text-align: left; border-radius: 6px 0 0 0;">INVESTIGATION</th>
               <th style="padding: 8px 12px; text-align: left;">RESULT</th>
+              ${hasAnyGeneralPrior ? `<th style="padding: 8px 12px; text-align: left;">PREVIOUS (النتيجة السابقة)</th>` : ''}
               <th style="padding: 8px 12px; text-align: left;">UNIT</th>
               <th style="padding: 8px 12px; text-align: left; border-radius: 0 6px 0 0;">REFERENCE RANGE</th>
             </tr>
@@ -836,36 +899,59 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const hctLow = isFemale ? 36.0 : 40.0;
   const hctHigh = isFemale ? 48.0 : 52.0;
 
-  const renderCbcRow = (name: string, val: string, unit: string, ref: string, low: number, high: number) => {
+  let priorCbcParsed: ParsedCbc | null = null;
+  let priorCbcDate = '';
+  for (const ps of priorSamples) {
+    const pCbc = (ps.tests || []).find((t: any) => isCbcTest(t.test || t));
+    if (pCbc && pCbc.resultValue && String(pCbc.resultValue).trim() !== '') {
+      priorCbcParsed = parseCbcData(String(pCbc.resultValue));
+      priorCbcDate = formatEnglishDate(ps.createdAt);
+      break;
+    }
+  }
+
+  const renderCbcRow = (name: string, val: string, unit: string, ref: string, low: number, high: number, priorVal?: string) => {
     const num = parseFloat(val);
     const hasVal = val && val !== '-';
     const isAbn = hasVal && !isNaN(num) && (num < low || num > high);
     const flag = isAbn ? (num < low ? ' (L)' : ' (H)') : '';
     const col = isAbn ? '#dc2626' : '#0f172a';
+    const hasPrior = priorVal && priorVal !== '-';
     return `
       <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
         <td style="padding: 7px 10px; font-weight: 700; color: #1e293b; text-align: left;">${name}</td>
         <td style="padding: 7px 10px; font-weight: 800; color: ${col}; text-align: left;">
           ${hasVal ? escapeHtml(val) : '<span style="color:#94a3b8;">Pending</span>'}${flag ? `<span style="font-size: 10px; font-weight: 900; color: #dc2626; margin-left: 3px;">${flag}</span>` : ''}
         </td>
+        ${priorCbcParsed ? `
+          <td style="padding: 7px 10px; font-weight: 700; color: #475569; text-align: left;">
+            ${hasPrior ? escapeHtml(priorVal!) : '-'}
+          </td>
+        ` : ''}
         <td style="padding: 7px 10px; color: #64748b; font-weight: 600; text-align: left;">${unit}</td>
         <td style="padding: 7px 10px; color: #334155; font-weight: 600; text-align: left;">${ref}</td>
       </tr>`;
   };
 
-  const renderDiffRow = (name: string, pctStr: string, refPct: string, low: number, high: number, wbcVal: number) => {
+  const renderDiffRow = (name: string, pctStr: string, refPct: string, low: number, high: number, wbcVal: number, priorPct?: string) => {
     const num = parseFloat(pctStr);
     const hasVal = pctStr && pctStr !== '-';
     const isAbn = hasVal && !isNaN(num) && (num < low || num > high);
     const flag = isAbn ? (num < low ? ' (L)' : ' (H)') : '';
     const col = isAbn ? '#dc2626' : '#0f172a';
     const absVal = hasVal && !isNaN(num) && wbcVal > 0 ? ((wbcVal * num) / 100).toFixed(2) : '-';
+    const hasPrior = priorPct && priorPct !== '-';
     return `
       <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
         <td style="padding: 7px 10px; font-weight: 700; color: #1e293b; text-align: left;">${name}</td>
         <td style="padding: 7px 10px; font-weight: 800; color: ${col}; text-align: left;">
           ${hasVal ? `${escapeHtml(pctStr)} %` : '<span style="color:#94a3b8;">Pending</span>'}${flag ? `<span style="font-size: 10px; font-weight: 900; color: #dc2626; margin-left: 3px;">${flag}</span>` : ''}
         </td>
+        ${priorCbcParsed ? `
+          <td style="padding: 7px 10px; font-weight: 700; color: #475569; text-align: left;">
+            ${hasPrior ? `${escapeHtml(priorPct!)} %` : '-'}
+          </td>
+        ` : ''}
         <td style="padding: 7px 10px; font-weight: 700; color: #0284c7; text-align: left;">
           ${absVal !== '-' ? `${absVal} <span style="font-size: 9.5px; color: #64748b; font-weight: 600;">10^3/uL</span>` : '-'}
         </td>
@@ -873,8 +959,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
       </tr>`;
   };
 
-  for (const cbc of cbcTests) {
-    const rawVal = cbc.resultValue ? String(cbc.resultValue) : '';
+  if (shouldRenderCbc) {
+    for (const cbc of cbcTests) {
+      const rawVal = cbc.resultValue ? String(cbc.resultValue) : '';
     const parsed = parseCbcData(rawVal);
     const rbcNum = parseFloat(parsed.rbc);
     const mcvNum = parseFloat(parsed.mcv);
@@ -930,18 +1017,19 @@ export async function GET(request: Request, { params }: { params: { id: string }
                   <tr style="background: #f1f5f9; color: #475569; font-size: 10.5px; border-bottom: 1px solid #cbd5e1;">
                     <th style="padding: 5px 10px; text-align: left;">INVESTIGATION</th>
                     <th style="padding: 5px 10px; text-align: left;">RESULT</th>
+                    ${priorCbcParsed ? `<th style="padding: 5px 10px; text-align: left;">PREVIOUS (${priorCbcDate})</th>` : ''}
                     <th style="padding: 5px 10px; text-align: left;">UNIT</th>
                     <th style="padding: 5px 10px; text-align: left;">REFERENCE RANGE</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${renderCbcRow('R.B.C (Red Blood Cells)', parsed.rbc, '10^6/uL', rbcRef, rbcLow, rbcHigh)}
-                  ${renderCbcRow('HGB (Hemoglobin)', parsed.hgb, 'g/dL', hgbRef, hgbLow, hgbHigh)}
-                  ${renderCbcRow('HCT / PCV (Hematocrit)', parsed.hct, '%', hctRef, hctLow, hctHigh)}
-                  ${renderCbcRow('MCV (Mean Corpuscular Vol)', parsed.mcv, 'fL', '80.0 - 100.0', 80.0, 100.0)}
-                  ${renderCbcRow('MCH (Mean Corpuscular Hb)', parsed.mch, 'pg', '27.0 - 33.0', 27.0, 33.0)}
-                  ${renderCbcRow('MCHC (Mean Corpuscular Conc)', parsed.mchc, 'g/dL', '32.0 - 36.0', 32.0, 36.0)}
-                  ${renderCbcRow('RDW-CV (Red Cell Distribution)', parsed.rdw, '%', '11.5 - 14.5', 11.5, 14.5)}
+                  ${renderCbcRow('R.B.C (Red Blood Cells)', parsed.rbc, '10^6/uL', rbcRef, rbcLow, rbcHigh, priorCbcParsed?.rbc)}
+                  ${renderCbcRow('HGB (Hemoglobin)', parsed.hgb, 'g/dL', hgbRef, hgbLow, hgbHigh, priorCbcParsed?.hgb)}
+                  ${renderCbcRow('HCT / PCV (Hematocrit)', parsed.hct, '%', hctRef, hctLow, hctHigh, priorCbcParsed?.hct)}
+                  ${renderCbcRow('MCV (Mean Corpuscular Vol)', parsed.mcv, 'fL', '80.0 - 100.0', 80.0, 100.0, priorCbcParsed?.mcv)}
+                  ${renderCbcRow('MCH (Mean Corpuscular Hb)', parsed.mch, 'pg', '27.0 - 33.0', 27.0, 33.0, priorCbcParsed?.mch)}
+                  ${renderCbcRow('MCHC (Mean Corpuscular Conc)', parsed.mchc, 'g/dL', '32.0 - 36.0', 32.0, 36.0, priorCbcParsed?.mchc)}
+                  ${renderCbcRow('RDW-CV (Red Cell Distribution)', parsed.rdw, '%', '11.5 - 14.5', 11.5, 14.5, priorCbcParsed?.rdw)}
                 </tbody>
               </table>
               ${mentzerHtml ? `<div style="padding: 0 8px 8px 8px;">${mentzerHtml}</div>` : ''}
@@ -957,15 +1045,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
                   <tr style="background: #f1f5f9; color: #475569; font-size: 10.5px; border-bottom: 1px solid #cbd5e1;">
                     <th style="padding: 5px 10px; text-align: left;">INVESTIGATION</th>
                     <th style="padding: 5px 10px; text-align: left;">RESULT</th>
+                    ${priorCbcParsed ? `<th style="padding: 5px 10px; text-align: left;">PREVIOUS (${priorCbcDate})</th>` : ''}
                     <th style="padding: 5px 10px; text-align: left;">UNIT</th>
                     <th style="padding: 5px 10px; text-align: left;">REFERENCE RANGE</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${renderCbcRow('PLT (Platelet Count)', parsed.plt, '10^3/uL', '150 - 450', 150, 450)}
-                  ${renderCbcRow('MPV (Mean Platelet Volume)', parsed.mpv, 'fL', '7.4 - 10.4', 7.4, 10.4)}
-                  ${renderCbcRow('PDW (Platelet Dist. Width)', parsed.pdw, '%', '9.0 - 17.0', 9.0, 17.0)}
-                  ${renderCbcRow('PCT (Plateletcrit)', parsed.pct, '%', '0.15 - 0.40', 0.15, 0.40)}
+                  ${renderCbcRow('PLT (Platelet Count)', parsed.plt, '10^3/uL', '150 - 450', 150, 450, priorCbcParsed?.plt)}
+                  ${renderCbcRow('MPV (Mean Platelet Volume)', parsed.mpv, 'fL', '7.4 - 10.4', 7.4, 10.4, priorCbcParsed?.mpv)}
+                  ${renderCbcRow('PDW (Platelet Dist. Width)', parsed.pdw, '%', '9.0 - 17.0', 9.0, 17.0, priorCbcParsed?.pdw)}
+                  ${renderCbcRow('PCT (Plateletcrit)', parsed.pct, '%', '0.15 - 0.40', 0.15, 0.40, priorCbcParsed?.pct)}
                 </tbody>
               </table>
             </div>
@@ -983,12 +1072,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
                   <tr style="background: #f1f5f9; color: #475569; font-size: 10.5px; border-bottom: 1px solid #cbd5e1;">
                     <th style="padding: 5px 10px; text-align: left;">INVESTIGATION</th>
                     <th style="padding: 5px 10px; text-align: left;">RESULT</th>
+                    ${priorCbcParsed ? `<th style="padding: 5px 10px; text-align: left;">PREVIOUS (${priorCbcDate})</th>` : ''}
                     <th style="padding: 5px 10px; text-align: left;">UNIT</th>
                     <th style="padding: 5px 10px; text-align: left;">REFERENCE RANGE</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${renderCbcRow('W.B.C (Total Leukocytes)', parsed.wbc, '10^3/uL', '4.0 - 11.0', 4.0, 11.0)}
+                  ${renderCbcRow('W.B.C (Total Leukocytes)', parsed.wbc, '10^3/uL', '4.0 - 11.0', 4.0, 11.0, priorCbcParsed?.wbc)}
                 </tbody>
               </table>
 
@@ -1002,16 +1092,17 @@ export async function GET(request: Request, { params }: { params: { id: string }
                   <tr style="background: #ffffff; color: #64748b; font-size: 10px; border-bottom: 1px solid #f1f5f9;">
                     <th style="padding: 4px 10px; text-align: left;">PARAMETER</th>
                     <th style="padding: 4px 10px; text-align: left;">RELATIVE (%)</th>
+                    ${priorCbcParsed ? `<th style="padding: 4px 10px; text-align: left;">PREV (%)</th>` : ''}
                     <th style="padding: 4px 10px; text-align: left;">ABSOLUTE</th>
                     <th style="padding: 4px 10px; text-align: left;">REF. RANGE (%)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${renderDiffRow('Neutrophils', parsed.neutrophils, '40.0 - 75.0 %', 40.0, 75.0, wbcNum)}
-                  ${renderDiffRow('Lymphocytes', parsed.lymphocytes, '20.0 - 45.0 %', 20.0, 45.0, wbcNum)}
-                  ${renderDiffRow('Monocytes', parsed.monocytes, '2.0 - 10.0 %', 2.0, 10.0, wbcNum)}
-                  ${renderDiffRow('Eosinophils', parsed.eosinophils, '1.0 - 6.0 %', 1.0, 6.0, wbcNum)}
-                  ${renderDiffRow('Basophils', parsed.basophils, '0.0 - 1.0 %', 0.0, 1.0, wbcNum)}
+                  ${renderDiffRow('Neutrophils', parsed.neutrophils, '40.0 - 75.0 %', 40.0, 75.0, wbcNum, priorCbcParsed?.neutrophils)}
+                  ${renderDiffRow('Lymphocytes', parsed.lymphocytes, '20.0 - 45.0 %', 20.0, 45.0, wbcNum, priorCbcParsed?.lymphocytes)}
+                  ${renderDiffRow('Monocytes', parsed.monocytes, '2.0 - 10.0 %', 2.0, 10.0, wbcNum, priorCbcParsed?.monocytes)}
+                  ${renderDiffRow('Eosinophils', parsed.eosinophils, '1.0 - 6.0 %', 1.0, 6.0, wbcNum, priorCbcParsed?.eosinophils)}
+                  ${renderDiffRow('Basophils', parsed.basophils, '0.0 - 1.0 %', 0.0, 1.0, wbcNum, priorCbcParsed?.basophils)}
                 </tbody>
               </table>
             </div>
@@ -1051,10 +1142,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
         ${renderFooter(safeFooter, safeLabName)}
       </div>
     `);
+    }
   }
 
   // 3. Dedicated General Urine Examination (G.U.E) Page
-  for (const gue of gueTests) {
+  if (shouldRenderGue) {
+    for (const gue of gueTests) {
     const rawVal = gue.resultValue ? String(gue.resultValue) : '';
     const clean = rawVal.replace(/\[.*?G\.?U\.?E.*?\]/gi, '').trim();
     const lines = clean.split('\n').filter(Boolean);
@@ -1128,10 +1221,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
         ${renderFooter(safeFooter, safeLabName)}
       </div>
     `);
+    }
   }
 
   // 4. Dedicated General Stool Examination (G.S.E) Page
-  for (const gse of gseTests) {
+  if (shouldRenderGse) {
+    for (const gse of gseTests) {
     const rawVal = gse.resultValue ? String(gse.resultValue) : '';
     const clean = rawVal.replace(/\[.*?G\.?S\.?E.*?\]/gi, '').trim();
     const lines = clean.split('\n').filter(Boolean);
@@ -1225,10 +1320,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
         ${renderFooter(safeFooter, safeLabName)}
       </div>
     `);
+    }
   }
 
   // 5. Dedicated Seminal Fluid Analysis (S.F.A) Page
-  for (const sfa of sfaTests) {
+  if (shouldRenderSfa) {
+    for (const sfa of sfaTests) {
     const rawVal = sfa.resultValue ? String(sfa.resultValue) : '';
     const clean = rawVal.replace(/\[.*?SEMINAL.*?\]/gi, '').trim();
     const lines = clean.split('\n').filter(Boolean);
@@ -1337,6 +1434,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         ${renderFooter(safeFooter, safeLabName)}
       </div>
     `);
+    }
   }
 
   // Fallback if empty
@@ -1499,12 +1597,19 @@ export async function GET(request: Request, { params }: { params: { id: string }
       }
       tr { page-break-inside: avoid; }
     }
+    ${isSingleMode ? `
+      body { background: #ffffff !important; padding: 0 !important; }
+      .report-card { border: none !important; box-shadow: none !important; margin: 0 auto !important; padding: 16px 20px !important; }
+      .print-btn-bar { display: none !important; }
+    ` : ''}
   </style>
 </head>
 <body>
-  <div class="print-btn-bar">
-    <button class="btn-print" onclick="window.print()">طباعة التقرير (Print A4)</button>
-  </div>
+  ${!isSingleMode ? `
+    <div class="print-btn-bar">
+      <button class="btn-print" onclick="window.print()">طباعة التقرير (Print A4)</button>
+    </div>
+  ` : ''}
 
   ${renderedPages.join('\n')}
 </body>

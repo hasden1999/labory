@@ -130,7 +130,8 @@ function PatientsContent() {
     if (!silent) setLoading(true);
     try {
       const res = await apiRequest('/patients');
-      setPatients(res || []);
+      const list = Array.isArray(res) ? res : (res?.patients && Array.isArray(res.patients) ? res.patients : []);
+      setPatients(list);
 
       // If URL has patient id, auto expand it
       const paramId = searchParams.get('id');
@@ -399,10 +400,10 @@ function PatientsContent() {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter((p) => {
         return (
-          p.name.toLowerCase().includes(q) ||
+          (p.name || '').toLowerCase().includes(q) ||
           (p.phone && p.phone.includes(q)) ||
-          (p.age && p.age.toString().includes(q)) ||
-          p.id.includes(q)
+          (p.age !== undefined && p.age !== null && p.age.toString().includes(q)) ||
+          (p.id && p.id.includes(q))
         );
       });
     }

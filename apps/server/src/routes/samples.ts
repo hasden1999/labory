@@ -11,9 +11,12 @@ export const SampleStatus = {
 export async function sampleRoutes(fastify: FastifyInstance) {
   // Get Samples with search query and filters
   fastify.get('/samples', async (request: any, reply: any) => {
-    const { status, unpaidOnly, query, urgentOnly, dateFilter, customDate } = request.query as any;
+    const { status, unpaidOnly, query, urgentOnly, dateFilter, customDate, patientId } = request.query as any;
 
     const whereClause: any = { isDeleted: false };
+    if (patientId) {
+      whereClause.patientId = patientId;
+    }
     if (status && status !== 'ALL') {
       whereClause.status = status;
     }

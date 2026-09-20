@@ -1,3 +1,27 @@
+class StartupTracer {
+  constructor() {
+    this.startNs = process.hrtime.bigint();
+    this.checkpoints = [];
+  }
+
+  mark(label) {
+    const nowNs = process.hrtime.bigint();
+    const elapsedMs = Number(nowNs - this.startNs) / 1e6;
+    const formatted = `+${elapsedMs.toFixed(1)}ms`;
+    this.checkpoints.push({ label, elapsedMs: parseFloat(elapsedMs.toFixed(1)) });
+    console.log(`⏱️ [STARTUP] ${formatted.padStart(9)} -> ${label}`);
+  }
+
+  summary() {
+    console.log('\n================ STARTUP PERFORMANCE AUDIT ================');
+    console.table(this.checkpoints);
+    console.log('===========================================================\n');
+  }
+}
+
+const tracer = new StartupTracer();
+tracer.mark('Process Entry (T0)');
+
 const { app, BrowserWindow, ipcMain, shell, dialog, Tray, Menu, nativeImage, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -5,10 +29,17 @@ const { spawn, execSync } = require('child_process');
 const http = require('http');
 const net = require('net');
 
-// Disable hardware acceleration to eliminate Windows GPU crashes & black screen glitches
-app.disableHardwareAcceleration();
-app.commandLine.appendSwitch('disable-gpu');
-app.commandLine.appendSwitch('disable-software-rasterizer');
+// Hardware Acceleration & Direct3D 11/12 GPU Compositor (Fast 60fps Native Rendering)
+const isSafeMode = process.argv.includes('--safe-mode') || process.env.LABRYO_SAFE_MODE === '1';
+if (isSafeMode) {
+  app.disableHardwareAcceleration();
+  app.commandLine.appendSwitch('disable-gpu');
+  app.commandLine.appendSwitch('disable-software-rasterizer');
+} else {
+  app.commandLine.appendSwitch('ignore-gpu-blocklist');
+  app.commandLine.appendSwitch('enable-gpu-rasterization');
+  app.commandLine.appendSwitch('enable-zero-copy');
+}
 app.commandLine.appendSwitch('no-sandbox');
 
 // Enforce single application instance
@@ -99,8 +130,10 @@ function initAutoUpdater() {
   }, 15000);
 }
 
-// Resolve project root reliably across dev and packaged modes
+// Resolve project root reliably across dev and packaged modes (cached)
+let _cachedProjectRoot = null;
 function findProjectRoot() {
+  if (_cachedProjectRoot) return _cachedProjectRoot;
   const candidates = [
     process.env.LABRYO_PROJECT_ROOT,
     process.cwd(),
@@ -116,6 +149,7 @@ function findProjectRoot() {
     let cur = start;
     for (let i = 0; i < 8; i++) {
       if (fs.existsSync(path.join(cur, 'package.json')) && fs.existsSync(path.join(cur, 'apps', 'web'))) {
+        _cachedProjectRoot = cur;
         return cur;
       }
       const parent = path.dirname(cur);
@@ -123,7 +157,45 @@ function findProjectRoot() {
       cur = parent;
     }
   }
-  return 'D:\\lab';
+  _cachedProjectRoot = 'D:\\lab';
+  return _cachedProjectRoot;
+}
+
+// Async seed database copy — runs in background, never blocks startup
+async function seedDatabaseAsync(engineDir, userDbFile) {
+  const seedCandidates = [
+    path.join(engineDir, 'standalone', 'apps', 'web', 'data', 'lab_store.json'),
+    path.join(engineDir, 'standalone', 'data', 'lab_store.json'),
+    path.join(engineDir, 'data', 'lab_store.json'),
+  ];
+  for (const sc of seedCandidates) {
+    try {
+      await fs.promises.access(sc);
+      const rawSeed = await fs.promises.readFile(sc, 'utf-8');
+      const seedData = JSON.parse(rawSeed);
+      seedData.patients = [];
+      seedData.samples = [];
+      seedData.expenses = [];
+      seedData.doctors = [];
+      seedData.incomingResults = [];
+      seedData.deviceRawLogs = [];
+      if (!seedData.settings) seedData.settings = {};
+      seedData.settings.labName = '';
+      seedData.settings.doctorName = '';
+      seedData.settings.phone = '';
+      seedData.settings.whatsappNumber = '';
+      seedData.settings.address = '';
+      seedData.settings.reportHeader = '';
+      seedData.settings.isConfigured = false;
+      delete seedData.license;
+      await fs.promises.writeFile(userDbFile, JSON.stringify(seedData, null, 2), 'utf-8');
+      console.log('[Desktop] Copied and sanitized seed database to:', userDbFile);
+      return;
+    } catch (e) {
+      // Try next candidate
+    }
+  }
+  console.warn('[Desktop] No seed database found in any candidate path');
 }
 
 // Find Next.js CLI binary or bundled standalone server to spawn Node directly
@@ -145,43 +217,10 @@ function getStartCommand(projectRoot) {
       fs.mkdirSync(userDataDir, { recursive: true });
     }
 
-    // Seed initial database if not yet existing on client's machine
+    // Seed initial database asynchronously in background (non-blocking, first install only)
     const userDbFile = path.join(userDataDir, 'lab_store.json');
     if (!fs.existsSync(userDbFile)) {
-      const seedCandidates = [
-        path.join(engineDir, 'standalone', 'apps', 'web', 'data', 'lab_store.json'),
-        path.join(engineDir, 'standalone', 'data', 'lab_store.json'),
-        path.join(engineDir, 'data', 'lab_store.json'),
-      ];
-      for (const sc of seedCandidates) {
-        if (fs.existsSync(sc)) {
-          try {
-            const rawSeed = fs.readFileSync(sc, 'utf-8');
-            const seedData = JSON.parse(rawSeed);
-            seedData.patients = [];
-            seedData.samples = [];
-            seedData.expenses = [];
-            seedData.doctors = [];
-            seedData.incomingResults = [];
-            seedData.deviceRawLogs = [];
-            if (!seedData.settings) seedData.settings = {};
-            seedData.settings.labName = '';
-            seedData.settings.doctorName = '';
-            seedData.settings.phone = '';
-            seedData.settings.whatsappNumber = '';
-            seedData.settings.address = '';
-            seedData.settings.reportHeader = '';
-            seedData.settings.isConfigured = false;
-            delete seedData.license;
-
-            fs.writeFileSync(userDbFile, JSON.stringify(seedData, null, 2), 'utf-8');
-            console.log('[Desktop] Copied and sanitized seed database to:', userDbFile);
-            break;
-          } catch (e) {
-            console.error('[Desktop] Failed to copy seed DB:', e);
-          }
-        }
-      }
+      seedDatabaseAsync(engineDir, userDbFile);
     }
 
     return {
@@ -198,13 +237,24 @@ function getStartCommand(projectRoot) {
   }
 
   // 2. Development / local monorepo mode
-  const nextBinCandidates = [
-    path.join(projectRoot, 'node_modules', 'next', 'dist', 'bin', 'next'),
-    path.join(projectRoot, 'apps', 'web', 'node_modules', 'next', 'dist', 'bin', 'next'),
-  ];
+  const isDevMode = process.env.LABRYO_DEV === '1' || process.argv.includes('--dev');
+  if (isDevMode) {
+    console.log('[Desktop] Live Development Mode enabled (Next.js Fast Refresh HMR active)');
+    const isWin = process.platform === 'win32';
+    return {
+      cmd: isWin ? 'npm.cmd' : 'npm',
+      args: ['run', 'dev:web'],
+      cwd: projectRoot,
+      extraEnv: {
+        PORT: String(WEB_PORT),
+        NODE_ENV: 'development',
+      },
+    };
+  }
 
   let nodeCmd = 'node';
   const nodeCandidates = [
+    path.join(projectRoot, 'apps', 'desktop', 'engine', 'node.exe'),
     'C:\\Program Files\\nodejs\\node.exe',
     'C:\\Program Files (x86)\\nodejs\\node.exe',
   ];
@@ -214,6 +264,41 @@ function getStartCommand(projectRoot) {
       break;
     }
   }
+
+  // Check for ultra-fast standalone server first (starts in ~1s vs ~6s for Next.js CLI)
+  const standaloneCandidates = [
+    {
+      script: path.join(projectRoot, 'apps', 'desktop', 'engine', 'standalone', 'apps', 'web', 'server.js'),
+      cwd: path.join(projectRoot, 'apps', 'desktop', 'engine', 'standalone', 'apps', 'web'),
+      dataDir: path.join(projectRoot, 'apps', 'web', 'data'),
+    },
+    {
+      script: path.join(projectRoot, 'apps', 'web', '.next', 'standalone', 'apps', 'web', 'server.js'),
+      cwd: path.join(projectRoot, 'apps', 'web', '.next', 'standalone', 'apps', 'web'),
+      dataDir: path.join(projectRoot, 'apps', 'web', 'data'),
+    },
+  ];
+
+  for (const sc of standaloneCandidates) {
+    if (fs.existsSync(sc.script)) {
+      return {
+        cmd: nodeCmd,
+        args: [sc.script],
+        cwd: sc.cwd,
+        extraEnv: {
+          LABRYO_DATA_DIR: sc.dataDir,
+          HOSTNAME: '0.0.0.0',
+          PORT: String(WEB_PORT),
+          NODE_ENV: 'production',
+        },
+      };
+    }
+  }
+
+  const nextBinCandidates = [
+    path.join(projectRoot, 'node_modules', 'next', 'dist', 'bin', 'next'),
+    path.join(projectRoot, 'apps', 'web', 'node_modules', 'next', 'dist', 'bin', 'next'),
+  ];
 
   for (const bin of nextBinCandidates) {
     if (fs.existsSync(bin)) {
@@ -234,8 +319,8 @@ function getStartCommand(projectRoot) {
   };
 }
 
-// Ultra-fast TCP port check (responds in 1-5ms without HTTP handshake overhead)
-function checkTcpPort(port, host = '127.0.0.1', timeoutMs = 250) {
+// Ultra-fast TCP port check (responds in 0.5-2ms on localhost without overhead)
+function checkTcpPort(port, host = '127.0.0.1', timeoutMs = 40) {
   return new Promise((resolve) => {
     const socket = new net.Socket();
     let settled = false;
@@ -270,8 +355,8 @@ function checkTcpPort(port, host = '127.0.0.1', timeoutMs = 250) {
   });
 }
 
-// Fast HTTP Health Check once port is open
-function checkHttpHealth(port, timeoutMs = 1200) {
+// Fast HTTP Health Check once port is open (responds in 1-5ms)
+function checkHttpHealth(port, timeoutMs = 120) {
   return new Promise((resolve) => {
     const req = http.get(`http://127.0.0.1:${port}/health`, (res) => {
       resolve(res.statusCode >= 200 && res.statusCode < 400);
@@ -284,24 +369,16 @@ function checkHttpHealth(port, timeoutMs = 1200) {
   });
 }
 
-// Check if web server is responsive with 2-stage fast validation
+// Check if web server is responsive with ultra-fast 2-stage validation
 async function isServerReady(port) {
-  const portOpen = await checkTcpPort(port, '127.0.0.1', 200);
+  const portOpen = await checkTcpPort(port, '127.0.0.1', 40);
   if (!portOpen) return false;
-  return await checkHttpHealth(port, 1000);
+  return await checkHttpHealth(port, 120);
 }
 
-// Silent background route pre-warming to compile React RSC chunks before display
+// No-op or non-competing pre-warm to avoid double-request SSR stalls
 function preWarmServer(port) {
-  try {
-    const req = http.get(`http://127.0.0.1:${port}/`, (res) => {
-      res.resume(); // Discard stream to release memory
-    });
-    req.on('error', () => {});
-    req.setTimeout(3000, () => {
-      try { req.abort(); } catch (e) {}
-    });
-  } catch (e) {}
+  // Directly loaded by mainWindow.loadURL to avoid double-render CPU competition
 }
 
 // Kill backend process and all its tree cleanly, ensuring port is liberated
@@ -628,44 +705,53 @@ function getErrorHtml() {
 async function startAndLoadApp() {
   const appUrl = `http://localhost:${WEB_PORT}`;
 
+  tracer.mark('Server Startup Sequence Triggered (T2)');
   updateSplashStatus('جاري فحص حالة الخادم المحلي...');
   await ensureServerStarted();
 
   let ready = false;
   let attempts = 0;
-  const maxAttempts = 180; // 180 attempts with dynamic fast polling (50ms initial)
+  const maxAttempts = 200; // Fast sub-30ms polling for instant readiness detection
 
   while (attempts < maxAttempts) {
     ready = await isServerReady(WEB_PORT);
-    if (ready) break;
-
-    if (attempts === 4) {
-      updateSplashStatus('جاري تشغيل محرك النظام وقاعدة البيانات المحلية...');
-    } else if (attempts === 20) {
-      updateSplashStatus('جاري تهيئة خدمات الفحوصات والتحاليل الطبية...');
-    } else if (attempts === 50) {
-      updateSplashStatus('جاري استكمال إقلاع النظام، ثوانٍ معدودة...');
+    if (ready) {
+      tracer.mark(`Server Ready Detected on attempt #${attempts} (T3)`);
+      break;
     }
 
-    const interval = attempts < 40 ? 50 : 100;
+    if (attempts === 6) {
+      updateSplashStatus('جاري تشغيل محرك النظام وقاعدة البيانات المحلية...');
+    } else if (attempts === 25) {
+      updateSplashStatus('جاري تهيئة خدمات الفحوصات والتحاليل الطبية...');
+    } else if (attempts === 60) {
+      updateSplashStatus('جاري استكمال إقلاع النظام، لحظات معدودة...');
+    }
+
+    const interval = attempts < 20 ? 15 : 35;
     await new Promise((r) => setTimeout(r, interval));
     attempts++;
   }
 
   if (ready) {
     updateSplashStatus('اكتمل التجهيز — جاري فتح واجهة النظام...');
-    preWarmServer(WEB_PORT);
 
     if (!mainWindow || mainWindow.isDestroyed()) {
       createMainWindow();
     }
 
-    // Load URL silently in background
+    tracer.mark('Navigating Main Window to App URL (T4)');
+    // Load URL directly in background using pre-warmed renderer process
     mainWindow.loadURL(appUrl);
 
-    // Show seamlessly once first paint / ready
-    mainWindow.once('ready-to-show', () => {
+    // Show seamlessly once DOM is ready or first paint finishes (whichever is faster)
+    let windowShown = false;
+    const revealMainWindow = () => {
+      if (windowShown) return;
+      windowShown = true;
       isPreWarmed = true;
+      tracer.mark('Revealing Main Window (TTI - T5)');
+      tracer.summary();
       if (splashWindow && !splashWindow.isDestroyed()) {
         splashWindow.destroy();
         splashWindow = null;
@@ -675,21 +761,17 @@ async function startAndLoadApp() {
         mainWindow.maximize();
         mainWindow.focus();
       }
+    };
+
+    mainWindow.once('ready-to-show', revealMainWindow);
+    mainWindow.webContents.once('dom-ready', () => {
+      tracer.mark('DOM Content Ready (T4.5)');
+      // DOM is parsed and stylesheets loaded: reveal immediately with 20ms buffer
+      setTimeout(revealMainWindow, 20);
     });
 
-    // Safety fallback: if ready-to-show takes more than 3.5s, force show
-    setTimeout(() => {
-      isPreWarmed = true;
-      if (splashWindow && !splashWindow.isDestroyed()) {
-        splashWindow.destroy();
-        splashWindow = null;
-      }
-      if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
-        mainWindow.show();
-        mainWindow.maximize();
-        mainWindow.focus();
-      }
-    }, 3500);
+    // Safety fallback: if neither fires within 1.6s, force show
+    setTimeout(revealMainWindow, 1600);
 
   } else {
     // Server failed to start within timeout
@@ -903,7 +985,7 @@ function createSplashWindow() {
     resizable: false,
     frame: false,
     center: true,
-    show: false,
+    show: true,
     alwaysOnTop: true,
     backgroundColor: '#090d16',
     icon: winIcon,
@@ -915,15 +997,21 @@ function createSplashWindow() {
 
   splashWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(getSplashHtml()));
 
-  splashWindow.once('ready-to-show', () => {
-    if (splashWindow && !splashWindow.isDestroyed()) {
-      splashWindow.show();
-    }
-  });
-
   splashWindow.on('closed', () => {
     splashWindow = null;
   });
+}
+
+// Lightweight dark warmup shell to pre-initialize Chromium renderer & V8 JIT engine
+function getWarmupHtml() {
+  return `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <style>body { background: #090d16; margin: 0; overflow: hidden; }</style>
+</head>
+<body></body>
+</html>`;
 }
 
 // Create silent main window (initially hidden until content is ready)
@@ -953,9 +1041,23 @@ function createMainWindow() {
     },
   });
 
+  // Pre-warm the Chromium renderer process in memory while Node server boots
+  mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(getWarmupHtml()));
+
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
+  });
+
+  // Live Dev Mode Keyboard Shortcuts (F5 to force refresh, F12 to inspect DevTools)
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.type === 'keyDown') {
+      if (input.key === 'F5' || (input.control && input.key.toLowerCase() === 'r')) {
+        mainWindow.reload();
+      } else if (input.key === 'F12' || (input.control && input.shift && input.key.toLowerCase() === 'i')) {
+        mainWindow.webContents.toggleDevTools();
+      }
+    }
   });
 
   // Clean exit: closing main window terminates all services and exits completely
@@ -1040,18 +1142,17 @@ async function startBackgroundPreWarm() {
 
     let ready = false;
     let attempts = 0;
-    const maxAttempts = 180; // Fast dynamic 50ms polling
+    const maxAttempts = 200; // Fast sub-30ms dynamic polling
 
     while (attempts < maxAttempts) {
       ready = await isServerReady(WEB_PORT);
       if (ready) break;
-      const interval = attempts < 40 ? 50 : 100;
+      const interval = attempts < 30 ? 25 : 50;
       await new Promise((r) => setTimeout(r, interval));
       attempts++;
     }
 
     if (ready && mainWindow && !mainWindow.isDestroyed()) {
-      preWarmServer(WEB_PORT);
       mainWindow.loadURL(appUrl);
 
       mainWindow.once('ready-to-show', () => {
@@ -1070,12 +1171,18 @@ async function startBackgroundPreWarm() {
 
 // App Lifecycle
 app.whenReady().then(() => {
+  tracer.mark('Electron Ready (T1)');
+
   // Disable automatic background launch with Windows boot
   configureAutoLaunch(false);
 
   // Normal user launch: show instant splash and load cleanly
   createSplashWindow();
+  tracer.mark('Splash Window Created');
+
   createMainWindow();
+  tracer.mark('Main Window Pre-Created & Warmed');
+
   startAndLoadApp();
   initAutoUpdater();
 

@@ -2414,6 +2414,39 @@
   "doctors": [],
   "patients": [
     {
+      "id": "pat-1789917365308",
+      "name": "على كاظم",
+      "phone": "",
+      "age": null,
+      "gender": "MALE",
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-09-20T15:16:05.308Z",
+      "updatedAt": "2026-09-20T15:16:05.308Z"
+    },
+    {
+      "id": "pat-1789916991628",
+      "name": "سكر تراكمي ء",
+      "phone": "",
+      "age": null,
+      "gender": "MALE",
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-09-20T15:09:51.628Z",
+      "updatedAt": "2026-09-20T15:09:51.628Z"
+    },
+    {
+      "id": "pat-1789915731663",
+      "name": "سكر تراكمي",
+      "phone": "",
+      "age": null,
+      "gender": "MALE",
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-09-20T14:48:51.663Z",
+      "updatedAt": "2026-09-20T14:48:51.663Z"
+    },
+    {
       "id": "pat-1789853456105",
       "name": "انور",
       "phone": "",
@@ -2450,9 +2483,445 @@
         "Blood Group & Rh Factor",
         "General Urine Examination (GUE)"
       ]
+    },
+    {
+      "id": "p-1",
+      "name": "Zaid Ali Al-Khafaji",
+      "phone": "07701234567",
+      "age": 34,
+      "gender": "MALE",
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-09-19T20:39:54.662Z",
+      "updatedAt": "2026-09-19T20:39:54.662Z"
     }
   ],
   "samples": [
+    {
+      "id": "s-1010",
+      "sampleNumber": 1010,
+      "patientId": "pat-1789915731663",
+      "patient": {
+        "id": "pat-1789915731663",
+        "name": "سكر تراكمي",
+        "phone": "",
+        "age": null,
+        "gender": "MALE",
+        "address": "",
+        "notes": "",
+        "createdAt": "2026-09-20T14:48:51.663Z",
+        "updatedAt": "2026-09-20T14:48:51.663Z"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "doctorCommission": 0,
+      "status": "RECEIVED",
+      "isUrgent": false,
+      "priceTotal": 30000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 30000,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": "",
+      "createdAt": "2026-09-20T16:38:47.076Z",
+      "tests": [
+        {
+          "id": "st-1789922327076-0",
+          "sampleId": "s-1010",
+          "testId": "t-hba1c",
+          "test": {
+            "id": "t-hba1c",
+            "code": "HBA1C",
+            "name": "Glycated Hemoglobin (HbA1c)",
+            "arabicName": "السكر التراكمي",
+            "category": "الكيمياء السريرية والسكري",
+            "price": 15000,
+            "costEstimate": 3500,
+            "refRangeLow": 4,
+            "refRangeHigh": 5.6,
+            "criticalHigh": 12,
+            "refRangeText": "4.0 - 5.6 % (Non-diabetic)",
+            "unit": "%",
+            "sampleType": "دم كامل (EDTA)",
+            "loincCode": "4548-4"
+          },
+          "resultValue": null,
+          "isAbnormal": false,
+          "status": "PENDING"
+        },
+        {
+          "id": "st-1789922327076-1",
+          "sampleId": "s-1010",
+          "testId": "t-ogtt",
+          "test": {
+            "id": "t-ogtt",
+            "code": "OGTT",
+            "name": "Oral Glucose Tolerance Test (2hr)",
+            "arabicName": "اختبار تحمل السكر الفموي",
+            "category": "الكيمياء السريرية والسكري",
+            "price": 15000,
+            "costEstimate": 2500,
+            "refRangeLow": 70,
+            "refRangeHigh": 140,
+            "refRangeText": "< 140",
+            "unit": "mg/dL",
+            "sampleType": "مصل الدم (Serum)",
+            "loincCode": "20436-2"
+          },
+          "resultValue": null,
+          "isAbnormal": false,
+          "status": "PENDING"
+        }
+      ]
+    },
+    {
+      "id": "s-1009",
+      "sampleNumber": 1009,
+      "patientId": "pat-1789917365308",
+      "patient": {
+        "id": "pat-1789917365308",
+        "name": "على كاظم",
+        "phone": "",
+        "age": null,
+        "gender": "MALE",
+        "address": "",
+        "notes": "",
+        "createdAt": "2026-09-20T15:16:05.308Z",
+        "updatedAt": "2026-09-20T15:16:05.308Z"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "doctorCommission": 0,
+      "status": "READY",
+      "isUrgent": false,
+      "priceTotal": 15000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 15000,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": "",
+      "createdAt": "2026-09-20T15:16:05.308Z",
+      "tests": [
+        {
+          "id": "st-1789917365308-0",
+          "sampleId": "s-1009",
+          "testId": "t-hba1c",
+          "test": {
+            "id": "t-hba1c",
+            "code": "HBA1C",
+            "name": "Glycated Hemoglobin (HbA1c)",
+            "arabicName": "السكر التراكمي",
+            "category": "الكيمياء السريرية والسكري",
+            "price": 15000,
+            "costEstimate": 3500,
+            "refRangeLow": 4,
+            "refRangeHigh": 5.6,
+            "criticalHigh": 12,
+            "refRangeText": "4.0 - 5.6 % (Non-diabetic)",
+            "unit": "%",
+            "sampleType": "دم كامل (EDTA)",
+            "loincCode": "4548-4"
+          },
+          "resultValue": "5",
+          "isAbnormal": false,
+          "status": "COMPLETED",
+          "interpretation": null
+        }
+      ]
+    },
+    {
+      "id": "s-1008",
+      "sampleNumber": 1008,
+      "patientId": "pat-1789915731663",
+      "patient": {
+        "id": "pat-1789915731663",
+        "name": "سكر تراكمي",
+        "phone": "",
+        "age": null,
+        "gender": "MALE",
+        "address": "",
+        "notes": "",
+        "createdAt": "2026-09-20T14:48:51.663Z",
+        "updatedAt": "2026-09-20T14:48:51.663Z"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "doctorCommission": 0,
+      "status": "READY",
+      "isUrgent": false,
+      "priceTotal": 15000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 15000,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": "",
+      "createdAt": "2026-09-20T15:13:47.329Z",
+      "tests": [
+        {
+          "id": "st-1789917227328-0",
+          "sampleId": "s-1008",
+          "testId": "t-hba1c",
+          "test": {
+            "id": "t-hba1c",
+            "code": "HBA1C",
+            "name": "Glycated Hemoglobin (HbA1c)",
+            "arabicName": "السكر التراكمي",
+            "category": "الكيمياء السريرية والسكري",
+            "price": 15000,
+            "costEstimate": 3500,
+            "refRangeLow": 4,
+            "refRangeHigh": 5.6,
+            "criticalHigh": 12,
+            "refRangeText": "4.0 - 5.6 % (Non-diabetic)",
+            "unit": "%",
+            "sampleType": "دم كامل (EDTA)",
+            "loincCode": "4548-4"
+          },
+          "resultValue": "12",
+          "isAbnormal": true,
+          "status": "COMPLETED",
+          "interpretation": null
+        }
+      ]
+    },
+    {
+      "id": "s-1007",
+      "sampleNumber": 1007,
+      "patientId": "pat-1789916991628",
+      "patient": {
+        "id": "pat-1789916991628",
+        "name": "سكر تراكمي ء",
+        "phone": "",
+        "age": null,
+        "gender": "MALE",
+        "address": "",
+        "notes": "",
+        "createdAt": "2026-09-20T15:09:51.628Z",
+        "updatedAt": "2026-09-20T15:09:51.628Z"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "doctorCommission": 0,
+      "status": "READY",
+      "isUrgent": false,
+      "priceTotal": 15000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 15000,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": "",
+      "createdAt": "2026-09-20T15:09:51.628Z",
+      "tests": [
+        {
+          "id": "st-1789916991628-0",
+          "sampleId": "s-1007",
+          "testId": "t-hba1c",
+          "test": {
+            "id": "t-hba1c",
+            "code": "HBA1C",
+            "name": "Glycated Hemoglobin (HbA1c)",
+            "arabicName": "السكر التراكمي",
+            "category": "الكيمياء السريرية والسكري",
+            "price": 15000,
+            "costEstimate": 3500,
+            "refRangeLow": 4,
+            "refRangeHigh": 5.6,
+            "criticalHigh": 12,
+            "refRangeText": "4.0 - 5.6 % (Non-diabetic)",
+            "unit": "%",
+            "sampleType": "دم كامل (EDTA)",
+            "loincCode": "4548-4"
+          },
+          "resultValue": "22",
+          "isAbnormal": true,
+          "status": "COMPLETED",
+          "interpretation": null
+        }
+      ]
+    },
+    {
+      "id": "s-1006",
+      "sampleNumber": 1006,
+      "patientId": "pat-1789915731663",
+      "patient": {
+        "id": "pat-1789915731663",
+        "name": "سكر تراكمي",
+        "phone": "",
+        "age": null,
+        "gender": "MALE",
+        "address": "",
+        "notes": "",
+        "createdAt": "2026-09-20T14:48:51.663Z",
+        "updatedAt": "2026-09-20T14:48:51.663Z"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "doctorCommission": 0,
+      "status": "RECEIVED",
+      "isUrgent": false,
+      "priceTotal": 15000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 15000,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": "",
+      "createdAt": "2026-09-20T15:08:20.031Z",
+      "tests": [
+        {
+          "id": "st-1789916900031-0",
+          "sampleId": "s-1006",
+          "testId": "t-hba1c",
+          "test": {
+            "id": "t-hba1c",
+            "code": "HBA1C",
+            "name": "Glycated Hemoglobin (HbA1c)",
+            "arabicName": "السكر التراكمي",
+            "category": "الكيمياء السريرية والسكري",
+            "price": 15000,
+            "costEstimate": 3500,
+            "refRangeLow": 4,
+            "refRangeHigh": 5.6,
+            "criticalHigh": 12,
+            "refRangeText": "4.0 - 5.6 % (Non-diabetic)",
+            "unit": "%",
+            "sampleType": "دم كامل (EDTA)",
+            "loincCode": "4548-4"
+          },
+          "resultValue": null,
+          "isAbnormal": false,
+          "status": "PENDING"
+        }
+      ]
+    },
+    {
+      "id": "s-1005",
+      "sampleNumber": 1005,
+      "patientId": "pat-1789915731663",
+      "patient": {
+        "id": "pat-1789915731663",
+        "name": "سكر تراكمي",
+        "phone": "",
+        "age": null,
+        "gender": "MALE",
+        "address": "",
+        "notes": "",
+        "createdAt": "2026-09-20T14:48:51.663Z",
+        "updatedAt": "2026-09-20T14:48:51.663Z"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "doctorCommission": 0,
+      "status": "READY",
+      "isUrgent": false,
+      "priceTotal": 15000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 15000,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": "",
+      "createdAt": "2026-09-20T14:48:51.663Z",
+      "tests": [
+        {
+          "id": "st-1789915731663-0",
+          "sampleId": "s-1005",
+          "testId": "t-hba1c",
+          "test": {
+            "id": "t-hba1c",
+            "code": "HBA1C",
+            "name": "Glycated Hemoglobin (HbA1c)",
+            "arabicName": "السكر التراكمي",
+            "category": "الكيمياء السريرية والسكري",
+            "price": 15000,
+            "costEstimate": 3500,
+            "refRangeLow": 4,
+            "refRangeHigh": 5.6,
+            "criticalHigh": 12,
+            "refRangeText": "4.0 - 5.6 % (Non-diabetic)",
+            "unit": "%",
+            "sampleType": "دم كامل (EDTA)",
+            "loincCode": "4548-4"
+          },
+          "resultValue": "4",
+          "isAbnormal": false,
+          "status": "COMPLETED",
+          "interpretation": null
+        }
+      ]
+    },
+    {
+      "id": "s-1004",
+      "sampleNumber": 1004,
+      "patientId": "pat-1789852100355",
+      "patient": {
+        "id": "pat-1789852100355",
+        "name": "السيد",
+        "phone": "",
+        "age": null,
+        "gender": "MALE",
+        "address": "",
+        "notes": "",
+        "createdAt": "2026-09-19T21:08:20.355Z",
+        "updatedAt": "2026-09-19T21:08:20.355Z",
+        "lastTestIds": [
+          "t-ptt",
+          "t-ddimer",
+          "t-fbs",
+          "t-hb",
+          "t-bg",
+          "t-gue"
+        ],
+        "lastTestNames": [
+          "Partial Thromboplastin Time (PTT/APTT)",
+          "D-Dimer (Quantitative)",
+          "Fasting Blood Sugar (FBS)",
+          "Hemoglobin (Hb)",
+          "Blood Group & Rh Factor",
+          "General Urine Examination (GUE)"
+        ]
+      },
+      "doctorId": null,
+      "doctor": null,
+      "doctorCommission": 0,
+      "status": "RECEIVED",
+      "isUrgent": false,
+      "priceTotal": 5000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 5000,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": "",
+      "createdAt": "2026-09-20T14:44:14.558Z",
+      "tests": [
+        {
+          "id": "st-1789915454558-0",
+          "sampleId": "s-1004",
+          "testId": "t-bg",
+          "test": {
+            "id": "t-bg",
+            "code": "BG",
+            "name": "Blood Group & Rh Factor",
+            "arabicName": "فصيلة الدم والعامل الريسي",
+            "category": "أمراض الدم والتخثر",
+            "price": 5000,
+            "costEstimate": 800,
+            "refRangeText": "A / B / AB / O (Pos/Neg)",
+            "unit": "",
+            "sampleType": "دم كامل (EDTA)",
+            "loincCode": "882-1"
+          },
+          "resultValue": null,
+          "isAbnormal": false,
+          "status": "PENDING"
+        }
+      ]
+    },
     {
       "id": "s-1003",
       "sampleNumber": 1003,
@@ -2471,7 +2940,7 @@
       "doctorId": null,
       "doctor": null,
       "doctorCommission": 0,
-      "status": "RECEIVED",
+      "status": "READY",
       "isUrgent": false,
       "priceTotal": 5000,
       "discount": 0,
@@ -2506,9 +2975,10 @@
             "sampleType": "دم كامل (Citrate)",
             "loincCode": "4537-7"
           },
-          "resultValue": null,
+          "resultValue": "12",
           "isAbnormal": false,
-          "status": "PENDING"
+          "status": "COMPLETED",
+          "interpretation": null
         }
       ]
     },
@@ -2551,8 +3021,8 @@
       "priceTotal": 60000,
       "discount": 0,
       "discountPercent": 0,
-      "paidAmount": 50000,
-      "remainingAmount": 10000,
+      "paidAmount": 60000,
+      "remainingAmount": 0,
       "paymentMethod": "CASH",
       "notes": "",
       "createdAt": "2026-09-19T21:08:20.366Z",
@@ -3189,12 +3659,11 @@
   "incomingResults": [],
   "deviceRawLogs": [],
   "license": {
-    "isActivated": true,
-    "hardwareId": "LAB-8D4C-B999-8218",
-    "firstRunDate": "2026-09-19T21:34:04.505Z",
-    "trialExpiresAt": "2026-09-26T21:34:04.505Z",
-    "lastClockCheck": "2026-09-25T21:52:22.349Z",
-    "licenseKey": "LIC-TEFCLThENEMtQjk5OS04MjE4fDIwOTktMTItMzF8TElGRVRJTUV82YXYrtiq2KjYsSDYt9io2Yog2YXYudiq2YXYrw-DA2948850A",
+    "isActivated": false,
+    "hardwareId": "LAB-E9D1-7E13-0FCB",
+    "firstRunDate": "2026-09-20T16:17:53.879Z",
+    "trialExpiresAt": "2026-09-27T16:17:53.879Z",
+    "lastClockCheck": "2026-09-20T16:42:02.411Z",
     "tier": "LIFETIME",
     "expiryDate": "2099-12-31T23:59:59.000Z",
     "labName": "مختبر طبي معتمد",
@@ -3212,5 +3681,16 @@
       "updatedAt": "2026-09-25T21:56:22.411Z"
     }
   ],
-  "debtTransactions": []
+  "debtTransactions": [
+    {
+      "id": "tx-settle-1789922466010",
+      "debtorId": "debtor-pat-pat-1789852100355",
+      "type": "PAYMENT",
+      "amount": 10000,
+      "paymentMethod": "نقداً",
+      "voucherNumber": 1001,
+      "notes": "تسوية حساب وتصفية الرصيد كاملاً",
+      "createdAt": "2026-09-20T16:41:06.009Z"
+    }
+  ]
 }

@@ -113,6 +113,38 @@ function IntakeContent() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [createdSample, setCreatedSample] = useState<any | null>(null);
 
+  // 48-Hour Duplicate Test Protection States
+  const [recentDoneTests, setRecentDoneTests] = useState<{
+    testId: string;
+    testCode: string;
+    testName: string;
+    sampleNumber: string | number;
+    sampleDate: string;
+    hoursAgo: number;
+  }[]>([]);
+  const [overrideDuplicateWarning, setOverrideDuplicateWarning] = useState<boolean>(false);
+
+  // Silent Tube Barcode Auto-Print (Disabled by default)
+  const [autoPrintBarcode, setAutoPrintBarcode] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('labryo_autoprint_barcode') === 'true';
+  });
+
+  const toggleAutoPrintBarcode = () => {
+    setAutoPrintBarcode((prev) => {
+      const nextVal = !prev;
+      try {
+        localStorage.setItem('labryo_autoprint_barcode', String(nextVal));
+      } catch (e) {}
+      toast.info(
+        nextVal
+          ? 'تم تفعيل الطباعة التلقائية لملصقات الباركود فور الحفظ'
+          : 'تم تعطيل الطباعة التلقائية للباركود'
+      );
+      return nextVal;
+    });
+  };
+
   // Draft Persistence States
   const [savedDraft, setSavedDraft] = useState<IntakeDraft | null>(null);
   const isRestoringDraftRef = useRef(false);
@@ -405,6 +437,8 @@ function IntakeContent() {
     setPatientNotes('');
     setSelectedDoctorId('');
     setSelectedPatientHistory(null);
+    setRecentDoneTests([]);
+    setOverrideDuplicateWarning(false);
     setSelectedTests([]);
     setDiscountPercent(0);
     setCustomDiscountAmount(0);
@@ -524,10 +558,171 @@ function IntakeContent() {
     savedDraft,
   ]);
 
+  // Fetch patient recent tests (last 48 hours) to detect duplicate tests
+  useEffect(() => {
+    if (!patientId) {
+      setRecentDoneTests([]);
+      setOverrideDuplicateWarning(false);
+      return;
+    }
+
+    let active = true;
+    (async () => {
+      try {
+        const samples = await apiRequest<Sample[]>(`/api/samples?patientId=${patientId}`);
+        if (!active || !Array.isArray(samples)) return;
+
+        const now = Date.now();
+        const cutoff48h = now - 48 * 60 * 60 * 1000;
+        const recent: {
+          testId: string;
+          testCode: string;
+          testName: string;
+          sampleNumber: string | number;
+          sampleDate: string;
+          hoursAgo: number;
+        }[] = [];
+
+        samples.forEach((s) => {
+          const sampleTime = new Date(s.createdAt).getTime();
+          if (sampleTime >= cutoff48h && s.tests) {
+            const hoursAgo = Math.max(1, Math.round((now - sampleTime) / (1000 * 60 * 60)));
+            s.tests.forEach((st) => {
+              const tId = st.testId || st.test?.id;
+              const tCode = (st.test?.code || '').toUpperCase();
+              const tName = st.test?.name || tCode;
+              if (tId && !recent.some((r) => r.testId === tId || (tCode && r.testCode === tCode))) {
+                recent.push({
+                  testId: tId,
+                  testCode: tCode,
+                  testName: tName,
+                  sampleNumber: s.sampleNumber,
+                  sampleDate: s.createdAt,
+                  hoursAgo,
+                });
+              }
+            });
+          }
+        });
+
+        setRecentDoneTests(recent);
+      } catch (e) {
+        console.error('Failed to fetch recent patient tests for duplicate warning:', e);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [patientId]);
+
+  const duplicateTestsInSelection = useMemo(() => {
+    if (!recentDoneTests.length || !selectedTests.length) return [];
+    return selectedTests.filter((st) =>
+      recentDoneTests.some(
+        (r) => r.testId === st.id || (st.code && r.testCode === st.code.toUpperCase())
+      )
+    );
+  }, [recentDoneTests, selectedTests]);
+
+  // Smart Diagnostic Bundles with Dedicated F2-F6 Keyboard Shortcuts
+  const SMART_BUNDLES = useMemo(() => [
+    {
+      id: 'comprehensive',
+      shortcut: 'F2',
+      name: 'الفحص الشامل',
+      desc: 'صورة الدم CBC، وظائف الكبد والكلى، الدهون، السكر (F2)',
+      keywords: ['cbc', 'lipid', 'chol', 'ast', 'alt', 'urea', 'creat', 'fbs', 'tg', 'sugar']
+    },
+    {
+      id: 'pre_marital',
+      shortcut: 'F3',
+      name: 'المقبلين على الزواج',
+      desc: 'صورة الدم، فصيلة الدم، التهاب الكبد، الإيدز، الزهري (F3)',
+      keywords: ['cbc', 'blood group', 'bg', 'hbsag', 'hcv', 'hiv', 'vdrl', 'syphilis', 'hb']
+    },
+    {
+      id: 'liver_kidney',
+      shortcut: 'F4',
+      name: 'وظائف كبد وكلى',
+      desc: 'ALT, AST, ALP, Bilirubin, Urea, Creatinine, Uric Acid (F4)',
+      keywords: ['ast', 'alt', 'alp', 'bili', 'tsb', 'urea', 'creat', 'uric', 'kft', 'lft']
+    },
+    {
+      id: 'anemia',
+      shortcut: 'F5',
+      name: 'فقر دم وحديد',
+      desc: 'صورة الدم CBC، مخزون الحديد Ferritin، الحديد Iron، B12 (F5)',
+      keywords: ['cbc', 'ferritin', 'iron', 'fer', 'hb', 'b12']
+    },
+    {
+      id: 'thyroid',
+      shortcut: 'F6',
+      name: 'الغدة الدرقية',
+      desc: 'TSH، FT3، FT4 (F6)',
+      keywords: ['tsh', 'ft3', 'ft4', 'thyroid']
+    },
+    {
+      id: 'diabetes',
+      shortcut: '',
+      name: 'فحص السكري',
+      desc: 'السكر الصائم والتراكمي والإدرار',
+      keywords: ['fbs', 'sugar', 'glucose', 'hba1c', 'gue', 'urine']
+    },
+    {
+      id: 'pre_op',
+      shortcut: '',
+      name: 'ما قبل العمليات',
+      desc: 'CBC، التخثر PT/INR، فصيلة الدم',
+      keywords: ['cbc', 'pt', 'inr', 'ptt', 'bg', 'blood group']
+    }
+  ], []);
+
+  const handleApplyBundle = useCallback((bundle: { id: string; shortcut?: string; name: string; desc: string; keywords: string[] }) => {
+    const matchingTests = tests.filter((t) => {
+      const text = ((t.name || '') + ' ' + (t.code || '')).toLowerCase();
+      return bundle.keywords.some((kw) => text.includes(kw));
+    });
+    if (matchingTests.length > 0) {
+      setSelectedTests((prev) => {
+        const existingIds = new Set(prev.map((p) => p.id));
+        const toAdd = matchingTests.filter((m) => !existingIds.has(m.id));
+        if (toAdd.length === 0) {
+          toast.info(`فحوصات ${bundle.name} مضافة بالفعل`);
+          return prev;
+        }
+
+        const dups = toAdd.filter((t) =>
+          recentDoneTests.some((r) => r.testId === t.id || (t.code && r.testCode === t.code.toUpperCase()))
+        );
+        if (dups.length > 0) {
+          toast.warning(
+            `⚠️ تنبيه: باقة ${bundle.name} تحتوي على ${dups.length} فحص أُجري للمريض خلال 48 ساعة (${dups.map((d) => d.name).join('، ')})`,
+            'تنبيه فحص مكرر'
+          );
+        }
+
+        toast.success(`تمت إضافة باقة ${bundle.name} (${toAdd.length} فحص) ${bundle.shortcut ? `[${bundle.shortcut}]` : ''}`);
+        return [...prev, ...toAdd];
+      });
+    } else {
+      toast.info('لم يتم العثور على فحوصات مطابقة لهذه الباقة في الكتالوج');
+    }
+  }, [tests, recentDoneTests, toast]);
+
   const handleToggleTest = (test: Test) => {
     if (selectedTests.some((t) => t.id === test.id)) {
       setSelectedTests(selectedTests.filter((t) => t.id !== test.id));
     } else {
+      const recentMatch = recentDoneTests.find(
+        (r) => r.testId === test.id || (test.code && r.testCode === test.code.toUpperCase())
+      );
+      if (recentMatch) {
+        toast.warning(
+          `⚠️ تنبيه فحص مكرر: أجرى المريض فحص (${test.name}) قبل ${recentMatch.hoursAgo} ساعة (عينة #${recentMatch.sampleNumber})`,
+          'فحص مكرر خلال 48 ساعة'
+        );
+      }
       setSelectedTests([...selectedTests, test]);
     }
   };
@@ -688,7 +883,7 @@ function IntakeContent() {
       if (timeDiff < 180000 && isSameName && isSameTests) {
         const remainingSec = Math.ceil((180000 - timeDiff) / 1000);
         toast.warning(
-          `تم تسجيل هذا المريض قبل قليل (عينة رقم #${lastSubmissionRef.current.sampleNumber}) بنفس الفحوصات. تم تفعيل نظام الحماية لمنع التكرار (انتظر ${remainingSec} ثانية أو اضغط F2 لاستلام مريض جديد).`,
+          `تم تسجيل هذا المريض قبل قليل (عينة رقم #${lastSubmissionRef.current.sampleNumber}) بنفس الفحوصات. تم تفعيل نظام الحماية لمنع التكرار (انتظر ${remainingSec} ثانية أو اضغط F1 لاستلام مريض جديد).`,
           'حماية من التكرار'
         );
         return;
@@ -734,6 +929,29 @@ function IntakeContent() {
         sampleNumber: result.sampleNumber,
       };
 
+      // Silent Direct Auto-Print Barcode Label if enabled
+      if (autoPrintBarcode && result?.id) {
+        try {
+          const printIframe = document.createElement('iframe');
+          printIframe.style.position = 'fixed';
+          printIframe.style.right = '-9999px';
+          printIframe.style.bottom = '-9999px';
+          printIframe.style.width = '10px';
+          printIframe.style.height = '10px';
+          printIframe.style.border = '0';
+          printIframe.style.opacity = '0';
+          printIframe.src = `/api/samples/${result.id}/barcode?autoprint=true`;
+          document.body.appendChild(printIframe);
+          setTimeout(() => {
+            try {
+              document.body.removeChild(printIframe);
+            } catch (e) {}
+          }, 30000);
+        } catch (printErr) {
+          console.error('Silent auto-print failed:', printErr);
+        }
+      }
+
       // Clear draft on successful sample registration
       try {
         localStorage.removeItem(INTAKE_DRAFT_KEY);
@@ -770,25 +988,26 @@ function IntakeContent() {
     paymentMethod,
     sampleNotes,
     toast,
-    submitting
+    submitting,
+    autoPrintBarcode,
   ]);
 
-  // Global & Form Keyboard Navigation (F2, F8, F9, Ctrl+Enter, Arrow Catalog Nav, Modal Shortcuts)
+  // Global & Form Keyboard Navigation (F1-F6 Bundles, F8, F9, Ctrl+Enter, Modal Shortcuts)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // 1. Zero-Click Barcode & Quick Reset within Success Modal
+      // 1. Success Modal Shortcuts (Enter / Escape / F1 starts new patient, F9 for optional barcode print)
       if (showSuccessModal && createdSample) {
-        if (e.key === 'Enter' || e.key === 'F9') {
+        if (e.key === 'F9') {
           e.preventDefault();
           setDocPreviewUrl(`/api/samples/${createdSample.id}/barcode`);
           setDocPreviewTitle(`طباعة ملصقات الباركود للأنابيب والتحاليل (50x25mm) - عينة #${createdSample.sampleNumber}`);
           return;
         }
-        if (e.key === 'Escape' || e.key === 'F2') {
+        if (e.key === 'Enter' || e.key === 'Escape' || e.key === 'F1' || e.key === 'F2') {
           e.preventDefault();
           setShowSuccessModal(false);
           handleExecuteClearPatient();
-          toast.info('تم بدء استلام مريض جديد (F2)');
+          toast.info('تم بدء استلام مريض جديد (F1)');
           return;
         }
       }
@@ -800,11 +1019,51 @@ function IntakeContent() {
         return;
       }
 
-      // F2: New Intake
-      if (e.key === 'F2') {
+      // F1: New Patient Intake
+      if (e.key === 'F1') {
         e.preventDefault();
         handleClearPatient();
-        toast.info('تم بدء استلام مريض جديد (F2)');
+        toast.info('تم بدء استلام مريض جديد (F1)');
+        return;
+      }
+
+      // F2: Comprehensive Diagnostic Bundle
+      if (e.key === 'F2') {
+        e.preventDefault();
+        const b = SMART_BUNDLES.find((x) => x.id === 'comprehensive');
+        if (b) handleApplyBundle(b);
+        return;
+      }
+
+      // F3: Pre-marital Diagnostic Bundle
+      if (e.key === 'F3') {
+        e.preventDefault();
+        const b = SMART_BUNDLES.find((x) => x.id === 'pre_marital');
+        if (b) handleApplyBundle(b);
+        return;
+      }
+
+      // F4: Liver & Kidney Function Bundle
+      if (e.key === 'F4') {
+        e.preventDefault();
+        const b = SMART_BUNDLES.find((x) => x.id === 'liver_kidney');
+        if (b) handleApplyBundle(b);
+        return;
+      }
+
+      // F5: Anemia & Iron Profile Bundle
+      if (e.key === 'F5') {
+        e.preventDefault();
+        const b = SMART_BUNDLES.find((x) => x.id === 'anemia');
+        if (b) handleApplyBundle(b);
+        return;
+      }
+
+      // F6: Thyroid Profile Bundle
+      if (e.key === 'F6') {
+        e.preventDefault();
+        const b = SMART_BUNDLES.find((x) => x.id === 'thyroid');
+        if (b) handleApplyBundle(b);
         return;
       }
 
@@ -836,7 +1095,7 @@ function IntakeContent() {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [handleClearPatient, handleRegisterSample, showSuccessModal, createdSample, docPreviewUrl, handleExecuteClearPatient, toast]);
+  }, [handleClearPatient, handleRegisterSample, showSuccessModal, createdSample, docPreviewUrl, handleExecuteClearPatient, handleApplyBundle, SMART_BUNDLES, toast]);
 
   // Arrow Key Navigation inside Test Catalog & Seamless Enter Chain
   const handleCatalogKeyDown = (e: React.KeyboardEvent) => {
@@ -909,61 +1168,6 @@ function IntakeContent() {
     return 'CLINICAL';
   };
 
-  // Smart Diagnostic Bundles for rapid 1-click intake
-  const SMART_BUNDLES = [
-    {
-      id: 'comprehensive',
-      name: 'الفحص الشامل',
-      desc: 'صورة الدم، وظائف الكبد والكلى، الدهون، السكر',
-      keywords: ['cbc', 'lipid', 'chol', 'ast', 'alt', 'urea', 'creat', 'fbs']
-    },
-    {
-      id: 'diabetes',
-      name: 'فحص السكري',
-      desc: 'السكر الصائم والتراكمي والإدرار',
-      keywords: ['fbs', 'sugar', 'glucose', 'hba1c', 'gue', 'urine']
-    },
-    {
-      id: 'anemia',
-      name: 'فقر الدم والحديد',
-      desc: 'صورة الدم ومخزون الحديد',
-      keywords: ['cbc', 'ferritin', 'iron', 'fer', 'hb']
-    },
-    {
-      id: 'pre_op',
-      name: 'ما قبل العمليات',
-      desc: 'CBC، التخثر PT/INR، فصيلة الدم',
-      keywords: ['cbc', 'pt', 'inr', 'ptt', 'bg', 'blood group']
-    },
-    {
-      id: 'thyroid',
-      name: 'الغدة الدرقية',
-      desc: 'TSH، FT3، FT4',
-      keywords: ['tsh', 'ft3', 'ft4', 'thyroid']
-    }
-  ];
-
-  const handleApplyBundle = (bundle: typeof SMART_BUNDLES[0]) => {
-    const matchingTests = tests.filter(t => {
-      const text = ((t.name || '') + ' ' + (t.code || '')).toLowerCase();
-      return bundle.keywords.some(kw => text.includes(kw));
-    });
-    if (matchingTests.length > 0) {
-      setSelectedTests(prev => {
-        const existingIds = new Set(prev.map(p => p.id));
-        const toAdd = matchingTests.filter(m => !existingIds.has(m.id));
-        if (toAdd.length === 0) {
-          toast.info(`فحوصات ${bundle.name} مضافة بالفعل`);
-          return prev;
-        }
-        toast.success(`تمت إضافة فحوصات ${bundle.name} (${toAdd.length} فحص)`);
-        return [...prev, ...toAdd];
-      });
-    } else {
-      toast.info('لم يتم العثور على فحوصات مطابقة لهذه الباقة في الكتالوج');
-    }
-  };
-
   // Sample Collection Tubes breakdown calculated live from selected tests
   const sampleContainers = useMemo(() => {
     const list: { id: string; name: string; color: string; bg: string; dotColor: string }[] = [];
@@ -1015,9 +1219,11 @@ function IntakeContent() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '6px 12px', fontSize: '11.5px', color: 'var(--text-muted)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <Keyboard size={14} color="var(--accent-cyan)" />
-            <span><kbd style={{ background: 'var(--bg-input-deep)', border: '1px solid var(--border-color)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-main)', fontWeight: 800 }}>F2</kbd> جديد</span>
+            <span><kbd style={{ background: 'var(--bg-input-deep)', border: '1px solid var(--border-color)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-main)', fontWeight: 800 }}>F1</kbd> مريض جديد</span>
             <span style={{ opacity: 0.3 }}>|</span>
-            <span><kbd style={{ background: 'var(--bg-input-deep)', border: '1px solid var(--border-color)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-main)', fontWeight: 800 }}>F8</kbd> بحث الكتالوج</span>
+            <span><kbd style={{ background: 'var(--bg-input-deep)', border: '1px solid var(--border-color)', padding: '2px 6px', borderRadius: '4px', color: 'var(--accent-amber)', fontWeight: 800 }}>F2-F6</kbd> باقات سريعة</span>
+            <span style={{ opacity: 0.3 }}>|</span>
+            <span><kbd style={{ background: 'var(--bg-input-deep)', border: '1px solid var(--border-color)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-main)', fontWeight: 800 }}>F8</kbd> الكتالوج</span>
             <span style={{ opacity: 0.3 }}>|</span>
             <span><kbd style={{ background: 'var(--bg-input-deep)', border: '1px solid var(--border-color)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-main)', fontWeight: 800 }}>F9</kbd> الخصم</span>
             <span style={{ opacity: 0.3 }}>|</span>
@@ -1029,10 +1235,10 @@ function IntakeContent() {
             onClick={handleClearPatient}
             className="btn-secondary"
             style={{ height: '36px', padding: '0 14px', fontSize: '12px', fontWeight: 800, gap: '6px', borderRadius: '10px' }}
-            title="ابدأ استلام مريض جديد (F2)"
+            title="ابدأ استلام مريض جديد (F1)"
           >
             <RotateCcw size={14} />
-            <span>استلام جديد (F2)</span>
+            <span>استلام جديد (F1)</span>
           </button>
         </div>
       </div>
@@ -1548,8 +1754,22 @@ function IntakeContent() {
                     onClick={() => handleApplyBundle(b)}
                     className="bundle-pill-btn"
                     title={b.desc}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                   >
                     <span>+ {b.name}</span>
+                    {b.shortcut && (
+                      <kbd style={{
+                        background: 'rgba(0,0,0,0.25)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: '4px',
+                        padding: '1px 5px',
+                        fontSize: '9.5px',
+                        fontWeight: 800,
+                        color: 'var(--accent-amber)'
+                      }}>
+                        {b.shortcut}
+                      </kbd>
+                    )}
                   </button>
                 ))}
               </div>
@@ -1767,6 +1987,76 @@ function IntakeContent() {
               </div>
             )}
 
+            {/* 48-Hour Duplicate Test Warning Alert Box */}
+            {duplicateTestsInSelection.length > 0 && !overrideDuplicateWarning && (
+              <div
+                style={{
+                  background: 'rgba(239, 68, 68, 0.09)',
+                  border: '1px solid rgba(239, 68, 68, 0.45)',
+                  borderRadius: '10px',
+                  padding: '10px 12px',
+                  marginBottom: '10px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ef4444', fontWeight: 800, fontSize: '11.5px' }}>
+                    <AlertTriangle size={15} />
+                    <span>تنبيه فحص مكرر خلال 48 ساعة</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const dupIds = new Set(duplicateTestsInSelection.map(d => d.id));
+                        setSelectedTests(prev => prev.filter(t => !dupIds.has(t.id)));
+                        toast.success('تمت إزالة الفحوصات المكررة');
+                      }}
+                      style={{
+                        background: '#ef4444',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '5px',
+                        padding: '3px 8px',
+                        fontSize: '10.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      إزالة المكرر
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOverrideDuplicateWarning(true)}
+                      style={{
+                        background: 'transparent',
+                        color: 'var(--text-muted)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '5px',
+                        padding: '3px 8px',
+                        fontSize: '10.5px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      تجاوز طبي
+                    </button>
+                  </div>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-main)', lineHeight: '1.5' }}>
+                  {duplicateTestsInSelection.map((t) => {
+                    const detail = recentDoneTests.find(r => r.testId === t.id || r.testCode === (t.code || '').toUpperCase());
+                    return (
+                      <span key={t.id} style={{ display: 'inline-block', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', padding: '1px 6px', borderRadius: '4px', margin: '2px 3px', fontSize: '10.5px', fontWeight: 600 }}>
+                        {t.name} (أُجري قبل {detail?.hoursAgo || '?'} ساعة - عينة #{detail?.sampleNumber})
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Selected Tests Scrollable List */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minHeight: '110px', maxHeight: '170px', overflowY: 'auto', marginBottom: '12px' }}>
               {selectedTests.length === 0 ? (
@@ -1790,6 +2080,11 @@ function IntakeContent() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
                       <span style={{ fontSize: '10.5px', fontWeight: 800, color: 'var(--accent-cyan)' }}>{t.code || ''}</span>
                       <span style={{ color: 'var(--text-main)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
+                      {recentDoneTests.some(r => r.testId === t.id || r.testCode === (t.code || '').toUpperCase()) && (
+                        <span style={{ fontSize: '9.5px', color: '#ef4444', background: 'rgba(239, 68, 68, 0.15)', padding: '1px 5px', borderRadius: '4px', fontWeight: 700, flexShrink: 0 }}>
+                          مكرر 48س
+                        </span>
+                      )}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                       <strong style={{ color: 'var(--text-main)', fontWeight: 800 }}>{t.price?.toLocaleString()} {currency}</strong>
@@ -1980,6 +2275,22 @@ function IntakeContent() {
               </div>
             </div>
 
+            {/* Auto-Print Tube Barcode Toggle Switch */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', background: 'var(--bg-input-deep)', borderRadius: '8px', marginBottom: '8px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11.5px', color: 'var(--text-main)', cursor: 'pointer', userSelect: 'none' }}>
+                <input
+                  type="checkbox"
+                  checked={autoPrintBarcode}
+                  onChange={toggleAutoPrintBarcode}
+                  style={{ accentColor: 'var(--accent-cyan)', cursor: 'pointer', width: '15px', height: '15px' }}
+                />
+                <span style={{ fontWeight: 700 }}>طباعة لاصق الباركود تلقائياً فور الحفظ</span>
+              </label>
+              <span style={{ fontSize: '10.5px', fontWeight: 800, color: autoPrintBarcode ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>
+                {autoPrintBarcode ? 'مباشرة ⚡' : 'معطلة'}
+              </span>
+            </div>
+
             {/* Big Action Submit Button (Ctrl+Enter) */}
             <button
               type="button"
@@ -2001,8 +2312,8 @@ function IntakeContent() {
                 gap: '8px'
               }}
             >
-              <Barcode size={18} />
-              <span>{submitting ? 'جاري تسجيل العينة...' : 'تسجيل العينة وطباعة الباركود (Ctrl+Enter) →'}</span>
+              <CheckCircle2 size={18} />
+              <span>{submitting ? 'جاري تسجيل العينة...' : 'تسجيل وحفظ العينة (Ctrl+Enter) →'}</span>
             </button>
 
           </div>
@@ -2028,45 +2339,35 @@ function IntakeContent() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {/* 1. Print Tube Barcode Label 50x25mm (Primary Cyan Button - Enter or F9) */}
-              <button
-                type="button"
-                onClick={() => {
-                  setDocPreviewUrl(`/api/samples/${createdSample.id}/barcode`);
-                  setDocPreviewTitle(`طباعة ملصقات الباركود للأنابيب والتحاليل (50x25mm) - عينة #${createdSample.sampleNumber}`);
-                }}
-                className="btn-cyan-primary"
-                style={{ width: '100%', justifyContent: 'center', height: '42px', fontSize: '13px', fontWeight: 800 }}
-              >
-                <Printer size={16} />
-                <span><Barcode size={14} /> طباعة ملصقات أنابيب التحليل (Print Tube Labels 50x25mm) <kbd style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', marginRight: '6px' }}>Enter / F9</kbd></span>
-              </button>
+              {autoPrintBarcode && (
+                <div style={{ background: 'rgba(0, 210, 211, 0.12)', border: '1px solid rgba(0, 210, 211, 0.35)', borderRadius: '8px', padding: '7px 12px', fontSize: '11.5px', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', fontWeight: 700 }}>
+                  <Printer size={15} />
+                  <span>تم إرسال ملصقات الأنابيب إلى طابعة الباركود تلقائياً (Silent Print)</span>
+                </div>
+              )}
 
-              {/* 2. + New Patient Intake / استلام عينة جديدة (Escape or F2) (Secondary prominent button) */}
+              {/* 1. + New Patient Intake / استلام عينة جديدة (Primary Cyan Button - Enter or Esc or F1) */}
               <button
                 type="button"
                 onClick={() => {
                   setShowSuccessModal(false);
                   handleExecuteClearPatient();
-                  toast.info('تم بدء استلام مريض جديد (F2)');
+                  toast.info('تم بدء استلام مريض جديد (F1)');
                 }}
-                className="btn-secondary"
+                className="btn-cyan-primary"
                 style={{
                   width: '100%',
                   justifyContent: 'center',
-                  height: '40px',
+                  height: '42px',
                   fontSize: '13px',
                   fontWeight: 800,
-                  color: 'var(--accent-cyan)',
-                  borderColor: 'rgba(0, 210, 211, 0.4)',
-                  background: 'rgba(0, 210, 211, 0.08)',
                 }}
               >
                 <Plus size={16} />
-                <span>+ استلام عينة جديدة لمريض آخر (New Patient Intake) <kbd style={{ background: 'rgba(0, 210, 211, 0.2)', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', marginRight: '6px' }}>Esc / F2</kbd></span>
+                <span>+ استلام عينة جديدة لمريض آخر (New Patient Intake) <kbd style={{ background: 'rgba(0,0,0,0.25)', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', marginRight: '6px' }}>Enter / Esc</kbd></span>
               </button>
 
-              {/* 3. Go to Results Workstation / إدخال النتائج */}
+              {/* 2. Go to Results Workstation / إدخال النتائج */}
               <button
                 type="button"
                 onClick={() => {
@@ -2078,6 +2379,20 @@ function IntakeContent() {
               >
                 <Activity size={15} color="var(--accent-cyan)" />
                 <span>الانتقال لمحطة إدخال النتائج (Go to Results Workstation) →</span>
+              </button>
+
+              {/* 3. Print Tube Barcode Label 50x25mm (Optional Secondary Action - F9) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setDocPreviewUrl(`/api/samples/${createdSample.id}/barcode`);
+                  setDocPreviewTitle(`طباعة ملصقات الباركود للأنابيب والتحاليل (50x25mm) - عينة #${createdSample.sampleNumber}`);
+                }}
+                className="btn-secondary"
+                style={{ width: '100%', justifyContent: 'center', height: '40px', fontSize: '12.5px' }}
+              >
+                <Printer size={15} />
+                <span><Barcode size={14} /> طباعة ملصقات أنابيب التحليل (Print Tube Labels 50x25mm) <kbd style={{ background: 'rgba(255,255,255,0.08)', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', marginRight: '6px' }}>F9</kbd></span>
               </button>
 
               {/* 4. Preview A4 Report (secondary outline) */}
@@ -2155,7 +2470,7 @@ function IntakeContent() {
         onConfirm={() => {
           setShowClearConfirm(false);
           handleExecuteClearPatient();
-          toast.info('تم تفريغ الحقول واستلام مريض جديد (F2)');
+          toast.info('تم تفريغ الحقول واستلام مريض جديد (F1)');
         }}
         onCancel={() => setShowClearConfirm(false)}
       />

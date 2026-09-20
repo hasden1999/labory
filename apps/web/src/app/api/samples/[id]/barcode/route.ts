@@ -310,6 +310,8 @@ function partitionSampleTests(sampleTests: any[], catalogTests: TestItem[]): Tub
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const store = getStore();
+  const url = new URL(request.url);
+  const autoprint = url.searchParams.get('autoprint') === 'true' || url.searchParams.get('auto') === '1';
   const sample = store.samples.find(s => s.id === params.id || String(s.sampleNumber) === params.id);
 
   if (!sample) {
@@ -1082,6 +1084,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
         }, 500);
       }, 50);
     }
+    ${autoprint ? `
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        window.print();
+      }, 250);
+    });
+    ` : ''}
   </script>
 
 </body>

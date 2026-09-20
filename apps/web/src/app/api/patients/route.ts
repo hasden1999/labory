@@ -1,9 +1,56 @@
 import { NextResponse } from 'next/server';
-import { getStore, addPatient, normalizeArabic } from '../../../lib/serverStore';
+import { getStore, addPatient, normalizeArabic, saveStoreToFile } from '../../../lib/serverStore';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   const store = getStore();
-  const enriched = store.patients.map((p) => {
+
+  // Self-Healing: Guarantee that every patient who has samples in the system is present in patients list
+  if (!Array.isArray(store.patients)) {
+    store.patients = [];
+  }
+  if (!Array.isArray(store.samples)) {
+    store.samples = [];
+  }
+
+  const patientMap = new Map<string, any>();
+  for (const p of store.patients) {
+    if (p && p.id) {
+      patientMap.set(p.id, p);
+    }
+  }
+
+  let hasAddedFromSamples = false;
+  for (const s of store.samples) {
+    const pId = s.patientId || s.patient?.id;
+    if (pId && !patientMap.has(pId) && s.patient) {
+      const recoveredPatient = {
+        id: pId,
+        name: s.patient.name || 'مريض غير مسمى',
+        phone: s.patient.phone || '',
+        age: s.patient.age ?? null,
+        gender: s.patient.gender || 'MALE',
+        address: s.patient.address || '',
+        notes: s.patient.notes || '',
+        createdAt: s.patient.createdAt || s.createdAt || new Date().toISOString(),
+        updatedAt: s.patient.updatedAt || s.createdAt || new Date().toISOString(),
+      };
+      patientMap.set(pId, recoveredPatient);
+      store.patients.push(recoveredPatient);
+      hasAddedFromSamples = true;
+    }
+  }
+
+  if (hasAddedFromSamples) {
+    try {
+      saveStoreToFile();
+    } catch {}
+  }
+
+  const allPatients = Array.from(patientMap.values());
+  const enriched = allPatients.map((p) => {
     const patientSamples = store.samples.filter(
       (s) => s.patientId === p.id || s.patient?.id === p.id
     );
@@ -14,7 +61,12 @@ export async function GET() {
       visitCount: patientSamples.length,
     };
   });
-  return NextResponse.json(enriched);
+
+  return NextResponse.json(enriched, {
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    },
+  });
 }
 
 export async function POST(request: Request) {

@@ -35,6 +35,7 @@ const MicrobiologyModal = nextDynamic(() => import('../../components/workstation
 const SemenFormModal = nextDynamic(() => import('../../components/workstations/SemenFormModal'), { ssr: false });
 const CriticalCallModal = nextDynamic(() => import('../../components/CriticalCallModal'), { ssr: false });
 const SampleRejectionModal = nextDynamic(() => import('../../components/SampleRejectionModal'), { ssr: false });
+const WhatsAppFormsModal = nextDynamic(() => import('../../components/WhatsAppFormsModal'), { ssr: false });
 import type { SemenAnalysisData } from '../../components/workstations/SemenFormModal';
 
 function ResultsContent() {
@@ -60,6 +61,7 @@ function ResultsContent() {
   const [pendingSampleToSelect, setPendingSampleToSelect] = useState<Sample | null>(null);
   const [showDirtyConfirm, setShowDirtyConfirm] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [deltaChecks, setDeltaChecks] = useState<Record<string, DeltaCheckResult>>({});
   const [inventoryAlerts, setInventoryAlerts] = useState<any>(null);
   const [incompletePrintAlert, setIncompletePrintAlert] = useState<{
@@ -351,7 +353,7 @@ function ResultsContent() {
       setIsDirty(false);
     }
 
-    // Compute Delta Checks against patient's previous visits
+    // Compute Delta Checks against patient's previous visits (Local fast check + async deep history)
     try {
       const patId = sample.patientId || sample.patient?.id;
       const patName = sample.patient?.name;
@@ -364,6 +366,20 @@ function ResultsContent() {
         setDeltaChecks(deltas);
       } else {
         setDeltaChecks({});
+      }
+
+      if (patId) {
+        apiRequest(`/samples?patientId=${patId}`)
+          .then((fullList: Sample[]) => {
+            if (Array.isArray(fullList) && fullList.length > 0) {
+              const allPriors = fullList.filter((s: any) => s.id !== sample.id);
+              if (allPriors.length > 0) {
+                const fullDeltas = compareSampleWithHistory(sample, allPriors);
+                setDeltaChecks(fullDeltas);
+              }
+            }
+          })
+          .catch(() => {});
       }
     } catch (e) {
       console.error('Failed computing delta checks', e);
@@ -774,20 +790,10 @@ function ResultsContent() {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [selectedSample, testResults, savingResults, samples]);
 
-  // Milestone M4: WhatsApp Direct Share
+  // Milestone M4: WhatsApp Multi-Form Image Share
   const handleSendWhatsApp = () => {
     if (!selectedSample) return;
-    const patientPhone = selectedSample.patient?.phone;
-    if (!patientPhone) {
-      toast.error('المريض لا يمتلك رقم هاتف مسجل في المنظومة', 'تعذر الإرسال');
-      return;
-    }
-    const cleanPhone = patientPhone.replace(/[^0-9]/g, '');
-    const fullPhone = cleanPhone.startsWith('0') ? '964' + cleanPhone.substring(1) : cleanPhone.startsWith('964') ? cleanPhone : '964' + cleanPhone;
-    const verifyUrl = getShareableUrl(`/verify/${selectedSample.id}`, labProfile);
-    const rawMessage = `مرحباً ${selectedSample.patient?.name}، تقرير التحليلات الطبية الخاص بك جاهز في ${labProfile?.labName || 'المختبر'}. رقم العينة: #${selectedSample.sampleNumber}. يمكنك الاطلاع على التقرير وتدقيقه عبر الرابط: ${verifyUrl}`;
-    const whatsappLink = `https://wa.me/${fullPhone}?text=${encodeURIComponent(rawMessage)}`;
-    window.open(whatsappLink, '_blank');
+    setShowWhatsAppModal(true);
   };
 
   // Filter Samples
@@ -1346,6 +1352,46 @@ function ResultsContent() {
               </div>
             )}
 
+            {/* Critical Delta Breach Alert Strip (CLSI EP21 / ISO 15189) */}
+            {(() => {
+              const criticalBreaches = Object.values(deltaChecks).filter(d => d.badgeLevel === 'CRITICAL' || d.badgeLevel === 'WARNING');
+              if (criticalBreaches.length === 0) return null;
+              return (
+                <div 
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(185, 28, 28, 0.3) 100%)',
+                    border: '1.5px solid #ef4444',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    marginBottom: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    boxShadow: '0 4px 14px rgba(239, 68, 68, 0.2)',
+                  }}
+                  dir="rtl"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ background: '#ef4444', color: '#fff', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <AlertOctagon size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 900, color: '#fca5a5' }}>
+                        🚨 تنبيه قفزة حادة في النتيجة السابقة (Delta Check Breach - CLSI EP21)
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: '#fecaca', marginTop: '2px' }}>
+                        {criticalBreaches.map(d => d.message).filter(Boolean).join(' • ')}
+                        <span style={{ marginRight: '6px', fontWeight: 800, color: '#fff' }}>
+                          — يُرجى إعادة فحص الأنبوب والتأكد من مطابقة بيانات المريض قبل الاعتماد.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Results Table (Image 2 Exact Layout) */}
             <div style={{ overflowX: 'auto', flex: 1, border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--bg-input-deep)' }} dir="ltr">
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px', textAlign: 'left' }} dir="ltr">
@@ -1353,6 +1399,7 @@ function ResultsContent() {
                   <tr style={{ background: '#1c2436', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     <th style={{ padding: '10px 14px', textAlign: 'left' }}>PARAMETER (TEST NAME)</th>
                     <th style={{ padding: '10px 14px', width: '260px', textAlign: 'left' }}>RESULT</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'left', minWidth: '170px' }}>PREVIOUS (النتيجة السابقة & Δ%)</th>
                     <th style={{ padding: '10px 14px', textAlign: 'left' }}>RANGE</th>
                     <th style={{ padding: '10px 14px', textAlign: 'left' }}>UNITS</th>
                     <th style={{ padding: '10px 10px', textAlign: 'center', width: '50px' }}>DEL</th>
@@ -1815,6 +1862,58 @@ function ResultsContent() {
                                 ) : null}
                               </div>
                             )}
+                          </td>
+
+                          {/* Dedicated Column: PREVIOUS RESULT (النتيجة السابقة & Δ%) */}
+                          <td style={{ padding: '10px 14px', verticalAlign: 'middle' }}>
+                            {(() => {
+                              const code = st.test?.code || st.test?.name;
+                              const delta = deltaChecks[code] || (st.test?.code && deltaChecks[st.test.code]);
+                              if (delta && delta.hasPrevious && delta.previousValue !== undefined && delta.previousValue !== null) {
+                                const isCrit = delta.badgeLevel === 'CRITICAL' || delta.badgeLevel === 'WARNING';
+                                const isSig = delta.badgeLevel === 'SIGNIFICANT';
+                                const deltaColor = isCrit ? '#ef4444' : isSig ? '#f59e0b' : '#10b981';
+                                const deltaBg = isCrit ? 'rgba(239, 68, 68, 0.15)' : isSig ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.12)';
+                                const deltaBdr = isCrit ? '#ef4444' : isSig ? '#f59e0b' : '#10b981';
+
+                                return (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <span style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-main)' }}>
+                                        {delta.previousValue}
+                                      </span>
+                                      <span
+                                        style={{
+                                          fontSize: '9.5px',
+                                          fontWeight: 800,
+                                          padding: '1px 5px',
+                                          borderRadius: '4px',
+                                          background: deltaBg,
+                                          color: deltaColor,
+                                          border: `1px solid ${deltaBdr}`,
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '2px',
+                                        }}
+                                        title={delta.message}
+                                      >
+                                        Δ {delta.deltaPercent}% {delta.direction === 'increased' ? '↑' : delta.direction === 'decreased' ? '↓' : '='}
+                                      </span>
+                                    </div>
+                                    {delta.previousDate && (
+                                      <span style={{ fontSize: '9.5px', color: 'var(--text-dim)' }}>
+                                        📅 {formatEnglishDate(delta.previousDate)}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              }
+                              return (
+                                <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontStyle: 'italic' }}>
+                                  - (أول فحص)
+                                </span>
+                              );
+                            })()}
                           </td>
 
                           <td style={{ padding: '12px 14px', color: 'var(--text-muted)' }}>
@@ -2308,6 +2407,18 @@ function ResultsContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* WhatsApp Multi-Form Image Dispatch Modal */}
+      {selectedSample && (
+        <WhatsAppFormsModal
+          isOpen={showWhatsAppModal}
+          onClose={() => setShowWhatsAppModal(false)}
+          sampleId={selectedSample.id}
+          sampleNumber={selectedSample.sampleNumber}
+          patientName={selectedSample.patient?.name || 'مريض'}
+          patientPhone={selectedSample.patient?.phone || ''}
+        />
       )}
 
     </AppShell>

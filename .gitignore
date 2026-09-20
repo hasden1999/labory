@@ -56,3 +56,5 @@ scratch/
 apps/web/data/backups/
 backups/
 storage/
+
+*.lnk

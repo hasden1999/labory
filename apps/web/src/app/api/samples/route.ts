@@ -6,12 +6,17 @@ export async function GET(request: Request) {
   let samples = [...(store.samples || [])];
 
   const { searchParams } = new URL(request.url);
+  const patientId = searchParams.get('patientId');
   const dateFilter = searchParams.get('dateFilter');
   const customDate = searchParams.get('customDate');
   const status = searchParams.get('status');
   const unpaidOnly = searchParams.get('unpaidOnly');
   const urgentOnly = searchParams.get('urgentOnly');
   const query = searchParams.get('query');
+
+  if (patientId) {
+    samples = samples.filter((s) => s.patientId === patientId || s.patient?.id === patientId);
+  }
 
   if (status && status !== 'ALL') {
     samples = samples.filter((s) => s.status === status);

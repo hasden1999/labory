@@ -798,6 +798,34 @@ export function getStore(): ServerStore {
     if (storeUpdated) {
       saveStoreToFile();
     }
+
+    // Self-Healing: Ensure every patient referenced in samples exists in patients array
+    if (Array.isArray(currentStore.samples) && Array.isArray(currentStore.patients)) {
+      const pMap = new Set(currentStore.patients.map((p: any) => p?.id));
+      let patientsAdded = false;
+      for (const s of currentStore.samples) {
+        const pId = s.patientId || s.patient?.id;
+        if (pId && !pMap.has(pId) && s.patient) {
+          const newP = {
+            id: pId,
+            name: s.patient.name || 'مريض',
+            phone: s.patient.phone || '',
+            age: s.patient.age ?? null,
+            gender: s.patient.gender || 'MALE',
+            address: s.patient.address || '',
+            notes: s.patient.notes || '',
+            createdAt: s.patient.createdAt || s.createdAt || new Date().toISOString(),
+            updatedAt: s.patient.updatedAt || s.createdAt || new Date().toISOString(),
+          };
+          currentStore.patients.push(newP);
+          pMap.add(pId);
+          patientsAdded = true;
+        }
+      }
+      if (patientsAdded) {
+        saveStoreToFile();
+      }
+    }
   }
 
   return global.__labStore!;

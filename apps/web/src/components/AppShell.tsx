@@ -91,7 +91,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           borderBottom: '1px solid var(--border-color)',
           backdropFilter: 'blur(12px)',
           padding: '0 24px',
-          height: '60px',
+          height: '68px',
+          minHeight: '68px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -99,22 +100,72 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       >
         {/* Left: Brand Logo & Title */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 2px 10px rgba(6, 182, 212, 0.35)' }}>
-              <FlaskConical size={20} />
+          <Link
+            href="/"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              textDecoration: 'none',
+              paddingTop: '6px',
+              paddingBottom: '4px',
+            }}
+          >
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '11px',
+                background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                boxShadow: '0 3px 12px rgba(6, 182, 212, 0.4)',
+                flexShrink: 0,
+                marginTop: '2px',
+              }}
+            >
+              <FlaskConical size={21} />
             </div>
-            <div>
-              <strong style={{ fontSize: '15px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.2px', display: 'block', lineHeight: 1.1 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', marginTop: '2px' }}>
+              <strong
+                style={{
+                  fontSize: '15px',
+                  fontWeight: 900,
+                  color: 'var(--text-main)',
+                  letterSpacing: '0.2px',
+                  display: 'block',
+                  lineHeight: 1.2,
+                }}
+              >
                 LABRYO <span style={{ color: 'var(--accent-cyan)' }}>LIMS</span>
               </strong>
-              <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
+              <span
+                style={{
+                  fontSize: '11px',
+                  color: 'var(--text-muted)',
+                  fontWeight: 600,
+                  marginTop: '2px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 {labProfile?.labName || 'مختبر وادي الرافدين'}
               </span>
             </div>
           </Link>
 
           {/* Desktop Horizontal Navigation Tabs */}
-          <nav className="desktop-nav-tabs" style={{ display: 'flex', alignItems: 'center', gap: '4px', marginRight: '16px' }}>
+          <nav
+            className="desktop-nav-tabs"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginRight: '16px',
+              whiteSpace: 'nowrap',
+            }}
+          >
             {primaryNavItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
               const Icon = item.icon;
@@ -128,12 +179,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     alignItems: 'center',
                     gap: '6px',
                     padding: '8px 12px',
-                    fontSize: '12px',
+                    fontSize: '12.5px',
                     fontWeight: isActive ? 800 : 600,
                     color: isActive ? 'var(--accent-cyan)' : 'var(--text-muted)',
                     background: isActive ? 'var(--accent-cyan-subtle)' : 'transparent',
                     borderRadius: '8px',
                     textDecoration: 'none',
+                    whiteSpace: 'nowrap',
                     position: 'relative',
                     transition: 'all 0.15s ease',
                   }}
@@ -141,7 +193,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <Icon size={14} color={isActive ? 'var(--accent-cyan)' : 'currentColor'} />
                   <span>{item.label}</span>
                   {isActive && (
-                    <div style={{ position: 'absolute', bottom: '-10px', left: '12px', right: '12px', height: '2px', background: 'var(--accent-cyan)', borderRadius: '2px' }}></div>
+                    <div style={{ position: 'absolute', bottom: '-8px', left: '12px', right: '12px', height: '2.5px', background: 'var(--accent-cyan)', borderRadius: '2px' }}></div>
                   )}
                 </Link>
               );
@@ -315,7 +367,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* 2. MAIN CONTENT AREA (Wide, Spacious, Floating Glass Aesthetic) */}
-      <main className="flex-1 p-3 md:p-6 max-w-[1600px] w-full mx-auto box-border overflow-x-clip">
+      <main className="flex-1 p-3 md:p-6 max-w-[1600px] w-full mx-auto box-border overflow-x-clip" style={{ paddingTop: '20px' }}>
         {children}
       </main>
 

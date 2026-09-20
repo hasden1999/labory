@@ -134,6 +134,7 @@ export async function apiRequest<T = any>(
     const response = await fetch(url, {
       method,
       headers,
+      cache: 'no-store',
       body: body ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
     });
 
