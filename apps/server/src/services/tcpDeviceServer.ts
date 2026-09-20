@@ -126,8 +126,21 @@ export function startTcpDeviceServer(port?: number): Promise<net.Server> {
         clientInfo,
       };
 
+      socket.setTimeout(30000);
+      socket.on('timeout', () => {
+        console.warn(`⏳ [ASTM TCP] Idle socket timeout from ${clientInfo}`);
+        activeSockets.delete(socket);
+        socket.destroy();
+      });
+
       socket.on('data', async (chunk) => {
         try {
+          if (session.buffer.length + chunk.length > 1024 * 1024) {
+            console.warn(`⚠️ [ASTM TCP] Runaway buffer detected (>1MB) from ${clientInfo}. Flushing.`);
+            session.buffer = Buffer.alloc(0);
+            session.frames = [];
+            return;
+          }
           session.buffer = Buffer.concat([session.buffer, chunk]);
           await processSessionBuffer(socket, session);
         } catch (err: any) {
@@ -143,6 +156,7 @@ export function startTcpDeviceServer(port?: number): Promise<net.Server> {
       socket.on('error', (err) => {
         console.error(`⚠️ [ASTM TCP] Socket error on ${clientInfo}:`, err.message);
         activeSockets.delete(socket);
+        socket.destroy();
       });
     });
 

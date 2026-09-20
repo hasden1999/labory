@@ -147,6 +147,13 @@ function SamplesContent() {
   };
 
   const handleOpenWhatsApp = (sample: any) => {
+    // Clinical Safety Rule: Prevent sending incomplete report via WhatsApp
+    const incomplete = (sample.tests || []).filter((t: any) => !t.resultValue || String(t.resultValue).trim() === '');
+    if (incomplete.length > 0) {
+      toast.warning(`⚠️ لا يمكن إرسال التقرير عبر واتساب لوجود (${incomplete.length}) فحص لم يُنجز بعد!`, 'فحوصات معلقة');
+      return;
+    }
+
     const phone = sample.patient?.phone || '';
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     const formattedPhone = cleanPhone.startsWith('0') ? `964${cleanPhone.slice(1)}` : cleanPhone;
@@ -158,6 +165,19 @@ function SamplesContent() {
       `مرحباً ${sample.patient?.name || ''}،\nيسر ${currentLabName} إعلامكم بصدور نتائج فحصكم رقم (#${sample.sampleNumber}).\nيمكنكم الاطلاع على التقرير المعتمد وتحميله مباشرة من الرابط:\n${reportUrl}\n\nنتمنى لكم دوام الصحة والعافية.`
     );
     setShowWhatsAppModal(true);
+  };
+
+  const handlePrintSample = (s: any) => {
+    const incomplete = (s.tests || []).filter((t: any) => !t.resultValue || String(t.resultValue).trim() === '');
+    if (incomplete.length > 0) {
+      toast.warning(
+        `⚠️ لا يمكن طباعة تقرير العينة #${s.sampleNumber} لوجود (${incomplete.length}) فحص لم يُنجز بعد! [${incomplete.map((t: any) => t.test?.name || t.test?.code).slice(0, 3).join('، ')}]`,
+        'فحوصات غير مكتملة'
+      );
+      return;
+    }
+    setDocPreviewUrl(`/api/samples/${s.id}/print`);
+    setDocPreviewTitle(`معاينة تقرير الفحص - عينة #${s.sampleNumber} (${s.patient?.name})`);
   };
 
   const filteredSamples = useMemo(() => {
@@ -646,10 +666,7 @@ function SamplesContent() {
 
                         {/* Print Report Preview */}
                         <button
-                          onClick={() => {
-                            setDocPreviewUrl(`/api/samples/${s.id}/print`);
-                            setDocPreviewTitle(`معاينة تقرير الفحص - عينة #${s.sampleNumber} (${s.patient?.name})`);
-                          }}
+                          onClick={() => handlePrintSample(s)}
                           className="btn-icon"
                           title="معاينة وطباعة التقرير"
                         >

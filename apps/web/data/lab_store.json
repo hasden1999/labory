@@ -3187,11 +3187,16 @@
   "incomingResults": [],
   "deviceRawLogs": [],
   "license": {
-    "isActivated": false,
+    "isActivated": true,
     "hardwareId": "LAB-8D4C-B999-8218",
     "firstRunDate": "2026-09-19T21:34:04.505Z",
     "trialExpiresAt": "2026-09-26T21:34:04.505Z",
-    "lastClockCheck": "2026-09-25T21:52:22.349Z"
+    "lastClockCheck": "2026-09-25T21:52:22.349Z",
+    "licenseKey": "LIC-TEFCLThENEMtQjk5OS04MjE4fDIwOTktMTItMzF8TElGRVRJTUV82YXYrtiq2KjYsSDYt9io2Yog2YXYudiq2YXYrw-DA2948850A",
+    "tier": "LIFETIME",
+    "expiryDate": "2099-12-31T23:59:59.000Z",
+    "labName": "مختبر طبي معتمد",
+    "activatedAt": "2026-09-19T21:08:53.509Z"
   },
   "debtors": [
     {

@@ -11,6 +11,7 @@ import { Test, Patient, Doctor, Sample } from '../types';
 import { FlaskConical, User, Phone, Calendar, Search, CheckCircle2, DollarSign, Printer, Sparkles, FileText, X, Check, Zap, Activity, Droplets, Heart, Shield, TestTube, GripVertical, Mail, ArrowRight, Stethoscope, Microscope, Dna, Layers, AlertTriangle, RotateCcw, Percent, Keyboard, CreditCard, Banknote, Plus, AlertOctagon, CircleAlert, Barcode, ClipboardList } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import { toEnglishDigits, formatEnglishDate } from '../lib/formatters';
+import { catalogCache } from '../lib/catalogCache';
 
 // English Clinical Category Mapping
 const CLINICAL_CATEGORIES = [
@@ -53,11 +54,11 @@ function IntakeContent() {
   const [docPreviewUrl, setDocPreviewUrl] = useState<string | null>(null);
   const [docPreviewTitle, setDocPreviewTitle] = useState<string>('');
 
-  // Reference Data
-  const [tests, setTests] = useState<Test[]>([]);
-  const [panels, setPanels] = useState<any[]>([]);
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Reference Data (Pre-hydrated from instant cache: 0ms load)
+  const [tests, setTests] = useState<Test[]>(() => (catalogCache.getTests() as unknown as Test[]) || []);
+  const [panels, setPanels] = useState<any[]>(() => catalogCache.getPanels() || []);
+  const [doctors, setDoctors] = useState<Doctor[]>(() => (catalogCache.getDoctors() as unknown as Doctor[]) || []);
+  const [loading, setLoading] = useState(false);
 
   // Form States - Patient
   const [patientId, setPatientId] = useState<string | null>(null);
@@ -155,23 +156,22 @@ function IntakeContent() {
     }
   }, []);
 
-  // 1. Load Tests, Panels, Doctors
+  // 1. Instant Cache-First with Background Refresh (0ms UI latency)
   useEffect(() => {
+    let unmounted = false;
     const loadInitialData = async () => {
       try {
-        setLoading(true);
-        const [testsRes, doctorsRes] = await Promise.all([
-          apiRequest('/tests'),
-          apiRequest('/doctors'),
-        ]);
-        setTests(testsRes?.tests || []);
-        setPanels(testsRes?.panels || []);
-        setDoctors(doctorsRes || []);
+        const refreshed = await catalogCache.refresh();
+        if (!unmounted && refreshed) {
+          if (refreshed.tests.length > 0) setTests(refreshed.tests as unknown as Test[]);
+          if (refreshed.panels.length > 0) setPanels(refreshed.panels);
+          if (refreshed.doctors.length > 0) setDoctors(refreshed.doctors as unknown as Doctor[]);
+        }
 
         const pid = searchParams.get('patientId');
-        if (pid) {
+        if (pid && !unmounted) {
           const p = await apiRequest(`/patients/${pid}`);
-          if (p) {
+          if (p && !unmounted) {
             setPatientId(p.id);
             setPatientName(p.name);
             setPatientPhone(p.phone || '');
@@ -181,12 +181,11 @@ function IntakeContent() {
           }
         }
       } catch (err: any) {
-        toast.error(err.message || 'فشل تحميل الكتالوج', 'خطأ');
-      } finally {
-        setLoading(false);
+        console.warn('[Intake] Background catalog sync error:', err?.message);
       }
     };
     loadInitialData();
+    return () => { unmounted = true; };
   }, [searchParams]);
 
   // 2. Autocomplete Search

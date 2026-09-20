@@ -4,13 +4,24 @@ export const prisma = new PrismaClient();
 
 export async function initDbWAL() {
   try {
-    await prisma.$queryRawUnsafe('PRAGMA journal_mode = WAL;');
-    await prisma.$queryRawUnsafe('PRAGMA busy_timeout = 5000;');
-    await prisma.$queryRawUnsafe('PRAGMA synchronous = NORMAL;');
-    await prisma.$queryRawUnsafe('PRAGMA foreign_keys = ON;');
-    await prisma.$queryRawUnsafe('PRAGMA cache_size = -64000;');
-    console.log('⚡ SQLite WAL mode enabled successfully.');
+    await prisma.$executeRawUnsafe('PRAGMA journal_mode = WAL;');
+    await prisma.$executeRawUnsafe('PRAGMA synchronous = NORMAL;');
+    await prisma.$executeRawUnsafe('PRAGMA foreign_keys = ON;');
+    await prisma.$executeRawUnsafe('PRAGMA busy_timeout = 5000;');
+    await prisma.$executeRawUnsafe('PRAGMA cache_size = -64000;');
+    await prisma.$executeRawUnsafe('PRAGMA temp_store = MEMORY;');
+    console.log('⚡ SQLite WAL mode & optimized Pragmas initialized successfully.');
   } catch (error) {
-    console.error('Failed to enable WAL mode:', error);
+    console.error('Failed to configure SQLite Pragmas:', error);
   }
 }
+
+export async function checkpointDbWAL() {
+  try {
+    await prisma.$executeRawUnsafe('PRAGMA wal_checkpoint(TRUNCATE);');
+    console.log('📦 SQLite WAL journal checkpointed and truncated.');
+  } catch (error) {
+    console.error('Failed to checkpoint WAL journal:', error);
+  }
+}
+

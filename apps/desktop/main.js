@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, dialog, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog, Tray, Menu, nativeImage, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn, execSync } = require('child_process');
@@ -24,6 +24,8 @@ let backendProcess = null;
 let tray = null;
 let isQuitting = false;
 let hasShownTrayNotice = false;
+let isPreWarmed = false;
+let isStartingUp = false;
 const WEB_PORT = 8080;
 
 let autoUpdater = null;
@@ -45,6 +47,17 @@ function initAutoUpdater() {
 
   autoUpdater.on('update-available', (info) => {
     console.log('[AutoUpdater] Update available:', info.version);
+    try {
+      if (Notification && Notification.isSupported()) {
+        new Notification({
+          title: 'نظام لابريو الطبي - تحديث جديد',
+          body: `تم اكتشاف الإصدار (${info.version})، يجري تنزيله تلقائياً في الخلفية...`,
+          icon: getTrayIcon(),
+        }).show();
+      }
+    } catch (e) {
+      console.warn('[AutoUpdater] Notification error:', e?.message);
+    }
   });
 
   autoUpdater.on('update-not-available', () => {
@@ -57,7 +70,11 @@ function initAutoUpdater() {
 
   autoUpdater.on('update-downloaded', (info) => {
     console.log('[AutoUpdater] Update downloaded:', info.version);
-    dialog.showMessageBox({
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+    dialog.showMessageBox(mainWindow || undefined, {
       type: 'info',
       title: 'تحديث جديد لنظام لابريو الطبي',
       message: `تم تنزيل الإصدار الجديد (${info.version}) بنجاح!`,
@@ -287,7 +304,7 @@ function preWarmServer(port) {
   } catch (e) {}
 }
 
-// Kill backend process and all its tree cleanly
+// Kill backend process and all its tree cleanly, ensuring port is liberated
 function killBackendProcess() {
   if (backendProcess && backendProcess.pid) {
     try {
@@ -298,6 +315,11 @@ function killBackendProcess() {
       }
     } catch (e) {}
     backendProcess = null;
+  }
+  if (process.platform === 'win32') {
+    try {
+      execSync(`powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${WEB_PORT} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"`, { stdio: 'ignore' });
+    } catch (e) {}
   }
 }
 
@@ -611,7 +633,7 @@ async function startAndLoadApp() {
 
   let ready = false;
   let attempts = 0;
-  const maxAttempts = 180; // 180 * 200ms = 36 seconds buffer
+  const maxAttempts = 180; // 180 attempts with dynamic fast polling (50ms initial)
 
   while (attempts < maxAttempts) {
     ready = await isServerReady(WEB_PORT);
@@ -619,13 +641,14 @@ async function startAndLoadApp() {
 
     if (attempts === 4) {
       updateSplashStatus('جاري تشغيل محرك النظام وقاعدة البيانات المحلية...');
-    } else if (attempts === 15) {
+    } else if (attempts === 20) {
       updateSplashStatus('جاري تهيئة خدمات الفحوصات والتحاليل الطبية...');
-    } else if (attempts === 35) {
+    } else if (attempts === 50) {
       updateSplashStatus('جاري استكمال إقلاع النظام، ثوانٍ معدودة...');
     }
 
-    await new Promise((r) => setTimeout(r, 200));
+    const interval = attempts < 40 ? 50 : 100;
+    await new Promise((r) => setTimeout(r, interval));
     attempts++;
   }
 
@@ -642,6 +665,7 @@ async function startAndLoadApp() {
 
     // Show seamlessly once first paint / ready
     mainWindow.once('ready-to-show', () => {
+      isPreWarmed = true;
       if (splashWindow && !splashWindow.isDestroyed()) {
         splashWindow.destroy();
         splashWindow = null;
@@ -655,6 +679,7 @@ async function startAndLoadApp() {
 
     // Safety fallback: if ready-to-show takes more than 3.5s, force show
     setTimeout(() => {
+      isPreWarmed = true;
       if (splashWindow && !splashWindow.isDestroyed()) {
         splashWindow.destroy();
         splashWindow = null;
@@ -693,13 +718,68 @@ function showMainWindow() {
     return;
   }
 
+  if (!isPreWarmed && !mainWindow.webContents.getURL()) {
+    createSplashWindow();
+    startAndLoadApp();
+    return;
+  }
+
   if (!mainWindow.isVisible()) {
     mainWindow.show();
+    mainWindow.maximize();
   }
   if (mainWindow.isMinimized()) {
     mainWindow.restore();
   }
   mainWindow.focus();
+}
+
+// Safe icon resolution functions for production packaging & system tray
+function getTrayIcon() {
+  const candidates = [
+    path.join(__dirname, 'assets', 'tray-icon.png'),
+    path.join(__dirname, 'assets', 'icon.png'),
+    path.join(process.resourcesPath || '', 'assets', 'tray-icon.png'),
+    path.join(process.resourcesPath || '', 'assets', 'icon.png'),
+    path.join(findProjectRoot(), 'apps', 'desktop', 'assets', 'tray-icon.png'),
+    path.join(findProjectRoot(), 'apps', 'desktop', 'assets', 'icon.png'),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      const img = nativeImage.createFromPath(p);
+      if (!img.isEmpty()) {
+        return img.resize({ width: 16, height: 16 });
+      }
+    }
+  }
+  return nativeImage.createEmpty();
+}
+
+function getWindowIcon() {
+  const candidates = [
+    path.join(__dirname, 'assets', 'icon.png'),
+    path.join(process.resourcesPath || '', 'assets', 'icon.png'),
+    path.join(findProjectRoot(), 'apps', 'desktop', 'assets', 'icon.png'),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return undefined;
+}
+
+// Windows silent auto-launch configuration
+function configureAutoLaunch(enable = true) {
+  try {
+    app.setLoginItemSettings({
+      openAtLogin: enable,
+      openAsHidden: true,
+      path: process.execPath,
+      args: ['--hidden'],
+    });
+    console.log(`[Desktop] Auto-launch configured: openAtLogin=${enable}, openAsHidden=true`);
+  } catch (err) {
+    console.error('[Desktop] Failed to configure auto-launch:', err);
+  }
 }
 
 // Initialize system tray with Arabic controls
@@ -737,14 +817,7 @@ function createTray() {
           type: 'checkbox',
           checked: autoLaunch,
           click: (menuItem) => {
-            try {
-              app.setLoginItemSettings({
-                openAtLogin: menuItem.checked,
-                openAsHidden: true,
-              });
-            } catch (err) {
-              console.error('[Desktop] Failed to update login settings:', err);
-            }
+            configureAutoLaunch(menuItem.checked);
           },
         },
         {
@@ -857,9 +930,7 @@ function createSplashWindow() {
 function createMainWindow() {
   if (mainWindow && !mainWindow.isDestroyed()) return;
 
-  const projectRoot = findProjectRoot();
-  const winIconPath = path.join(projectRoot, 'apps', 'desktop', 'assets', 'icon.png');
-  const winIcon = fs.existsSync(winIconPath) ? winIconPath : undefined;
+  const winIcon = getWindowIcon();
 
   mainWindow = new BrowserWindow({
     width: 1360,
@@ -870,12 +941,15 @@ function createMainWindow() {
     backgroundColor: '#090d16',
     autoHideMenuBar: true,
     show: false,
+    paintWhenInitiallyHidden: true,
     icon: winIcon,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: false,
+      backgroundThrottling: false,
+      spellcheck: false,
     },
   });
 
@@ -884,22 +958,11 @@ function createMainWindow() {
     return { action: 'deny' };
   });
 
-  // Intercept window close: hide to system tray instead of exiting
-  mainWindow.on('close', (event) => {
-    if (!isQuitting) {
-      event.preventDefault();
-      mainWindow.hide();
-
-      if (!hasShownTrayNotice && tray) {
-        try {
-          tray.displayBalloon({
-            title: 'نظام لابريو الطبي (Labryo LIMS)',
-            content: 'النظام مستمر في العمل في الخلفية لخدمة الأجهزة والمحطات المتصلة. انقر على أيقونة البرنامج لفتحه فوراً.',
-          });
-          hasShownTrayNotice = true;
-        } catch (e) {}
-      }
-    }
+  // Clean exit: closing main window terminates all services and exits completely
+  mainWindow.on('close', () => {
+    isQuitting = true;
+    killBackendProcess();
+    app.quit();
   });
 
   mainWindow.on('closed', () => {
@@ -967,28 +1030,54 @@ ipcMain.handle('print-document', async (event, { url, printOptions }) => {
   }
 });
 
+// Background pre-warming for hidden launch without network race conditions
+async function startBackgroundPreWarm() {
+  const appUrl = `http://localhost:${WEB_PORT}`;
+  isStartingUp = true;
+
+  try {
+    await ensureServerStarted();
+
+    let ready = false;
+    let attempts = 0;
+    const maxAttempts = 180; // Fast dynamic 50ms polling
+
+    while (attempts < maxAttempts) {
+      ready = await isServerReady(WEB_PORT);
+      if (ready) break;
+      const interval = attempts < 40 ? 50 : 100;
+      await new Promise((r) => setTimeout(r, interval));
+      attempts++;
+    }
+
+    if (ready && mainWindow && !mainWindow.isDestroyed()) {
+      preWarmServer(WEB_PORT);
+      mainWindow.loadURL(appUrl);
+
+      mainWindow.once('ready-to-show', () => {
+        isPreWarmed = true;
+        isStartingUp = false;
+        console.log('[Desktop] Background pre-warming complete. Warm start ready in <50ms.');
+      });
+    } else {
+      isStartingUp = false;
+    }
+  } catch (err) {
+    console.error('[Desktop] Background pre-warming error:', err);
+    isStartingUp = false;
+  }
+}
+
 // App Lifecycle
 app.whenReady().then(() => {
-  createTray();
+  // Disable automatic background launch with Windows boot
+  configureAutoLaunch(false);
+
+  // Normal user launch: show instant splash and load cleanly
+  createSplashWindow();
+  createMainWindow();
+  startAndLoadApp();
   initAutoUpdater();
-
-  const isHiddenLaunch = process.argv.includes('--hidden') || process.argv.includes('--minimized');
-
-  if (isHiddenLaunch) {
-    // Silent startup in tray (e.g. on Windows login)
-    createMainWindow();
-    ensureServerStarted().then(() => {
-      preWarmServer(WEB_PORT);
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.loadURL(`http://localhost:${WEB_PORT}`);
-      }
-    });
-  } else {
-    // Normal user launch: show instant splash and load silently
-    createSplashWindow();
-    createMainWindow();
-    startAndLoadApp();
-  }
 
   app.on('activate', () => {
     showMainWindow();
@@ -1005,10 +1094,9 @@ app.on('before-quit', () => {
 });
 
 app.on('window-all-closed', () => {
-  if (isQuitting) {
-    killBackendProcess();
-    if (process.platform !== 'darwin') {
-      app.quit();
-    }
+  isQuitting = true;
+  killBackendProcess();
+  if (process.platform !== 'darwin') {
+    app.quit();
   }
 });

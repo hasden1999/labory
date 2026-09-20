@@ -53,6 +53,8 @@ export interface LabProfile {
   watermarkAngle?: number;
   watermarkSize?: number;
   watermarkColor?: string;
+  fontFamily?: 'Tajawal' | 'Cairo' | 'IBM Plex Sans Arabic' | 'Almarai' | 'System';
+  fontSize?: 'SMALL' | 'MEDIUM' | 'LARGE';
 }
 
 const DEFAULT_LAB_PROFILE: LabProfile = {
@@ -79,6 +81,8 @@ const DEFAULT_LAB_PROFILE: LabProfile = {
   accreditationBadge: 'ISO 15189 Certified Lab',
   isConfigured: false,
   serverBaseUrl: '',
+  fontFamily: 'Tajawal',
+  fontSize: 'MEDIUM',
   showLabName: true,
   labNameFontSize: 22,
   labNameColor: '#0284c7',

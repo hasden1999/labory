@@ -49,8 +49,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   // Secondary Navigation Routes (Grouped under 'المزيد ▾')
   const secondaryNavItems = [
-    { href: '/financials', label: 'المالية والصندوق (Financials)', icon: TrendingUp },
-    { href: '/debts', label: 'الديون والذمم (Debts)', icon: CreditCard },
+    { href: '/financials', label: 'المركز المالي (Financials)', icon: TrendingUp },
+    { href: '/inventory', label: 'المخزون والكواشف (Inventory)', icon: Package },
     { href: '/catalog', label: 'الكتالوج (Tests)', icon: Layers },
     { href: '/devices', label: 'الأجهزة (LIS)', icon: Cpu },
     { href: '/settings', label: 'الإعدادات (Settings)', icon: SettingsIcon },
@@ -315,7 +315,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* 2. MAIN CONTENT AREA (Wide, Spacious, Floating Glass Aesthetic) */}
-      <main style={{ flex: 1, padding: '24px', maxWidth: '1600px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+      <main className="flex-1 p-3 md:p-6 max-w-[1600px] w-full mx-auto box-border overflow-x-clip">
         {children}
       </main>
 

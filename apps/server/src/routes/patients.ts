@@ -53,20 +53,16 @@ export async function patientRoutes(fastify: FastifyInstance) {
       orderBy: { createdAt: 'desc' },
       take: 100,
       include: {
-        samples: {
-          orderBy: { createdAt: 'desc' },
-          include: {
-            tests: { include: { test: true } },
-            doctor: true,
-          },
+        _count: {
+          select: { samples: true },
         },
       },
     });
 
     const formatted = patients.map((p) => ({
       ...p,
-      visitsCount: p.samples?.length || 0,
-      visitCount: p.samples?.length || 0,
+      visitsCount: p._count?.samples || 0,
+      visitCount: p._count?.samples || 0,
     }));
 
     return reply.send(formatted);
@@ -82,8 +78,26 @@ export async function patientRoutes(fastify: FastifyInstance) {
         samples: {
           orderBy: { createdAt: 'desc' },
           include: {
-            tests: { include: { test: true } },
-            doctor: true,
+            tests: {
+              include: {
+                test: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    arabicName: true,
+                    unit: true,
+                    refRangeLow: true,
+                    refRangeHigh: true,
+                    refRangeText: true,
+                    category: true,
+                  },
+                },
+              },
+            },
+            doctor: {
+              select: { id: true, name: true, specialty: true },
+            },
           },
         },
       },

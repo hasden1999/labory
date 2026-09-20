@@ -284,71 +284,12 @@ export const deviceRoutes: FastifyPluginAsync = async (server) => {
   };
   registerDual('post', '/devices/ingest', ingestHandler);
 
-  // 10. Simulate Device Transmission
+  // 10. Simulate Device Transmission (Disabled in production for Zero-Simulation Integrity)
   const simulateHandler = async (request: any, reply: any) => {
-    const { id } = request.params;
-    const { sampleNumber, patientName, customResults } = request.body || {};
-
-    const device = await prisma.labDevice.findUnique({
-      where: { id },
-      include: {
-        mappings: {
-          include: { testCatalog: true },
-        },
-      },
+    return reply.status(403).send({
+      success: false,
+      error: 'Simulation mode is completely disabled in production. Labryo requires genuine instrument interfacing via ASTM E1381/E1394 or HL7 socket.',
     });
-
-    if (!device) {
-      return reply.status(404).send({ success: false, error: 'Device not found' });
-    }
-
-    let items = customResults || [];
-    if (items.length === 0) {
-      if (device.category === 'CBC') {
-        items = [
-          { testCode: 'WBC', testName: 'White Blood Cells', value: '7.8', unit: '10^3/uL' },
-          { testCode: 'RBC', testName: 'Red Blood Cells', value: '4.85', unit: '10^6/uL' },
-          { testCode: 'HGB', testName: 'Hemoglobin', value: '14.2', unit: 'g/dL' },
-          { testCode: 'HCT', testName: 'Hematocrit (PCV)', value: '42.5', unit: '%' },
-          { testCode: 'MCV', testName: 'MCV', value: '87.6', unit: 'fL' },
-          { testCode: 'MCH', testName: 'MCH', value: '29.3', unit: 'pg' },
-          { testCode: 'MCHC', testName: 'MCHC', value: '33.4', unit: 'g/dL' },
-          { testCode: 'PLT', testName: 'Platelets', value: '265', unit: '10^3/uL' },
-          { testCode: 'LYM%', testName: 'Lymphocytes %', value: '32.1', unit: '%' },
-          { testCode: 'NEU%', testName: 'Neutrophils %', value: '60.4', unit: '%' },
-        ];
-      } else if (device.category === 'CHEMISTRY') {
-        items = [
-          { testCode: 'GLU', testName: 'Glucose', value: '102', unit: 'mg/dL' },
-          { testCode: 'UREA', testName: 'Urea', value: '28', unit: 'mg/dL' },
-          { testCode: 'CREA', testName: 'Creatinine', value: '0.9', unit: 'mg/dL' },
-          { testCode: 'ALT', testName: 'ALT (SGPT)', value: '24', unit: 'U/L' },
-          { testCode: 'AST', testName: 'AST (SGOT)', value: '21', unit: 'U/L' },
-        ];
-      } else if (device.category === 'IMMUNOLOGY') {
-        items = [
-          { testCode: 'TSH', testName: 'TSH', value: '2.45', unit: 'uIU/mL' },
-          { testCode: 'FT4', testName: 'Free T4', value: '1.25', unit: 'ng/dL' },
-          { testCode: 'VITD', testName: 'Vitamin D', value: '34.5', unit: 'ng/mL' },
-        ];
-      } else {
-        items = [
-          { testCode: 'TEST1', testName: 'Param 1', value: '15.4', unit: 'mg/dL' },
-          { testCode: 'TEST2', testName: 'Param 2', value: '3.2', unit: 'mmol/L' },
-        ];
-      }
-    }
-
-    const payload: IngestPayload = {
-      apiKey: device.apiKey,
-      sampleNumber: sampleNumber ? Number(sampleNumber) : 101,
-      sampleBarcode: String(sampleNumber || '101'),
-      patientName: patientName || 'عينة تجريبية',
-      items,
-    };
-
-    const summary = await processDeviceIngest(payload);
-    return { success: true, message: 'Simulation processed successfully', summary };
   };
   registerDual('post', '/devices/:id/test-simulate', simulateHandler);
 

@@ -109,6 +109,39 @@ export interface DashboardSummary {
   netProfit?: number;
   urgentPendingCount?: number;
   criticalCount?: number;
+  averageTatMinutes?: number;
+  delayedCount?: number;
+  rejectedSamplesCount?: number;
+}
+
+export interface CriticalAlertItem {
+  id: string;
+  testName: string;
+  testCode: string;
+  resultValue: string;
+  unit: string;
+  refRange: string;
+  sampleNumber: number | string;
+  sampleId: string;
+  patientName: string;
+  patientPhone?: string;
+  isUrgent: boolean;
+  createdAt: string;
+}
+
+export interface OperationalCockpitData {
+  averageTatMinutes: number;
+  delayedCount: number;
+  hourlyArrivals: number[];
+  criticalAlerts: CriticalAlertItem[];
+  deviceStatus: {
+    totalDevices: number;
+    activeDevices: number;
+    devices: any[];
+    todayIncomingTotal: number;
+    todayIncomingApplied: number;
+    automationRate: number;
+  };
 }
 
 export interface DashboardData {
@@ -118,4 +151,45 @@ export interface DashboardData {
   doctorCommissionsSummary?: any[];
   inventoryAlerts?: { expiredCount: number; expiringCount: number; lowStockCount: number };
   recentExpenses?: any[];
+  operationalCockpit?: OperationalCockpitData;
 }
+
+export interface FinancialPnl {
+  grossRevenue: number;
+  discounts: number;
+  netSalesRevenue: number;
+  directReagentCost: number;
+  doctorCommissions: number;
+  grossOperatingProfit: number;
+  operatingExpenses: number;
+  netProfit: number;
+  operatingMarginPct: number;
+}
+
+export interface FinancialDebtAging {
+  current: number;
+  medium: number;
+  critical: number;
+  total: number;
+}
+
+export interface CashShift {
+  id: string;
+  shiftNumber: number;
+  openedById?: string;
+  closedById?: string;
+  openedAt: string;
+  closedAt?: string | null;
+  startingCash: number;
+  expectedCash?: number;
+  actualCash?: number;
+  discrepancy?: number;
+  status: 'OPEN' | 'CLOSED';
+  notes?: string | null;
+  cashIn?: number;
+  cardIn?: number;
+  zainCashIn?: number;
+  cashOut?: number;
+  netCashFlow?: number;
+}
+

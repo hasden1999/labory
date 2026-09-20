@@ -2,10 +2,9 @@ import { FastifyInstance } from 'fastify';
 import fs from 'fs';
 import path from 'path';
 import cron from 'node-cron';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../prisma';
 
 const BACKUP_DIR = path.join(process.cwd(), 'backups');
-const prisma = new PrismaClient();
 
 export function initBackupCron() {
   if (!fs.existsSync(BACKUP_DIR)) {
@@ -20,15 +19,16 @@ export function initBackupCron() {
 
 export async function runBackupSnapshot(): Promise<string> {
   if (!fs.existsSync(BACKUP_DIR)) {
-    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    await fs.promises.mkdir(BACKUP_DIR, { recursive: true });
   }
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const backupFileName = `lab_backup_${timestamp}.db`;
   const destPath = path.join(BACKUP_DIR, backupFileName);
+  const sanitizedDestPath = destPath.replace(/\\/g, '/');
 
   try {
-    await prisma.$executeRawUnsafe(`VACUUM INTO '${destPath}'`);
+    await prisma.$executeRawUnsafe(`VACUUM INTO '${sanitizedDestPath}'`);
     console.log(`Database backup snapshot created: ${backupFileName}`);
     return backupFileName;
   } catch (error) {
@@ -54,15 +54,23 @@ export async function backupRoutes(fastify: FastifyInstance) {
       return reply.send([]);
     }
 
-    const files = fs.readdirSync(BACKUP_DIR).map((f) => {
-      const stats = fs.statSync(path.join(BACKUP_DIR, f));
-      return {
-        fileName: f,
-        sizeBytes: stats.size,
-        createdAt: stats.birthtime,
-      };
-    });
+    try {
+      const dirEntries = await fs.promises.readdir(BACKUP_DIR);
+      const files = await Promise.all(
+        dirEntries.map(async (f) => {
+          const stats = await fs.promises.stat(path.join(BACKUP_DIR, f));
+          return {
+            fileName: f,
+            sizeBytes: stats.size,
+            createdAt: stats.birthtime,
+          };
+        })
+      );
 
-    return reply.send(files.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+      return reply.send(files.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+    } catch (err) {
+      console.error('Failed to list backups:', err);
+      return reply.send([]);
+    }
   });
 }

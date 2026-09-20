@@ -61,6 +61,22 @@ function ResultsContent() {
   const [showDirtyConfirm, setShowDirtyConfirm] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [deltaChecks, setDeltaChecks] = useState<Record<string, DeltaCheckResult>>({});
+  const [inventoryAlerts, setInventoryAlerts] = useState<any>(null);
+  const [incompletePrintAlert, setIncompletePrintAlert] = useState<{
+    open: boolean;
+    tests: any[];
+    sampleNumber?: string | number;
+  }>({ open: false, tests: [] });
+
+  useEffect(() => {
+    apiRequest('/inventory/alerts')
+      .then((res) => {
+        if (res && res.expiredCount > 0) {
+          setInventoryAlerts(res);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Refs for fast Shift / Enter navigation across table rows
   const resultInputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -595,6 +611,28 @@ function ResultsContent() {
   // Save Results
   const handleSaveResults = async (markReady: boolean = true) => {
     if (!selectedSample) return;
+
+    // Clinical Safety Rule: Prevent printing when there are unperformed / incomplete tests
+    if (markReady) {
+      const incompleteTests = (selectedSample.tests || []).filter((st: any) => {
+        const cur = testResults[st.id]?.resultValue ?? st.resultValue;
+        return !cur || String(cur).trim() === '';
+      });
+
+      if (incompleteTests.length > 0) {
+        setIncompletePrintAlert({
+          open: true,
+          tests: incompleteTests,
+          sampleNumber: selectedSample.sampleNumber,
+        });
+        toast.warning(
+          `⚠️ لا يمكن طباعة التقرير الطبي لوجود (${incompleteTests.length}) فحص لم يتم إدخال نتيجته بعد!`,
+          'فحوصات غير مكتملة'
+        );
+        return;
+      }
+    }
+
     try {
       setSavingResults(true);
       const resultsPayload = Object.entries(testResults).map(([sampleTestId, data]: [string, any]) => ({
@@ -634,6 +672,25 @@ function ResultsContent() {
   // Fast Pathologist Hotkey (Ctrl+Shift+Enter): Save as READY and jump to next pending sample
   const handleFastPathologistApprove = async () => {
     if (!selectedSample || savingResults) return;
+
+    // Clinical Safety Rule: Check for incomplete tests before fast-approving
+    const incompleteTests = (selectedSample.tests || []).filter((st: any) => {
+      const cur = testResults[st.id]?.resultValue ?? st.resultValue;
+      return !cur || String(cur).trim() === '';
+    });
+
+    if (incompleteTests.length > 0) {
+      setIncompletePrintAlert({
+        open: true,
+        tests: incompleteTests,
+        sampleNumber: selectedSample.sampleNumber,
+      });
+      toast.warning(
+        `⚠️ لا يمكن اعتماد العينة كـ READY لوجود (${incompleteTests.length}) فحص لم يُنجز بعد!`,
+        'فحوصات غير مكتملة'
+      );
+      return;
+    }
     try {
       setSavingResults(true);
       const resultsPayload = Object.entries(testResults).map(([sampleTestId, data]: [string, any]) => ({
@@ -760,6 +817,15 @@ function ResultsContent() {
     };
   }, [samples]);
 
+  // Track Incomplete Tests for Selected Sample
+  const incompleteTests = useMemo(() => {
+    if (!selectedSample?.tests) return [];
+    return selectedSample.tests.filter((st: any) => {
+      const cur = testResults[st.id]?.resultValue ?? st.resultValue;
+      return !cur || String(cur).trim() === '';
+    });
+  }, [selectedSample, testResults]);
+
   // Helper for elapsed time indicator
   const getElapsedTime = (createdAt: string | Date) => {
     if (!createdAt) return '';
@@ -871,6 +937,35 @@ function ResultsContent() {
 
   return (
     <AppShell>
+      {/* Smart Expiry Reagent Clinical Alert Banner */}
+      {inventoryAlerts && inventoryAlerts.expiredCount > 0 && (
+        <aside
+          aria-label="تحذير كواشف منتهية الصلاحية"
+          className="bg-rose-950/80 border border-rose-600/60 rounded-xl p-3 mb-3.5 flex flex-wrap items-center justify-between gap-3 text-rose-200 text-xs shadow-lg backdrop-blur-sm"
+          dir="rtl"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-rose-600/20 border border-rose-500/40 flex items-center justify-center shrink-0 text-rose-400">
+              <AlertOctagon className="w-4 h-4" />
+            </div>
+            <div>
+              <strong className="text-rose-100 font-bold block text-sm">
+                تنبيه سريري: يوجد {inventoryAlerts.expiredCount} كاشف / مادة منتهية الصلاحية في المخزون!
+              </strong>
+              <span className="text-rose-300/80 text-xs">
+                يُرجى التحقق من أرقام التشغيلات وصلاحية الكواشف قبل اعتماد نتائج الفحوصات الطبية.
+              </span>
+            </div>
+          </div>
+          <Link
+            href="/inventory"
+            className="bg-rose-600 hover:bg-rose-500 text-white font-medium px-3 py-1.5 rounded-lg text-xs shrink-0 transition-colors shadow-sm mr-auto sm:mr-0"
+          >
+            فحص وإدارة المخزون 📦
+          </Link>
+        </aside>
+      )}
+
       {/* Main Mockup Split Layout */}
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '18px', minHeight: 'calc(100vh - 120px)' }}>
         
@@ -1052,9 +1147,22 @@ function ResultsContent() {
                 <span className="input-label" style={{ margin: 0, fontSize: '12px', fontWeight: 800 }}>
                   RESULTS ENTRY & VALIDATION (إدخال وتدقيق النتائج)
                 </span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  Sample #{selectedSample.sampleNumber} • Patient: {selectedSample.patient?.name}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '3px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Sample #{selectedSample.sampleNumber} • Patient: {selectedSample.patient?.name}
+                  </span>
+                  {incompleteTests.length > 0 ? (
+                    <span style={{ fontSize: '11px', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.35)', padding: '2px 8px', borderRadius: '6px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <AlertOctagon size={12} />
+                      <span>متبقي ({incompleteTests.length}) فحص لم يُنجز (الطباعة معلقة)</span>
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '11px', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.35)', padding: '2px 8px', borderRadius: '6px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <CheckCircle2 size={12} />
+                      <span>جميع الفحوصات مكتملة (جاهزة للطباعة)</span>
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Action Buttons */}
@@ -2141,6 +2249,65 @@ function ResultsContent() {
           }}
           onSave={handleSaveCriticalCallLog}
         />
+      )}
+
+      {/* INCOMPLETE TESTS CLINICAL ALERT MODAL */}
+      {incompletePrintAlert.open && (
+        <div className="modal-overlay" style={{ zIndex: 99999 }}>
+          <div className="modal-content" dir="rtl" style={{ maxWidth: '520px', padding: '26px', textAlign: 'center', borderRadius: '18px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '18px', background: 'rgba(239, 68, 68, 0.15)', border: '2px solid rgba(239, 68, 68, 0.4)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', marginBottom: '16px' }}>
+              <AlertOctagon size={36} />
+            </div>
+
+            <h3 style={{ fontSize: '18px', fontWeight: 900, marginBottom: '8px', color: 'var(--text-main)' }}>
+              ⚠️ لا يمكن طباعة التقرير الطبي
+            </h3>
+
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '16px' }}>
+              توجد فحوصات مطلوبة ضمن العينة <strong style={{ color: 'var(--accent-cyan)' }}>#{incompletePrintAlert.sampleNumber}</strong> لم يتم إدخال نتائجها بعد. وفقاً لمعايير الجودة الطبية وسلامة المرضى، يُحظر طباعة أو تسليم تقرير غير مكتمل النتائج.
+            </p>
+
+            <div style={{ background: 'var(--bg-surface)', padding: '14px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '18px', textAlign: 'right' }}>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#ef4444', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <CircleAlert size={14} />
+                <span>الفحوصات المعلقة التي لم تُنجز بعد ({incompletePrintAlert.tests.length}):</span>
+              </div>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0, maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {incompletePrintAlert.tests.map((t: any, idx: number) => (
+                  <li key={idx} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px' }}>
+                    <strong style={{ color: 'var(--text-main)' }}>{t.test?.name || t.test?.code || 'تحليل معلق'}</strong>
+                    <span style={{ fontSize: '10.5px', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                      قيد الانتظار (لم يُنجز)
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setIncompletePrintAlert({ open: false, tests: [] })}
+                className="btn-cyan-primary"
+                style={{ padding: '9px 22px', fontSize: '13px', fontWeight: 800 }}
+              >
+                ✏️ إكمال النتائج أولاً
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIncompletePrintAlert({ open: false, tests: [] });
+                  handleSaveResults(false);
+                }}
+                className="btn-secondary"
+                style={{ padding: '9px 18px', fontSize: '12.5px' }}
+                title="حفظ ما تم إدخاله كمسودة دون طباعة"
+              >
+                💾 حفظ كمسودة فقط (دون طباعة)
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </AppShell>

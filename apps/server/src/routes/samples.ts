@@ -66,9 +66,23 @@ export async function sampleRoutes(fastify: FastifyInstance) {
       where: whereClause,
       include: {
         patient: true,
-        doctor: true,
+        doctor: { select: { id: true, name: true, specialty: true } },
         tests: {
-          include: { test: true },
+          include: {
+            test: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                arabicName: true,
+                unit: true,
+                refRangeLow: true,
+                refRangeHigh: true,
+                refRangeText: true,
+                category: true,
+              },
+            },
+          },
         },
       },
       orderBy: [
@@ -88,9 +102,23 @@ export async function sampleRoutes(fastify: FastifyInstance) {
       where: { id },
       include: {
         patient: true,
-        doctor: true,
+        doctor: { select: { id: true, name: true, specialty: true } },
         tests: {
-          include: { test: true },
+          include: {
+            test: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                arabicName: true,
+                unit: true,
+                refRangeLow: true,
+                refRangeHigh: true,
+                refRangeText: true,
+                category: true,
+              },
+            },
+          },
         },
       },
     });
@@ -242,21 +270,17 @@ export async function sampleRoutes(fastify: FastifyInstance) {
 
           // 2. Automatically link/update Debtor & DebtRecord if remaining > 0
           if (remaining > 0) {
-            let debtor = await tx.debtor.findFirst({
+            const debtor = await tx.debtor.upsert({
               where: { patientId: targetPatientId },
+              update: {},
+              create: {
+                name: patientName,
+                phone: patientPhone || null,
+                type: 'PATIENT',
+                patientId: targetPatientId,
+                notes: `حساب مدين مريض: ${patientName}`,
+              },
             });
-
-            if (!debtor) {
-              debtor = await tx.debtor.create({
-                data: {
-                  name: patientName,
-                  phone: patientPhone || null,
-                  type: 'PATIENT',
-                  patientId: targetPatientId,
-                  notes: `حساب مدين مريض: ${patientName}`,
-                },
-              });
-            }
 
             await tx.debtRecord.create({
               data: {

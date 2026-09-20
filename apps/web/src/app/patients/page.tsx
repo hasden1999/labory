@@ -346,6 +346,13 @@ function PatientsContent() {
   };
 
   const handleOpenWhatsApp = (sample: Sample, patient: Patient) => {
+    // Clinical Safety Rule: Check for incomplete tests
+    const incomplete = (sample.tests || []).filter((t: any) => !t.resultValue || String(t.resultValue).trim() === '');
+    if (incomplete.length > 0) {
+      toast.warning(`⚠️ لا يمكن مشاركة التقرير لوجود (${incomplete.length}) فحص لم يُنجز بعد!`, 'فحوصات معلقة');
+      return;
+    }
+
     const phone = patient?.phone || '';
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     const formattedPhone = cleanPhone.startsWith('0') ? `964${cleanPhone.slice(1)}` : cleanPhone;
@@ -768,7 +775,10 @@ function PatientsContent() {
               return (
                 <div
                   key={patient.id}
+                  className="patient-card-stream-item"
                   style={{
+                    contentVisibility: 'auto',
+                    containIntrinsicSize: '0 100px',
                     background: 'var(--bg-card)',
                     borderRadius: '20px',
                     border: `1.5px solid ${isExpanded ? '#3b82f6' : 'var(--border-color)'}`,
@@ -1262,6 +1272,11 @@ function PatientsContent() {
                                     {/* Print A4 Report */}
                                     <button
                                       onClick={() => {
+                                        const incomplete = (sample.tests || []).filter((t: any) => !t.resultValue || String(t.resultValue).trim() === '');
+                                        if (incomplete.length > 0) {
+                                          toast.warning(`⚠️ لا يمكن طباعة التقرير لوجود (${incomplete.length}) فحص لم يُنجز بعد!`, 'فحوصات غير مكتملة');
+                                          return;
+                                        }
                                         setDocPreviewUrl(`/api/samples/${sample.id}/print`);
                                         setDocPreviewTitle(`معاينة تقرير الفحص A4 - عينة #${sample.sampleNumber} (${details.name})`);
                                       }}

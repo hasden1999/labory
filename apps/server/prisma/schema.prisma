@@ -1,6 +1,6 @@
 datasource db {
   provider = "sqlite"
-  url      = "file:./lab.db"
+  url      = "file:./lab.db?connection_limit=1&socket_timeout=10000&busy_timeout=5000"
 }
 
 generator client {
@@ -44,8 +44,6 @@ model Patient {
 
   @@index([name])
   @@index([phone])
-  @@index([createdAt])
-  @@index([isDeleted])
 }
 
 model Sample {
@@ -74,11 +72,9 @@ model Sample {
   debtRecords     DebtRecord[]
   financialTransactions FinancialTransaction[]
 
-  @@index([patientId])
-  @@index([status])
-  @@index([createdAt])
-  @@index([doctorId])
-  @@index([isDeleted])
+  @@index([patientId, createdAt(sort: Desc)])
+  @@index([isDeleted, status, isUrgent, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
 }
 
 model TestCatalog {
@@ -104,6 +100,10 @@ model TestCatalog {
   sampleTests      SampleTest[]
   panelItems       TestPanelItem[]
   deviceMappings   DeviceTestMapping[]
+
+  @@index([code])
+  @@index([name])
+  @@index([category, active])
 }
 
 model TestPanel {
@@ -147,8 +147,9 @@ model SampleTest {
   enteredAt       DateTime?
   createdAt       DateTime    @default(now())
 
+  @@index([sampleId, testId])
+  @@index([testId, resultValue])
   @@index([sampleId])
-  @@index([testId])
 }
 
 model LabDevice {
@@ -191,6 +192,9 @@ model DeviceTestMapping {
   unit           String?
   multiplier     Float       @default(1.0) // لمعامل التحويل إن اختلفت وحدات القياس
   createdAt      DateTime    @default(now())
+
+  @@unique([deviceId, deviceTestCode])
+  @@index([deviceTestCode])
 }
 
 model IncomingResult {
@@ -212,8 +216,8 @@ model IncomingResult {
   matchedSampleTestId String?
   receivedAt          DateTime   @default(now())
 
-  @@index([sampleNumber])
-  @@index([status])
+  @@index([sampleNumber, status, receivedAt(sort: Desc)])
+  @@index([status, receivedAt(sort: Desc)])
 }
 
 model DeviceRawLog {
@@ -231,13 +235,12 @@ model Debtor {
   phone                 String?
   notes                 String?
   type                  String                 @default("PATIENT") // PATIENT / SUPPLIER / CLINIC / OTHER
-  patientId             String?
+  patientId             String?                @unique
   createdAt             DateTime               @default(now())
   transactions          DebtRecord[]
   financialTransactions FinancialTransaction[]
 
   @@index([type])
-  @@index([patientId])
 }
 
 model DebtRecord {
@@ -259,7 +262,7 @@ model DebtRecord {
 
 model FinancialTransaction {
   id            String           @id @default(cuid())
-  voucherNumber Int              // رقم السند أو الإيصال المتسلسل
+  voucherNumber Int              @unique // رقم السند أو الإيصال المتسلسل فريد ومحمي
   type          String           // INCOME_SAMPLE, DEBT_PAYMENT, EXPENSE, SUPPLIER_PAYMENT, DOCTOR_COMMISSION
   category      String?          // تصنيف مالي (فحوصات، سداد دين، مصاريف، موردين، عمولات)
   amount        Float
@@ -276,12 +279,12 @@ model FinancialTransaction {
   notes         String?
   createdAt     DateTime         @default(now())
 
-  @@index([type])
-  @@index([createdAt])
-  @@index([patientId])
-  @@index([debtorId])
-  @@index([doctorId])
+  @@index([type, createdAt(sort: Desc)])
+  @@index([patientId, createdAt(sort: Desc)])
+  @@index([debtorId, createdAt(sort: Desc)])
+  @@index([doctorId, createdAt(sort: Desc)])
   @@index([paymentMethod])
+  @@index([createdAt(sort: Desc)])
 }
 
 model CashDrawerShift {
@@ -304,16 +307,23 @@ model CashDrawerShift {
 }
 
 model InventoryItem {
-  id               String                 @id @default(cuid())
-  name             String
-  unit             String                 // عبوة / مل / شريط / فحص / أنبوب
-  quantity         Float
-  reorderThreshold Float
-  expiryDate       DateTime?
-  supplier         String?
-  costPerUnit      Float
-  lotNumber        String?
-  transactions     InventoryTransaction[]
+  id                 String                 @id @default(cuid())
+  catalogCode        String?                // رمز الكتالوج / الباركود
+  name               String
+  category           String                 @default("REAGENT") // REAGENT (كواشف), KIT (أطقم فحص), CONSUMABLE (مستهلكات), CONTROL (محاليل ضبط)
+  unit               String                 // عبوة / مل / شريط / فحص / أنبوب
+  quantity           Float
+  reorderThreshold   Float
+  expiryDate         DateTime?
+  receivedDate       DateTime?              @default(now())
+  openVialDays       Int?                   // استقرار العبوة بعد الفتح بالأيام
+  openedAt           DateTime?              // تاريخ فتح العبوة
+  alertThresholdDays Int                    @default(30) // مهلة التنبيه قبل انتهاء الصلاحية بالأيام
+  storageCondition   String?                @default("2-8°C") // 2-8°C, 15-25°C, -20°C
+  supplier           String?
+  costPerUnit        Float
+  lotNumber          String?
+  transactions       InventoryTransaction[]
 }
 
 model InventoryTransaction {
@@ -359,20 +369,27 @@ model License {
 }
 
 model Settings {
-  id             String  @id @default("singleton")
-  labName        String  @default("مختبر الرضا للتحليلات الطبية التخصصية")
-  labSubtitle    String? @default("فحوصات مرضية وتطبيقية دقيقة - تشخيص إلكتروني متكامل")
-  doctorName     String? @default("د. أحمد الرضا")
-  doctorTitle    String? @default("استشاري التحليلات المرضية والطبية")
-  labLicense     String? @default("MOH-IQ-2026-8842")
-  whatsappNumber String? @default("07701234567")
-  currency       String  @default("د.ع")
-  logoPath       String?
-  address        String? @default("بغداد - شارع الأطباء - مقابل المجمع الطبي الرئيسي")
-  phone          String? @default("07701234567 / 07801234567")
-  reportHeader   String? @default("مختبر الرضا للتحليلات الطبية التخصصية")
-  reportFooter   String? @default("هذا التقرير تم إخراجه وتدقيقه إلكترونياً، ويعتبر معتمداً رسمياً دون الحاجة لتوقيع يدوي.")
-  reportTemplate String? @default("CLASSIC") // CLASSIC, MODERN, EXECUTIVE, COMPACT
+  id                   String  @id @default("singleton")
+  labName              String  @default("مختبر الرضا للتحليلات الطبية التخصصية")
+  labSubtitle          String? @default("فحوصات مرضية وتطبيقية دقيقة - تشخيص إلكتروني متكامل")
+  doctorName           String? @default("د. أحمد الرضا")
+  doctorTitle          String? @default("استشاري التحليلات المرضية والطبية")
+  labLicense           String? @default("MOH-IQ-2026-8842")
+  whatsappNumber       String? @default("07701234567")
+  currency             String  @default("د.ع")
+  logoPath             String?
+  address              String? @default("بغداد - شارع الأطباء - مقابل المجمع الطبي الرئيسي")
+  phone                String? @default("07701234567 / 07801234567")
+  reportHeader         String? @default("مختبر الرضا للتحليلات الطبية التخصصية")
+  reportFooter         String? @default("هذا التقرير تم إخراجه وتدقيقه إلكترونياً، ويعتبر معتمداً رسمياً دون الحاجة لتوقيع يدوي.")
+  reportTemplate       String? @default("CLASSIC") // CLASSIC, MODERN, EXECUTIVE, COMPACT, BLACK_WHITE
+  cbcLayoutTemplate    String? @default("WITH_HISTOGRAMS") // VERTICAL, CLASSIC_GRID, WITH_HISTOGRAMS
+  showPanicFlags       Boolean @default(true)
+  showClinicalComments Boolean @default(true)
+  showReferenceRanges  Boolean @default(true)
+  fontFamily           String? @default("Tajawal")
+  fontSize             String? @default("MEDIUM")
+  installedVersion     String  @default("v1.0.3")
 }
 
 model AuditLog {
@@ -386,7 +403,6 @@ model AuditLog {
   ipAddress String?
   createdAt DateTime @default(now())
 
-  @@index([entity, entityId])
-  @@index([action])
-  @@index([createdAt])
+  @@index([entity, entityId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
 }

@@ -40,26 +40,8 @@ export async function processDeviceIngest(payload: IngestPayload) {
     throw new Error('Device is currently deactivated in the system');
   }
 
-  // 2. Update Device Status & Last Seen
-  await prisma.labDevice.update({
-    where: { id: device.id },
-    data: {
-      status: 'ONLINE',
-      lastSeenAt: new Date(),
-    },
-  });
-
-  // 3. Log Raw Message
+  // 2. Parse message if rawFrame is provided or use structured payload
   const rawString = payload.rawFrame || JSON.stringify(payload);
-  await prisma.deviceRawLog.create({
-    data: {
-      deviceId: device.id,
-      direction: 'INCOMING',
-      message: rawString.length > 3000 ? rawString.substring(0, 3000) + '...[truncated]' : rawString,
-    },
-  });
-
-  // 4. Parse message if rawFrame is provided or use structured payload
   const parsed = payload.rawFrame
     ? parseUniversalPayload(payload.rawFrame, payload.protocol || device.protocol)
     : {
@@ -108,7 +90,6 @@ export async function processDeviceIngest(payload: IngestPayload) {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Fallback to latest sample with this number if no active 48h match
     if (!targetSample) {
       targetSample = await prisma.sample.findFirst({
         where: { sampleNumber: sampleNum },
@@ -125,147 +106,181 @@ export async function processDeviceIngest(payload: IngestPayload) {
     }
   }
 
-  // 5. Process each test result item
-  for (const item of parsed.items) {
-    if (!item.testCode || item.value === undefined || item.value === '') continue;
+  // 3. Pre-fetch matched TestCatalog items for all codes in a single batch query
+  const incomingTestCodes = (parsed.items || [])
+    .map((i) => i.testCode?.trim())
+    .filter(Boolean);
 
-    // Check device mappings first
-    const mapping = device.mappings.find(
-      (m) => m.deviceTestCode.toUpperCase() === item.testCode.toUpperCase()
-    );
-
-    let matchedCatalog: any = mapping ? mapping.testCatalog : null;
-
-    // If no explicit mapping, try matching TestCatalog by exact code or name
-    if (!matchedCatalog) {
-      matchedCatalog = await prisma.testCatalog.findFirst({
+  const matchedCatalogsList = incomingTestCodes.length > 0
+    ? await prisma.testCatalog.findMany({
         where: {
           OR: [
-            { code: { equals: item.testCode } },
-            { name: { equals: item.testCode } },
+            { code: { in: incomingTestCodes } },
+            { name: { in: incomingTestCodes } },
           ],
         },
-      });
-    }
+      })
+    : [];
 
-    let calculatedValue = item.value;
-    if (mapping && mapping.multiplier && mapping.multiplier !== 1) {
-      const numVal = parseFloat(item.value);
-      if (!isNaN(numVal)) {
-        calculatedValue = String(Number((numVal * mapping.multiplier).toFixed(2)));
-      }
-    }
+  const catalogLookupMap = new Map<string, any>();
+  for (const cat of matchedCatalogsList) {
+    if (cat.code) catalogLookupMap.set(cat.code.toUpperCase(), cat);
+    if (cat.name) catalogLookupMap.set(cat.name.toUpperCase(), cat);
+  }
 
-    // Determine abnormal / critical flags if catalog exists
-    let isAbnormal = item.isAbnormal || false;
-    let isCritical = item.isCritical || false;
-
-    if (matchedCatalog) {
-      const numVal = parseFloat(calculatedValue);
-      if (!isNaN(numVal)) {
-        const low = matchedCatalog.refRangeLow;
-        const high = matchedCatalog.refRangeHigh;
-        const critLow = matchedCatalog.criticalLow;
-        const critHigh = matchedCatalog.criticalHigh;
-
-        if (low !== null && low !== undefined && numVal < low) isAbnormal = true;
-        if (high !== null && high !== undefined && numVal > high) isAbnormal = true;
-        if (critLow !== null && critLow !== undefined && numVal < critLow) isCritical = true;
-        if (critHigh !== null && critHigh !== undefined && numVal > critHigh) isCritical = true;
-      }
-    }
-
-    // Save IncomingResult record
-    let incomingStatus = 'PENDING';
-    let matchedSampleId: string | null = null;
-    let matchedSampleTestId: string | null = null;
-
-    if (matchedCatalog) {
-      resultsSummary.matchedItems++;
-    }
-
-    // 6. Auto-apply to Sample if sample exists & autoMatchSample is true
-    if (device.autoMatchSample && targetSample && matchedCatalog) {
-      matchedSampleId = targetSample.id;
-
-      // Find existing SampleTest or create one
-      let existingSampleTest = targetSample.tests.find(
-        (st: any) => st.testId === matchedCatalog.id
-      );
-
-      if (!existingSampleTest) {
-        existingSampleTest = await prisma.sampleTest.create({
-          data: {
-            sampleId: targetSample.id,
-            testId: matchedCatalog.id,
-            priceAtTime: matchedCatalog.price,
-            costAtTime: matchedCatalog.costEstimate,
-            refRangeLow: matchedCatalog.refRangeLow,
-            refRangeHigh: matchedCatalog.refRangeHigh,
-            refRangeText: matchedCatalog.refRangeText,
-            unit: matchedCatalog.unit || item.unit,
-            resultValue: calculatedValue,
-            isAbnormal,
-            isCritical,
-            isAutoImported: true,
-            importedFrom: `${device.name} (${device.model})`,
-            importedAt: new Date(),
-            enteredById: `device_${device.id}`,
-            enteredAt: new Date(),
-          },
-          include: { test: true },
-        });
-      } else {
-        await prisma.sampleTest.update({
-          where: { id: existingSampleTest.id },
-          data: {
-            resultValue: calculatedValue,
-            unit: existingSampleTest.unit || matchedCatalog.unit || item.unit,
-            isAbnormal,
-            isCritical,
-            isAutoImported: true,
-            importedFrom: `${device.name} (${device.model})`,
-            importedAt: new Date(),
-            enteredById: `device_${device.id}`,
-            enteredAt: new Date(),
-          },
-        });
-      }
-
-      matchedSampleTestId = existingSampleTest.id;
-      incomingStatus = 'APPLIED';
-      resultsSummary.appliedItems++;
-    }
-
-    const incRecord = await prisma.incomingResult.create({
+  // 6. Execute all updates and inserts within a single atomic SQLite transaction
+  await prisma.$transaction(async (tx) => {
+    // A. Update Device Status & Last Seen
+    await tx.labDevice.update({
+      where: { id: device.id },
       data: {
-        deviceId: device.id,
-        sampleNumber: sampleNum,
-        sampleBarcode: sampleBar,
-        patientName: patientName || targetSample?.patient?.name,
-        testCode: item.testCode,
-        testName: matchedCatalog?.name || item.testName || item.testCode,
-        resultValue: calculatedValue,
-        unit: item.unit || matchedCatalog?.unit,
-        isAbnormal,
-        isCritical,
-        rawFrame: rawString.length > 500 ? rawString.substring(0, 500) : rawString,
-        status: incomingStatus,
-        matchedSampleId,
-        matchedSampleTestId,
+        status: 'ONLINE',
+        lastSeenAt: new Date(),
       },
     });
 
-    resultsSummary.createdResults.push(incRecord);
-  }
-
-  // Update sample status to IN_PROGRESS if results are arriving
-  if (targetSample && resultsSummary.appliedItems > 0 && targetSample.status === 'RECEIVED') {
-    await prisma.sample.update({
-      where: { id: targetSample.id },
-      data: { status: 'IN_PROGRESS' },
+    // B. Log Raw Message
+    await tx.deviceRawLog.create({
+      data: {
+        deviceId: device.id,
+        direction: 'INCOMING',
+        message: rawString.length > 3000 ? rawString.substring(0, 3000) + '...[truncated]' : rawString,
+      },
     });
-  }
+
+    // C. Process each test result item
+    for (const item of parsed.items) {
+      if (!item.testCode || item.value === undefined || item.value === '') continue;
+
+      const upperCode = item.testCode.toUpperCase();
+      // Check device mappings first
+      const mapping = device.mappings.find(
+        (m) => m.deviceTestCode.toUpperCase() === upperCode
+      );
+
+      let matchedCatalog: any = mapping ? mapping.testCatalog : null;
+      if (!matchedCatalog) {
+        matchedCatalog = catalogLookupMap.get(upperCode) || null;
+      }
+
+      let calculatedValue = item.value;
+      if (mapping && mapping.multiplier && mapping.multiplier !== 1) {
+        const numVal = parseFloat(item.value);
+        if (!isNaN(numVal)) {
+          calculatedValue = String(Number((numVal * mapping.multiplier).toFixed(2)));
+        }
+      }
+
+      // Determine abnormal / critical flags if catalog exists
+      let isAbnormal = item.isAbnormal || false;
+      let isCritical = item.isCritical || false;
+
+      if (matchedCatalog) {
+        const numVal = parseFloat(calculatedValue);
+        if (!isNaN(numVal)) {
+          const low = matchedCatalog.refRangeLow;
+          const high = matchedCatalog.refRangeHigh;
+          const critLow = matchedCatalog.criticalLow;
+          const critHigh = matchedCatalog.criticalHigh;
+
+          if (low !== null && low !== undefined && numVal < low) isAbnormal = true;
+          if (high !== null && high !== undefined && numVal > high) isAbnormal = true;
+          if (critLow !== null && critLow !== undefined && numVal < critLow) isCritical = true;
+          if (critHigh !== null && critHigh !== undefined && numVal > critHigh) isCritical = true;
+        }
+      }
+
+      // Auto-apply to Sample if sample exists & autoMatchSample is true
+      let incomingStatus = 'PENDING';
+      let matchedSampleId: string | null = null;
+      let matchedSampleTestId: string | null = null;
+
+      if (matchedCatalog) {
+        resultsSummary.matchedItems++;
+      }
+
+      if (device.autoMatchSample && targetSample && matchedCatalog) {
+        matchedSampleId = targetSample.id;
+
+        // Find existing SampleTest or create one
+        let existingSampleTest = targetSample.tests.find(
+          (st: any) => st.testId === matchedCatalog.id
+        );
+
+        if (!existingSampleTest) {
+          existingSampleTest = await tx.sampleTest.create({
+            data: {
+              sampleId: targetSample.id,
+              testId: matchedCatalog.id,
+              priceAtTime: matchedCatalog.price,
+              costAtTime: matchedCatalog.costEstimate,
+              refRangeLow: matchedCatalog.refRangeLow,
+              refRangeHigh: matchedCatalog.refRangeHigh,
+              refRangeText: matchedCatalog.refRangeText,
+              unit: matchedCatalog.unit || item.unit,
+              resultValue: calculatedValue,
+              isAbnormal,
+              isCritical,
+              isAutoImported: true,
+              importedFrom: `${device.name} (${device.model})`,
+              importedAt: new Date(),
+              enteredById: `device_${device.id}`,
+              enteredAt: new Date(),
+            },
+            include: { test: true },
+          });
+        } else {
+          await tx.sampleTest.update({
+            where: { id: existingSampleTest.id },
+            data: {
+              resultValue: calculatedValue,
+              unit: existingSampleTest.unit || matchedCatalog.unit || item.unit,
+              isAbnormal,
+              isCritical,
+              isAutoImported: true,
+              importedFrom: `${device.name} (${device.model})`,
+              importedAt: new Date(),
+              enteredById: `device_${device.id}`,
+              enteredAt: new Date(),
+            },
+          });
+        }
+
+        matchedSampleTestId = existingSampleTest.id;
+        incomingStatus = 'APPLIED';
+        resultsSummary.appliedItems++;
+      }
+
+      const incRecord = await tx.incomingResult.create({
+        data: {
+          deviceId: device.id,
+          sampleNumber: sampleNum,
+          sampleBarcode: sampleBar,
+          patientName: patientName || targetSample?.patient?.name,
+          testCode: item.testCode,
+          testName: matchedCatalog?.name || item.testName || item.testCode,
+          resultValue: calculatedValue,
+          unit: item.unit || matchedCatalog?.unit,
+          isAbnormal,
+          isCritical,
+          rawFrame: rawString.length > 500 ? rawString.substring(0, 500) : rawString,
+          status: incomingStatus,
+          matchedSampleId,
+          matchedSampleTestId,
+        },
+      });
+
+      resultsSummary.createdResults.push(incRecord);
+    }
+
+    // D. Update sample status to IN_PROGRESS if results are arriving
+    if (targetSample && resultsSummary.appliedItems > 0 && targetSample.status === 'RECEIVED') {
+      await tx.sample.update({
+        where: { id: targetSample.id },
+        data: { status: 'IN_PROGRESS' },
+      });
+    }
+  });
 
   return resultsSummary;
 }

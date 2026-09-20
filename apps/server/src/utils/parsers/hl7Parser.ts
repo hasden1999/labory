@@ -24,6 +24,7 @@ export function parseHl7V2(raw: string): ParsedAnalyzerMessage {
   let patientId: string | undefined = undefined;
   let messageType = 'ORU^R01';
   const items: ParsedItem[] = [];
+  const histograms: { wbc?: number[]; rbc?: number[]; plt?: number[] } = {};
 
   for (const line of lines) {
     if (!line.includes('|')) continue;
@@ -32,14 +33,12 @@ export function parseHl7V2(raw: string): ParsedAnalyzerMessage {
 
     switch (segment) {
       case 'MSH': {
-        // MSH|^~\&|SendingApp|SendingFacility|...|...|DateTime||MsgType|...
         if (fields.length > 8 && fields[8]) {
           messageType = fields[8].trim();
         }
         break;
       }
       case 'PID': {
-        // PID|SetID|PatientID|PatientIdentifierList|...|PatientName(Last^First)
         if (fields.length > 3 && fields[3]) patientId = fields[3].trim();
         if (fields.length > 5 && fields[5]) {
           const parts = fields[5].split('^').filter(Boolean);
@@ -48,7 +47,6 @@ export function parseHl7V2(raw: string): ParsedAnalyzerMessage {
         break;
       }
       case 'OBR': {
-        // OBR|SetID|PlacerOrderNumber|FillerOrderNumber|UniversalServiceIdentifier|...
         const rawOrder = fields[2]?.trim() || fields[3]?.trim() || '';
         if (rawOrder && !sampleBarcode) {
           sampleBarcode = rawOrder;
@@ -58,25 +56,32 @@ export function parseHl7V2(raw: string): ParsedAnalyzerMessage {
         break;
       }
       case 'OBX': {
-        // OBX|SetID|ValueType|ObservationIdentifier(Code^Name^CodingSystem^AltCode)|ObservationSubId|ObservationValue|Units|RefRange|AbnormalFlags|...|ResultStatus
-        // fields: [OBX, 1, NM, WBC^White Blood Cell, subId, 7.45, 10*3/uL, 4.0-10.0, N, ..., status]
         const resultStatus = fields[11]?.trim()?.toUpperCase() || '';
-        // Skip deleted or cancelled tests
         if (resultStatus === 'X' || resultStatus === 'D') continue;
 
         const testIdentifier = fields[3]?.trim() || '';
         const testParts = testIdentifier.split('^').map((p) => p.trim());
         
-        // If LOINC identifier is present e.g. "6690-2^Leukocytes^LN^WBC", check alt code or first code
         let testCode = testParts[0] || '';
         if (testParts.length >= 4 && testParts[3] && !testParts[0].match(/^[A-Za-z]/)) {
-          testCode = testParts[3]; // Alt manufacturer code like WBC
+          testCode = testParts[3];
         }
         const testName = testParts[1] || testCode;
 
         const value = fields[5]?.trim() || '';
         const unit = fields[6]?.trim() || '';
         const flag = fields[8]?.trim() || '';
+
+        // Check for histogram curves
+        const upperCode = testCode.toUpperCase();
+        if (upperCode.includes('HIST') || upperCode.includes('WBC_CURVE') || upperCode.includes('RBC_CURVE') || upperCode.includes('PLT_CURVE')) {
+          const nums = value.split(/[\s,;^~]+/).map(Number).filter((n) => !isNaN(n));
+          if (nums.length > 0) {
+            if (upperCode.includes('WBC')) histograms.wbc = nums;
+            else if (upperCode.includes('RBC')) histograms.rbc = nums;
+            else if (upperCode.includes('PLT')) histograms.plt = nums;
+          }
+        }
 
         if (testCode && value) {
           const cleanFlag = flag.toUpperCase();
@@ -107,6 +112,7 @@ export function parseHl7V2(raw: string): ParsedAnalyzerMessage {
     messageType,
     timestamp: new Date(),
     items,
+    histograms: Object.keys(histograms).length > 0 ? histograms : undefined,
     rawMessage: raw,
   };
 }

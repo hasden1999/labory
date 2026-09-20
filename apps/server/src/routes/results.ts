@@ -240,12 +240,6 @@ export async function resultRoutes(fastify: FastifyInstance) {
       data: { status: newStatus },
     });
 
-    try {
-      await prisma.$queryRawUnsafe('PRAGMA wal_checkpoint(PASSIVE);');
-    } catch (e) {
-      // WAL checkpoint passive fallback
-    }
-
     const updatedSample = await prisma.sample.findUnique({
       where: { id: sampleId },
       include: {

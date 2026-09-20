@@ -40,6 +40,56 @@ function generateQrSvg(url: string, size = 64): string {
     </svg>`;
 }
 
+function generateHistogramSvg(type: 'WBC' | 'RBC' | 'PLT', points?: number[], width = 200, height = 65): string {
+  let pathD = '';
+  let color = '#2563eb';
+  let title = 'WBC Histogram';
+  let unit = '50 - 450 fL';
+
+  if (type === 'WBC') {
+    color = '#16a34a';
+    title = 'WBC Histogram';
+    unit = '30 - 300 fL';
+    pathD = 'M 0,60 Q 20,58 35,22 Q 50,60 70,48 Q 85,42 100,52 Q 120,55 140,12 Q 165,15 185,58 L 200,60';
+  } else if (type === 'RBC') {
+    color = '#dc2626';
+    title = 'RBC Histogram';
+    unit = '25 - 250 fL';
+    pathD = 'M 0,60 Q 30,60 60,55 Q 85,38 100,8 Q 115,38 140,55 Q 170,60 200,60';
+  } else {
+    color = '#d97706';
+    title = 'PLT Histogram';
+    unit = '2 - 30 fL';
+    pathD = 'M 0,60 Q 15,58 30,10 Q 50,26 75,48 Q 120,58 200,60';
+  }
+
+  if (points && points.length > 5) {
+    const maxVal = Math.max(...points, 1);
+    const step = width / (points.length - 1);
+    const coords = points.map((p, idx) => {
+      const x = (idx * step).toFixed(1);
+      const y = (height - 5 - (p / maxVal) * (height - 12)).toFixed(1);
+      return `${idx === 0 ? 'M' : 'L'} ${x},${y}`;
+    });
+    pathD = coords.join(' ');
+  }
+
+  return `
+    <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px; background: #ffffff; text-align: center; flex: 1;">
+      <div style="font-size: 9.5px; font-weight: 800; color: #475569; margin-bottom: 2px; display: flex; justify-content: space-between;" dir="ltr">
+        <span>${title}</span>
+        <span style="color: #94a3b8; font-size: 8px;">${unit}</span>
+      </div>
+      <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="display: block; width: 100%; height: auto; max-height: ${height}px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px;">
+        <line x1="0" y1="${height * 0.33}" x2="${width}" y2="${height * 0.33}" stroke="#e2e8f0" stroke-dasharray="2,2" />
+        <line x1="0" y1="${height * 0.66}" x2="${width}" y2="${height * 0.66}" stroke="#e2e8f0" stroke-dasharray="2,2" />
+        <path d="${pathD} L ${width},${height} L 0,${height} Z" fill="${color}" fill-opacity="0.15" />
+        <path d="${pathD}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" />
+      </svg>
+    </div>
+  `;
+}
+
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const store = getStore();
   const sample = store.samples.find(s => s.id === params.id || String(s.sampleNumber) === params.id);
@@ -48,6 +98,167 @@ export async function GET(request: Request, { params }: { params: { id: string }
     return new Response('<h2>Sample Not Found (العينة غير موجودة)</h2>', {
       status: 404,
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
+  }
+
+  // Clinical Safety Rule: Prevent printing when there are unperformed / incomplete tests
+  const incompleteTests = (sample.tests || []).filter(t => {
+    return !t.resultValue || String(t.resultValue).trim() === '';
+  });
+
+  const { searchParams } = new URL(request.url);
+  const allowForce = searchParams.get('force') === 'true';
+
+  if (incompleteTests.length > 0 && !allowForce) {
+    const patientName = escapeHtml(sample.patient?.name || 'مريض غير محدد');
+    const incompleteListHtml = incompleteTests.map((t: any) => `
+      <li style="padding: 10px 14px; background: #ffffff; border: 1px solid #fed7aa; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: 800; color: #9a3412; font-size: 13px;">${escapeHtml(t.test?.name || t.test?.code || 'تحليل معلق')}</span>
+        <span style="background: #ffedd5; color: #c2410c; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 700;">قيد الانتظار (لم يُنجز)</span>
+      </li>
+    `).join('');
+
+    const warningHtml = `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>تنبيه سريري: لا يمكن طباعة التقرير الطبي</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+          body {
+            font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fff7ed;
+            color: #7c2d12;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 24px;
+            box-sizing: border-box;
+          }
+          .warning-card {
+            background: #ffffff;
+            border: 2px solid #ea580c;
+            border-radius: 18px;
+            padding: 36px 28px;
+            max-width: 580px;
+            width: 100%;
+            box-shadow: 0 20px 25px -5px rgba(234, 88, 12, 0.15), 0 8px 10px -6px rgba(234, 88, 12, 0.1);
+            text-align: center;
+          }
+          .icon-badge {
+            width: 72px;
+            height: 72px;
+            background: #ffedd5;
+            border: 2px solid #ea580c;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 38px;
+            margin-bottom: 18px;
+          }
+          h1 {
+            font-size: 20px;
+            font-weight: 900;
+            color: #9a3412;
+            margin: 0 0 8px 0;
+          }
+          .sub-badge {
+            background: #f1f5f9;
+            color: #334155;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 700;
+            display: inline-block;
+            margin-bottom: 18px;
+          }
+          p {
+            font-size: 13.5px;
+            color: #431407;
+            line-height: 1.7;
+            margin: 0 0 18px 0;
+          }
+          .tests-box {
+            background: #fffaf5;
+            border: 1px dashed #fdba74;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 22px;
+            text-align: right;
+          }
+          .tests-box-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: #9a3412;
+            margin-bottom: 10px;
+            display: block;
+          }
+          ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: auto;
+          }
+          .btn-return {
+            display: inline-block;
+            background: #ea580c;
+            color: #ffffff;
+            padding: 12px 28px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 13.5px;
+            box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+            transition: transform 0.15s, background 0.15s;
+          }
+          .btn-return:hover {
+            background: #c2410c;
+            transform: translateY(-1px);
+          }
+          @media print {
+            body { display: none !important; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="warning-card">
+          <div class="icon-badge">⚠️</div>
+          <h1>تنبيه: لا يمكن طباعة التقرير الطبي</h1>
+          <div class="sub-badge">
+            عينة رقم #${sample.sampleNumber} • المريض: ${patientName}
+          </div>
+          <p>
+            توجد فحوصات مطلوبة ضمن هذه العينة <strong>لم يتم إدخال نتائجها بعد</strong>.
+            وفقاً لمعايير الجودة الطبية وسلامة المرضى، يُحظر طباعة أو تسليم تقرير جزئي قد يؤدي إلى تشخيص طبي غير دقيق.
+          </p>
+          <div class="tests-box">
+            <span class="tests-box-title">
+              📋 الفحوصات المعلقة التي لم تُنجز (${incompleteTests.length}):
+            </span>
+            <ul>
+              ${incompleteListHtml}
+            </ul>
+          </div>
+          <a href="/results?sampleId=${sample.id}" class="btn-return">
+            الانتقال لشاشة إدخال النتائج لإكمال الفحوصات 🔬
+          </a>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return new Response(warningHtml, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'X-Report-Blocked': 'incomplete_tests',
+      },
     });
   }
 
@@ -91,6 +302,34 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const watermarkAngle = settings.watermarkAngle ?? -30;
   const watermarkSize = settings.watermarkSize ?? 46;
   const watermarkColor = settings.watermarkColor || '#0f172a';
+
+  // Typography Settings
+  const fontFamily = settings.fontFamily || 'Tajawal';
+  const fontSize = settings.fontSize || 'MEDIUM';
+
+  let fontFamilyCss = `'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+  if (fontFamily === 'Cairo') {
+    fontFamilyCss = `'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+  } else if (fontFamily === 'IBM Plex Sans Arabic') {
+    fontFamilyCss = `'IBM Plex Sans Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+  } else if (fontFamily === 'Almarai') {
+    fontFamilyCss = `'Almarai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+  } else if (fontFamily === 'System') {
+    fontFamilyCss = `system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
+  }
+
+  let bodyFontSize = '12.5px';
+  let tableFontSize = '12px';
+  let tableCellPadding = '7px 10px';
+  if (fontSize === 'SMALL') {
+    bodyFontSize = '11px';
+    tableFontSize = '10.5px';
+    tableCellPadding = '5px 8px';
+  } else if (fontSize === 'LARGE') {
+    bodyFontSize = '14px';
+    tableFontSize = '13.5px';
+    tableCellPadding = '9px 12px';
+  }
 
   const rawBase = settings.serverBaseUrl?.trim();
   const baseDomain = rawBase || `http://${getLocalIpAddress()}:8080`;
@@ -342,6 +581,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
       .report-card { border: 1.5px solid #0d9488; border-radius: 12px; }
       .header-border { border-bottom: 3px solid #0d9488 !important; }
       .table-header { background: #0f766e !important; }
+    `;
+  } else if (template === 'BLACK_WHITE') {
+    templateCss = `
+      .report-card { border: 2px solid #000000; border-radius: 0px; background: #ffffff !important; box-shadow: none !important; }
+      .header-border { border-bottom: 2px solid #000000 !important; }
+      .table-header { background: #000000 !important; color: #ffffff !important; }
+      .modern-header-banner { background: #000000 !important; color: #ffffff !important; border-radius: 0px !important; }
+      table th { background: #000000 !important; color: #ffffff !important; border: 1px solid #000000 !important; }
+      table td { border-bottom: 1px solid #000000 !important; color: #000000 !important; }
+      .abnormal-badge { border: 1.5px solid #000000 !important; color: #000000 !important; background: transparent !important; }
     `;
   }
 
@@ -767,30 +1016,37 @@ export async function GET(request: Request, { params }: { params: { id: string }
               </table>
             </div>
           </div>
+        <!-- Graphical RBC, PLT & WBC Histograms -->
+        <div style="margin-bottom: 12px; display: flex; gap: 10px;" dir="ltr">
+          ${generateHistogramSvg('WBC', (cbc as any).wbcCurve)}
+          ${generateHistogramSvg('RBC', (cbc as any).rbcCurve)}
+          ${generateHistogramSvg('PLT', (cbc as any).pltCurve)}
         </div>
 
         <!-- Morphology & Clinical Comments Section -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;" dir="ltr">
-          <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px;">
-            <div style="font-size: 11px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#be123c" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
-              <span>PERIPHERAL BLOOD FILM MORPHOLOGY</span>
+        ${settings.showClinicalComments !== false ? `
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;" dir="ltr">
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px;">
+              <div style="font-size: 11px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#be123c" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+                <span>PERIPHERAL BLOOD FILM MORPHOLOGY</span>
+              </div>
+              <div style="font-size: 11px; color: #334155; line-height: 1.45;">
+                ${escapeHtml(parsed.morphology || 'Normocytic Normochromic red blood cells. Normal leukocyte morphology and adequate platelets on peripheral smear.')}
+              </div>
             </div>
-            <div style="font-size: 11px; color: #334155; line-height: 1.45;">
-              ${escapeHtml(parsed.morphology || 'Normocytic Normochromic red blood cells. Normal leukocyte morphology and adequate platelets on peripheral smear.')}
-            </div>
-          </div>
 
-          <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px;">
-            <div style="font-size: 11px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <span>CLINICAL COMMENTS &amp; INTERPRETATION</span>
-            </div>
-            <div style="font-size: 11px; color: #334155; line-height: 1.45;">
-              ${escapeHtml(parsed.comments || 'Normal hematological profile. Clinical correlation recommended.')}
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px;">
+              <div style="font-size: 11px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span>CLINICAL COMMENTS &amp; INTERPRETATION</span>
+              </div>
+              <div style="font-size: 11px; color: #334155; line-height: 1.45;">
+                ${escapeHtml(parsed.comments || 'Normal hematological profile. Clinical correlation recommended.')}
+              </div>
             </div>
           </div>
-        </div>
+        ` : ''}
 
         ${renderFooter(safeFooter, safeLabName)}
       </div>
@@ -1103,6 +1359,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
 <head>
   <meta charset="UTF-8">
   <title>Medical Report #${sample.sampleNumber} - ${safePatientName}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Cairo:wght@400;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
   <style>
     @page { 
       size: A4 portrait; 
@@ -1115,15 +1374,20 @@ export async function GET(request: Request, { params }: { params: { id: string }
       color-adjust: exact !important; 
     }
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: ${fontFamilyCss};
+      font-size: ${bodyFontSize};
       margin: 0;
       padding: 0;
       color: #0f172a;
       background: #f1f5f9;
       line-height: 1.4;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      color-adjust: exact !important;
+      -webkit-print-color-adjust: exact !important; 
+      print-color-adjust: exact !important; 
+      color-adjust: exact !important; 
+    }
+    table td, table th {
+      font-size: ${tableFontSize} !important;
+      padding: ${tableCellPadding} !important;
     }
     .report-card {
       max-width: 820px;
@@ -1250,7 +1514,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     status: 200,
     headers: { 
       'Content-Type': 'text/html; charset=utf-8',
-      'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http:;"
+      'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: http:;"
     },
   });
 }

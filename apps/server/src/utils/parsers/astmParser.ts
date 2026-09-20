@@ -18,6 +18,11 @@ export interface ParsedAnalyzerMessage {
   messageType?: string;
   timestamp?: Date;
   items: ParsedItem[];
+  histograms?: {
+    wbc?: number[];
+    rbc?: number[];
+    plt?: number[];
+  };
   rawMessage: string;
 }
 
@@ -56,6 +61,8 @@ export function parseAstm1394(raw: string): ParsedAnalyzerMessage {
   let patientId: string | undefined = undefined;
   const items: ParsedItem[] = [];
 
+  const histograms: { wbc?: number[]; rbc?: number[]; plt?: number[] } = {};
+
   for (const line of lines) {
     // Strip leading frame sequence number if present (e.g. "1H|...", "2P|...", "10O|...", "H|...")
     const matchFrame = line.match(/^(\d*)([HPORCL])\|(.*)$/i);
@@ -90,7 +97,6 @@ export function parseAstm1394(raw: string): ParsedAnalyzerMessage {
       }
       case 'R': {
         // Result Record: R | seq | ^^^TestCode^TestName | Value | Units | RefRange | AbnormalFlag | ...
-        // fields: [seq, universalTestId, dataOrValue, units, refRanges, abnormalFlags, natureOfAbnormal, status, dateTestCompleted]
         const rawTestId = fields[1]?.trim() || '';
         
         let testCode = '';
@@ -98,7 +104,6 @@ export function parseAstm1394(raw: string): ParsedAnalyzerMessage {
 
         if (rawTestId.includes('^')) {
           const parts = rawTestId.split('^');
-          // Standard ASTM format: ^^^TestCode^TestName or ^^^TestCode
           if (parts.length >= 4 && parts[3]) {
             testCode = parts[3].trim();
             testName = parts[4]?.trim() || undefined;
@@ -113,9 +118,19 @@ export function parseAstm1394(raw: string): ParsedAnalyzerMessage {
 
         const value = fields[2]?.trim() || '';
         const unit = fields[3]?.trim() || '';
-        // Strip any residual checksum from flag field if present
         let flag = fields[5]?.trim() || '';
-        flag = flag.replace(/^[0-9A-Fa-f]{2}$/, ''); // if only checksum remained
+        flag = flag.replace(/^[0-9A-Fa-f]{2}$/, '');
+
+        // Check if this record is a histogram curve
+        const upperCode = testCode.toUpperCase();
+        if (upperCode.includes('HIST') || upperCode.includes('WBC_CURVE') || upperCode.includes('RBC_CURVE') || upperCode.includes('PLT_CURVE')) {
+          const nums = value.split(/[\s,;]+/).map(Number).filter((n) => !isNaN(n));
+          if (nums.length > 0) {
+            if (upperCode.includes('WBC')) histograms.wbc = nums;
+            else if (upperCode.includes('RBC')) histograms.rbc = nums;
+            else if (upperCode.includes('PLT')) histograms.plt = nums;
+          }
+        }
 
         if (testCode && value) {
           const cleanFlag = flag.toUpperCase();
@@ -145,6 +160,7 @@ export function parseAstm1394(raw: string): ParsedAnalyzerMessage {
     patientId,
     timestamp: new Date(),
     items,
+    histograms: Object.keys(histograms).length > 0 ? histograms : undefined,
     rawMessage: raw,
   };
 }

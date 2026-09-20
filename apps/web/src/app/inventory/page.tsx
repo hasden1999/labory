@@ -24,11 +24,17 @@ export default function InventoryPage() {
 
   // Item Form
   const [itemName, setItemName] = useState('');
+  const [catalogCode, setCatalogCode] = useState('');
+  const [category, setCategory] = useState<'REAGENT' | 'KIT' | 'CONSUMABLE' | 'CONTROL'>('REAGENT');
+  const [lotNumber, setLotNumber] = useState('');
   const [unit, setUnit] = useState('عبوة');
   const [quantity, setQuantity] = useState('');
   const [reorderThreshold, setReorderThreshold] = useState('5');
   const [costPerUnit, setCostPerUnit] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
+  const [alertThresholdDays, setAlertThresholdDays] = useState('30');
+  const [openVialDays, setOpenVialDays] = useState('');
+  const [storageCondition, setStorageCondition] = useState('2-8°C');
   const [supplier, setSupplier] = useState('');
 
   const loadData = async () => {
@@ -50,6 +56,16 @@ export default function InventoryPage() {
     loadData();
   }, []);
 
+  const handleOpenVial = async (id: string) => {
+    try {
+      await apiRequest(`/inventory/${id}/open`, 'POST');
+      toast.success('تم تسجيل فتح العبوة وتفعيل احتساب مدة الاستقرار بنجاح!', 'فتح العبوة');
+      loadData();
+    } catch (err: any) {
+      toast.error(err.message || 'فشل في تحديث حالة العبوة', 'خطأ');
+    }
+  };
+
   const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!itemName || !quantity || !costPerUnit) {
@@ -60,23 +76,35 @@ export default function InventoryPage() {
     try {
       await apiRequest('/inventory', 'POST', {
         name: itemName.trim(),
+        catalogCode: catalogCode.trim() || undefined,
+        category,
+        lotNumber: lotNumber.trim() || undefined,
         unit,
         quantity: Number(toEnglishDigits(quantity)),
         reorderThreshold: Number(toEnglishDigits(reorderThreshold)),
         costPerUnit: Number(toEnglishDigits(costPerUnit)),
         expiryDate: expiryDate ? expiryDate : undefined,
+        alertThresholdDays: alertThresholdDays ? Number(toEnglishDigits(alertThresholdDays)) : 30,
+        openVialDays: openVialDays ? Number(toEnglishDigits(openVialDays)) : undefined,
+        storageCondition,
         supplier,
       });
 
       setShowItemModal(false);
       setItemName('');
+      setCatalogCode('');
+      setCategory('REAGENT');
+      setLotNumber('');
       setUnit('عبوة');
       setQuantity('');
       setReorderThreshold('5');
       setCostPerUnit('');
       setExpiryDate('');
+      setAlertThresholdDays('30');
+      setOpenVialDays('');
+      setStorageCondition('2-8°C');
       setSupplier('');
-      toast.success('تمت إضافة مادة المخزون بنجاح!', 'حفظ المادة');
+      toast.success('تمت إضافة مادة المخزون وتفعيل الرقابة الذكية بنجاح!', 'حفظ المادة');
       loadData();
     } catch (err: any) {
       toast.error(err.message || 'خطأ أثناء حفظ مادة المخزون', 'فشل الحفظ');
@@ -224,18 +252,18 @@ export default function InventoryPage() {
 
       {/* Inventory Table */}
       <div className="glass-card" style={{ padding: '0', overflow: 'hidden' }}>
-        <div className="data-table-container" style={{ border: 'none' }}>
+        <div className="data-table-container table-responsive-container" style={{ border: 'none' }}>
           <table className="data-table">
             <thead>
               <tr>
-                <th>اسم المادة والكاشف</th>
+                <th>المادة والتشغيلة (Lot/Catalog)</th>
+                <th>التصنيف والحفظ</th>
                 <th>الكمية الحالية</th>
                 <th>تعديل سريع</th>
-                <th>حد إعادة الطلب</th>
-                <th>تكلفة الوحدة</th>
-                <th>تاريخ الصلاحية</th>
-                <th>حالة الصلاحية</th>
-                <th>المورد</th>
+                <th>استقرار العبوة (Open-Vial)</th>
+                <th>الصلاحية الفعلية</th>
+                <th>حالة الرقابة</th>
+                <th>المورد والتكلفة</th>
                 <th>إجراءات</th>
               </tr>
             </thead>
@@ -252,19 +280,41 @@ export default function InventoryPage() {
                 filteredItems.map((item) => {
                   const isLow = item.quantity <= item.reorderThreshold;
                   const isExpired = item.expiryStatus === 'EXPIRED';
-                  const isExpiring = item.expiryStatus === 'EXPIRING_SOON';
+                  const isExpiring = item.expiryStatus === 'APPROACHING_EXPIRY';
+                  const isOpened = !!item.openedAt;
 
                   return (
-                    <tr key={item.id} style={{ background: isExpired ? 'rgba(244, 63, 94, 0.04)' : undefined }}>
+                    <tr key={item.id} style={{ background: isExpired ? 'rgba(244, 63, 94, 0.05)' : isExpiring ? 'rgba(245, 158, 11, 0.05)' : undefined }}>
                       <td>
                         <strong style={{ color: 'var(--text-main)', fontSize: '13px', display: 'block' }}>{item.name}</strong>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.unit}</span>
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '2px', alignItems: 'center' }}>
+                          {item.catalogCode && (
+                            <span style={{ fontSize: '10px', background: 'rgba(6, 182, 212, 0.1)', color: 'var(--accent-cyan)', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>
+                              #{item.catalogCode}
+                            </span>
+                          )}
+                          {item.lotNumber && (
+                            <span style={{ fontSize: '10px', background: 'rgba(148, 163, 184, 0.15)', color: 'var(--text-muted)', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>
+                              Lot: {item.lotNumber}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      <td>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-main)' }}>
+                          {item.category === 'KIT' ? 'طقم فحص (Kit)' : item.category === 'CONSUMABLE' ? 'مستهلكات' : item.category === 'CONTROL' ? 'محلول ضبط' : 'كاشف (Reagent)'}
+                        </span>
+                        <span style={{ fontSize: '10px', color: 'var(--text-dim)', display: 'block' }}>
+                          ❄️ {item.storageCondition || '2-8°C'}
+                        </span>
                       </td>
 
                       <td>
                         <span style={{ fontSize: '14px', fontWeight: 900, color: isLow ? 'var(--accent-rose)' : 'var(--accent-emerald)' }}>
                           {item.quantity} {item.unit}
                         </span>
+                        {isLow && <span style={{ fontSize: '10px', color: 'var(--accent-rose)', display: 'block' }}>تحت حد الطلب ({item.reorderThreshold})</span>}
                       </td>
 
                       {/* Quick Adjust Buttons */}
@@ -286,23 +336,46 @@ export default function InventoryPage() {
                           >
                             +1
                           </button>
-                          <button
-                            onClick={() => handleAdjustStock(item.id, item.quantity, 5)}
-                            className="btn-icon"
-                            style={{ padding: '2px 6px', fontSize: '11px', fontWeight: 800, color: 'var(--accent-cyan)' }}
-                            title="إضافة 5"
-                          >
-                            +5
-                          </button>
                         </div>
                       </td>
 
-                      <td style={{ color: 'var(--text-muted)' }}>{item.reorderThreshold} {item.unit}</td>
-                      <td style={{ fontWeight: 700 }}>{item.costPerUnit?.toLocaleString()} د.ع</td>
-                      
                       <td>
-                        {item.expiryDate ? (
-                          <span>{formatEnglishDate(item.expiryDate)}</span>
+                        {item.openVialDays ? (
+                          isOpened ? (
+                            <div>
+                              <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 700, display: 'block' }}>
+                                🟢 مفتوحة ({item.openVialDays} يوم استقرار)
+                              </span>
+                              <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>
+                                فتحت في: {formatEnglishDate(item.openedAt)}
+                              </span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleOpenVial(item.id)}
+                              className="btn-secondary"
+                              style={{ fontSize: '10.5px', padding: '3px 8px', borderRadius: '4px' }}
+                            >
+                              🔓 تسجيل فتح العبوة
+                            </button>
+                          )
+                        ) : (
+                          <span style={{ color: 'var(--text-dim)', fontSize: '11px' }}>غير محدد</span>
+                        )}
+                      </td>
+
+                      <td>
+                        {item.effectiveExpiry ? (
+                          <div>
+                            <span style={{ fontWeight: 800, fontSize: '12px', color: isExpired ? '#ef4444' : isExpiring ? '#f59e0b' : 'var(--text-main)' }}>
+                              {formatEnglishDate(item.effectiveExpiry)}
+                            </span>
+                            {item.daysUntilExpiry !== null && (
+                              <span style={{ fontSize: '10px', color: 'var(--text-dim)', display: 'block' }}>
+                                {item.daysUntilExpiry <= 0 ? 'انتهت منذ أيام' : `متبقي ${item.daysUntilExpiry} يوم`}
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span style={{ color: 'var(--text-dim)' }}>غير محدد</span>
                         )}
@@ -312,13 +385,18 @@ export default function InventoryPage() {
                         {isExpired ? (
                           <span className="badge badge-urgent"><AlertOctagon size={12} /> منتهي الصلاحية</span>
                         ) : isExpiring ? (
-                          <span className="badge badge-progress"><AlertTriangle size={12} /> ينتهي قريباً</span>
+                          <span className="badge badge-progress"><AlertTriangle size={12} /> تنبيه قرب الانتهاء</span>
+                        ) : isLow ? (
+                          <span className="badge badge-progress" style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#0284c7', borderColor: '#38bdf8' }}>نقص بالمخزون</span>
                         ) : (
-                          <span className="badge badge-ready"><Check size={12} /> سليم وصالح</span>
+                          <span className="badge badge-ready"><Check size={12} /> سليم ومطابق</span>
                         )}
                       </td>
 
-                      <td style={{ color: 'var(--text-muted)' }}>{item.supplier || '-'}</td>
+                      <td style={{ fontSize: '11.5px' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{item.costPerUnit?.toLocaleString()} د.ع</div>
+                        <div style={{ color: 'var(--text-dim)', fontSize: '10.5px' }}>{item.supplier || '-'}</div>
+                      </td>
 
                       <td>
                         <button
@@ -342,11 +420,11 @@ export default function InventoryPage() {
       {/* Add Item Modal */}
       {showItemModal && (
         <div className="modal-overlay" onClick={() => setShowItemModal(false)}>
-          <div className="modal-content" style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" style={{ maxWidth: '560px' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Package size={20} color="var(--accent-cyan)" />
-                <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>إضافة مادة / كاشف للمخزون</h3>
+                <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>إضافة كاشف / مادة للمخزون الذكي</h3>
               </div>
               <button onClick={() => setShowItemModal(false)} className="toast-close">
                 <X size={18} />
@@ -354,35 +432,72 @@ export default function InventoryPage() {
             </div>
 
             <form onSubmit={handleSaveItem} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div>
-                <label className="input-label">اسم الكاشف / المادة *</label>
-                <input
-                  type="text"
-                  placeholder="مثال: CBC Diluent Reagent 20L"
-                  className="input-control"
-                  value={itemName}
-                  onChange={(e) => setItemName(e.target.value)}
-                  required
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '10px' }}>
+                <div>
+                  <label className="input-label">اسم الكاشف / المادة *</label>
+                  <input
+                    type="text"
+                    placeholder="مثال: Mindray Diluent M-53D"
+                    className="input-control"
+                    value={itemName}
+                    onChange={(e) => setItemName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="input-label">رمز الكتالوج / الباركود</label>
+                  <input
+                    type="text"
+                    placeholder="مثال: CAT-9021"
+                    className="input-control"
+                    value={catalogCode}
+                    onChange={(e) => setCatalogCode(e.target.value)}
+                  />
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label className="input-label">الوحدة (عبوة / شريط / كيت)</label>
+                  <label className="input-label">التصنيف المخبري</label>
+                  <select
+                    className="input-control"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value as any)}
+                  >
+                    <option value="REAGENT">كواشف تشخيصية (Reagent)</option>
+                    <option value="KIT">طقم فحص سريع (Rapid Kit)</option>
+                    <option value="CONSUMABLE">مستهلكات وأنابيب (Consumables)</option>
+                    <option value="CONTROL">محاليل ضبط الجودة (Control/Calibrator)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="input-label">رقم التشغيلة (Lot Number)</label>
                   <input
                     type="text"
-                    placeholder="مثال: عبوة"
+                    placeholder="مثال: LOT2026-08A"
+                    className="input-control"
+                    value={lotNumber}
+                    onChange={(e) => setLotNumber(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label className="input-label">الوحدة</label>
+                  <input
+                    type="text"
+                    placeholder="عبوة / لتر / فحص"
                     className="input-control"
                     value={unit}
                     onChange={(e) => setUnit(e.target.value)}
                   />
                 </div>
-
                 <div>
-                  <label className="input-label">الكمية الأولية *</label>
+                  <label className="input-label">الكمية *</label>
                   <input
                     type="number"
-                    placeholder="مثال: 10"
+                    placeholder="10"
                     className="input-control"
                     value={quantity}
                     onChange={(e) => setQuantity(e.target.value)}
@@ -390,27 +505,11 @@ export default function InventoryPage() {
                     min="0"
                   />
                 </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label className="input-label">سعر التكلفة للوحدة (د.ع) *</label>
+                  <label className="input-label">حد الطلب للتنبيه</label>
                   <input
                     type="number"
-                    placeholder="مثال: 25000"
-                    className="input-control"
-                    value={costPerUnit}
-                    onChange={(e) => setCostPerUnit(e.target.value)}
-                    required
-                    min="0"
-                  />
-                </div>
-
-                <div>
-                  <label className="input-label">حد الطلب الأدنى للتنبيه</label>
-                  <input
-                    type="number"
-                    placeholder="مثال: 3"
+                    placeholder="3"
                     className="input-control"
                     value={reorderThreshold}
                     onChange={(e) => setReorderThreshold(e.target.value)}
@@ -421,7 +520,7 @@ export default function InventoryPage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label className="input-label">تاريخ انتهاء الصلاحية</label>
+                  <label className="input-label">تاريخ الصلاحية الرسمي</label>
                   <input
                     type="date"
                     className="input-control"
@@ -429,12 +528,61 @@ export default function InventoryPage() {
                     onChange={(e) => setExpiryDate(e.target.value)}
                   />
                 </div>
+                <div>
+                  <label className="input-label">مهلة الإنذار المسبق (بالأيام)</label>
+                  <input
+                    type="number"
+                    placeholder="مثال: 30 يوم"
+                    className="input-control"
+                    value={alertThresholdDays}
+                    onChange={(e) => setAlertThresholdDays(e.target.value)}
+                  />
+                </div>
+              </div>
 
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label className="input-label">استقرار العبوة بعد الفتح (بالأيام)</label>
+                  <input
+                    type="number"
+                    placeholder="مثال: 30 أو 60 يوم"
+                    className="input-control"
+                    value={openVialDays}
+                    onChange={(e) => setOpenVialDays(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="input-label">شروط الحفظ والتخزين</label>
+                  <select
+                    className="input-control"
+                    value={storageCondition}
+                    onChange={(e) => setStorageCondition(e.target.value)}
+                  >
+                    <option value="2-8°C">تبريد ثلاجة (2°C - 8°C)</option>
+                    <option value="15-25°C">درجة حرارة الغرفة (15°C - 25°C)</option>
+                    <option value="-20°C">تجميد عميق (-20°C)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label className="input-label">سعر التكلفة للوحدة (د.ع) *</label>
+                  <input
+                    type="number"
+                    placeholder="25000"
+                    className="input-control"
+                    value={costPerUnit}
+                    onChange={(e) => setCostPerUnit(e.target.value)}
+                    required
+                    min="0"
+                  />
+                </div>
                 <div>
                   <label className="input-label">اسم الشركة أو المورد</label>
                   <input
                     type="text"
-                    placeholder="مثال: شركة النقاء للمستلزمات الطبية"
+                    placeholder="شركة التجهيزات الطبية"
                     className="input-control"
                     value={supplier}
                     onChange={(e) => setSupplier(e.target.value)}
@@ -442,10 +590,10 @@ export default function InventoryPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button type="submit" className="btn-primary" style={{ flex: 1 }}>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+                <button type="submit" className="btn-primary" style={{ flex: 1, minHeight: '40px' }}>
                   <Check size={16} />
-                  <span>حفظ المادة في المخزون</span>
+                  <span>حفظ المادة وتفعيل الرقابة</span>
                 </button>
                 <button type="button" onClick={() => setShowItemModal(false)} className="btn-secondary">
                   إلغاء

@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
@@ -21,7 +21,6 @@ import {
   Check,
   Terminal,
   Download,
-  Play,
   X,
   FileText,
   Sparkles,
@@ -39,11 +38,7 @@ import {
   CheckCheck
 } from 'lucide-react';
 import { toEnglishDigits, formatEnglishDate, formatEnglishTime, formatEnglishDateTime } from '../../lib/formatters';
-import {
-  CLINICAL_PROFILES,
-  ClinicalProfileKey,
-  SimulationFrame
-} from '../../lib/deviceEngine';
+
 
 export default function DevicesPage() {
   const toast = useToast();
@@ -53,7 +48,7 @@ export default function DevicesPage() {
   const [incomingResults, setIncomingResults] = useState<any[]>([]);
   const [samples, setSamples] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'devices' | 'simulator' | 'feed' | 'agent'>('simulator');
+  const [activeTab, setActiveTab] = useState<'devices' | 'feed' | 'agent'>('devices');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // Modals
@@ -94,26 +89,6 @@ export default function DevicesPage() {
   const [assignSampleId, setAssignSampleId] = useState('');
   const [assignTestCatalogId, setAssignTestCatalogId] = useState('');
 
-  // -------------------------------------------------------------
-  // Simulator Studio States
-  // -------------------------------------------------------------
-  const [selectedSimDeviceId, setSelectedSimDeviceId] = useState<string>('');
-  const [selectedProfileKey, setSelectedProfileKey] = useState<ClinicalProfileKey>('NORMAL_ADULT');
-  const [simSampleNumber, setSimSampleNumber] = useState('1001');
-  const [simPatientName, setSimPatientName] = useState('حيدر عبد الحسين الخفاجي');
-  const [simulating, setSimulating] = useState(false);
-  const [simStep, setSimStep] = useState<number>(0); // 0: idle, 1: barcode, 2: aspirating/assay, 3: encoding/tx, 4: lis ingested
-  const [lcdStatus, setLcdStatus] = useState<string>('READY (STANDBY)');
-  const [activeLeds, setActiveLeds] = useState<{ power: boolean; link: boolean; tx: boolean; rx: boolean }>({
-    power: true,
-    link: true,
-    tx: false,
-    rx: false,
-  });
-  const [simLiveFrames, setSimLiveFrames] = useState<SimulationFrame[]>([]);
-  const [simResultSummary, setSimResultSummary] = useState<any | null>(null);
-  const terminalRef = useRef<HTMLDivElement | null>(null);
-
   // Fetch all initial data
   const fetchData = async () => {
     try {
@@ -134,18 +109,6 @@ export default function DevicesPage() {
       setCatalogTests(catRes.tests || []);
       setIncomingResults(incRes.results || []);
       setSamples(loadedSamples);
-
-      // Auto-select initial simulator device
-      if (!selectedSimDeviceId && loadedDevices.length > 0) {
-        setSelectedSimDeviceId(loadedDevices[0].id);
-      }
-
-      // Auto-populate simulation sample
-      if (loadedSamples.length > 0) {
-        const first = loadedSamples[0];
-        setSimSampleNumber(String(first.sampleNumber));
-        setSimPatientName(first.patient?.name || 'عينة مريض');
-      }
     } catch (err: any) {
       toast.error(err.message || 'فشل في تحميل بيانات الأجهزة');
     } finally {
@@ -165,13 +128,6 @@ export default function DevicesPage() {
     }, 10000);
     return () => clearInterval(interval);
   }, []);
-
-  // Auto scroll terminal to bottom when new frames arrive
-  useEffect(() => {
-    if (terminalRef.current) {
-      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-    }
-  }, [simLiveFrames, simStep]);
 
   // Preset Selection Handler
   const handlePresetChange = (presetId: string) => {
@@ -387,78 +343,6 @@ export default function DevicesPage() {
     }
   };
 
-  // -------------------------------------------------------------
-  // RUN SIMULATION (Quasi-Realistic LIS Interfacing)
-  // -------------------------------------------------------------
-  const handleRunSimulation = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const targetDev = devices.find((d) => d.id === selectedSimDeviceId) || devices[0];
-    if (!targetDev) {
-      toast.error('يرجى تحديد الجهاز لتشغيل المحاكاة');
-      return;
-    }
-
-    setSimulating(true);
-    setSimStep(1); // Barcode scan
-    setLcdStatus('SCANNING BARCODE & VERIFYING SPECIMEN...');
-    setActiveLeds({ power: true, link: true, tx: true, rx: false });
-
-    setTimeout(() => {
-      setSimStep(2); // Aspirating & Assay
-      setLcdStatus('ASPIRATING BLOOD SAMPLE & RUNNING DUAL-CHAMBER ASSAY...');
-      setActiveLeds({ power: true, link: true, tx: true, rx: true });
-    }, 700);
-
-    setTimeout(() => {
-      setSimStep(3); // Packet Encoding & Transmission
-      setLcdStatus(`ENCODING ${targetDev.protocol} FRAMES & TRANSMITTING VIA ${targetDev.connectionType}...`);
-      setActiveLeds({ power: true, link: true, tx: true, rx: false });
-    }, 1400);
-
-    try {
-      const res = await apiRequest(`/devices/${targetDev.id}/test-simulate`, 'POST', {
-        sampleNumber: Number(simSampleNumber),
-        patientName: simPatientName,
-        profileKey: selectedProfileKey,
-      });
-
-      setTimeout(() => {
-        setSimStep(4);
-        setLcdStatus('TRANSMISSION COMPLETE - RESULTS ACKNOWLEDGED BY LIS [ACK 0x06]');
-        setActiveLeds({ power: true, link: true, tx: false, rx: true });
-        setSimLiveFrames(res.simulation?.frames || []);
-        setSimResultSummary(res);
-
-        toast.success(
-          `تمت المحاكاة بنجاح! تم استلام ${res.simulation?.parsedItemsCount || 0} فحص وتنزيل ${res.summary?.appliedItems || 0} نتيجة بالعينة #${simSampleNumber}`
-        );
-
-        fetchData();
-        setSimulating(false);
-
-        setTimeout(() => {
-          setLcdStatus('READY (STANDBY)');
-          setActiveLeds({ power: true, link: true, tx: false, rx: false });
-        }, 4000);
-      }, 2200);
-    } catch (err: any) {
-      toast.error(err.message || 'فشل تشغيل المحاكاة');
-      setSimulating(false);
-      setSimStep(0);
-      setLcdStatus('ERROR: COMMUNICATION FAILURE');
-      setActiveLeds({ power: true, link: false, tx: false, rx: false });
-    }
-  };
-
-  // Quick switch from device card
-  const handleQuickSimulateDevice = (dev: any) => {
-    setSelectedSimDeviceId(dev.id);
-    setActiveTab('simulator');
-  };
-
-  const currentSimDevice = devices.find((d) => d.id === selectedSimDeviceId) || devices[0];
-  const activeProfile = CLINICAL_PROFILES[selectedProfileKey] || CLINICAL_PROFILES.NORMAL_ADULT;
-
   return (
     <AppShell>
       <div style={{ padding: '16px 20px' }}>
@@ -471,10 +355,10 @@ export default function DevicesPage() {
               </div>
               <div>
                 <h1 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                  ربط أجهزة المختبر والتحليلات الآلية (LIS Device Hub & Simulator)
+                  ربط أجهزة المختبر والتحليلات الآلية (LIS Device Hub)
                 </h1>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-                  استقبال نتائج أجهزة صورة الدم، الكيمياء، والهرمونات وتنزيلها بالعينة تلقائياً مع محاكي افتراضي شبه حقيقي
+                  إدارة الربط الإلكتروني المباشر مع أجهزة صورة الدم والكيمياء والهرمونات وتنزيل النتائج بالعينة تلقائياً عبر بروتوكولات ASTM و HL7
                 </p>
               </div>
             </div>
@@ -499,32 +383,10 @@ export default function DevicesPage() {
         {/* Quick Tabs */}
         <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-color)', marginBottom: '16px', flexWrap: 'wrap' }}>
           <button
-            onClick={() => setActiveTab('simulator')}
-            style={{
-              padding: '9px 18px',
-              background: activeTab === 'simulator' ? 'rgba(6, 182, 212, 0.12)' : 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'simulator' ? '3px solid var(--accent-cyan)' : '3px solid transparent',
-              color: activeTab === 'simulator' ? 'var(--accent-cyan)' : 'var(--text-muted)',
-              fontWeight: activeTab === 'simulator' ? 800 : 600,
-              fontSize: '13.5px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '7px',
-              borderRadius: '6px 6px 0 0',
-            }}
-          >
-            <Radio size={16} color={activeTab === 'simulator' ? 'var(--accent-cyan)' : undefined} />
-            <span>محاكي الأجهزة الافتراضي الشبه حقيقي (LIS Simulator)</span>
-            <span style={{ fontSize: '10px', background: 'var(--accent-cyan)', color: '#000', padding: '1px 6px', borderRadius: '10px', fontWeight: 800 }}>LIVE</span>
-          </button>
-
-          <button
             onClick={() => setActiveTab('devices')}
             style={{
               padding: '9px 18px',
-              background: 'transparent',
+              background: activeTab === 'devices' ? 'rgba(6, 182, 212, 0.12)' : 'transparent',
               border: 'none',
               borderBottom: activeTab === 'devices' ? '3px solid var(--accent-cyan)' : '3px solid transparent',
               color: activeTab === 'devices' ? 'var(--accent-cyan)' : 'var(--text-muted)',
@@ -534,6 +396,7 @@ export default function DevicesPage() {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
+              borderRadius: '6px 6px 0 0',
             }}
           >
             <Cpu size={16} />
@@ -544,7 +407,7 @@ export default function DevicesPage() {
             onClick={() => setActiveTab('feed')}
             style={{
               padding: '9px 18px',
-              background: 'transparent',
+              background: activeTab === 'feed' ? 'rgba(6, 182, 212, 0.12)' : 'transparent',
               border: 'none',
               borderBottom: activeTab === 'feed' ? '3px solid var(--accent-cyan)' : '3px solid transparent',
               color: activeTab === 'feed' ? 'var(--accent-cyan)' : 'var(--text-muted)',
@@ -554,6 +417,7 @@ export default function DevicesPage() {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
+              borderRadius: '6px 6px 0 0',
             }}
           >
             <Zap size={16} />
@@ -564,7 +428,7 @@ export default function DevicesPage() {
             onClick={() => setActiveTab('agent')}
             style={{
               padding: '9px 18px',
-              background: 'transparent',
+              background: activeTab === 'agent' ? 'rgba(6, 182, 212, 0.12)' : 'transparent',
               border: 'none',
               borderBottom: activeTab === 'agent' ? '3px solid var(--accent-cyan)' : '3px solid transparent',
               color: activeTab === 'agent' ? 'var(--accent-cyan)' : 'var(--text-muted)',
@@ -574,506 +438,13 @@ export default function DevicesPage() {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
+              borderRadius: '6px 6px 0 0',
             }}
           >
             <Terminal size={16} />
             <span>الوسيط المحلي (LIS Local Agent)</span>
           </button>
         </div>
-
-        {/* ========================================================================= */}
-        {/* TAB 0: VIRTUAL ANALYZER SIMULATOR STUDIO (MAIN FOCUS)                    */}
-        {/* ========================================================================= */}
-        {activeTab === 'simulator' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            
-            {/* Device Switcher Ribbon */}
-            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
-                  اختر الجهاز المراد محاكاته:
-                </span>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {devices.map((d) => {
-                    const isSelected = d.id === selectedSimDeviceId;
-                    return (
-                      <button
-                        key={d.id}
-                        onClick={() => {
-                          setSelectedSimDeviceId(d.id);
-                          setSimResultSummary(null);
-                        }}
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: '8px',
-                          border: isSelected ? '1px solid var(--accent-cyan)' : '1px solid var(--border-color)',
-                          background: isSelected ? 'rgba(6, 182, 212, 0.15)' : 'var(--bg-input)',
-                          color: isSelected ? 'var(--accent-cyan)' : 'var(--text-muted)',
-                          fontSize: '12px',
-                          fontWeight: isSelected ? 800 : 500,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        <Cpu size={14} />
-                        <span>{d.name}</span>
-                        <span style={{ fontSize: '10px', opacity: 0.8, padding: '1px 4px', borderRadius: '4px', background: 'rgba(255,255,255,0.08)' }}>
-                          {d.protocol}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {currentSimDevice && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                  <span>منفذ الربط:</span>
-                  <strong style={{ color: 'var(--accent-cyan)' }}>
-                    {currentSimDevice.connectionType === 'TCP_IP'
-                      ? `🌐 LAN (Port ${currentSimDevice.port || 5100})`
-                      : `🔌 Serial (${currentSimDevice.comPort || 'COM1'} - ${currentSimDevice.baudRate || 9600})`}
-                  </strong>
-                </div>
-              )}
-            </div>
-
-            {/* Studio Main Grid: Left = Hardware Console & Control, Right = Terminal Monitor & Result */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(420px, 1fr) minmax(460px, 1.25fr)', gap: '16px' }}>
-              
-              {/* LEFT COLUMN: Hardware Chassis & Execution Controls */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                
-                {/* 1. Hardware Chassis Plaque & Retro Matrix LCD Screen */}
-                <div style={{ background: '#0f172a', border: '2px solid #1e293b', borderRadius: '12px', padding: '16px', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', position: 'relative' }}>
-                  
-                  {/* Chassis Top Bar */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155', paddingBottom: '10px', marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#0284c7' }}></div>
-                      <div>
-                        <strong style={{ fontSize: '13px', color: '#f8fafc', letterSpacing: '0.5px' }}>
-                          {currentSimDevice?.brand?.toUpperCase() || 'MINDRAY'} MEDICAL INSTRUMENTS
-                        </strong>
-                        <div style={{ fontSize: '10px', color: '#94a3b8' }}>
-                          MODEL: {currentSimDevice?.model || 'BC-5000'} | SN: MD-{currentSimDevice?.id?.slice(-4) || '5082'}-2024
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Hardware LED Indicators Bar */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#020617', padding: '5px 10px', borderRadius: '6px', border: '1px solid #1e293b' }}>
-                      {/* POWER */}
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: activeLeds.power ? '#22c55e' : '#334155', boxShadow: activeLeds.power ? '0 0 8px #22c55e' : 'none' }}></span>
-                        <span style={{ fontSize: '8.5px', color: '#64748b', fontWeight: 700 }}>PWR</span>
-                      </div>
-                      {/* LINK */}
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: activeLeds.link ? '#06b6d4' : '#334155', boxShadow: activeLeds.link ? '0 0 8px #06b6d4' : 'none' }}></span>
-                        <span style={{ fontSize: '8.5px', color: '#64748b', fontWeight: 700 }}>LINK</span>
-                      </div>
-                      {/* TX */}
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: activeLeds.tx ? '#fbbf24' : '#334155', boxShadow: activeLeds.tx ? '0 0 8px #fbbf24' : 'none', transition: 'all 0.1s' }}></span>
-                        <span style={{ fontSize: '8.5px', color: '#64748b', fontWeight: 700 }}>TX</span>
-                      </div>
-                      {/* RX */}
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: activeLeds.rx ? '#38bdf8' : '#334155', boxShadow: activeLeds.rx ? '0 0 8px #38bdf8' : 'none', transition: 'all 0.1s' }}></span>
-                        <span style={{ fontSize: '8.5px', color: '#64748b', fontWeight: 700 }}>RX</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Retro Cyber Phosphor Matrix LCD Screen */}
-                  <div
-                    style={{
-                      background: 'radial-gradient(ellipse at center, #022010 0%, #011409 100%)',
-                      border: '2px solid #14532d',
-                      borderRadius: '8px',
-                      padding: '12px 14px',
-                      fontFamily: 'monospace',
-                      color: '#4ade80',
-                      textShadow: '0 0 5px rgba(74, 222, 128, 0.6)',
-                      boxShadow: 'inset 0 0 12px rgba(0,0,0,0.8)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', borderBottom: '1px dashed #166534', paddingBottom: '4px', marginBottom: '6px' }}>
-                      <span>SYS: {currentSimDevice?.model?.toUpperCase()} OS v4.2</span>
-                      <span style={{ color: '#86efac' }}>PORT: {currentSimDevice?.connectionType === 'TCP_IP' ? `TCP:${currentSimDevice?.port || 5100}` : `${currentSimDevice?.comPort || 'COM1'}:9600`}</span>
-                    </div>
-
-                    <div style={{ fontSize: '12px', fontWeight: 700, margin: '4px 0' }}>
-                      &gt; STATUS: {lcdStatus}
-                    </div>
-
-                    <div style={{ fontSize: '11px', color: '#a7f3d0', display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-                      <span>SAMPLE_ID: #{simSampleNumber}</span>
-                      <span>DIAG_PROFILE: {activeProfile.key}</span>
-                    </div>
-
-                    <div style={{ fontSize: '10px', color: '#6ee7b7', marginTop: '4px', opacity: 0.85 }}>
-                      LIS PROTOCOL: {currentSimDevice?.protocol === 'HL7_V2' ? 'HL7 v2.3.1 (ORU^R01 / MLLP)' : 'ASTM E1381/E1394 STANDARD'}
-                    </div>
-                  </div>
-
-                  {/* Cable Connection Graphic */}
-                  <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#020617', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', color: '#94a3b8' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
-                      <span>الكابل المتصل:</span>
-                      <strong style={{ color: '#e2e8f0' }}>
-                        {currentSimDevice?.connectionType === 'TCP_IP' ? '🌐 كابل شبكة محلي RJ-45 LAN مخصص' : '🔌 كابل تسلسلي RS-232 DB9 Null-Modem'}
-                      </strong>
-                    </div>
-                    <span style={{ color: '#06b6d4', fontWeight: 700 }}>
-                      {currentSimDevice?.connectionType === 'TCP_IP' ? '192.168.1.150' : '9600-8-N-1'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 2. Simulation Controls: Sample & Clinical Scenario Selection */}
-                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  
-                  {/* Sample Selection */}
-                  <div>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>
-                      1. اختر العينة المستهدفة بالمختبر:
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px' }}>
-                      <select
-                        value={simSampleNumber}
-                        onChange={(e) => {
-                          const num = e.target.value;
-                          setSimSampleNumber(num);
-                          const s = samples.find((x) => String(x.sampleNumber) === num);
-                          if (s?.patient?.name) {
-                            setSimPatientName(s.patient.name);
-                          }
-                        }}
-                        className="input-field"
-                        style={{ fontSize: '12px' }}
-                      >
-                        {samples.map((s) => (
-                          <option key={s.id} value={s.sampleNumber}>
-                            عينة #{s.sampleNumber} - {s.patient?.name} ({s.status})
-                          </option>
-                        ))}
-                      </select>
-
-                      <input
-                        type="text"
-                        value={simPatientName}
-                        onChange={(e) => setSimPatientName(e.target.value)}
-                        placeholder="اسم المريض"
-                        className="input-field"
-                        style={{ fontSize: '12px' }}
-                      />
-                    </div>
-
-                    {/* Preview Tests in Target Sample */}
-                    {(() => {
-                      const matched = samples.find((s) => String(s.sampleNumber) === simSampleNumber);
-                      if (!matched) return null;
-                      return (
-                        <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                          <span>الفحوصات المطلوبة بالعينة:</span>
-                          {(matched.tests || []).map((t: any, idx: number) => (
-                            <span key={idx} style={{ padding: '1px 6px', borderRadius: '4px', background: 'var(--bg-input)', color: 'var(--accent-cyan)', fontWeight: 600 }}>
-                              {t.test?.code || t.test?.name}
-                            </span>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Clinical Profile Selector */}
-                  <div>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>
-                      2. السيناريو المرضي والتشخيصي للمحاكاة:
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                      {(Object.keys(CLINICAL_PROFILES) as ClinicalProfileKey[]).map((key) => {
-                        const prof = CLINICAL_PROFILES[key];
-                        const isSelected = selectedProfileKey === key;
-                        return (
-                          <div
-                            key={key}
-                            onClick={() => setSelectedProfileKey(key)}
-                            style={{
-                              border: isSelected ? `2px solid ${prof.badgeColor}` : '1px solid var(--border-color)',
-                              background: isSelected ? `${prof.badgeColor}15` : 'var(--bg-input)',
-                              borderRadius: '8px',
-                              padding: '10px',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '4px',
-                              transition: 'all 0.15s ease',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <strong style={{ fontSize: '11.5px', color: isSelected ? prof.badgeColor : 'var(--text-main)' }}>
-                                {prof.labelAr}
-                              </strong>
-                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: prof.badgeColor }}></span>
-                            </div>
-                            <p style={{ fontSize: '10.5px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.3 }}>
-                              {prof.descriptionAr}
-                            </p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* 3. Action Button & Execution Progress */}
-                  <div style={{ paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
-                    <button
-                      onClick={() => handleRunSimulation()}
-                      disabled={simulating}
-                      className="btn-primary"
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        fontSize: '14px',
-                        fontWeight: 800,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        background: simulating
-                          ? 'var(--bg-input)'
-                          : 'linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)',
-                        boxShadow: '0 4px 14px rgba(6, 182, 212, 0.3)',
-                      }}
-                    >
-                      <Zap size={18} className={simulating ? 'spin' : ''} />
-                      <span>{simulating ? 'جارِ التحليل والمصافحة وبث الحزم إلى LIS...' : '🚀 تشغيل دورة الفحص وبث النتائج إلى LIS'}</span>
-                    </button>
-
-                    {/* Step by Step Indicator */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', marginTop: '10px', textAlign: 'center', fontSize: '10px' }}>
-                      <div style={{ padding: '6px 2px', borderRadius: '6px', background: simStep >= 1 ? 'rgba(6, 182, 212, 0.2)' : 'var(--bg-input)', color: simStep >= 1 ? 'var(--accent-cyan)' : 'var(--text-dim)', fontWeight: simStep === 1 ? 800 : 500 }}>
-                        1. باركود
-                      </div>
-                      <div style={{ padding: '6px 2px', borderRadius: '6px', background: simStep >= 2 ? 'rgba(6, 182, 212, 0.2)' : 'var(--bg-input)', color: simStep >= 2 ? 'var(--accent-cyan)' : 'var(--text-dim)', fontWeight: simStep === 2 ? 800 : 500 }}>
-                        2. سحب العينة
-                      </div>
-                      <div style={{ padding: '6px 2px', borderRadius: '6px', background: simStep >= 3 ? 'rgba(6, 182, 212, 0.2)' : 'var(--bg-input)', color: simStep >= 3 ? 'var(--accent-cyan)' : 'var(--text-dim)', fontWeight: simStep === 3 ? 800 : 500 }}>
-                        3. تكويد الحزمة
-                      </div>
-                      <div style={{ padding: '6px 2px', borderRadius: '6px', background: simStep >= 4 ? 'rgba(34, 197, 94, 0.2)' : 'var(--bg-input)', color: simStep >= 4 ? '#4ade80' : 'var(--text-dim)', fontWeight: simStep === 4 ? 800 : 500 }}>
-                        4. مصافحة وبث
-                      </div>
-                      <div style={{ padding: '6px 2px', borderRadius: '6px', background: simStep >= 4 ? 'rgba(34, 197, 94, 0.2)' : 'var(--bg-input)', color: simStep >= 4 ? '#4ade80' : 'var(--text-dim)', fontWeight: simStep === 4 ? 800 : 500 }}>
-                        5. تنزيل بالـ LIS
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* RIGHT COLUMN: Live Protocol Terminal & Results Inspector */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                
-                {/* 3. Live Protocol Terminal (Serial / LAN TCP Socket Monitor) */}
-                <div style={{ background: '#030712', border: '1px solid #1f2937', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '420px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
-                  
-                  {/* Terminal Header */}
-                  <div style={{ background: '#111827', padding: '10px 14px', borderBottom: '1px solid #1f2937', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Terminal size={16} color="#38bdf8" />
-                      <strong style={{ fontSize: '12.5px', color: '#f3f4f6', fontFamily: 'monospace' }}>
-                        SERIAL / SOCKET TERMINAL MONITOR [{currentSimDevice?.protocol}]
-                      </strong>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button
-                        onClick={() => {
-                          const text = simLiveFrames.map((f) => `[${f.timestamp}] ${f.direction} ${f.content} (${f.description})`).join('\n');
-                          navigator.clipboard.writeText(text);
-                          toast.info('تم نسخ سجل الحزمة بالكامل');
-                        }}
-                        disabled={simLiveFrames.length === 0}
-                        className="btn-secondary"
-                        style={{ padding: '3px 8px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        <Copy size={11} />
-                        <span>نسخ السجل</span>
-                      </button>
-                      <button
-                        onClick={() => setSimLiveFrames([])}
-                        className="btn-secondary"
-                        style={{ padding: '3px 8px', fontSize: '11px' }}
-                      >
-                        مسح
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Terminal Screen Body */}
-                  <div
-                    ref={terminalRef}
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      overflowY: 'auto',
-                      fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-                      fontSize: '11px',
-                      lineHeight: 1.5,
-                      color: '#94a3b8',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
-                    }}
-                  >
-                    {simLiveFrames.length === 0 ? (
-                      <div style={{ textAlign: 'center', margin: 'auto', color: '#475569' }}>
-                        <Terminal size={36} style={{ marginBottom: '8px', opacity: 0.4 }} />
-                        <p style={{ margin: 0, fontSize: '12px' }}>في انتظار بدء جلسة البث والمصافحة...</p>
-                        <span style={{ fontSize: '10.5px' }}>اضغط على &quot;تشغيل دورة الفحص&quot; لبدء إرسال حزم ASTM / HL7 الحية ومراقبة الإشارات.</span>
-                      </div>
-                    ) : (
-                      simLiveFrames.map((frame, idx) => {
-                        const isTx = frame.direction === 'TX';
-                        return (
-                          <div
-                            key={frame.id || idx}
-                            style={{
-                              background: isTx ? 'rgba(30, 41, 59, 0.4)' : 'rgba(6, 182, 212, 0.08)',
-                              borderRight: isTx ? '3px solid #fbbf24' : '3px solid #22c55e',
-                              padding: '6px 10px',
-                              borderRadius: '4px',
-                            }}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ color: isTx ? '#fbbf24' : '#22c55e', fontWeight: 800 }}>
-                                  {isTx ? 'TX ➔ [DEV]' : '⬅ RX [LIS]'}
-                                </span>
-                                <span style={{ color: '#64748b' }}>[{frame.timestamp}]</span>
-                                <span style={{ padding: '1px 5px', borderRadius: '3px', background: '#1e293b', color: '#cbd5e1', fontSize: '10px' }}>
-                                  {frame.type}
-                                </span>
-                              </div>
-                              <span style={{ color: '#0ea5e9', fontSize: '10px' }}>
-                                HEX: {frame.hexDisplay}
-                              </span>
-                            </div>
-
-                            <pre style={{ margin: 0, whiteSpace: 'pre-wrap', color: isTx ? '#f8fafc' : '#4ade80', fontWeight: 600 }}>
-                              {frame.content}
-                            </pre>
-
-                            <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
-                              ℹ️ {frame.description}
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-
-                {/* 4. Ingestion Results Confirmation Card */}
-                {simResultSummary && (
-                  <div
-                    style={{
-                      background: 'rgba(34, 197, 94, 0.08)',
-                      border: '1px solid rgba(34, 197, 94, 0.3)',
-                      borderRadius: '12px',
-                      padding: '14px 16px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <CheckCircle2 size={22} color="#22c55e" />
-                        <div>
-                          <strong style={{ fontSize: '14px', color: '#4ade80' }}>
-                            تم استلام النتائج وإدراجها فورياً بسجل العينة #{simResultSummary.summary?.sampleNumber}
-                          </strong>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                            المريض: {simResultSummary.summary?.patientName} | الجهاز: {simResultSummary.summary?.deviceName}
-                          </div>
-                        </div>
-                      </div>
-
-                      <span style={{ padding: '3px 8px', borderRadius: '12px', background: '#22c55e20', color: '#4ade80', fontWeight: 800, fontSize: '11px' }}>
-                        حالة العينة: READY (جاهزة)
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
-                      <div style={{ background: 'var(--bg-input)', padding: '8px', borderRadius: '6px', textAlign: 'center' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>فحوصات تم استلامها:</span>
-                        <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
-                          {simResultSummary.summary?.totalItems || 0}
-                        </div>
-                      </div>
-                      <div style={{ background: 'var(--bg-input)', padding: '8px', borderRadius: '6px', textAlign: 'center' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>فحوصات طابقت بالعينة:</span>
-                        <div style={{ fontSize: '15px', fontWeight: 800, color: '#4ade80' }}>
-                          {simResultSummary.summary?.appliedItems || 0}
-                        </div>
-                      </div>
-                      <div style={{ background: 'var(--bg-input)', padding: '8px', borderRadius: '6px', textAlign: 'center' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>البروتوكول المستخدم:</span>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent-cyan)' }}>
-                          {simResultSummary.simulation?.protocol}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Action Shortcut to Workstation */}
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <Link
-                        href={`/results?sampleId=${simResultSummary.summary?.sample?.id || `s-${simSampleNumber}`}`}
-                        className="btn-primary"
-                        style={{
-                          flex: 1,
-                          textDecoration: 'none',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          padding: '8px 12px',
-                          fontSize: '12.5px',
-                        }}
-                      >
-                        <Eye size={15} />
-                        <span>فتح النتيجة وتدقيقها في ورقة العمل (Workstation) ↗</span>
-                      </Link>
-
-                      <Link
-                        href={`/api/samples/${simResultSummary.summary?.sample?.id || `s-${simSampleNumber}`}/print`}
-                        target="_blank"
-                        className="btn-secondary"
-                        style={{
-                          textDecoration: 'none',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '8px 12px',
-                          fontSize: '12px',
-                        }}
-                      >
-                        <FileText size={14} />
-                        <span>معاينة الطباعة 🖨️</span>
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ========================================================================= */}
         {/* TAB 1: REGISTERED DEVICES LIST                                           */}
@@ -1196,15 +567,6 @@ export default function DevicesPage() {
                         >
                           <Layers size={13} color="var(--accent-cyan)" />
                           <span>ربط الفحوصات ({dev.mappings?.length || 0})</span>
-                        </button>
-                        <button
-                          onClick={() => handleQuickSimulateDevice(dev)}
-                          className="btn-primary"
-                          style={{ padding: '6px 12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)' }}
-                          title="تشغيل محاكاة في الاستوديو"
-                        >
-                          <Play size={13} />
-                          <span>محاكاة</span>
                         </button>
                         <button
                           onClick={() => handleOpenLogs(dev)}

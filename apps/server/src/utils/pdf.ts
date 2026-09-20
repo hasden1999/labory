@@ -1,4 +1,3 @@
-import puppeteer from 'puppeteer';
 import QRCode from 'qrcode';
 
 export interface ReportData {
@@ -39,14 +38,13 @@ export async function generateSampleReportPDF(data: ReportData): Promise<Buffer>
       <meta charset="UTF-8">
       <title>تقرير نتائج الفحص الطبي #${data.sampleNumber}</title>
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
         * {
           box-sizing: border-box;
           margin: 0;
           padding: 0;
         }
         body {
-          font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          font-family: 'Segoe UI', Tahoma, Arial, 'Cairo', sans-serif;
           background-color: #ffffff;
           color: #1e293b;
           padding: 30px;
@@ -222,18 +220,28 @@ export async function generateSampleReportPDF(data: ReportData): Promise<Buffer>
     </html>
   `;
 
+  const puppeteer = (await import('puppeteer')).default;
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+    ],
   });
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'networkidle0' });
-  const pdfBuffer = await page.pdf({
-    format: 'A4',
-    printBackground: true,
-    margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
-  });
-  await browser.close();
 
-  return Buffer.from(pdfBuffer);
+  try {
+    const page = await browser.newPage();
+    page.setDefaultTimeout(15000);
+    await page.setContent(html, { waitUntil: 'domcontentloaded' });
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
+    });
+    return Buffer.from(pdfBuffer);
+  } finally {
+    await browser.close().catch(() => {});
+  }
 }

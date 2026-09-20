@@ -4,7 +4,7 @@ title Labryo LIMS Pro - Desktop Edition
 cd /d "%~dp0"
 
 if exist ".\apps\desktop\dist\win-unpacked\Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية.exe" (
-    start "" ".\apps\desktop\dist\win-unpacked\Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية.exe" --disable-gpu --disable-software-rasterizer --no-sandbox
+    start "" ".\apps\desktop\dist\win-unpacked\Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية.exe" --no-sandbox
 ) else (
     npm run desktop
 )

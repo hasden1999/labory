@@ -54,3 +54,5 @@ scratch/
 # Backups and Local data backups
 *.bak
 apps/web/data/backups/
+backups/
+storage/

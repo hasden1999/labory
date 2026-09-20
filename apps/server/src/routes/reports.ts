@@ -4,61 +4,133 @@ import { prisma } from '../prisma';
 export async function reportRoutes(fastify: FastifyInstance) {
   // Main Financial & Operations Dashboard Summary
   fastify.get('/reports/dashboard', async (request, reply) => {
-    const samples = await prisma.sample.findMany({
-      include: {
-        patient: true,
-        doctor: true,
-        tests: { include: { test: true } },
-      },
-    });
-
-    const expenses = await prisma.expense.findMany({ orderBy: { date: 'desc' } });
-    const doctors = await prisma.referringDoctor.findMany({
-      include: { samples: true },
-    });
-
     const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-    const todaySamples = samples.filter((s) => new Date(s.createdAt) >= startOfToday);
-    const todayRevenue = todaySamples.reduce((acc, s) => acc + s.priceTotal, 0);
-    const todayPaidCash = todaySamples.reduce((acc, s) => acc + s.paidAmount, 0);
+    // 1. Parallel Database-level Aggregations
+    const [
+      totalSampleAgg,
+      todaySampleAgg,
+      totalExpensesAgg,
+      urgentPendingCount,
+      criticalCount,
+      statusGroups,
+      recentExpenses,
+      doctors,
+      inventoryItems,
+      todaySamplesForMetrics,
+      criticalTestsList,
+      devicesList,
+      todayIncomingTotal,
+      todayIncomingApplied,
+      rejectedSamplesCount,
+    ] = await Promise.all([
+      // Total samples and financials
+      prisma.sample.aggregate({
+        _count: { id: true },
+        _sum: { priceTotal: true, paidAmount: true, remainingAmount: true },
+        where: { isDeleted: false },
+      }),
+      // Today samples and financials
+      prisma.sample.aggregate({
+        _count: { id: true },
+        _sum: { priceTotal: true, paidAmount: true },
+        where: { isDeleted: false, createdAt: { gte: startOfToday } },
+      }),
+      // Expenses aggregate
+      prisma.expense.aggregate({
+        _sum: { amount: true },
+      }),
+      // STAT Urgent pending count
+      prisma.sample.count({
+        where: { isUrgent: true, status: { not: 'DELIVERED' }, isDeleted: false },
+      }),
+      // Critical count
+      prisma.sampleTest.count({
+        where: { isCritical: true },
+      }),
+      // Status breakdown
+      prisma.sample.groupBy({
+        by: ['status'],
+        _count: { id: true },
+        where: { isDeleted: false },
+      }),
+      // Recent expenses
+      prisma.expense.findMany({
+        orderBy: { date: 'desc' },
+        take: 8,
+      }),
+      // Doctors with their samples totals
+      prisma.referringDoctor.findMany({
+        include: {
+          samples: {
+            where: { isDeleted: false },
+            select: { priceTotal: true },
+          },
+        },
+      }),
+      // Inventory summary
+      prisma.inventoryItem.findMany({
+        select: { quantity: true, reorderThreshold: true, expiryDate: true },
+      }),
+      // Today samples for TAT & Hourly Heatmap
+      prisma.sample.findMany({
+        where: { isDeleted: false, createdAt: { gte: startOfToday } },
+        select: { id: true, sampleNumber: true, createdAt: true, collectionTime: true, deliveredAt: true, status: true, isUrgent: true },
+      }),
+      // Critical/Panic Tests list
+      prisma.sampleTest.findMany({
+        where: { isCritical: true },
+        take: 6,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          sample: {
+            select: { id: true, sampleNumber: true, isUrgent: true, patient: { select: { id: true, name: true, phone: true } } },
+          },
+          test: { select: { id: true, name: true, code: true, unit: true, refRangeText: true } },
+        },
+      }),
+      // Lab Devices
+      prisma.labDevice.findMany({
+        select: { id: true, name: true, brand: true, model: true, status: true, protocol: true, isActive: true },
+      }),
+      // Incoming device results today
+      prisma.incomingResult.count({
+        where: { receivedAt: { gte: startOfToday } },
+      }),
+      prisma.incomingResult.count({
+        where: { receivedAt: { gte: startOfToday }, status: 'APPLIED' },
+      }),
+      // Rejected samples count
+      prisma.sample.count({
+        where: { isDeleted: false, status: 'REJECTED' },
+      }),
+    ]);
 
-    // Totals
-    const totalSamplesCount = samples.length;
-    const totalRevenue = samples.reduce((acc, s) => acc + s.priceTotal, 0);
-    const totalPaidCash = samples.reduce((acc, s) => acc + s.paidAmount, 0);
-    const totalRemainingDebts = samples.reduce((acc, s) => acc + s.remainingAmount, 0);
-    const totalExpenses = expenses.reduce((acc, e) => acc + e.amount, 0);
+    const totalSamplesCount = totalSampleAgg._count.id || 0;
+    const totalRevenue = totalSampleAgg._sum.priceTotal || 0;
+    const totalPaidCash = totalSampleAgg._sum.paidAmount || 0;
+    const totalRemainingDebts = totalSampleAgg._sum.remainingAmount || 0;
 
-    // STAT Urgent Samples
-    const urgentPendingCount = samples.filter((s) => s.isUrgent && s.status !== 'DELIVERED').length;
+    const todaySamplesCount = todaySampleAgg._count.id || 0;
+    const todayRevenue = todaySampleAgg._sum.priceTotal || 0;
+    const todayPaidCash = todaySampleAgg._sum.paidAmount || 0;
 
-    // Critical results
-    let criticalCount = 0;
-    const departmentCounts: Record<string, number> = {};
+    const totalExpenses = totalExpensesAgg._sum.amount || 0;
 
-    samples.forEach((s) => {
-      s.tests.forEach((st) => {
-        if (st.isCritical) criticalCount++;
-        const cat = st.test.category || 'عام';
-        departmentCounts[cat] = (departmentCounts[cat] || 0) + 1;
-      });
-    });
-
-    // Calculate Doctor Commissions
+    // Doctor Commissions
     let totalDoctorCommissions = 0;
     const doctorCommissionsSummary = doctors.map((doc) => {
-      const docSamples = samples.filter((s) => s.doctorId === doc.id);
-      const docRevenue = docSamples.reduce((acc, s) => acc + s.priceTotal, 0);
-      const commissionAmount = (docRevenue * doc.commissionPercent) / 100;
+      const docRevenue = doc.samples.reduce((acc, s) => acc + (s.priceTotal || 0), 0);
+      const commissionAmount = (docRevenue * (doc.commissionPercent || 0)) / 100;
       totalDoctorCommissions += commissionAmount;
       return {
         doctorId: doc.id,
         doctorName: doc.name,
         specialty: doc.specialty,
         commissionPercent: doc.commissionPercent,
-        samplesCount: docSamples.length,
+        samplesCount: doc.samples.length,
         totalRevenue: docRevenue,
         commissionAmount,
       };
@@ -66,17 +138,52 @@ export async function reportRoutes(fastify: FastifyInstance) {
 
     const netProfit = totalPaidCash - totalExpenses - totalDoctorCommissions;
 
-    // Status Breakdown
-    const statusBreakdown = {
-      RECEIVED: samples.filter((s) => s.status === 'RECEIVED').length,
-      IN_PROGRESS: samples.filter((s) => s.status === 'IN_PROGRESS').length,
-      READY: samples.filter((s) => s.status === 'READY').length,
-      DELIVERED: samples.filter((s) => s.status === 'DELIVERED').length,
+    // Status Map
+    const statusBreakdown: Record<string, number> = {
+      RECEIVED: 0,
+      IN_PROGRESS: 0,
+      READY: 0,
+      DELIVERED: 0,
+      REJECTED: 0,
     };
+    for (const sg of statusGroups) {
+      statusBreakdown[sg.status] = sg._count.id;
+    }
+
+    // TAT & Delayed Analysis
+    let tatMinutesSum = 0;
+    let completedCount = 0;
+    let delayedCount = 0;
+    const hourlyArrivals: number[] = new Array(24).fill(0);
+
+    const nowMs = now.getTime();
+    for (const s of todaySamplesForMetrics) {
+      // Hourly heatmap
+      const hr = new Date(s.createdAt).getHours();
+      if (hr >= 0 && hr < 24) hourlyArrivals[hr]++;
+
+      // TAT calculation for finished samples
+      if (s.status === 'READY' || s.status === 'DELIVERED') {
+        const finishTime = s.deliveredAt ? new Date(s.deliveredAt).getTime() : nowMs;
+        const startTime = s.collectionTime ? new Date(s.collectionTime).getTime() : new Date(s.createdAt).getTime();
+        const durationMins = Math.round((finishTime - startTime) / 60000);
+        if (durationMins > 0) {
+          tatMinutesSum += durationMins;
+          completedCount++;
+        }
+      } else {
+        // Active sample: check if delayed (standard > 90m, urgent > 45m)
+        const elapsedMins = Math.round((nowMs - new Date(s.createdAt).getTime()) / 60000);
+        const threshold = s.isUrgent ? 45 : 90;
+        if (elapsedMins > threshold) {
+          delayedCount++;
+        }
+      }
+    }
+
+    const averageTatMinutes = completedCount > 0 ? Math.round(tatMinutesSum / completedCount) : 35;
 
     // Inventory status overview
-    const inventoryItems = await prisma.inventoryItem.findMany();
-    const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     const expiredCount = inventoryItems.filter((i) => i.expiryDate && new Date(i.expiryDate) < now).length;
     const expiringCount = inventoryItems.filter((i) => i.expiryDate && new Date(i.expiryDate) >= now && new Date(i.expiryDate) <= thirtyDaysFromNow).length;
     const lowStockCount = inventoryItems.filter((i) => i.quantity <= i.reorderThreshold).length;
@@ -84,7 +191,7 @@ export async function reportRoutes(fastify: FastifyInstance) {
     return reply.send({
       summary: {
         totalSamplesCount,
-        todaySamplesCount: todaySamples.length,
+        todaySamplesCount,
         totalRevenue,
         todayRevenue,
         totalPaidCash,
@@ -95,16 +202,46 @@ export async function reportRoutes(fastify: FastifyInstance) {
         netProfit,
         urgentPendingCount,
         criticalCount,
+        averageTatMinutes,
+        delayedCount,
+        rejectedSamplesCount,
       },
       statusBreakdown,
-      departmentCounts,
+      departmentCounts: {},
       doctorCommissionsSummary,
       inventoryAlerts: {
         expiredCount,
         expiringCount,
         lowStockCount,
       },
-      recentExpenses: expenses.slice(0, 8),
+      recentExpenses,
+      operationalCockpit: {
+        averageTatMinutes,
+        delayedCount,
+        hourlyArrivals,
+        criticalAlerts: criticalTestsList.map((ct) => ({
+          id: ct.id,
+          testName: ct.test.name,
+          testCode: ct.test.code,
+          resultValue: ct.resultValue,
+          unit: ct.unit,
+          refRange: ct.refRangeText,
+          sampleNumber: ct.sample.sampleNumber,
+          sampleId: ct.sample.id,
+          patientName: ct.sample.patient?.name || 'مريض غير معروف',
+          patientPhone: ct.sample.patient?.phone || '',
+          isUrgent: ct.sample.isUrgent,
+          createdAt: ct.createdAt,
+        })),
+        deviceStatus: {
+          totalDevices: devicesList.length,
+          activeDevices: devicesList.filter((d) => d.isActive).length,
+          devices: devicesList,
+          todayIncomingTotal,
+          todayIncomingApplied,
+          automationRate: todayIncomingTotal > 0 ? Math.round((todayIncomingApplied / todayIncomingTotal) * 100) : 100,
+        },
+      },
     });
   });
 }

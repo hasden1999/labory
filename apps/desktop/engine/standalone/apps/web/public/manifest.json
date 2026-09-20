@@ -1,23 +1,20 @@
 {
-  "name": "Lab Manager - نظام إدارة المختبرات",
-  "short_name": "Lab Manager",
-  "description": "نظام إدارة المختبرات الطبية محلياً بدون إنترنت",
+  "name": "Labryo Clinical LIMS - نظام إدارة المختبرات الطبية",
+  "short_name": "Labryo LIMS",
+  "description": "نظام إدارة المختبرات الطبية والتحاليل السريرية السحابي والمحلي",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#0f172a",
   "theme_color": "#0284c7",
   "dir": "rtl",
   "lang": "ar",
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "/logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

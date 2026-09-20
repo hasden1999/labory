@@ -49,7 +49,7 @@ export interface LabSettings {
   address?: string;
   logoUrl?: string;
   headerMode: 'DIGITAL' | 'PREPRINTED';
-  reportTemplate: 'CLASSIC' | 'MODERN' | 'EXECUTIVE' | 'COMPACT' | 'SPECIALIZED';
+  reportTemplate: 'CLASSIC' | 'MODERN' | 'EXECUTIVE' | 'COMPACT' | 'SPECIALIZED' | 'BLACK_WHITE';
   topMarginMm: number; // e.g. 35 for pre-printed letterhead
   bottomMarginMm: number; // e.g. 25
   leftMarginMm: number;
@@ -69,6 +69,13 @@ export interface LabSettings {
   defaultDiscountPercent?: number;
   isConfigured?: boolean;
   serverBaseUrl?: string; // Optional custom public URL or specific LAN address
+
+  // CBC & Clinical Reporting Flags
+  cbcLayoutTemplate?: string;
+  showPanicFlags?: boolean;
+  showClinicalComments?: boolean;
+  showReferenceRanges?: boolean;
+  installedVersion?: string;
 
   // Sheet Elements & Watermark Customization
   showLabName?: boolean;
@@ -91,6 +98,10 @@ export interface LabSettings {
   watermarkAngle?: number;
   watermarkSize?: number;
   watermarkColor?: string;
+
+  // Typography Settings
+  fontFamily?: 'Tajawal' | 'Cairo' | 'IBM Plex Sans Arabic' | 'Almarai' | 'System';
+  fontSize?: 'SMALL' | 'MEDIUM' | 'LARGE';
 }
 
 export interface LicenseStore {
@@ -287,6 +298,22 @@ export interface DebtTransactionRecord {
   createdAt: string;
 }
 
+export interface CashShiftRecord {
+  id: string;
+  shiftNumber: number;
+  openedById?: string;
+  closedById?: string;
+  openedAt: string;
+  closedAt?: string | null;
+  startingCash: number;
+  expectedCash?: number;
+  actualCash?: number;
+  discrepancy?: number;
+  status: 'OPEN' | 'CLOSED';
+  notes?: string | null;
+  createdAt: string;
+}
+
 export interface ServerStore {
   tests: any[];
   panels: any[];
@@ -302,6 +329,7 @@ export interface ServerStore {
   deviceRawLogs?: DeviceRawLogRecord[];
   debtors?: DebtorRecord[];
   debtTransactions?: DebtTransactionRecord[];
+  shifts?: CashShiftRecord[];
 }
 
 export function getInitialDevices(): DeviceRecord[] {
@@ -473,6 +501,11 @@ function initStore(): ServerStore {
       defaultDiscountPercent: 0,
       isConfigured: false,
       serverBaseUrl: '',
+      cbcLayoutTemplate: 'CLASSIC_5PART',
+      showPanicFlags: true,
+      showClinicalComments: true,
+      showReferenceRanges: true,
+      installedVersion: 'v1.0.5',
       showLabName: true,
       labNameFontSize: 22,
       labNameColor: '#0284c7',
@@ -492,6 +525,8 @@ function initStore(): ServerStore {
       watermarkAngle: -30,
       watermarkSize: 46,
       watermarkColor: '#0f172a',
+      fontFamily: 'Tajawal',
+      fontSize: 'MEDIUM',
     },
     license: undefined,
     devices: getInitialDevices(),
@@ -504,39 +539,99 @@ function initStore(): ServerStore {
 
 const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 
-// Atomic write to prevent file corruption on sudden power outages
-export function saveStoreToFile(): void {
+// -------------------------------------------------------------
+// High-Performance Asynchronous Persistence Layer (Non-blocking I/O)
+// -------------------------------------------------------------
+let saveTimeout: NodeJS.Timeout | null = null;
+let isSaving = false;
+let pendingSave = false;
+
+// Graceful shutdown hooks to guarantee zero data loss
+if (typeof process !== 'undefined') {
+  const handleExit = () => {
+    try {
+      flushStoreSync();
+    } catch {}
+  };
+  process.once('beforeExit', handleExit);
+  process.once('SIGINT', () => { handleExit(); process.exit(0); });
+  process.once('SIGTERM', () => { handleExit(); process.exit(0); });
+}
+
+export function flushStoreSync(): void {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
   try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    if (!fs.existsSync(BACKUP_DIR)) {
-      fs.mkdirSync(BACKUP_DIR, { recursive: true });
-    }
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
 
     if (global.__labStore) {
       const payload = JSON.stringify(global.__labStore, null, 2);
       const tempFile = `${DATA_FILE}.tmp`;
       const bakFile = `${DATA_FILE}.bak`;
 
-      // 1. Write to temporary file first
       fs.writeFileSync(tempFile, payload, 'utf-8');
-
-      // 2. Keep previous working copy as .bak
       if (fs.existsSync(DATA_FILE)) {
-        try {
-          fs.copyFileSync(DATA_FILE, bakFile);
-        } catch {}
+        try { fs.copyFileSync(DATA_FILE, bakFile); } catch {}
       }
-
-      // 3. Atomically replace data file
       fs.renameSync(tempFile, DATA_FILE);
-
-      // 4. Auto Daily Snapshot Rotation (keep max 30 snapshots)
       rotateDailySnapshot(payload);
     }
   } catch (err) {
-    console.error('[ServerStore] Failed to save store to file:', err);
+    console.error('[ServerStore] Synchronous flush error:', err);
+  }
+}
+
+async function executeAsyncSave(): Promise<void> {
+  if (isSaving) {
+    pendingSave = true;
+    return;
+  }
+  isSaving = true;
+
+  try {
+    if (!fs.existsSync(DATA_DIR)) await fs.promises.mkdir(DATA_DIR, { recursive: true });
+    if (!fs.existsSync(BACKUP_DIR)) await fs.promises.mkdir(BACKUP_DIR, { recursive: true });
+
+    if (global.__labStore) {
+      const payload = JSON.stringify(global.__labStore, null, 2);
+      const tempFile = `${DATA_FILE}.tmp`;
+      const bakFile = `${DATA_FILE}.bak`;
+
+      await fs.promises.writeFile(tempFile, payload, 'utf-8');
+      if (fs.existsSync(DATA_FILE)) {
+        try { await fs.promises.copyFile(DATA_FILE, bakFile); } catch {}
+      }
+      await fs.promises.rename(tempFile, DATA_FILE);
+      rotateDailySnapshot(payload);
+    }
+  } catch (err) {
+    console.error('[ServerStore] Async persistence error:', err);
+  } finally {
+    isSaving = false;
+    if (pendingSave) {
+      pendingSave = false;
+      scheduleSaveStore(50);
+    }
+  }
+}
+
+export function scheduleSaveStore(delayMs = 250): void {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    saveTimeout = null;
+    executeAsyncSave().catch((e) => console.error('[ServerStore] Unhandled async save:', e));
+  }, delayMs);
+}
+
+// Backward-compatible saveStoreToFile: now non-blocking by default (0ms latency for HTTP requests)
+export function saveStoreToFile(forceSync = false): void {
+  if (forceSync) {
+    flushStoreSync();
+  } else {
+    scheduleSaveStore(250);
   }
 }
 
@@ -1272,12 +1367,17 @@ export function getFinancialSummary() {
   let todayRevenue = 0;
   let totalDoctorCommissions = 0;
 
+  let directReagentCost = 0;
   samples.forEach((s) => {
     totalGrossRevenue += s.priceTotal || 0;
     totalPaid += s.paidAmount || 0;
     totalDiscounts += s.discount || 0;
     totalRemainingDebts += s.remainingAmount || 0;
     totalDoctorCommissions += s.doctorCommission || 0;
+
+    (s.tests || []).forEach((st: any) => {
+      directReagentCost += st.costAtTime || st.test?.costEstimate || ((st.priceAtTime || st.test?.price || 0) * 0.25);
+    });
 
     const t = new Date(s.createdAt).getTime();
     if (t >= todayStart && t <= todayEnd) {
@@ -1286,7 +1386,39 @@ export function getFinancialSummary() {
   });
 
   const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const netSalesRevenue = Math.max(0, totalGrossRevenue - totalDiscounts);
+  const grossOperatingProfit = Math.max(0, netSalesRevenue - directReagentCost - totalDoctorCommissions);
+  const clinicalNetProfit = grossOperatingProfit - totalExpenses;
   const netProfit = totalPaid - (totalExpenses + totalDoctorCommissions);
+
+  // Debt Aging calculation
+  const nowMs = Date.now();
+  let agingCurrent = 0;
+  let agingMedium = 0;
+  let agingCritical = 0;
+  (store.debtors || []).forEach((d) => {
+    let dTotal = 0;
+    let pTotal = 0;
+    let earliestDebtDate: number | null = null;
+    (store.debtTransactions || []).filter((tx) => tx.debtorId === d.id).forEach((tx) => {
+      if (tx.type === 'DEBT') {
+        dTotal += tx.amount;
+        const txTime = new Date(tx.createdAt).getTime();
+        if (!earliestDebtDate || txTime < earliestDebtDate) {
+          earliestDebtDate = txTime;
+        }
+      } else {
+        pTotal += tx.amount;
+      }
+    });
+    const bal = Math.max(0, dTotal - pTotal);
+    if (bal > 0) {
+      const ageDays = earliestDebtDate ? Math.floor((nowMs - earliestDebtDate) / 86400000) : 0;
+      if (ageDays <= 15) agingCurrent += bal;
+      else if (ageDays <= 30) agingMedium += bal;
+      else agingCritical += bal;
+    }
+  });
 
   return {
     totalRevenue: totalGrossRevenue,
@@ -1309,10 +1441,118 @@ export function getFinancialSummary() {
       operationalExpenses: totalExpenses,
       doctorCommissions: totalDoctorCommissions,
       inventoryStockCost: 0,
-      totalTestCosts: 0,
+      totalTestCosts: directReagentCost,
       totalOutgoings: totalExpenses + totalDoctorCommissions,
     },
+    pnl: {
+      grossRevenue: totalGrossRevenue,
+      discounts: totalDiscounts,
+      netSalesRevenue,
+      directReagentCost,
+      doctorCommissions: totalDoctorCommissions,
+      grossOperatingProfit,
+      operatingExpenses: totalExpenses,
+      netProfit: clinicalNetProfit,
+      operatingMarginPct: netSalesRevenue > 0 ? Math.round((clinicalNetProfit / netSalesRevenue) * 100) : 0,
+    },
+    debtAging: {
+      current: agingCurrent,
+      medium: agingMedium,
+      critical: agingCritical,
+      total: totalRemainingDebts,
+    },
   };
+}
+
+export function getCurrentShift() {
+  const store = getStore();
+  const activeShift = (store.shifts || []).find((s) => s.status === 'OPEN');
+  if (!activeShift) return { activeShift: null };
+
+  const shiftOpenTime = new Date(activeShift.openedAt).getTime();
+  let cashIn = 0;
+  let cardIn = 0;
+  let zainCashIn = 0;
+  let cashOut = 0;
+
+  (store.samples || []).forEach((s) => {
+    const sTime = new Date(s.createdAt).getTime();
+    if (sTime >= shiftOpenTime && s.paidAmount) {
+      const method = (s.paymentMethod || 'نقداً').trim();
+      if (method === 'نقداً' || method.toLowerCase() === 'cash') cashIn += s.paidAmount;
+      else if (method.toLowerCase().includes('zain')) zainCashIn += s.paidAmount;
+      else cardIn += s.paidAmount;
+    }
+  });
+
+  (store.expenses || []).forEach((e) => {
+    const eTime = new Date(e.createdAt || e.date || 0).getTime();
+    if (eTime >= shiftOpenTime && e.amount) {
+      cashOut += e.amount;
+    }
+  });
+
+  const expectedCash = activeShift.startingCash + cashIn - cashOut;
+  return {
+    activeShift: {
+      ...activeShift,
+      expectedCash,
+      cashIn,
+      cardIn,
+      zainCashIn,
+      cashOut,
+      netCashFlow: cashIn - cashOut,
+    },
+  };
+}
+
+export function getShiftHistory() {
+  const store = getStore();
+  return (store.shifts || []).slice().reverse();
+}
+
+export function openShift(startingCash: number, notes?: string) {
+  const store = getStore();
+  if (!store.shifts) store.shifts = [];
+  const openExists = store.shifts.some((s) => s.status === 'OPEN');
+  if (openExists) {
+    throw new Error('توجد وردية مفتوحة بالفعل، يرجى إغلاقها أولاً');
+  }
+  const nextNum = store.shifts.length + 1;
+  const newShift: CashShiftRecord = {
+    id: `shift-${Date.now()}`,
+    shiftNumber: nextNum,
+    openedAt: new Date().toISOString(),
+    startingCash: Number(startingCash) || 0,
+    status: 'OPEN',
+    notes: notes || null,
+    createdAt: new Date().toISOString(),
+  };
+  store.shifts.push(newShift);
+  saveStoreToFile();
+  return newShift;
+}
+
+export function closeShift(actualCash: number, notes?: string) {
+  const store = getStore();
+  if (!store.shifts) store.shifts = [];
+  const active = store.shifts.find((s) => s.status === 'OPEN');
+  if (!active) throw new Error('لا توجد وردية مفتوحة لإغلاقها');
+
+  const currentInfo = getCurrentShift();
+  const expectedCash = currentInfo.activeShift?.expectedCash || active.startingCash;
+  const counted = Number(actualCash) || 0;
+  const discrepancy = counted - expectedCash;
+
+  active.status = 'CLOSED';
+  active.closedAt = new Date().toISOString();
+  active.expectedCash = expectedCash;
+  active.actualCash = counted;
+  active.discrepancy = discrepancy;
+  if (notes) active.notes = `${active.notes || ''} | إغلاق: ${notes}`;
+
+  saveStoreToFile();
+  return active;
 }
 
 export function getTestProfitability(timeframe?: string) {

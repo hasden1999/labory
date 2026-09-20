@@ -128,7 +128,7 @@ export async function financialRoutes(fastify: FastifyInstance) {
       totalExpenses = legacyExpenses.reduce((s, x) => s + x.amount, 0);
     }
 
-    // B. Calculate Gross Sales from Samples created in this period
+    // B. Calculate Gross Sales & Direct Reagent Costs (COGS) from Samples created in this period
     const sampleWhere: any = { isDeleted: false };
     if (dateBounds.start && dateBounds.end) {
       sampleWhere.createdAt = { gte: dateBounds.start, lte: dateBounds.end };
@@ -147,19 +147,37 @@ export async function financialRoutes(fastify: FastifyInstance) {
     const totalDiscounts = samplesInPeriod.reduce((sum, s) => sum + (s.discount || 0), 0);
     const newDebtsInPeriod = samplesInPeriod.reduce((sum, s) => sum + (s.remainingAmount || 0), 0);
 
-    // C. Calculate Global Outstanding Receivables & Payables (جميع الديون القائمة غير المسددة)
+    // Direct Reagent / Test Cost (COGS)
+    const testCostAgg = await prisma.sampleTest.aggregate({
+      _sum: { costAtTime: true },
+      where: { sample: sampleWhere },
+    });
+    const directReagentCost = testCostAgg._sum.costAtTime || 0;
+    const netSalesRevenue = Math.max(0, totalGrossRevenue - totalDiscounts);
+
+    // C. Calculate Global Outstanding Receivables & Payables + Aging Buckets
     const allDebtors = await prisma.debtor.findMany({
       include: { transactions: true },
     });
 
     let totalRemainingDebts = 0;  // ديون المرضى والجهات (Receivables)
     let totalSupplierDebts = 0;   // ديون الموردين (Payables)
+    let agingCurrent = 0;         // 0 - 15 days
+    let agingMedium = 0;          // 16 - 30 days
+    let agingCritical = 0;        // 30+ days
+    const nowTime = Date.now();
 
     allDebtors.forEach((d) => {
       let dTotal = 0;
       let pTotal = 0;
+      let earliestDebtDate: Date | null = null;
       d.transactions.forEach((t) => {
-        if (t.type === 'DEBT') dTotal += t.amount;
+        if (t.type === 'DEBT') {
+          dTotal += t.amount;
+          if (!earliestDebtDate || new Date(t.createdAt) < earliestDebtDate) {
+            earliestDebtDate = new Date(t.createdAt);
+          }
+        }
         if (t.type === 'PAYMENT') pTotal += t.amount;
       });
       const bal = Math.max(0, dTotal - pTotal);
@@ -167,6 +185,16 @@ export async function financialRoutes(fastify: FastifyInstance) {
         totalSupplierDebts += bal;
       } else {
         totalRemainingDebts += bal;
+        if (bal > 0 && earliestDebtDate) {
+          const ageDays = Math.floor((nowTime - (earliestDebtDate as Date).getTime()) / (1000 * 60 * 60 * 24));
+          if (ageDays <= 15) {
+            agingCurrent += bal;
+          } else if (ageDays <= 30) {
+            agingMedium += bal;
+          } else {
+            agingCritical += bal;
+          }
+        }
       }
     });
 
@@ -186,9 +214,12 @@ export async function financialRoutes(fastify: FastifyInstance) {
       totalDoctorCommissions += (docRev * (doc.commissionPercent || 0)) / 100;
     });
 
-    // Net Profit Calculation
+    // Clinical P&L Calculation
+    const grossOperatingProfit = Math.max(0, netSalesRevenue - directReagentCost - totalDoctorCommissions);
     const totalOutgoings = totalExpenses + supplierPayments + Math.max(totalDoctorCommissions, doctorCommissionsPaid);
     const netProfit = totalPaid - totalOutgoings;
+    const clinicalNetProfit = grossOperatingProfit - totalExpenses;
+    const operatingMarginPct = netSalesRevenue > 0 ? Math.round((clinicalNetProfit / netSalesRevenue) * 100) : 0;
 
     // Today specific quick stat
     const nowStart = new Date(new Date().setHours(0, 0, 0, 0));
@@ -236,6 +267,23 @@ export async function financialRoutes(fastify: FastifyInstance) {
         doctorCommissions: totalDoctorCommissions,
         supplierPayments,
         totalOutgoings,
+      },
+      pnl: {
+        grossRevenue: totalGrossRevenue,
+        discounts: totalDiscounts,
+        netSalesRevenue,
+        directReagentCost,
+        doctorCommissions: totalDoctorCommissions,
+        grossOperatingProfit,
+        operatingExpenses: totalExpenses,
+        netProfit: clinicalNetProfit,
+        operatingMarginPct,
+      },
+      debtAging: {
+        current: agingCurrent,
+        medium: agingMedium,
+        critical: agingCritical,
+        total: totalRemainingDebts,
       },
     };
   });
@@ -618,5 +666,85 @@ export async function financialRoutes(fastify: FastifyInstance) {
       ]);
     }
     return reply.send({ success: true });
+  });
+
+  // Create Cash In (سند قبض)
+  fastify.post('/financials/income', async (request, reply) => {
+    const { amount, description, paymentMethod, patientId, debtorId, doctorId, category } = request.body as any;
+    const numAmount = Number(amount);
+    if (!numAmount || numAmount <= 0) {
+      return reply.code(400).send({ error: 'المبلغ غير صالح' });
+    }
+
+    const method = paymentMethod || 'نقداً';
+    const cat = category || 'سند قبض';
+
+    const result = await prisma.$transaction(async (tx) => {
+      const highestVoucher = await tx.financialTransaction.findFirst({
+        orderBy: { voucherNumber: 'desc' },
+        select: { voucherNumber: true },
+      });
+      const voucherNum = (highestVoucher?.voucherNumber || 1000) + 1;
+
+      const transaction = await tx.financialTransaction.create({
+        data: {
+          voucherNumber: voucherNum,
+          type: debtorId ? 'DEBT_PAYMENT' : 'INCOME_SAMPLE',
+          category: cat,
+          amount: numAmount,
+          paymentMethod: method,
+          notes: description?.trim() || 'سند قبض',
+          patientId: patientId || null,
+          debtorId: debtorId || null,
+          doctorId: doctorId || null,
+          createdById: (request.user as any)?.id || 'single_operator',
+        },
+      });
+
+      if (debtorId) {
+        await tx.debtRecord.create({
+          data: {
+            debtorId,
+            type: 'PAYMENT',
+            amount: numAmount,
+            paymentMethod: method,
+            voucherNumber: voucherNum,
+            notes: description?.trim() || 'سداد دفعة من الدين',
+          },
+        });
+      }
+
+      return transaction;
+    });
+
+    return reply.status(201).send(result);
+  });
+
+  // Get Debtors & Receivables
+  fastify.get('/financials/debts', async (request, reply) => {
+    const debtors = await prisma.debtor.findMany({
+      include: {
+        transactions: { orderBy: { createdAt: 'desc' } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const result = debtors.map((d) => {
+      let totalDebt = 0;
+      let totalPaid = 0;
+      d.transactions.forEach((t) => {
+        if (t.type === 'DEBT') totalDebt += t.amount;
+        if (t.type === 'PAYMENT') totalPaid += t.amount;
+      });
+      const balance = Math.max(0, totalDebt - totalPaid);
+      return {
+        ...d,
+        totalDebt,
+        totalPaid,
+        balance,
+      };
+    });
+
+    return reply.send(result);
   });
 }
