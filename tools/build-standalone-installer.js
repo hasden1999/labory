@@ -46,7 +46,7 @@ async function run() {
 
   logStep('2/5', 'بناء وتحديث نسخة الخادم المستقلة (Next.js Standalone)...');
   const standaloneWebDir = path.join(webDir, '.next', 'standalone');
-  if (!fs.existsSync(standaloneWebDir) || process.argv.includes('--rebuild')) {
+  if (!fs.existsSync(standaloneWebDir) || process.argv.includes('--rebuild') || process.argv.includes('--publish') || process.argv.includes('--release')) {
     console.log('جاري تشغيل بناء الويب: npm run build:web ...');
     execSync('npm run build:web', { cwd: rootDir, stdio: 'inherit' });
   } else {
@@ -189,11 +189,14 @@ async function run() {
         const match = envContent.match(/GH_TOKEN=([^\r\n]+)/);
         if (match) {
           process.env.GH_TOKEN = match[1].trim();
+          process.env.GITHUB_TOKEN = match[1].trim();
         }
       }
     } catch (e) {
       console.warn('تعذر قراءة .env:', e.message);
     }
+  } else if (shouldPublish && process.env.GH_TOKEN && !process.env.GITHUB_TOKEN) {
+    process.env.GITHUB_TOKEN = process.env.GH_TOKEN;
   }
 
   const publishFlag = shouldPublish ? '--publish always' : '--publish never';
