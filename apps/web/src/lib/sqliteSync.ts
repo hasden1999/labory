@@ -190,7 +190,7 @@ export async function loadStoreFromSqlite(): Promise<any | null> {
       showReferenceRanges: dbSettings.showReferenceRanges,
       fontFamily: dbSettings.fontFamily || 'Tajawal',
       fontSize: (dbSettings.fontSize as any) || 'MEDIUM',
-      installedVersion: dbSettings.installedVersion || 'v1.0.8',
+      installedVersion: dbSettings.installedVersion || 'v1.0.9',
       isConfigured: !!(dbSettings.labName && dbSettings.labName.trim().length > 0),
     } : null;
 
@@ -445,7 +445,7 @@ export async function syncSettingsToSqlite(s: any): Promise<void> {
         showReferenceRanges: s.showReferenceRanges !== false,
         fontFamily: s.fontFamily || 'Tajawal',
         fontSize: s.fontSize || 'MEDIUM',
-        installedVersion: s.installedVersion || 'v1.0.8',
+        installedVersion: s.installedVersion || 'v1.0.9',
       },
       create: {
         id: 'singleton',
@@ -467,7 +467,7 @@ export async function syncSettingsToSqlite(s: any): Promise<void> {
         showReferenceRanges: s.showReferenceRanges !== false,
         fontFamily: s.fontFamily || 'Tajawal',
         fontSize: s.fontSize || 'MEDIUM',
-        installedVersion: s.installedVersion || 'v1.0.8',
+        installedVersion: s.installedVersion || 'v1.0.9',
       }
     });
   } catch (e: any) {

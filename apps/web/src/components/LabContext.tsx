@@ -55,6 +55,7 @@ export interface LabProfile {
   watermarkColor?: string;
   fontFamily?: 'Tajawal' | 'Cairo' | 'IBM Plex Sans Arabic' | 'Almarai' | 'System';
   fontSize?: 'SMALL' | 'MEDIUM' | 'LARGE';
+  installedVersion?: string;
 }
 
 const DEFAULT_LAB_PROFILE: LabProfile = {

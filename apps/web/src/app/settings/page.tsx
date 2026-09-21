@@ -2105,7 +2105,9 @@ export default function SettingsPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '20px' }}>
                   <div style={{ background: 'var(--bg-card-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>الإصدار المثبت حالياً</div>
-                    <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--accent-cyan)', marginTop: '2px' }}>v1.0.5</div>
+                    <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--accent-cyan)', marginTop: '2px' }}>
+                      {updateInfo?.currentVersion || labProfile?.installedVersion || 'v1.0.9'}
+                    </div>
                   </div>
                   <div style={{ background: 'var(--bg-card-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>حالة البيئة والإنتاج</div>
