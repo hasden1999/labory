@@ -546,21 +546,68 @@ function ResultsContent() {
       isAbnormal,
     };
 
-    // Auto-calculate VLDL & LDL safely without producing NaN
-    const tgTest = selectedSample?.tests?.find((st: any) => st.test?.code === 'TG' || st.test?.name?.toLowerCase().includes('triglycerides'));
-    const cholTest = selectedSample?.tests?.find((st: any) => st.test?.code === 'CHOL' || st.test?.name?.toLowerCase().includes('cholesterol'));
-    const hdlTest = selectedSample?.tests?.find((st: any) => st.test?.code === 'HDL' || st.test?.name?.toLowerCase().includes('hdl'));
-    const ldlTest = selectedSample?.tests?.find((st: any) => st.test?.code === 'LDL' || st.test?.name?.toLowerCase().includes('ldl'));
-    const vldlTest = selectedSample?.tests?.find((st: any) => st.test?.code === 'VLDL' || st.test?.name?.toLowerCase().includes('vldl'));
+    // Precise Clinically-Standard Analyte Matchers
+    const isCholTest = (st: any) => {
+      const code = (st.test?.code || '').toUpperCase();
+      const name = (st.test?.name || '').toLowerCase();
+      const arName = st.test?.arabicName || '';
+      if (code === 'CHOL' || code === 'TC' || code === 'CHOL-TOTAL') return true;
+      if (name.includes('total cholesterol') || arName.includes('الكوليسترول الكلي')) return true;
+      if ((name === 'cholesterol' || name.startsWith('cholesterol ')) && !name.includes('hdl') && !name.includes('ldl') && !name.includes('vldl')) return true;
+      return false;
+    };
+
+    const isHdlTest = (st: any) => {
+      const code = (st.test?.code || '').toUpperCase();
+      const name = (st.test?.name || '').toLowerCase();
+      const arName = st.test?.arabicName || '';
+      return code === 'HDL' || code === 'HDL-C' || name.includes('hdl') || arName.includes('النافع') || arName.includes('عالي الكثافة');
+    };
+
+    const isLdlTest = (st: any) => {
+      const code = (st.test?.code || '').toUpperCase();
+      const name = (st.test?.name || '').toLowerCase();
+      const arName = st.test?.arabicName || '';
+      if (code === 'VLDL' || name.includes('vldl')) return false;
+      return code === 'LDL' || code === 'LDL-C' || (name.includes('ldl') && !name.includes('vldl')) || arName.includes('الضار') || (arName.includes('منخفض الكثافة') && !arName.includes('شديد'));
+    };
+
+    const isVldlTest = (st: any) => {
+      const code = (st.test?.code || '').toUpperCase();
+      const name = (st.test?.name || '').toLowerCase();
+      const arName = st.test?.arabicName || '';
+      return code === 'VLDL' || code === 'VLDL-C' || name.includes('vldl') || arName.includes('شديد انخفاض الكثافة');
+    };
+
+    const isTgTest = (st: any) => {
+      const code = (st.test?.code || '').toUpperCase();
+      const name = (st.test?.name || '').toLowerCase();
+      const arName = st.test?.arabicName || '';
+      if (code.includes('ANTI')) return false;
+      return code === 'TG' || code === 'TRIG' || name.includes('triglyceride') || arName.includes('الدهون الثلاثية') || arName.includes('ثلاثي الغليسريد');
+    };
+
+    const tgTest = selectedSample?.tests?.find(isTgTest);
+    const cholTest = selectedSample?.tests?.find(isCholTest);
+    const hdlTest = selectedSample?.tests?.find(isHdlTest);
+    const ldlTest = selectedSample?.tests?.find(isLdlTest);
+    const vldlTest = selectedSample?.tests?.find(isVldlTest);
 
     const currentTG = tgTest ? parseNumericResult(nextResults[tgTest.id]?.resultValue) : NaN;
     const currentCHOL = cholTest ? parseNumericResult(nextResults[cholTest.id]?.resultValue) : NaN;
     const currentHDL = hdlTest ? parseNumericResult(nextResults[hdlTest.id]?.resultValue) : NaN;
 
+    // VLDL calculation (Friedewald: TG / 5)
     if (vldlTest && sampleTestId !== vldlTest.id) {
       if (!isNaN(currentTG) && currentTG >= 0) {
-        const vldlCalc = currentTG / 5;
-        if (!isNaN(vldlCalc) && isFinite(vldlCalc)) {
+        if (currentTG >= 400) {
+          nextResults[vldlTest.id] = {
+            ...nextResults[vldlTest.id],
+            resultValue: 'غير صالح (TG ≥ 400)',
+            isAbnormal: true,
+          };
+        } else {
+          const vldlCalc = currentTG / 5;
           const vldlVal = vldlCalc.toFixed(1);
           nextResults[vldlTest.id] = {
             ...nextResults[vldlTest.id],
@@ -571,45 +618,120 @@ function ResultsContent() {
       }
     }
 
+    // LDL calculation (Friedewald: Total Chol - HDL - (TG / 5))
     if (ldlTest && sampleTestId !== ldlTest.id) {
-      if (!isNaN(currentCHOL) && !isNaN(currentHDL) && !isNaN(currentTG) && currentTG >= 0 && currentTG < 400) {
-        const ldlCalc = currentCHOL - currentHDL - (currentTG / 5);
-        if (!isNaN(ldlCalc) && isFinite(ldlCalc)) {
-          if (ldlCalc < 10) {
-            nextResults[ldlTest.id] = {
-              ...nextResults[ldlTest.id],
-              resultValue: 'Direct LDL required (Calculated <10)',
-              isAbnormal: true,
-            };
-          } else {
-            const ldlVal = ldlCalc.toFixed(1);
-            nextResults[ldlTest.id] = {
-              ...nextResults[ldlTest.id],
-              resultValue: ldlVal,
-              isAbnormal: parseFloat(ldlVal) > 130,
-            };
+      if (!isNaN(currentCHOL) && !isNaN(currentHDL) && !isNaN(currentTG) && currentTG >= 0) {
+        if (currentTG >= 400) {
+          nextResults[ldlTest.id] = {
+            ...nextResults[ldlTest.id],
+            resultValue: 'Direct LDL required (TG ≥ 400)',
+            isAbnormal: true,
+          };
+        } else {
+          const ldlCalc = currentCHOL - currentHDL - (currentTG / 5);
+          if (!isNaN(ldlCalc) && isFinite(ldlCalc)) {
+            if (ldlCalc < 10) {
+              nextResults[ldlTest.id] = {
+                ...nextResults[ldlTest.id],
+                resultValue: 'Direct LDL required (Calculated <10)',
+                isAbnormal: true,
+              };
+            } else {
+              const ldlVal = ldlCalc.toFixed(1);
+              nextResults[ldlTest.id] = {
+                ...nextResults[ldlTest.id],
+                resultValue: ldlVal,
+                isAbnormal: parseFloat(ldlVal) > 130,
+              };
+            }
           }
         }
       }
     }
 
-    // Auto-calculate Indirect Bilirubin (IBIL = TBIL - DBIL) safely
-    const tbilTest = selectedSample?.tests?.find((st: any) => st.test?.code === 'TBIL' || st.test?.name?.toLowerCase().includes('total bilirubin'));
-    const dbilTest = selectedSample?.tests?.find((st: any) => st.test?.code === 'DBIL' || st.test?.name?.toLowerCase().includes('direct bilirubin'));
-    const ibilTest = selectedSample?.tests?.find((st: any) => st.test?.code === 'IBIL' || st.test?.name?.toLowerCase().includes('indirect bilirubin'));
+    // Bilirubin matchers (supports TSB, DIR-BIL, INDIR-BIL, TBIL, DBIL, IBIL in English and Arabic)
+    const isTbilTest = (st: any) => {
+      const code = (st.test?.code || '').toUpperCase();
+      const name = (st.test?.name || '').toLowerCase();
+      const arName = st.test?.arabicName || '';
+      return code === 'TSB' || code === 'TBIL' || code === 'TB' || code === 'TOTAL_BILIRUBIN' ||
+             name.includes('total bilirubin') || (name.includes('tsb') && name.includes('bilirubin')) ||
+             (arName.includes('الكلي') && (arName.includes('بيليروبين') || arName.includes('صفار')));
+    };
+
+    const isDbilTest = (st: any) => {
+      const code = (st.test?.code || '').toUpperCase();
+      const name = (st.test?.name || '').toLowerCase();
+      const arName = st.test?.arabicName || '';
+      return code === 'DIR-BIL' || code === 'DBIL' || code === 'DB' || code === 'DIRECT_BILIRUBIN' ||
+             name.includes('direct bilirubin') ||
+             (arName.includes('المباشر') && (arName.includes('بيليروبين') || arName.includes('صفار')));
+    };
+
+    const isIbilTest = (st: any) => {
+      const code = (st.test?.code || '').toUpperCase();
+      const name = (st.test?.name || '').toLowerCase();
+      const arName = st.test?.arabicName || '';
+      return code === 'INDIR-BIL' || code === 'IBIL' || code === 'IB' || code === 'INDIRECT_BILIRUBIN' ||
+             name.includes('indirect bilirubin') ||
+             (arName.includes('غير المباشر') && (arName.includes('بيليروبين') || arName.includes('صفار')));
+    };
+
+    const tbilTest = selectedSample?.tests?.find(isTbilTest);
+    const dbilTest = selectedSample?.tests?.find(isDbilTest);
+    const ibilTest = selectedSample?.tests?.find(isIbilTest);
 
     const currentTBIL = tbilTest ? parseNumericResult(nextResults[tbilTest.id]?.resultValue) : NaN;
     const currentDBIL = dbilTest ? parseNumericResult(nextResults[dbilTest.id]?.resultValue) : NaN;
+    const currentIBIL = ibilTest ? parseNumericResult(nextResults[ibilTest.id]?.resultValue) : NaN;
 
+    // Case 1: TBIL & DBIL are entered -> Auto-calculate Indirect (IBIL = TBIL - DBIL)
     if (ibilTest && sampleTestId !== ibilTest.id) {
-      if (!isNaN(currentTBIL) && !isNaN(currentDBIL) && currentTBIL >= currentDBIL) {
-        const ibilCalc = currentTBIL - currentDBIL;
-        if (!isNaN(ibilCalc) && isFinite(ibilCalc)) {
-          const ibilVal = ibilCalc.toFixed(2);
+      if (!isNaN(currentTBIL) && !isNaN(currentDBIL)) {
+        if (currentDBIL > currentTBIL) {
           nextResults[ibilTest.id] = {
             ...nextResults[ibilTest.id],
-            resultValue: ibilVal,
-            isAbnormal: parseFloat(ibilVal) > 0.8,
+            resultValue: '0.00',
+            interpretation: 'تنبيه: Direct Bilirubin أعلى من Total Bilirubin (يلزم إعادة التحقق)',
+            isAbnormal: true,
+          };
+        } else {
+          const ibilCalc = currentTBIL - currentDBIL;
+          if (!isNaN(ibilCalc) && isFinite(ibilCalc)) {
+            const ibilVal = ibilCalc.toFixed(2);
+            nextResults[ibilTest.id] = {
+              ...nextResults[ibilTest.id],
+              resultValue: ibilVal,
+              isAbnormal: parseFloat(ibilVal) > 0.8,
+            };
+          }
+        }
+      }
+    }
+    // Case 2: TBIL & IBIL are entered, DBIL is empty -> Auto-calculate Direct (DBIL = TBIL - IBIL)
+    else if (dbilTest && sampleTestId !== dbilTest.id && isNaN(currentDBIL)) {
+      if (!isNaN(currentTBIL) && !isNaN(currentIBIL) && currentTBIL >= currentIBIL) {
+        const dbilCalc = currentTBIL - currentIBIL;
+        if (!isNaN(dbilCalc) && isFinite(dbilCalc)) {
+          const dbilVal = dbilCalc.toFixed(2);
+          nextResults[dbilTest.id] = {
+            ...nextResults[dbilTest.id],
+            resultValue: dbilVal,
+            isAbnormal: parseFloat(dbilVal) > 0.3,
+          };
+        }
+      }
+    }
+    // Case 3: DBIL & IBIL are entered, TBIL is empty -> Auto-calculate Total (TBIL = DBIL + IBIL)
+    else if (tbilTest && sampleTestId !== tbilTest.id && isNaN(currentTBIL)) {
+      if (!isNaN(currentDBIL) && !isNaN(currentIBIL)) {
+        const tbilCalc = currentDBIL + currentIBIL;
+        if (!isNaN(tbilCalc) && isFinite(tbilCalc)) {
+          const tbilVal = tbilCalc.toFixed(2);
+          nextResults[tbilTest.id] = {
+            ...nextResults[tbilTest.id],
+            resultValue: tbilVal,
+            isAbnormal: parseFloat(tbilVal) > 1.2,
           };
         }
       }

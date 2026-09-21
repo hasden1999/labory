@@ -1,13 +1,40 @@
 import { NextResponse } from 'next/server';
 import https from 'https';
+import fs from 'fs';
+import path from 'path';
 
 export const dynamic = 'force-dynamic';
 
-const CURRENT_VERSION = 'v1.0.9';
 const REPO_OWNER = 'hasden1999';
 const REPO_NAME = 'lab-releases';
 
+function getAppVersion(): string {
+  if (process.env.LABRYO_APP_VERSION) {
+    const v = process.env.LABRYO_APP_VERSION.trim();
+    return v.startsWith('v') ? v : `v${v}`;
+  }
+  try {
+    const candidates = [
+      path.join(process.cwd(), '..', 'desktop', 'package.json'),
+      path.join(process.cwd(), 'apps', 'desktop', 'package.json'),
+      path.join(process.cwd(), 'package.json'),
+    ];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) {
+        const pkg = JSON.parse(fs.readFileSync(p, 'utf-8'));
+        if (pkg.version) {
+          return pkg.version.startsWith('v') ? pkg.version : `v${pkg.version}`;
+        }
+      }
+    }
+  } catch (e) {}
+
+  return 'v1.0.9';
+}
+
 export async function GET() {
+  const currentVersion = getAppVersion();
+
   try {
     const latestRelease = await new Promise<any>((resolve, reject) => {
       const options = {
@@ -36,7 +63,7 @@ export async function GET() {
       });
 
       req.on('error', (err) => reject(err));
-      req.setTimeout(5000, () => {
+      req.setTimeout(8000, () => {
         req.destroy();
         resolve(null);
       });
@@ -44,32 +71,35 @@ export async function GET() {
 
     if (!latestRelease) {
       return NextResponse.json({
-        currentVersion: CURRENT_VERSION,
-        latestVersion: CURRENT_VERSION,
+        currentVersion,
+        latestVersion: currentVersion,
         hasUpdate: false,
         releaseNotes: 'النظام محدث لآخر إصدار مستقر.',
         downloadUrl: null,
       });
     }
 
-    const latestTag = latestRelease.tag_name || CURRENT_VERSION;
-    const hasUpdate = latestTag !== CURRENT_VERSION;
+    const latestTag = latestRelease.tag_name || currentVersion;
+    // Compare versions (hasUpdate is true if latestTag != currentVersion)
+    const hasUpdate = latestTag !== currentVersion;
     const exeAsset = latestRelease.assets?.find((a: any) => a.name.endsWith('.exe'));
 
     return NextResponse.json({
-      currentVersion: CURRENT_VERSION,
+      currentVersion,
       latestVersion: latestTag,
       hasUpdate,
       releaseNotes: latestRelease.body || 'تحديثات واستقرار في أداء النظام',
       publishedAt: latestRelease.published_at,
       downloadUrl: exeAsset ? exeAsset.browser_download_url : latestRelease.html_url,
+      assetName: exeAsset?.name || null,
+      assetSize: exeAsset?.size || 0,
     });
   } catch (error: any) {
     return NextResponse.json({
-      currentVersion: CURRENT_VERSION,
-      latestVersion: CURRENT_VERSION,
+      currentVersion,
+      latestVersion: currentVersion,
       hasUpdate: false,
-      error: error.message,
+      error: error?.message || 'تعذر فحص التحديثات',
     });
   }
 }

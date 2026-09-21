@@ -423,7 +423,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative",
       "normalRange": "Negative",
-      "unit": "",
+      "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
       "loincCode": "8061-4"
@@ -447,7 +447,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative (< 1:80)",
       "normalRange": "Negative (< 1:80)",
-      "unit": "Titer",
+      "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
       "active": true
     },
@@ -589,7 +589,7 @@
       "criticalHigh": null,
       "refRangeText": "A / B / AB / O (Pos/Neg)",
       "normalRange": "A / B / AB / O (Pos/Neg)",
-      "unit": "",
+      "unit": "Qualitative",
       "sampleType": "دم كامل (EDTA)",
       "active": true,
       "loincCode": "882-1"
@@ -613,7 +613,7 @@
       "criticalHigh": null,
       "refRangeText": "A / B / AB / O (Pos/Neg)",
       "normalRange": "A / B / AB / O (Pos/Neg)",
-      "unit": null,
+      "unit": "Qualitative",
       "sampleType": "دم كامل (EDTA)",
       "active": true
     },
@@ -1511,7 +1511,7 @@
       "criticalHigh": null,
       "refRangeText": "> 90 (Normal)",
       "normalRange": "> 90 (Normal)",
-      "unit": "mL/min/1.73m2",
+      "unit": "mL/min/1.73m²",
       "sampleType": "محسوب",
       "active": true,
       "loincCode": "33914-3"
@@ -1535,7 +1535,7 @@
       "criticalHigh": null,
       "refRangeText": "> 90 (Normal) / 60 - 89 (Mild) / < 60 (CKD)",
       "normalRange": "> 90 (Normal) / 60 - 89 (Mild) / < 60 (CKD)",
-      "unit": "mL/min/1.73m2",
+      "unit": "mL/min/1.73m²",
       "sampleType": "محسوب",
       "active": true
     },
@@ -1699,7 +1699,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative",
       "normalRange": "Negative",
-      "unit": "",
+      "unit": "Qualitative",
       "sampleType": "عينة خروج",
       "active": true,
       "loincCode": "14563-1"
@@ -1723,7 +1723,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative",
       "normalRange": "Negative",
-      "unit": null,
+      "unit": "Qualitative",
       "sampleType": "عينة خروج",
       "active": true
     },
@@ -2029,7 +2029,7 @@
       "criticalHigh": null,
       "refRangeText": "Normal (No Parasites / FOBT: Negative)",
       "normalRange": "Normal (No Parasites / FOBT: Negative)",
-      "unit": "",
+      "unit": "Microscopic",
       "sampleType": "عينة خروج",
       "active": true,
       "loincCode": "10701-1"
@@ -2053,7 +2053,7 @@
       "criticalHigh": null,
       "refRangeText": "Normal (No Parasites / FOBT: Negative)",
       "normalRange": "Normal (No Parasites / FOBT: Negative)",
-      "unit": null,
+      "unit": "Microscopic",
       "sampleType": "عينة خروج",
       "active": true
     },
@@ -2076,7 +2076,7 @@
       "criticalHigh": null,
       "refRangeText": "Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)",
       "normalRange": "Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)",
-      "unit": "",
+      "unit": "Microscopic",
       "sampleType": "إدرار صباحي",
       "active": true,
       "loincCode": "24357-6"
@@ -2100,7 +2100,7 @@
       "criticalHigh": null,
       "refRangeText": "Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)",
       "normalRange": "Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)",
-      "unit": null,
+      "unit": "Microscopic",
       "sampleType": "إدرار صباحي",
       "active": true
     },
@@ -2170,7 +2170,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative",
       "normalRange": "Negative",
-      "unit": "",
+      "unit": "Qualitative",
       "sampleType": "عينة خروج",
       "active": true,
       "loincCode": "50549-5"
@@ -2194,7 +2194,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative",
       "normalRange": "Negative",
-      "unit": null,
+      "unit": "Qualitative",
       "sampleType": "عينة خروج",
       "active": true
     },
@@ -2264,7 +2264,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative (Non-reactive)",
       "normalRange": "Negative (Non-reactive)",
-      "unit": "",
+      "unit": "Qualitative",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
       "loincCode": "75622-1"
@@ -2288,7 +2288,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative (Non-reactive)",
       "normalRange": "Negative (Non-reactive)",
-      "unit": null,
+      "unit": "Qualitative",
       "sampleType": "مصل الدم (Serum)",
       "active": true
     },
@@ -2404,7 +2404,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative (Non-reactive)",
       "normalRange": "Negative (Non-reactive)",
-      "unit": "",
+      "unit": "Qualitative",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
       "loincCode": "5196-1"
@@ -2428,7 +2428,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative (Non-reactive)",
       "normalRange": "Negative (Non-reactive)",
-      "unit": null,
+      "unit": "Qualitative",
       "sampleType": "مصل الدم (Serum)",
       "active": true
     },
@@ -2451,7 +2451,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative (Non-reactive)",
       "normalRange": "Negative (Non-reactive)",
-      "unit": "",
+      "unit": "Qualitative",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
       "loincCode": "40726-2"
@@ -2475,7 +2475,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative (Non-reactive)",
       "normalRange": "Negative (Non-reactive)",
-      "unit": null,
+      "unit": "Qualitative",
       "sampleType": "مصل الدم (Serum)",
       "active": true
     },
@@ -2949,7 +2949,7 @@
       "criticalHigh": 80,
       "refRangeText": "25 - 38",
       "normalRange": "25 - 38",
-      "unit": "sec",
+      "unit": "Seconds",
       "sampleType": "بلازما (Sodium Citrate)",
       "active": true,
       "loincCode": "3173-2"
@@ -2973,7 +2973,7 @@
       "criticalHigh": 80,
       "refRangeText": "25 - 38",
       "normalRange": "25 - 38",
-      "unit": "sec",
+      "unit": "Seconds",
       "sampleType": "بلازما (Sodium Citrate)",
       "active": true
     },
@@ -2996,7 +2996,7 @@
       "criticalHigh": 1000000,
       "refRangeText": "150,000 - 450,000",
       "normalRange": "150,000 - 450,000",
-      "unit": "/uL",
+      "unit": "x10^3/uL",
       "sampleType": "دم كامل (EDTA)",
       "active": true,
       "loincCode": "777-3"
@@ -3020,7 +3020,7 @@
       "criticalHigh": 1000000,
       "refRangeText": "150,000 - 450,000",
       "normalRange": "150,000 - 450,000",
-      "unit": "/uL",
+      "unit": "x10^3/uL",
       "sampleType": "دم كامل (EDTA)",
       "active": true
     },
@@ -3279,7 +3279,7 @@
       "criticalHigh": null,
       "refRangeText": null,
       "normalRange": null,
-      "unit": "10*6/uL",
+      "unit": "x10^6/uL",
       "sampleType": "Serum",
       "active": true
     },
@@ -3349,7 +3349,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative",
       "normalRange": "Negative",
-      "unit": "",
+      "unit": "Qualitative",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
       "loincCode": "22159-8"
@@ -3373,7 +3373,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative",
       "normalRange": "Negative",
-      "unit": null,
+      "unit": "Qualitative",
       "sampleType": "مصل الدم (Serum)",
       "active": true
     },
@@ -3538,7 +3538,7 @@
       "criticalHigh": null,
       "refRangeText": "WHO Criteria: Count >= 15M/mL, PR >= 32%, Normal Forms >= 4%",
       "normalRange": "WHO Criteria: Count >= 15M/mL, PR >= 32%, Normal Forms >= 4%",
-      "unit": "",
+      "unit": "Report",
       "sampleType": "سائل منوي (Semen)",
       "active": true,
       "loincCode": "10584-1"
@@ -3562,7 +3562,7 @@
       "criticalHigh": null,
       "refRangeText": "Normal (Conc >= 15 M/mL, PR >= 32%, Normal Forms >= 4%)",
       "normalRange": "Normal (Conc >= 15 M/mL, PR >= 32%, Normal Forms >= 4%)",
-      "unit": "M/mL",
+      "unit": "Report",
       "sampleType": "سائل منوي",
       "active": true
     },
@@ -4979,7 +4979,7 @@
       "criticalHigh": null,
       "refRangeText": "Non-reactive",
       "normalRange": "Non-reactive",
-      "unit": "",
+      "unit": "Qualitative",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
       "loincCode": "20507-0"
@@ -5003,7 +5003,7 @@
       "criticalHigh": null,
       "refRangeText": "Non-reactive",
       "normalRange": "Non-reactive",
-      "unit": "Titer",
+      "unit": "Qualitative",
       "sampleType": "مصل الدم (Serum)",
       "active": true
     },
@@ -5167,7 +5167,7 @@
       "criticalHigh": null,
       "refRangeText": null,
       "normalRange": null,
-      "unit": "10*3/uL",
+      "unit": "x10^3/uL",
       "sampleType": "Serum",
       "active": true
     },

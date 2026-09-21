@@ -399,6 +399,7 @@ function getStartCommand(projectRoot) {
         HOSTNAME: '0.0.0.0',
         PORT: String(WEB_PORT),
         NODE_ENV: 'production',
+        LABRYO_APP_VERSION: app.getVersion(),
       },
     };
   }
@@ -415,6 +416,7 @@ function getStartCommand(projectRoot) {
       extraEnv: {
         PORT: String(WEB_PORT),
         NODE_ENV: 'development',
+        LABRYO_APP_VERSION: app.getVersion(),
       },
     };
   }
@@ -444,6 +446,7 @@ function getStartCommand(projectRoot) {
         HOSTNAME: '0.0.0.0',
         PORT: String(WEB_PORT),
         NODE_ENV: 'production',
+        LABRYO_APP_VERSION: app.getVersion(),
       },
     };
   }
