@@ -2,7 +2,8 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
@@ -33,8 +34,12 @@ import {
 } from 'lucide-react';
 import { toEnglishDigits, formatEnglishDate, formatEnglishTime, formatEnglishDateTime } from '../../lib/formatters';
 
-export default function DebtsPage() {
+function DebtsContent() {
   const toast = useToast();
+  const searchParams = useSearchParams();
+  const urlSearch = searchParams?.get('search') || searchParams?.get('query') || '';
+  const urlType = (searchParams?.get('type') as any) || 'ALL';
+
   const [debtors, setDebtors] = useState<any[]>([]);
   const [totals, setTotals] = useState<any>({
     totalReceivables: 0,
@@ -45,10 +50,10 @@ export default function DebtsPage() {
     activeAccounts: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(urlSearch);
   
   // Filter tabs: 'ALL' | 'PATIENT' | 'SUPPLIER' | 'CLINIC'
-  const [activeTab, setActiveTab] = useState<'ALL' | 'PATIENT' | 'SUPPLIER' | 'CLINIC'>('ALL');
+  const [activeTab, setActiveTab] = useState<'ALL' | 'PATIENT' | 'SUPPLIER' | 'CLINIC'>(urlType);
   // Status filter: 'ACTIVE' | 'ALL' | 'SETTLED'
   const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'ALL' | 'SETTLED'>('ACTIVE');
 
@@ -992,5 +997,13 @@ export default function DebtsPage() {
         </div>
       )}
     </AppShell>
+  );
+}
+
+export default function DebtsPage() {
+  return (
+    <Suspense fallback={null}>
+      <DebtsContent />
+    </Suspense>
   );
 }

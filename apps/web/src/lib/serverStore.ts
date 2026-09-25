@@ -264,6 +264,29 @@ export interface DeviceRawLogRecord {
   createdAt: string;
 }
 
+export interface DebtorRecord {
+  id: string;
+  name: string;
+  phone?: string | null;
+  notes?: string | null;
+  type: 'PATIENT' | 'SUPPLIER' | 'CLINIC' | 'OTHER';
+  patientId?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface DebtTransactionRecord {
+  id: string;
+  debtorId: string;
+  sampleId?: string | null;
+  type: 'DEBT' | 'PAYMENT';
+  amount: number;
+  paymentMethod?: string;
+  voucherNumber?: number | null;
+  notes?: string | null;
+  createdAt: string;
+}
+
 export interface ServerStore {
   tests: any[];
   panels: any[];
@@ -277,6 +300,8 @@ export interface ServerStore {
   deviceMappings?: DeviceMappingRecord[];
   incomingResults?: IncomingResultRecord[];
   deviceRawLogs?: DeviceRawLogRecord[];
+  debtors?: DebtorRecord[];
+  debtTransactions?: DebtTransactionRecord[];
 }
 
 export function getInitialDevices(): DeviceRecord[] {
@@ -472,6 +497,8 @@ function initStore(): ServerStore {
     devices: getInitialDevices(),
     incomingResults: [],
     deviceRawLogs: [],
+    debtors: [],
+    debtTransactions: [],
   };
 }
 
@@ -638,6 +665,12 @@ export function getStore(): ServerStore {
   }
   if (!Array.isArray(global.__labStore.deviceRawLogs)) {
     global.__labStore.deviceRawLogs = [];
+  }
+  if (!Array.isArray(global.__labStore.debtors)) {
+    global.__labStore.debtors = [];
+  }
+  if (!Array.isArray(global.__labStore.debtTransactions)) {
+    global.__labStore.debtTransactions = [];
   }
 
   // Ensure all tests from INITIAL_TESTS_CATALOG are present in tests catalog
@@ -1811,4 +1844,480 @@ export function processDeviceIngest(params: {
     sample: targetSample,
   };
 }
+
+// ==========================================
+// 💳 DEBTS & RECEIVABLES LEDGER (الديون والذمم)
+// ==========================================
+
+export function getNextVoucherNumber(): number {
+  const store = getStore();
+  const txs = store.debtTransactions || [];
+  let maxVoucher = 1000;
+  txs.forEach((t) => {
+    if (t.voucherNumber && t.voucherNumber > maxVoucher) {
+      maxVoucher = t.voucherNumber;
+    }
+  });
+  return maxVoucher + 1;
+}
+
+export function syncPatientDebtors(): void {
+  const store = getStore();
+  if (!store.debtors) store.debtors = [];
+  if (!store.debtTransactions) store.debtTransactions = [];
+
+  const patients = store.patients || [];
+  const samples = store.samples || [];
+
+  patients.forEach((p) => {
+    const patientSamples = samples.filter(
+      (s) => (s.patientId === p.id || s.patient?.id === p.id) && s.status !== 'REJECTED'
+    );
+    const hasUnpaid = patientSamples.some((s) => (s.remainingAmount || 0) > 0);
+
+    let debtor = store.debtors!.find((d) => d.patientId === p.id);
+
+    if (hasUnpaid && !debtor) {
+      debtor = {
+        id: `debtor-pat-${p.id}`,
+        name: p.name,
+        phone: p.phone || null,
+        type: 'PATIENT',
+        patientId: p.id,
+        notes: `حساب مريض تلقائي (${p.name})`,
+        createdAt: p.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      store.debtors!.push(debtor);
+    } else if (debtor) {
+      // Sync phone or name if changed
+      if (p.name && debtor.name !== p.name) debtor.name = p.name;
+      if (p.phone && debtor.phone !== p.phone) debtor.phone = p.phone;
+    }
+  });
+
+  saveStoreToFile();
+}
+
+export function getDebtorsSummary(type?: string, status?: string, query?: string) {
+  syncPatientDebtors();
+  const store = getStore();
+  const debtors = store.debtors || [];
+  const transactions = store.debtTransactions || [];
+  const samples = store.samples || [];
+  const now = Date.now();
+
+  let totalReceivables = 0; // ديون لنا (مرضى، عيادات)
+  let totalPayables = 0;    // ديون علينا (موردين)
+  let patientDebtsTotal = 0;
+  let supplierDebtsTotal = 0;
+
+  const debtorSummaries = debtors.map((d) => {
+    let totalDebt = 0;
+    let totalPaid = 0;
+    let lastDate = d.createdAt;
+
+    if (d.patientId) {
+      // Aggregate debt directly from patient's samples
+      const patientSamples = samples.filter(
+        (s) => (s.patientId === d.patientId || s.patient?.id === d.patientId) && s.status !== 'REJECTED'
+      );
+      patientSamples.forEach((s) => {
+        totalDebt += s.priceTotal - (s.discount || 0);
+        totalPaid += s.paidAmount || 0;
+        if (s.createdAt && new Date(s.createdAt).getTime() > new Date(lastDate).getTime()) {
+          lastDate = s.createdAt;
+        }
+      });
+
+      // Also include standalone transactions not tied to individual samples
+      const debtorTxs = transactions.filter((tx) => tx.debtorId === d.id && !tx.sampleId);
+      debtorTxs.forEach((tx) => {
+        if (tx.type === 'DEBT') totalDebt += tx.amount;
+        if (tx.type === 'PAYMENT') totalPaid += tx.amount;
+        if (tx.createdAt && new Date(tx.createdAt).getTime() > new Date(lastDate).getTime()) {
+          lastDate = tx.createdAt;
+        }
+      });
+    } else {
+      // Non-patient debtor (Supplier, Clinic, Manual)
+      const debtorTxs = transactions.filter((tx) => tx.debtorId === d.id);
+      debtorTxs.forEach((tx) => {
+        if (tx.type === 'DEBT') totalDebt += tx.amount;
+        if (tx.type === 'PAYMENT') totalPaid += tx.amount;
+        if (tx.createdAt && new Date(tx.createdAt).getTime() > new Date(lastDate).getTime()) {
+          lastDate = tx.createdAt;
+        }
+      });
+    }
+
+    const remainingBalance = Math.max(0, totalDebt - totalPaid);
+    const isSupplier = d.type === 'SUPPLIER';
+
+    if (isSupplier) {
+      totalPayables += remainingBalance;
+      supplierDebtsTotal += remainingBalance;
+    } else {
+      totalReceivables += remainingBalance;
+      if (d.type === 'PATIENT') {
+        patientDebtsTotal += remainingBalance;
+      }
+    }
+
+    const dTransactions = transactions.filter((tx) => tx.debtorId === d.id);
+    const agingDays = Math.max(0, Math.floor((now - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24)));
+
+    return {
+      id: d.id,
+      name: d.name,
+      phone: d.phone,
+      type: d.type || 'PATIENT',
+      patientId: d.patientId,
+      notes: d.notes,
+      createdAt: d.createdAt,
+      totalDebt,
+      totalPaid,
+      remainingBalance,
+      lastTransaction: dTransactions[0] || null,
+      transactionCount: dTransactions.length,
+      agingDays,
+      isSettled: remainingBalance <= 0,
+    };
+  });
+
+  // Filter by category type
+  let filtered = debtorSummaries;
+  if (type && type !== 'ALL') {
+    filtered = filtered.filter((d) => d.type === type);
+  }
+
+  // Filter by status
+  if (status === 'ACTIVE') {
+    filtered = filtered.filter((d) => d.remainingBalance > 0);
+  } else if (status === 'SETTLED') {
+    filtered = filtered.filter((d) => d.remainingBalance <= 0);
+  }
+
+  // Filter by search query
+  if (query && query.trim()) {
+    const q = query.trim().toLowerCase();
+    filtered = filtered.filter(
+      (d) =>
+        d.name.toLowerCase().includes(q) ||
+        (d.phone && d.phone.includes(q)) ||
+        (d.notes && d.notes.toLowerCase().includes(q))
+    );
+  }
+
+  return {
+    debtors: filtered,
+    totals: {
+      totalReceivables,
+      totalPayables,
+      patientDebtsTotal,
+      supplierDebtsTotal,
+      totalAccounts: debtors.length,
+      activeAccounts: debtorSummaries.filter((d) => d.remainingBalance > 0).length,
+    },
+  };
+}
+
+export function createDebtor(data: {
+  name: string;
+  phone?: string | null;
+  notes?: string | null;
+  type?: 'PATIENT' | 'SUPPLIER' | 'CLINIC' | 'OTHER';
+  patientId?: string | null;
+  initialDebt?: number;
+  paymentMethod?: string;
+}): DebtorRecord {
+  const store = getStore();
+  if (!store.debtors) store.debtors = [];
+  if (!store.debtTransactions) store.debtTransactions = [];
+
+  const id = `debtor-${Date.now()}`;
+  const now = new Date().toISOString();
+
+  const newDebtor: DebtorRecord = {
+    id,
+    name: data.name.trim(),
+    phone: data.phone || null,
+    notes: data.notes || null,
+    type: data.type || 'PATIENT',
+    patientId: data.patientId || null,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  store.debtors.unshift(newDebtor);
+
+  if (data.initialDebt && Number(data.initialDebt) > 0) {
+    store.debtTransactions.unshift({
+      id: `tx-debt-${Date.now()}`,
+      debtorId: id,
+      type: 'DEBT',
+      amount: Number(data.initialDebt),
+      paymentMethod: data.paymentMethod || 'آجل',
+      notes: 'رصيد دَيْن افتتاحي عند فتح الحساب',
+      createdAt: now,
+    });
+  }
+
+  saveStoreToFile();
+  return newDebtor;
+}
+
+export function recordDebtTransaction(
+  debtorId: string,
+  params: {
+    type: 'DEBT' | 'PAYMENT';
+    amount: number;
+    notes?: string;
+    sampleId?: string;
+    paymentMethod?: string;
+  }
+) {
+  const store = getStore();
+  if (!store.debtors) store.debtors = [];
+  if (!store.debtTransactions) store.debtTransactions = [];
+
+  const debtor = store.debtors.find((d) => d.id === debtorId);
+  if (!debtor) {
+    throw new Error('الحساب غير موجود');
+  }
+
+  const amount = Number(params.amount);
+  if (!amount || amount <= 0) {
+    throw new Error('مبلغ العملية يجب أن يكون أكبر من صفر');
+  }
+
+  const now = new Date().toISOString();
+  let voucherNumber: number | null = null;
+
+  if (params.type === 'PAYMENT') {
+    voucherNumber = getNextVoucherNumber();
+
+    // If debtor is linked to a patient, distribute payment to their samples
+    if (debtor.patientId) {
+      if (params.sampleId) {
+        const s = store.samples.find((sample) => sample.id === params.sampleId);
+        if (s) {
+          s.paidAmount = (s.paidAmount || 0) + amount;
+          s.remainingAmount = Math.max(0, s.priceTotal - (s.discount || 0) - s.paidAmount);
+        }
+      } else {
+        // Distribute to patient's unpaid samples (oldest first)
+        const unpaid = store.samples
+          .filter((s) => (s.patientId === debtor.patientId || s.patient?.id === debtor.patientId) && (s.remainingAmount || 0) > 0)
+          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+        let remainingToDistribute = amount;
+        for (const s of unpaid) {
+          if (remainingToDistribute <= 0) break;
+          const toPay = Math.min(s.remainingAmount, remainingToDistribute);
+          s.paidAmount = (s.paidAmount || 0) + toPay;
+          s.remainingAmount = Math.max(0, s.priceTotal - (s.discount || 0) - s.paidAmount);
+          remainingToDistribute -= toPay;
+        }
+      }
+    }
+  }
+
+  const tx: DebtTransactionRecord = {
+    id: `tx-${Date.now()}`,
+    debtorId,
+    sampleId: params.sampleId || null,
+    type: params.type,
+    amount,
+    paymentMethod: params.paymentMethod || 'نقداً',
+    voucherNumber,
+    notes: params.notes || (params.type === 'PAYMENT' ? 'استلام دفعة مالية' : 'إضافة دَيْن مالي'),
+    createdAt: now,
+  };
+
+  store.debtTransactions.unshift(tx);
+  saveStoreToFile();
+
+  return {
+    transaction: tx,
+    voucherNumber,
+    amount,
+  };
+}
+
+export function settleAllDebtor(
+  debtorId: string,
+  params: { amount?: number; paymentMethod?: string; notes?: string }
+) {
+  const store = getStore();
+  const summary = getDebtorsSummary();
+  const debtorSummary = summary.debtors.find((d) => d.id === debtorId);
+
+  if (!debtorSummary) {
+    throw new Error('الحساب غير موجود');
+  }
+
+  const currentRemaining = debtorSummary.remainingBalance;
+  if (currentRemaining <= 0) {
+    throw new Error('هذا الحساب مسدد بالكامل ولا يوجد عليه رصيد متبقي');
+  }
+
+  const payAmount = params.amount && Number(params.amount) > 0 ? Math.min(Number(params.amount), currentRemaining) : currentRemaining;
+  const voucherNumber = getNextVoucherNumber();
+  const now = new Date().toISOString();
+
+  // If debtor is linked to a patient, mark all their unpaid samples as fully settled
+  if (debtorSummary.patientId) {
+    const unpaid = store.samples
+      .filter((s) => (s.patientId === debtorSummary.patientId || s.patient?.id === debtorSummary.patientId) && (s.remainingAmount || 0) > 0)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    let remainingToDistribute = payAmount;
+    for (const s of unpaid) {
+      if (remainingToDistribute <= 0) break;
+      const toPay = Math.min(s.remainingAmount, remainingToDistribute);
+      s.paidAmount = (s.paidAmount || 0) + toPay;
+      s.remainingAmount = Math.max(0, s.priceTotal - (s.discount || 0) - s.paidAmount);
+      remainingToDistribute -= toPay;
+    }
+  }
+
+  const tx: DebtTransactionRecord = {
+    id: `tx-settle-${Date.now()}`,
+    debtorId,
+    type: 'PAYMENT',
+    amount: payAmount,
+    paymentMethod: params.paymentMethod || 'نقداً',
+    voucherNumber,
+    notes: params.notes || `تسوية وتصفير حساب (${debtorSummary.name}) بالكامل`,
+    createdAt: now,
+  };
+
+  if (!store.debtTransactions) store.debtTransactions = [];
+  store.debtTransactions.unshift(tx);
+  saveStoreToFile();
+
+  return {
+    success: true,
+    voucherNumber,
+    paidAmount: payAmount,
+    newBalance: Math.max(0, currentRemaining - payAmount),
+  };
+}
+
+export function getDebtorStatement(debtorId: string) {
+  const store = getStore();
+  const debtor = (store.debtors || []).find((d) => d.id === debtorId);
+  if (!debtor) {
+    throw new Error('الحساب غير موجود');
+  }
+
+  const allTxs = (store.debtTransactions || []).filter((tx) => tx.debtorId === debtorId);
+  let patientSamples: any[] = [];
+  let totalDebt = 0;
+  let totalPaid = 0;
+
+  if (debtor.patientId) {
+    patientSamples = (store.samples || []).filter(
+      (s) => (s.patientId === debtor.patientId || s.patient?.id === debtor.patientId) && s.status !== 'REJECTED'
+    );
+    patientSamples.forEach((s) => {
+      totalDebt += s.priceTotal - (s.discount || 0);
+      totalPaid += s.paidAmount || 0;
+    });
+
+    const extraTxs = allTxs.filter((t) => !t.sampleId);
+    extraTxs.forEach((tx) => {
+      if (tx.type === 'DEBT') totalDebt += tx.amount;
+      if (tx.type === 'PAYMENT') totalPaid += tx.amount;
+    });
+  } else {
+    allTxs.forEach((tx) => {
+      if (tx.type === 'DEBT') totalDebt += tx.amount;
+      if (tx.type === 'PAYMENT') totalPaid += tx.amount;
+    });
+  }
+
+  return {
+    debtor: {
+      ...debtor,
+      transactions: allTxs,
+    },
+    patientSamples,
+    summary: {
+      totalDebt,
+      totalPaid,
+      remainingBalance: Math.max(0, totalDebt - totalPaid),
+      transactionCount: allTxs.length,
+    },
+  };
+}
+
+export function paySampleRemaining(
+  sampleId: string,
+  params: { paidAmount: number; paymentMethod?: string; notes?: string }
+) {
+  const store = getStore();
+  const sample = store.samples.find((s) => s.id === sampleId);
+  if (!sample) {
+    throw new Error('العينة غير موجودة');
+  }
+
+  const amount = Number(params.paidAmount);
+  if (!amount || amount <= 0) {
+    throw new Error('الرجاء إدخال مبلغ دفع صالح أكبر من صفر');
+  }
+
+  const newPaid = (sample.paidAmount || 0) + amount;
+  const newRemaining = Math.max(0, sample.priceTotal - (sample.discount || 0) - newPaid);
+  sample.paidAmount = newPaid;
+  sample.remainingAmount = newRemaining;
+
+  const voucherNumber = getNextVoucherNumber();
+  const now = new Date().toISOString();
+
+  // Find or create debtor for this patient
+  if (!store.debtors) store.debtors = [];
+  if (!store.debtTransactions) store.debtTransactions = [];
+
+  let debtor = store.debtors.find((d) => d.patientId === sample.patientId);
+  if (!debtor && sample.patient) {
+    debtor = {
+      id: `debtor-pat-${sample.patientId}`,
+      name: sample.patient.name,
+      phone: sample.patient.phone || null,
+      type: 'PATIENT',
+      patientId: sample.patientId,
+      notes: `حساب مريض تلقائي (${sample.patient.name})`,
+      createdAt: sample.patient.createdAt || now,
+      updatedAt: now,
+    };
+    store.debtors.push(debtor);
+  }
+
+  if (debtor) {
+    store.debtTransactions.unshift({
+      id: `tx-sample-pay-${Date.now()}`,
+      debtorId: debtor.id,
+      sampleId: sample.id,
+      type: 'PAYMENT',
+      amount,
+      paymentMethod: params.paymentMethod || 'نقداً',
+      voucherNumber,
+      notes: params.notes || `سداد متبقي فحص عينة #${sample.sampleNumber}`,
+      createdAt: now,
+    });
+  }
+
+  saveStoreToFile();
+
+  return {
+    success: true,
+    sample,
+    voucherNumber,
+    paidAmount: amount,
+    newRemaining,
+  };
+}
+
 

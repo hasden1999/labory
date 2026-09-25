@@ -3185,5 +3185,25 @@
     }
   ],
   "incomingResults": [],
-  "deviceRawLogs": []
+  "deviceRawLogs": [],
+  "license": {
+    "isActivated": false,
+    "hardwareId": "LAB-8D4C-B999-8218",
+    "firstRunDate": "2026-09-19T21:34:04.505Z",
+    "trialExpiresAt": "2026-09-26T21:34:04.505Z",
+    "lastClockCheck": "2026-09-25T21:52:22.349Z"
+  },
+  "debtors": [
+    {
+      "id": "debtor-pat-pat-1789852100355",
+      "name": "السيد",
+      "phone": null,
+      "type": "PATIENT",
+      "patientId": "pat-1789852100355",
+      "notes": "حساب مريض تلقائي (السيد)",
+      "createdAt": "2026-09-19T21:08:20.355Z",
+      "updatedAt": "2026-09-25T21:56:22.411Z"
+    }
+  ],
+  "debtTransactions": []
 }
