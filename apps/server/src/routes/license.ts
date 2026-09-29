@@ -50,7 +50,7 @@ export async function licenseRoutes(fastify: FastifyInstance) {
       });
     }
 
-    // Fallback to 7-Day Free Trial
+    // Fallback to 2-Day Free Trial
     const trial = await getOrInitTrial(hwid);
 
     return reply.send({
@@ -64,8 +64,8 @@ export async function licenseRoutes(fastify: FastifyInstance) {
       isClockTampered: false,
       developerPhone: '07764271130',
       message: trial.isExpired 
-        ? 'انتهت الفترة التجريبية للنظام. يرجى الاتصال بالمطور للتفعيل الدائم على الرقم 07764271130' 
-        : `فترة تجريبية مجانية (متبقي ${trial.daysLeft} أيام)`,
+        ? 'انتهت الفترة التجريبية للنظام (يومين). يرجى الاتصال بالمطور لتفعيل البرنامج على الرقم 07764271130' 
+        : `فترة تجريبية مجانية (متبقي ${trial.daysLeft} ${trial.daysLeft === 1 ? 'يوم واحد' : 'يومين'})`,
     });
   });
 

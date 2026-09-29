@@ -288,6 +288,8 @@ export default function UrineFormModal({
     onChange,
     options,
     abnormalValues = [],
+    allowCustomInput = false,
+    customInputPlaceholder = 'أو اكتب يدوياً (مثال: 6-8)...',
   }: {
     label: string;
     refRange?: string;
@@ -295,6 +297,8 @@ export default function UrineFormModal({
     onChange: (val: string) => void;
     options: string[];
     abnormalValues?: string[];
+    allowCustomInput?: boolean;
+    customInputPlaceholder?: string;
   }) => {
     return (
       <div style={{
@@ -314,7 +318,7 @@ export default function UrineFormModal({
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
           {options.map((opt) => {
             const isSelected = value === opt;
             const isAbnormal = abnormalValues.includes(opt);
@@ -346,6 +350,30 @@ export default function UrineFormModal({
               </button>
             );
           })}
+          {allowCustomInput && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', width: '100%' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>كتابة يدوية:</span>
+              <input
+                type="text"
+                placeholder={customInputPlaceholder}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: '5px 10px',
+                  borderRadius: '6px',
+                  border: '1.5px solid var(--border-color)',
+                  background: 'var(--bg-input)',
+                  color: 'var(--text-main)',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  outline: 'none',
+                }}
+                onFocus={(e) => (e.target.style.borderColor = 'var(--accent-cyan)')}
+                onBlur={(e) => (e.target.style.borderColor = 'var(--border-color)')}
+              />
+            </div>
+          )}
         </div>
       </div>
     );
@@ -421,8 +449,29 @@ export default function UrineFormModal({
   };
 
   // Determine abnormal flags for Live Preview
-  const isPusAbnormal = !['0-2', '2-4'].includes(data.pusCells);
-  const isRbcAbnormal = !['0-2'].includes(data.rbcs);
+  const isPusAbnormal = useMemo(() => {
+    if (!data.pusCells) return false;
+    const trimmed = data.pusCells.trim();
+    if (['0-2', '2-4', '0-1', '1-2', '0-5', 'Nil', 'None'].includes(trimmed)) return false;
+    const match = trimmed.match(/(\d+)/g);
+    if (match) {
+      const maxVal = Math.max(...match.map(Number));
+      return maxVal > 5;
+    }
+    return true;
+  }, [data.pusCells]);
+
+  const isRbcAbnormal = useMemo(() => {
+    if (!data.rbcs) return false;
+    const trimmed = data.rbcs.trim();
+    if (['0-2', '0-1', '1-2', 'Nil', 'None'].includes(trimmed)) return false;
+    const match = trimmed.match(/(\d+)/g);
+    if (match) {
+      const maxVal = Math.max(...match.map(Number));
+      return maxVal > 2;
+    }
+    return true;
+  }, [data.rbcs]);
   const isProteinAbnormal = data.protein !== 'Nil';
   const isGlucoseAbnormal = data.glucose !== 'Nil';
   const isBloodAbnormal = data.blood !== 'Negative';
@@ -919,6 +968,8 @@ export default function UrineFormModal({
                     onChange={(v) => setField('pusCells', v)}
                     options={['0-2', '2-4', '4-6', '8-10', '15-20', '25-35', '40-50', 'Full Slide']}
                     abnormalValues={['8-10', '15-20', '25-35', '40-50', 'Full Slide']}
+                    allowCustomInput={true}
+                    customInputPlaceholder="أو اكتب عدد كريات القيح يدوياً (مثال: 6-8)..."
                   />
 
                   <PillSelector
@@ -928,6 +979,8 @@ export default function UrineFormModal({
                     onChange={(v) => setField('rbcs', v)}
                     options={['0-2', '2-4', '5-10', '15-25', 'Packed / Bloody']}
                     abnormalValues={['5-10', '15-25', 'Packed / Bloody']}
+                    allowCustomInput={true}
+                    customInputPlaceholder="أو اكتب عدد كريات الحمر يدوياً (مثال: 3-5)..."
                   />
                 </div>
 

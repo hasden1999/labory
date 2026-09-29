@@ -8,7 +8,7 @@ const MASTER_SECRET = 'LAB_MANAGER_OFFLINE_SECRET_KEY_v2026_HMAC_SECURE_981247';
 export interface LicensePayload {
   hwid: string;
   expiryDate: string; // ISO String
-  tier: 'TRIAL' | 'MONTHLY' | 'YEARLY' | 'LIFETIME';
+  tier: 'TWO_DAYS' | 'WEEKLY' | 'TRIAL' | 'MONTHLY' | 'YEARLY' | 'LIFETIME' | string;
   labName?: string;
 }
 
@@ -122,19 +122,19 @@ export async function verifySystemClockTampering(): Promise<boolean> {
   }
 }
 
-// 5. Get or Initialize 7-Day Free Trial
+// 5. Get or Initialize 2-Day Free Trial
 export async function getOrInitTrial(hwid: string): Promise<{ isTrial: boolean; daysLeft: number; expiryDate: string; isExpired: boolean }> {
   let trialRecord = await prisma.license.findFirst({
     where: { tier: 'TRIAL' },
   });
 
   if (!trialRecord) {
-    // Initialize 7-Day Free Trial
-    const trialExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    // Initialize 2-Day Free Trial (48 Hours)
+    const trialExpiry = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
     trialRecord = await prisma.license.create({
       data: {
         hardwareId: hwid,
-        signature: 'INITIAL_7_DAYS_FREE_TRIAL',
+        signature: 'INITIAL_2_DAYS_FREE_TRIAL',
         expiryDate: trialExpiry,
         tier: 'TRIAL',
       },

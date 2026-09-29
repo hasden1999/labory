@@ -140,9 +140,9 @@ async function runFullSimulation() {
   }
 
   // -------------------------------------------------------------------------
-  // 6. Offline Licensing, HMAC Cryptography & 7-Day Trial
+  // 6. Offline Licensing, HMAC Cryptography & 2-Day Trial
   // -------------------------------------------------------------------------
-  console.log('\n🔹 6. اختبار نظام الترخيص، التوقيع الرقمي (HMAC-SHA256)، والفترة التجريبية');
+  console.log('\n🔹 6. اختبار نظام الترخيص، التوقيع الرقمي (HMAC-SHA256)، والفترة التجريبية (يومين)');
   {
     const testHWID = getMachineHWID();
     assert(testHWID.startsWith('LAB-'), `توليد كود بصمة الجهاز الفريد (${testHWID})`);
@@ -150,25 +150,41 @@ async function runFullSimulation() {
     // A. Generate Lifetime Key
     const lifetimeKey = generateLicenseKey(testHWID, 36500, 'LIFETIME', 'مختبر الرضا التخصصي');
     assert(lifetimeKey.startsWith('LIC-'), 'توليد مفتاح تفعيل دائم مدى الحياة بنجاح');
+    const verifyLifetime = verifyLicenseKey(lifetimeKey, testHWID);
+    assert(verifyLifetime.valid === true, 'التحقق الأوفلاين من صحة مفتاح الترخيص الدائم');
+    assert(verifyLifetime.payload?.tier === 'LIFETIME', 'تأكيد باقة التفعيل الدائم (LIFETIME)');
 
-    // B. Verify Valid Key
-    const verifyValid = verifyLicenseKey(lifetimeKey, testHWID);
-    assert(verifyValid.valid === true, 'التحقق الأوفلاين من صحة التوقيع الرقمي والمفتاح المطابق');
-    assert(verifyValid.payload?.tier === 'LIFETIME', 'تأكيد باقة التفعيل الدائم مدى الحياة (LIFETIME)');
+    // B. Generate 1-Week Key (أسبوع)
+    const weekKey = generateLicenseKey(testHWID, 7, 'WEEKLY', 'مختبر الرضا التخصصي');
+    assert(weekKey.startsWith('LIC-'), 'توليد مفتاح تفعيل أسبوع واحد (WEEKLY) بنجاح');
+    const verifyWeek = verifyLicenseKey(weekKey, testHWID);
+    assert(verifyWeek.valid === true, 'التحقق الأوفلاين من صحة مفتاح ترخيص الأسبوع');
+    assert(verifyWeek.payload?.tier === 'WEEKLY', 'تأكيد باقة التفعيل الأسبوعية (WEEKLY)');
 
-    // C. Verify Mismatched HWID (Anti-Theft)
+    // C. Generate 2-Day Key (يومين)
+    const twoDaysKey = generateLicenseKey(testHWID, 2, 'TWO_DAYS', 'مختبر الرضا التخصصي');
+    assert(twoDaysKey.startsWith('LIC-'), 'توليد مفتاح تفعيل يومين (TWO_DAYS) بنجاح');
+    const verifyTwoDays = verifyLicenseKey(twoDaysKey, testHWID);
+    assert(verifyTwoDays.valid === true, 'التحقق الأوفلاين من صحة مفتاح ترخيص اليومين');
+    assert(verifyTwoDays.payload?.tier === 'TWO_DAYS', 'تأكيد باقة التفعيل ليومين (TWO_DAYS)');
+
+    // D. Verify Mismatched HWID (Anti-Theft)
     const verifyWrongHWID = verifyLicenseKey(lifetimeKey, 'LAB-OTHER-HWID-9999');
     assert(verifyWrongHWID.valid === false, 'رفض تفعيل المفتاح على جهاز آخر ذو بصمة مختلفة');
 
-    // D. Verify Tampered Key (Anti-Cracking)
+    // E. Verify Tampered Key (Anti-Cracking)
     const tamperedKey = lifetimeKey.substring(0, lifetimeKey.length - 2) + 'XX';
     const verifyTampered = verifyLicenseKey(tamperedKey, testHWID);
     assert(verifyTampered.valid === false, 'رفض أي مفتاح تم التعديل عليه أو تزويره');
 
-    // E. 7-Day Trial Logic
+    // F. 2-Day Automatic Trial Logic
     const trial = await getOrInitTrial(testHWID);
     assert(trial.isTrial === true, 'تأكيد وجود الفترة التجريبية المجانية التلقائية');
-    assert(trial.daysLeft >= 0 && trial.daysLeft <= 7, `حساب الأيام المتبقية في الفترة التجريبية (${trial.daysLeft} أيام)`);
+    assert(trial.daysLeft >= 0 && trial.daysLeft <= 2, `حساب الأيام المتبقية في الفترة التجريبية (${trial.daysLeft} يوم - حد أقصى يومين)`);
+
+    // G. Clock Tampering Verification
+    const isClockTampered = await verifySystemClockTampering();
+    assert(isClockTampered === false, 'فحص ساعة النظام والتأكد من عدم وجود تلاعب زمني');
   }
 
   // -------------------------------------------------------------------------

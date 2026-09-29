@@ -12,20 +12,36 @@ function resolveDatabaseUrl(): string {
 
   const candidates = [
     process.env.LABRYO_DATA_DIR ? path.resolve(process.env.LABRYO_DATA_DIR) : null,
+    path.resolve(process.cwd(), '..', 'server', 'prisma'),
     path.resolve(process.cwd(), 'apps', 'server', 'prisma'),
-    path.resolve(process.cwd(), 'apps', 'web', 'prisma'),
-    path.resolve(process.cwd(), 'prisma'),
+    'D:\\lab\\apps\\server\\prisma',
     path.resolve(process.cwd(), 'data'),
     path.resolve(process.cwd(), 'apps', 'web', 'data'),
-    'D:\\lab\\apps\\server\\prisma',
+    path.resolve(process.cwd(), 'prisma'),
   ].filter(Boolean) as string[];
 
   let dbFile = '';
+  // First pass: find candidate that has content (> 10KB)
   for (const dir of candidates) {
     const candidate = path.join(dir, 'lab.db');
     if (fs.existsSync(candidate)) {
-      dbFile = candidate;
-      break;
+      try {
+        const stat = fs.statSync(candidate);
+        if (stat.size > 10000) {
+          dbFile = candidate;
+          break;
+        }
+      } catch {}
+    }
+  }
+  // Second pass: fallback to any existing
+  if (!dbFile) {
+    for (const dir of candidates) {
+      const candidate = path.join(dir, 'lab.db');
+      if (fs.existsSync(candidate)) {
+        dbFile = candidate;
+        break;
+      }
     }
   }
 

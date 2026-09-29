@@ -173,7 +173,7 @@ export default function TrialLockGuard({ children }: { children: React.ReactNode
             {licenseStatus.isClockTampered 
               ? 'تم اكتشاف تلاعب في ساعة النظام!' 
               : licenseStatus.isExpired
-                ? 'انتهت الفترة التجريبية المجانية (7 أيام)'
+                ? 'انتهت الفترة التجريبية المجانية (يومين)'
                 : 'تفعيل نسخة البرنامج لسطح المكتب'}
           </h2>
 
@@ -181,7 +181,7 @@ export default function TrialLockGuard({ children }: { children: React.ReactNode
             {licenseStatus.isClockTampered 
               ? 'يرجى ضبط تاريخ ووقت الكمبيوتر بشكل دقيق لإعادة تنشيط النظام.'
               : licenseStatus.isExpired
-                ? 'لقد انتهت فترة التجربة المجانية للنظام. للاستمرار في استخدام البرنامج وتفعيل نسختك الدائمة، يرجى إرسال كود بصمة الجهاز إلى المطور للحصول على مفتاح التفعيل.'
+                ? 'لقد انتهت فترة التجربة المجانية للنظام (يومين). للاستمرار في استخدام البرنامج وتفعيل نسختك، يرجى إرسال كود بصمة الجهاز إلى المطور للحصول على مفتاح التفعيل.'
                 : 'تم تثبيت البرنامج بنجاح. لتشغيل النظام وإعداد بيانات مختبرك، يرجى إرسال كود بصمة الجهاز إلى الأدمن للحصول على كود التفعيل.'}
           </p>
 
@@ -368,7 +368,7 @@ export default function TrialLockGuard({ children }: { children: React.ReactNode
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Sparkles size={16} color="#38bdf8" />
-            <span>فترة تجريبية مجانية لنظام مختبر الرضا — متبقي {licenseStatus.daysLeft} {licenseStatus.daysLeft === 1 ? 'يوم واحد' : 'أيام'}</span>
+            <span>فترة تجريبية مجانية للنظام — {licenseStatus.hoursLeft ? (licenseStatus.hoursLeft > 24 ? 'متبقي يومان (48 ساعة)' : `متبقي ${licenseStatus.hoursLeft} ساعة على الانتهاء`) : `متبقي ${licenseStatus.daysLeft} ${licenseStatus.daysLeft === 1 ? 'يوم واحد' : 'يومين'}`}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <span>للتفعيل الدائم: <strong>{DEVELOPER_PHONE}</strong></span>

@@ -1,4 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import path from 'path';
+
+if (!process.env.DATABASE_URL) {
+  const dbPath = path.resolve(__dirname, '../prisma/lab.db').replace(/\\/g, '/');
+  process.env.DATABASE_URL = `file:${dbPath}?connection_limit=1`;
+}
 
 export const prisma = new PrismaClient();
 

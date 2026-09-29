@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مولد تراخيص نظام مختبر الرضا الطبي (Labryo LIMS)</title>
+  <style>
+    :root {
+      --bg-dark: #0a0f1d;
+      --card-bg: rgba(15, 23, 42, 0.95);
+      --border-color: rgba(56, 189, 248, 0.25);
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --cyan: #06b6d4;
+      --emerald: #10b981;
+      --emerald-hover: #059669;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 20%, #1e293b 0%, var(--bg-dark) 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    .container {
+      max-width: 680px;
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 35px rgba(6, 182, 212, 0.12);
+      backdrop-filter: blur(16px);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 26px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 14px;
+      background: rgba(6, 182, 212, 0.15);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      color: var(--cyan);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .title {
+      font-size: 22px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 12px 14px;
+      background: rgba(2, 6, 23, 0.8);
+      border: 1px solid #334155;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14.5px;
+      outline: none;
+      transition: all 0.2s ease;
+      direction: ltr;
+      text-align: left;
+    }
+
+    input[type="text"]:focus, input[type="number"]:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+    }
+
+    .tier-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .tier-btn {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 14px 10px;
+      color: var(--text-main);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .tier-btn:hover {
+      background: rgba(51, 65, 85, 0.8);
+      border-color: var(--cyan);
+    }
+
+    .tier-btn.active {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.3) 0%, rgba(6, 182, 212, 0.3) 100%);
+      border-color: var(--cyan);
+      box-shadow: 0 0 16px rgba(6, 182, 212, 0.25);
+    }
+
+    .tier-btn .tier-name {
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .tier-btn .tier-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .tier-btn.active .tier-desc {
+      color: #7dd3fc;
+    }
+
+    .generate-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--cyan) 100%);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(2, 132, 199, 0.4);
+      transition: all 0.2s ease;
+      margin-top: 10px;
+    }
+
+    .generate-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 25px rgba(2, 132, 199, 0.5);
+    }
+
+    .result-box {
+      margin-top: 24px;
+      background: rgba(2, 6, 23, 0.9);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 18px;
+      display: none;
+    }
+
+    .result-box.show {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .key-display {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 13.5px;
+      color: #38bdf8;
+      word-break: break-all;
+      direction: ltr;
+      text-align: left;
+      margin: 10px 0;
+      user-select: all;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-copy {
+      background: var(--emerald);
+      color: #fff;
+    }
+
+    .btn-copy:hover {
+      background: var(--emerald-hover);
+    }
+
+    .btn-wa {
+      background: #25d366;
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .btn-wa:hover {
+      background: #20ba5a;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 50%;
+      transform: translateX(50%);
+      background: #10b981;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      display: none;
+      z-index: 999;
+    }
+
+    .toast.show {
+      display: block;
+      animation: popUp 0.3s ease;
+    }
+
+    @keyframes popUp {
+      from { transform: translate(50%, 20px); opacity: 0; }
+      to { transform: translate(50%, 0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <div class="badge">أداة إدارة التراخيص الأوفلاين</div>
+      <h1 class="title">مولد مفاتيح تفعيل برنامج المختبر الطبي</h1>
+      <p class="subtitle">Labryo LIMS Pro — توليد مفاتيح مشفرة بـ HMAC-SHA256 تعمل 100% بدون إنترنت</p>
+    </div>
+
+    <!-- HWID Input -->
+    <div class="form-group">
+      <label>١. كود بصمة الجهاز المستلم من العميل (Hardware ID):</label>
+      <input type="text" id="hwidInput" placeholder="مثال: LAB-A1B2-C3D4-E5F6" autocomplete="off" />
+    </div>
+
+    <!-- Duration Selection -->
+    <div class="form-group">
+      <label>٢. اختر مدة الترخيص المطلوبة:</label>
+      
+      <!-- Primary Required Tiers -->
+      <div class="tier-grid">
+        <div class="tier-btn active" onclick="selectTier('LIFETIME', 36500, 'دائمي مدى الحياة', this)">
+          <span class="tier-name">⭐ دائمي</span>
+          <span class="tier-desc">مدى الحياة (مفتوح)</span>
+        </div>
+        <div class="tier-btn" onclick="selectTier('WEEKLY', 7, 'أسبوع واحد', this)">
+          <span class="tier-name">📅 أسبوع</span>
+          <span class="tier-desc">7 أيام كاملة</span>
+        </div>
+        <div class="tier-btn" onclick="selectTier('TWO_DAYS', 2, 'يومين فقط', this)">
+          <span class="tier-name">⚡ يومين</span>
+          <span class="tier-desc">48 ساعة تفعيل</span>
+        </div>
+      </div>
+
+      <!-- Secondary Tiers -->
+      <div class="tier-grid">
+        <div class="tier-btn" onclick="selectTier('MONTHLY', 30, 'شهر كامل', this)">
+          <span class="tier-name">شهر (30 يوم)</span>
+          <span class="tier-desc">اشتراك شهري</span>
+        </div>
+        <div class="tier-btn" onclick="selectTier('YEARLY', 365, 'سنة كاملة', this)">
+          <span class="tier-name">سنة (365 يوم)</span>
+          <span class="tier-desc">اشتراك سنوي</span>
+        </div>
+        <div class="tier-btn" onclick="toggleCustomDays(this)">
+          <span class="tier-name">عدد أيام مخصص</span>
+          <span class="tier-desc">أدخل الأيام يدوياً</span>
+        </div>
+      </div>
+
+      <div id="customDaysBox" style="display: none; margin-top: 10px;">
+        <label style="font-size: 12px; color: var(--cyan);">أدخل عدد الأيام المطلوب:</label>
+        <input type="number" id="customDaysInput" min="1" max="3650" value="14" />
+      </div>
+    </div>
+
+    <!-- Lab Name Input -->
+    <div class="form-group">
+      <label>٣. اسم المختبر أو العميل (اختياري):</label>
+      <input type="text" id="labNameInput" placeholder="مثال: مختبر الرضا التخصصي" style="direction: rtl; text-align: right;" />
+    </div>
+
+    <!-- Generate Button -->
+    <button class="generate-btn" onclick="handleGenerateKey()">⚡ توليد كود التفعيل ونسخه فوراً</button>
+
+    <!-- Result Display Box -->
+    <div class="result-box" id="resultBox">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <strong style="color: #10b981; font-size: 14px;">✅ تم توليد كود التفعيل بنجاح:</strong>
+        <span id="tierBadge" style="font-size: 11px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 2px 8px; border-radius: 4px; font-weight: 700;"></span>
+      </div>
+
+      <div class="key-display" id="keyDisplay">LIC-...</div>
+
+      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
+        ينتهي الترخيص بتاريخ: <strong id="expiryDisplay" style="color: #fff;"></strong>
+      </div>
+
+      <div class="action-row">
+        <button class="action-btn btn-copy" onclick="copyKey()">
+          📋 نسخ كود التفعيل
+        </button>
+        <button class="action-btn btn-wa" onclick="copyWhatsAppMsg()">
+          💬 نسخ رسالة واتساب للعميل
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">تم النسخ إلى الحافظة بنجاح!</div>
+
+  <script>
+    const MASTER_SECRET = 'LAB_MANAGER_OFFLINE_SECRET_KEY_v2026_HMAC_SECURE_981247';
+
+    let currentTier = 'LIFETIME';
+    let currentDays = 36500;
+    let currentLabel = 'دائمي مدى الحياة';
+    let lastGeneratedKey = '';
+    let lastExpiryStr = '';
+
+    function selectTier(tier, days, label, element) {
+      currentTier = tier;
+      currentDays = days;
+      currentLabel = label;
+
+      document.querySelectorAll('.tier-btn').forEach(btn => btn.classList.remove('active'));
+      element.classList.add('active');
+      document.getElementById('customDaysBox').style.display = 'none';
+    }
+
+    function toggleCustomDays(element) {
+      document.querySelectorAll('.tier-btn').forEach(btn => btn.classList.remove('active'));
+      element.classList.add('active');
+      const box = document.getElementById('customDaysBox');
+      box.style.display = 'block';
+      currentTier = 'CUSTOM';
+      currentDays = parseInt(document.getElementById('customDaysInput').value, 10) || 14;
+      currentLabel = `مخصص (${currentDays} يوماً)`;
+    }
+
+    // HMAC SHA-256 Web Crypto
+    async function hmacSha256(keyStr, dataStr) {
+      const enc = new TextEncoder();
+      const cryptoKey = await window.crypto.subtle.importKey(
+        'raw',
+        enc.encode(keyStr),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const signature = await window.crypto.subtle.sign('HMAC', cryptoKey, enc.encode(dataStr));
+      return Array.from(new Uint8Array(signature))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+    }
+
+    // Base64URL encoding
+    function base64url(str) {
+      const bytes = new TextEncoder().encode(str);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+    }
+
+    async function generateLicenseKey(hwid, daysValid, tier, labName) {
+      const cleanHwid = hwid.trim().toUpperCase();
+      const expiryDate = tier === 'LIFETIME'
+        ? new Date('2099-12-31T23:59:59Z')
+        : new Date(Date.now() + daysValid * 24 * 60 * 60 * 1000);
+
+      const expiryStr = expiryDate.toISOString().split('T')[0];
+      const dataToSign = `${cleanHwid}|${expiryStr}|${tier}|${labName.trim()}`;
+
+      const fullHex = await hmacSha256(MASTER_SECRET, dataToSign);
+      const signature = fullHex.substring(0, 10).toUpperCase();
+      const base64Data = base64url(dataToSign);
+
+      return {
+        key: `LIC-${base64Data}-${signature}`,
+        expiryStr,
+        tier,
+      };
+    }
+
+    async function handleGenerateKey() {
+      const hwid = document.getElementById('hwidInput').value.trim().toUpperCase();
+      if (!hwid || !hwid.startsWith('LAB-')) {
+        alert('يرجى إدخال كود بصمة جهاز صحيح يبدأ بـ LAB-XXXX...');
+        document.getElementById('hwidInput').focus();
+        return;
+      }
+
+      if (currentTier === 'CUSTOM') {
+        currentDays = parseInt(document.getElementById('customDaysInput').value, 10) || 14;
+        currentLabel = `مخصص (${currentDays} يوماً)`;
+      }
+
+      const labName = document.getElementById('labNameInput').value.trim() || 'مختبر معتمد';
+
+      const result = await generateLicenseKey(hwid, currentDays, currentTier, labName);
+      lastGeneratedKey = result.key;
+      lastExpiryStr = result.expiryStr;
+
+      document.getElementById('keyDisplay').textContent = result.key;
+      document.getElementById('tierBadge').textContent = currentLabel;
+      document.getElementById('expiryDisplay').textContent = result.expiryStr;
+
+      document.getElementById('resultBox').classList.add('show');
+
+      // Auto copy
+      copyText(result.key);
+      showToast('تم توليد الكود ونسخه إلى الحافظة تلقائياً!');
+    }
+
+    function copyKey() {
+      if (!lastGeneratedKey) return;
+      copyText(lastGeneratedKey);
+      showToast('تم نسخ كود التفعيل إلى الحافظة!');
+    }
+
+    function copyWhatsAppMsg() {
+      const hwid = document.getElementById('hwidInput').value.trim().toUpperCase();
+      const labName = document.getElementById('labNameInput').value.trim() || 'مختبركم الكريم';
+      const msg = `أهلاً وسهلاً بك في نظام مختبر الرضا الطبي (Labryo LIMS). 🔬✨\n\nتم تفعيل نسختكم بنجاح:\n- الباقة: ${currentLabel}\n- تاريخ الانتهاء: ${lastExpiryStr}\n- بصمة الجهاز: ${hwid}\n\n🔑 كود التفعيل الخاص بك:\n${lastGeneratedKey}\n\nطريقة التفعيل: انسخ الكود أعلاه والصقه داخل البرنامج واضغط (تفعيل البرنامج وبدء العمل).`;
+      copyText(msg);
+      showToast('تم نسخ رسالة واتساب المنسقة للعميل!');
+    }
+
+    function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

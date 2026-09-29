@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Cairo:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap');
 
 :root, [data-theme="light"] {
   /* Clean Clinical Light Theme */
@@ -675,6 +675,241 @@ html, body {
   .mobile-stack-grid {
     grid-template-columns: 1fr !important;
   }
+}
+
+/* ==========================================================================
+   Precision Clinical Medical Ergonomics (Technician Command Center & A4 Engine)
+   ========================================================================== */
+
+/* Numpad Cell & Input */
+.numpad-input {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+  direction: ltr;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  border-radius: 6px;
+  padding: 6px 10px;
+  transition: all 0.12s ease-in-out;
+  outline: none;
+}
+
+.numpad-input:focus {
+  border-color: #0891b2;
+  box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.2);
+  background: var(--bg-card);
+}
+
+.numpad-input.panic-active {
+  border-color: #dc2626 !important;
+  background: rgba(220, 38, 38, 0.1) !important;
+  color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.3) !important;
+}
+
+.numpad-input.abnormal-high {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.numpad-input.abnormal-low {
+  border-color: #0284c7;
+  color: #38bdf8;
+  background: rgba(2, 132, 199, 0.08);
+}
+
+/* Panic Visual Flag */
+.panic-flag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: #dc2626;
+  color: #ffffff;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  animation: subtlePulse 2s infinite ease-in-out;
+}
+
+@keyframes subtlePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.03); }
+}
+
+/* Paper Template Card in Designer */
+.paper-template-card {
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.paper-template-card:hover {
+  border-color: #0891b2;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.paper-template-card.active {
+  border-color: #0891b2;
+  background: rgba(8, 145, 178, 0.06);
+  box-shadow: 0 0 0 2px rgba(8, 145, 178, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* A4 Sheet Realistic Viewport */
+.a4-sheet-container {
+  width: 100%;
+  max-width: 210mm;
+  min-height: 297mm;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  margin: 0 auto;
+  border-radius: 2px;
+  box-sizing: border-box;
+  position: relative;
+  page-break-after: always;
+}
+
+@media print {
+  body {
+    background: transparent !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .a4-sheet-container {
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: 100% !important;
+    min-height: auto !important;
+  }
+}
+
+/* ==========================================================================
+   Global Toast Notification System (High Priority Top Layer)
+   ========================================================================== */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999999 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 440px;
+  width: calc(100% - 48px);
+  pointer-events: none;
+  direction: rtl;
+}
+
+.toast-item {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  color: var(--text-main);
+  animation: toastSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.toast-icon-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.toast-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.toast-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.toast-message {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.toast-close:hover {
+  color: var(--text-main);
+}
+
+.toast-item.toast-success {
+  border-right: 4px solid #10b981;
+}
+
+.toast-item.toast-error {
+  border-right: 4px solid #f43f5e;
+}
+
+.toast-item.toast-warning {
+  border-right: 4px solid #f59e0b;
+}
+
+.toast-item.toast-urgent {
+  background: #dc2626;
+  border: 1px solid #b91c1c;
+  color: #ffffff;
+}
+
+.toast-item.toast-urgent .toast-title,
+.toast-item.toast-urgent .toast-message {
+  color: #ffffff;
+}
+
+.toast-item.toast-info {
+  border-right: 4px solid #0891b2;
 }
 
 

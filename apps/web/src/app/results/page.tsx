@@ -52,6 +52,7 @@ function ResultsContent() {
   const [selectedSample, setSelectedSample] = useState<Sample | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'RECEIVED' | 'IN_PROGRESS' | 'READY' | 'DELIVERED' | 'URGENT'>('ALL');
+  const [dateFilter, setDateFilter] = useState<'TODAY' | 'YESTERDAY' | 'ALL'>('TODAY');
   const [loadingSamples, setLoadingSamples] = useState(true);
 
   // Results State & Dirty-State Guard
@@ -207,13 +208,28 @@ function ResultsContent() {
         if (targetId && samplesList.length > 0) {
           const found = samplesList.find((s: Sample) => s.id === targetId);
           if (found) {
+            const isToday = (() => {
+              if (!found.createdAt) return false;
+              const d = new Date(found.createdAt);
+              const now = new Date();
+              return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+            })();
+            if (!isToday) {
+              setDateFilter('ALL');
+            }
             selectSample(found);
             return;
           }
         }
         
         if (samplesList.length > 0 && !selectedSampleRef.current) {
-          selectSample(samplesList[0]);
+          const todayList = samplesList.filter((s: Sample) => {
+            if (!s.createdAt) return false;
+            const d = new Date(s.createdAt);
+            const now = new Date();
+            return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+          });
+          selectSample(todayList.length > 0 ? todayList[0] : samplesList[0]);
         }
       } else {
         // Silent background sync from LAN devices (mobile/tablet/other stations)
@@ -851,47 +867,17 @@ function ResultsContent() {
       }
       setIsDirty(false);
 
-      toast.success(`تم اعتماد العينة #${selectedSample.sampleNumber} كـ READY بنجاح والانتقال للعينة التالية!`, 'اعتماد سريع');
+      toast.success(`تم اعتماد نتائج العينة #${selectedSample.sampleNumber} بنجاح!`, 'تم الاعتماد');
 
-      // Refresh samples and automatically advance to next pending sample
+      // Refresh samples and keep current sample selected & updated
       const refreshed = await apiRequest('/samples');
       const sampleList: Sample[] = refreshed || [];
       setSamples(sampleList);
 
-      const currentIdx = sampleList.findIndex((s) => s.id === selectedSample.id);
-      let nextSample: Sample | null = null;
-
-      // Find next sample that is IN_PROGRESS or RECEIVED
-      for (let i = currentIdx + 1; i < sampleList.length; i++) {
-        if (sampleList[i].status === 'IN_PROGRESS' || sampleList[i].status === 'RECEIVED') {
-          nextSample = sampleList[i];
-          break;
-        }
-      }
-      if (!nextSample) {
-        for (let i = 0; i < currentIdx; i++) {
-          if (sampleList[i].status === 'IN_PROGRESS' || sampleList[i].status === 'RECEIVED') {
-            nextSample = sampleList[i];
-            break;
-          }
-        }
-      }
-      // If none in progress/received, take immediate next if exists
-      if (!nextSample && sampleList.length > 1) {
-        const nextIndex = (currentIdx + 1) % sampleList.length;
-        if (sampleList[nextIndex].id !== selectedSample.id) {
-          nextSample = sampleList[nextIndex];
-        }
-      }
-
-      if (nextSample && nextSample.id !== selectedSample.id) {
-        selectSample(nextSample);
-        setTimeout(() => {
-          resultInputRefs.current[0]?.focus();
-          resultInputRefs.current[0]?.select();
-        }, 100);
-      } else {
-        toast.info('تم إنهاء فحص كافة العينات في قائمة العمل!');
+      const updatedSample = sampleList.find((s) => s.id === selectedSample.id);
+      if (updatedSample) {
+        setSelectedSample(updatedSample);
+        selectedSampleRef.current = updatedSample;
       }
     } catch (err: any) {
       toast.error(err.message || 'فشل اعتماد النتائج', 'خطأ');
@@ -918,9 +904,52 @@ function ResultsContent() {
     setShowWhatsAppModal(true);
   };
 
-  // Filter Samples
-  const filteredSamples = useMemo(() => {
+  // Filter Samples by Date (Default: TODAY)
+  const dateFilteredSamples = useMemo(() => {
+    const now = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
     return samples.filter((s) => {
+      if (dateFilter === 'ALL') return true;
+      if (!s.createdAt) return false;
+      const d = new Date(s.createdAt);
+      if (isNaN(d.getTime())) return true;
+      if (dateFilter === 'TODAY') {
+        return (
+          d.getFullYear() === now.getFullYear() &&
+          d.getMonth() === now.getMonth() &&
+          d.getDate() === now.getDate()
+        );
+      }
+      if (dateFilter === 'YESTERDAY') {
+        return (
+          d.getFullYear() === yesterday.getFullYear() &&
+          d.getMonth() === yesterday.getMonth() &&
+          d.getDate() === yesterday.getDate()
+        );
+      }
+      return true;
+    });
+  }, [samples, dateFilter]);
+
+  // Today Samples Count for Tab Badge
+  const todaySamplesCount = useMemo(() => {
+    const now = new Date();
+    return samples.filter((s) => {
+      if (!s.createdAt) return false;
+      const d = new Date(s.createdAt);
+      return (
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate()
+      );
+    }).length;
+  }, [samples]);
+
+  // Filter Samples by Search & Status
+  const filteredSamples = useMemo(() => {
+    return dateFilteredSamples.filter((s) => {
       const matchSearch =
         !searchQuery.trim() ||
         s.sampleNumber?.toString().includes(searchQuery) ||
@@ -932,18 +961,18 @@ function ResultsContent() {
 
       return matchSearch && matchStatus;
     });
-  }, [samples, searchQuery, statusFilter]);
+  }, [dateFilteredSamples, searchQuery, statusFilter]);
 
-  // Status Counts for Quick Filter Pills
+  // Status Counts for Quick Filter Pills (scoped to active date filter)
   const statusCounts = useMemo(() => {
     return {
-      ALL: samples.length,
-      URGENT: samples.filter((s) => s.isUrgent).length,
-      RECEIVED: samples.filter((s) => s.status === 'RECEIVED').length,
-      IN_PROGRESS: samples.filter((s) => s.status === 'IN_PROGRESS').length,
-      READY: samples.filter((s) => s.status === 'READY').length,
+      ALL: dateFilteredSamples.length,
+      URGENT: dateFilteredSamples.filter((s) => s.isUrgent).length,
+      RECEIVED: dateFilteredSamples.filter((s) => s.status === 'RECEIVED').length,
+      IN_PROGRESS: dateFilteredSamples.filter((s) => s.status === 'IN_PROGRESS').length,
+      READY: dateFilteredSamples.filter((s) => s.status === 'READY').length,
     };
-  }, [samples]);
+  }, [dateFilteredSamples]);
 
   // Track Incomplete Tests for Selected Sample
   const incompleteTests = useMemo(() => {
@@ -1099,9 +1128,74 @@ function ResultsContent() {
         
         {/* LEFT: PATIENT SAMPLE QUEUE (Image 2 Style) */}
         <div className="glass-card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', height: 'fit-content', maxHeight: 'calc(100vh - 120px)' }}>
-          <label htmlFor="results-search-input" className="input-label" style={{ fontSize: '11.5px', fontWeight: 800, marginBottom: '10px', display: 'block', cursor: 'pointer' }}>
-            PATIENT SAMPLE QUEUE (طابور العينات)
-          </label>
+          {/* Header & Date Filter Selector */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <label htmlFor="results-search-input" className="input-label" style={{ fontSize: '11px', fontWeight: 800, margin: 0, cursor: 'pointer' }}>
+              طابور العينات (QUEUE)
+            </label>
+            <div style={{ display: 'inline-flex', gap: '3px', background: 'var(--bg-input-deep)', padding: '2px', borderRadius: '8px', border: '1px solid #1e2638' }}>
+              <button
+                type="button"
+                onClick={() => setDateFilter('TODAY')}
+                style={{
+                  padding: '2px 8px',
+                  fontSize: '10px',
+                  fontWeight: dateFilter === 'TODAY' ? 800 : 500,
+                  borderRadius: '6px',
+                  background: dateFilter === 'TODAY' ? 'var(--accent-cyan)' : 'transparent',
+                  color: dateFilter === 'TODAY' ? '#000' : 'var(--text-muted)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  transition: 'all 0.12s ease',
+                }}
+                title="عرض مرضى اليوم فقط الذين زاروا المختبر اليوم"
+              >
+                <span>اليوم</span>
+                <span style={{ fontSize: '9px', opacity: 0.9, background: dateFilter === 'TODAY' ? 'rgba(0,0,0,0.2)' : '#1a2233', padding: '0 4px', borderRadius: '4px' }}>
+                  {todaySamplesCount}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDateFilter('YESTERDAY')}
+                style={{
+                  padding: '2px 8px',
+                  fontSize: '10px',
+                  fontWeight: dateFilter === 'YESTERDAY' ? 800 : 500,
+                  borderRadius: '6px',
+                  background: dateFilter === 'YESTERDAY' ? 'var(--accent-cyan)' : 'transparent',
+                  color: dateFilter === 'YESTERDAY' ? '#000' : 'var(--text-muted)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.12s ease',
+                }}
+                title="عرض عينات الأمس"
+              >
+                الأمس
+              </button>
+              <button
+                type="button"
+                onClick={() => setDateFilter('ALL')}
+                style={{
+                  padding: '2px 8px',
+                  fontSize: '10px',
+                  fontWeight: dateFilter === 'ALL' ? 800 : 500,
+                  borderRadius: '6px',
+                  background: dateFilter === 'ALL' ? 'var(--accent-cyan)' : 'transparent',
+                  color: dateFilter === 'ALL' ? '#000' : 'var(--text-muted)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.12s ease',
+                }}
+                title="عرض كافة السجلات السابقة"
+              >
+                الكل
+              </button>
+            </div>
+          </div>
 
           {/* Quick Search */}
           <div style={{ position: 'relative', marginBottom: '10px' }}>
@@ -1197,7 +1291,9 @@ function ResultsContent() {
             {loadingSamples ? (
               <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>Loading queue...</div>
             ) : filteredSamples.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>No samples found</div>
+              <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)', fontSize: '11.5px' }}>
+                {dateFilter === 'TODAY' ? 'لا توجد عينات مسجلة لليوم حتى الآن' : 'لا توجد عينات مطابقة'}
+              </div>
             ) : (
               filteredSamples.map((s) => {
                 const isSelected = selectedSample?.id === s.id;
@@ -1357,7 +1453,7 @@ function ResultsContent() {
                   </button>
                 )}
 
-                {/* Fast Pathologist Approval Hotkey Button */}
+                {/* Pathologist Approval Button - Stationary on current patient */}
                 <button
                   type="button"
                   onClick={handleFastPathologistApprove}
@@ -1368,16 +1464,18 @@ function ResultsContent() {
                     padding: '0 12px',
                     fontSize: '11px',
                     fontWeight: 800,
-                    background: 'linear-gradient(135deg, #0d9488 0%, #06b6d4 100%)',
-                    borderColor: '#14b8a6',
+                    background: selectedSample?.status === 'READY'
+                      ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
+                      : 'linear-gradient(135deg, #0d9488 0%, #06b6d4 100%)',
+                    borderColor: selectedSample?.status === 'READY' ? '#10b981' : '#14b8a6',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '5px'
                   }}
-                  title="اعتماد العينة كـ READY والانتقال التلقائي للعينة التالية (Ctrl+Shift+Enter)"
+                  title="اعتماد نتائج العينة وتثبيت العرض على نفس المريض (Ctrl+Shift+Enter)"
                 >
-                  <Zap size={13} />
-                  <span>اعتماد سريع</span>
+                  <CheckCircle2 size={13} />
+                  <span>{selectedSample?.status === 'READY' ? 'النتيجة معتمدة ✓' : 'اعتماد النتيجة'}</span>
                   <kbd style={{ background: 'rgba(0,0,0,0.3)', padding: '1px 5px', borderRadius: '3px', fontSize: '10px' }}>Ctrl+Shift+Enter</kbd>
                 </button>
 

@@ -9,7 +9,7 @@ export const MASTER_SECRET = 'LAB_MANAGER_OFFLINE_SECRET_KEY_v2026_HMAC_SECURE_9
 export interface LicensePayload {
   hwid: string;
   expiryDate: string; // ISO String: YYYY-MM-DD
-  tier: 'TRIAL' | 'MONTHLY' | 'YEARLY' | 'LIFETIME';
+  tier: 'TWO_DAYS' | 'WEEKLY' | 'TRIAL' | 'MONTHLY' | 'YEARLY' | 'LIFETIME' | string;
   labName?: string;
 }
 
@@ -65,7 +65,7 @@ export function getMachineHWID(): string {
 export function generateLicenseKey(
   hwid: string,
   daysValid: number,
-  tier: 'MONTHLY' | 'YEARLY' | 'LIFETIME' = 'LIFETIME',
+  tier: 'TWO_DAYS' | 'WEEKLY' | 'TRIAL' | 'MONTHLY' | 'YEARLY' | 'LIFETIME' | string = 'LIFETIME',
   labName = 'مختبر معتمد'
 ): string {
   const cleanHwid = hwid.trim().toUpperCase();
@@ -156,4 +156,49 @@ export function verifyLicenseKey(
   } catch (err: any) {
     return { valid: false, message: 'فشل التحقق من مفتاح الترخيص: ' + (err?.message || 'خطأ غير معروف') };
   }
+}
+
+// 4. Anti-Tamper Cryptographic Seal for local store (prevents editing lab_store.json)
+export function createLicenseTamperSeal(params: {
+  hardwareId: string;
+  firstRunDate?: string;
+  trialExpiresAt?: string;
+  maxMonotonicTime?: string;
+  isActivated: boolean;
+  licenseKey?: string;
+  tier?: string;
+}): string {
+  const payload = [
+    params.hardwareId || '',
+    params.firstRunDate || '',
+    params.trialExpiresAt || '',
+    params.maxMonotonicTime || '',
+    params.isActivated ? 'ACTIVE' : 'INACTIVE',
+    params.licenseKey || '',
+    params.tier || '',
+  ].join('##');
+
+  return crypto
+    .createHmac('sha256', MASTER_SECRET)
+    .update(payload)
+    .digest('hex')
+    .substring(0, 16)
+    .toUpperCase();
+}
+
+export function verifyLicenseTamperSeal(
+  params: {
+    hardwareId: string;
+    firstRunDate?: string;
+    trialExpiresAt?: string;
+    maxMonotonicTime?: string;
+    isActivated: boolean;
+    licenseKey?: string;
+    tier?: string;
+  },
+  seal?: string
+): boolean {
+  if (!seal || typeof seal !== 'string') return false;
+  const expected = createLicenseTamperSeal(params);
+  return seal.toUpperCase() === expected;
 }

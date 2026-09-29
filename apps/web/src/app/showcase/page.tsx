@@ -66,7 +66,7 @@ export default function ShowcasePage() {
         <h1 style={{ fontSize: 'clamp(26px, 4.5vw, 44px)', fontWeight: 900, lineHeight: 1.3, marginBottom: '18px', letterSpacing: '-0.5px' }}>
           نظام متكامل لإدارة الفحوصات والنتائج الطبية <br />
           <span style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            يعمل 100% بدون إنترنت مع تجربة مجانية 7 أيام
+            يعمل 100% بدون إنترنت مع تجربة مجانية يومين
           </span>
         </h1>
 
@@ -77,7 +77,7 @@ export default function ShowcasePage() {
         <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/" className="btn-primary" style={{ padding: '14px 32px', fontSize: '15px', fontWeight: 900, textDecoration: 'none', borderRadius: '12px' }}>
             <Zap size={18} />
-            <span>ابدأ تجربتك المجانية الفورية (7 أيام)</span>
+            <span>ابدأ تجربتك المجانية الفورية (يومين)</span>
           </Link>
 
           <a 

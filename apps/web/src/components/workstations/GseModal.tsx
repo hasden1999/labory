@@ -31,8 +31,13 @@ export interface GseAnalysisData {
   color: string;
   consistency: string;
 
-  // Occult Blood
+  // Occult Blood (Optional)
+  includeFobt: boolean;
   fobt: string;
+
+  // Stool Culture & Sensitivity (Optional)
+  includeSensitivity: boolean;
+  sensitivity: string;
 
   // Microscopic Examination (HPF)
   pusCells: string;
@@ -52,7 +57,10 @@ export interface GseAnalysisData {
 export const DEFAULT_GSE_DATA: GseAnalysisData = {
   color: 'Brown',
   consistency: 'Formed',
+  includeFobt: false,
   fobt: 'Negative',
+  includeSensitivity: false,
+  sensitivity: 'Nil',
   pusCells: '0-2',
   rbcs: '0-1',
   muscleFibers: 'Nil',
@@ -85,7 +93,16 @@ export function serializeGse(data: GseAnalysisData): string {
   const parts: string[] = ['[G.S.E - GENERAL STOOL EXAMINATION]'];
   
   parts.push(`PHYSICAL: Color: ${data.color} | Consistency: ${data.consistency}`);
-  parts.push(`FOBT: ${data.fobt}`);
+  
+  // Only serialize FOBT if explicitly enabled!
+  if (data.includeFobt && data.fobt && data.fobt !== 'Not Requested') {
+    parts.push(`FOBT: ${data.fobt}`);
+  }
+
+  // Only serialize Sensitivity if explicitly enabled!
+  if (data.includeSensitivity && data.sensitivity && data.sensitivity !== 'Not Requested') {
+    parts.push(`SENSITIVITY: ${data.sensitivity}`);
+  }
 
   const microItems: string[] = [
     `Pus Cells: ${data.pusCells} /HPF`,
@@ -135,7 +152,11 @@ export function parseGse(raw: string): GseAnalysisData {
       const matchConst = trimmed.match(/Consistency:\s*([^|]+)/i);
       if (matchConst) parsed.consistency = matchConst[1].trim();
     } else if (trimmed.startsWith('FOBT:')) {
+      parsed.includeFobt = true;
       parsed.fobt = trimmed.replace('FOBT:', '').trim();
+    } else if (trimmed.startsWith('SENSITIVITY:')) {
+      parsed.includeSensitivity = true;
+      parsed.sensitivity = trimmed.replace('SENSITIVITY:', '').trim();
     } else if (trimmed.startsWith('MICROSCOPIC:')) {
       const pMatch = trimmed.match(/Pus Cells:\s*([^\/|]+)/i);
       if (pMatch) parsed.pusCells = pMatch[1].trim();
@@ -251,7 +272,10 @@ export default function GseModal({
       setData({
         color: 'Brown',
         consistency: 'Formed',
+        includeFobt: false,
         fobt: 'Negative',
+        includeSensitivity: false,
+        sensitivity: 'Nil',
         pusCells: '0-2',
         rbcs: '0-1',
         muscleFibers: 'Nil',
@@ -266,7 +290,10 @@ export default function GseModal({
       setData({
         color: 'Reddish Brown',
         consistency: 'Mucoid / Loose',
+        includeFobt: true,
         fobt: 'Positive',
+        includeSensitivity: false,
+        sensitivity: 'Nil',
         pusCells: '25-30',
         rbcs: '35-40',
         muscleFibers: 'Present',
@@ -284,7 +311,10 @@ export default function GseModal({
       setData({
         color: 'Yellow',
         consistency: 'Loose',
+        includeFobt: false,
         fobt: 'Negative',
+        includeSensitivity: false,
+        sensitivity: 'Nil',
         pusCells: '2-4',
         rbcs: '0-1',
         muscleFibers: 'Few',
@@ -311,8 +341,8 @@ export default function GseModal({
   }
 
   const isAbnormal =
-    data.fobt === 'Positive' ||
-    data.fobt === 'Weakly Positive' ||
+    (data.includeFobt && (data.fobt === 'Positive' || data.fobt === 'Weakly Positive')) ||
+    (data.includeSensitivity && data.sensitivity === 'Sensitive') ||
     data.parasites.length > 0 ||
     parseRangeMax(data.pusCells) > 5 ||
     parseRangeMax(data.rbcs) > 3 ||
@@ -875,15 +905,89 @@ export default function GseModal({
                   abnormalValues={['Mucoid / Loose', 'Loose', 'Watery', 'Hard']}
                 />
 
-                {/* Occult Blood (FOBT) Pills */}
-                <PillSelector
-                  label="Occult Blood (FOBT)"
-                  refRange="Negative"
-                  value={data.fobt}
-                  onChange={(val) => setField('fobt', val)}
-                  options={['Negative', 'Weakly Positive', 'Positive']}
-                  abnormalValues={['Weakly Positive', 'Positive']}
-                />
+                {/* Occult Blood (FOBT) Optional Toggle Box */}
+                <div
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: data.includeFobt ? '1.5px solid #0284c7' : '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', userSelect: 'none' }}>
+                      <input
+                        type="checkbox"
+                        checked={data.includeFobt}
+                        onChange={(e) => setField('includeFobt', e.target.checked)}
+                        style={{ width: '16px', height: '16px', accentColor: '#0284c7', cursor: 'pointer' }}
+                      />
+                      <span>تضمين فحص الدم الخفي (FOBT) في التقرير</span>
+                    </label>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: data.includeFobt ? '#0284c7' : 'var(--text-muted)' }}>
+                      {data.includeFobt ? 'مُفعّل بالتقرير' : 'غير مطلوب (لن يظهر بالتقرير)'}
+                    </span>
+                  </div>
+
+                  {data.includeFobt ? (
+                    <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-color)' }}>
+                      <PillSelector
+                        label="نتيجة فحص الدم الخفي FOBT"
+                        refRange="Negative"
+                        value={data.fobt}
+                        onChange={(val) => setField('fobt', val)}
+                        options={['Negative', 'Weakly Positive', 'Positive']}
+                        abnormalValues={['Weakly Positive', 'Positive']}
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                      ملاحظة: إذا لم يطلب الطبيب فحص FOBT، لن تظهر كلمة Negative أو سطر الفحص في التقرير المطبوع نهائياً.
+                    </div>
+                  )}
+                </div>
+
+                {/* Stool Culture & Sensitivity (حساسية الخروج مع خيار Nil) */}
+                <div
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: data.includeSensitivity ? '1.5px solid #0284c7' : '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', userSelect: 'none' }}>
+                      <input
+                        type="checkbox"
+                        checked={data.includeSensitivity}
+                        onChange={(e) => setField('includeSensitivity', e.target.checked)}
+                        style={{ width: '16px', height: '16px', accentColor: '#0284c7', cursor: 'pointer' }}
+                      />
+                      <span>فحص حساسية وزرع الخروج (Stool Culture & Sensitivity)</span>
+                    </label>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: data.includeSensitivity ? '#0284c7' : 'var(--text-muted)' }}>
+                      {data.includeSensitivity ? 'مُفعّل بالتقرير' : 'غير مطلوب'}
+                    </span>
+                  </div>
+
+                  {data.includeSensitivity && (
+                    <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-color)' }}>
+                      <PillSelector
+                        label="نتيجة حساسية وزرع الخروج"
+                        refRange="Nil"
+                        value={data.sensitivity}
+                        onChange={(val) => setField('sensitivity', val)}
+                        options={['Nil', 'No Bacterial Growth', 'Sensitive', 'Pending / Under Incubation']}
+                        abnormalValues={['Sensitive']}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1370,7 +1474,7 @@ export default function GseModal({
               {/* Section 1: Physical */}
               <div dir="ltr" style={{ direction: 'ltr', textAlign: 'left' }}>
                 <div style={{ fontSize: '11px', fontWeight: 800, color: '#d97706', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px', textAlign: 'left' }}>
-                  PHYSICAL & OCCULT BLOOD
+                  {data.includeFobt ? 'PHYSICAL & OCCULT BLOOD' : 'PHYSICAL EXAMINATION'}
                 </div>
                 <table dir="ltr" style={{ width: '100%', borderCollapse: 'collapse', direction: 'ltr', textAlign: 'left' }}>
                   <tbody>
@@ -1380,12 +1484,22 @@ export default function GseModal({
                       <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Consistency:</td>
                       <td style={{ fontWeight: 700, color: data.consistency.includes('Loose') || data.consistency.includes('Watery') ? '#dc2626' : '#0f172a', width: '25%', textAlign: 'left' }}>{data.consistency}</td>
                     </tr>
-                    <tr>
-                      <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>FOBT:</td>
-                      <td colSpan={3} style={{ fontWeight: 800, color: isFobtAbnormal ? '#dc2626' : '#047857', textAlign: 'left' }}>
-                        {data.fobt}
-                      </td>
-                    </tr>
+                    {data.includeFobt && (
+                      <tr>
+                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>FOBT:</td>
+                        <td colSpan={3} style={{ fontWeight: 800, color: isFobtAbnormal ? '#dc2626' : '#047857', textAlign: 'left' }}>
+                          {data.fobt}
+                        </td>
+                      </tr>
+                    )}
+                    {data.includeSensitivity && (
+                      <tr>
+                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>Sensitivity:</td>
+                        <td colSpan={3} style={{ fontWeight: 800, color: data.sensitivity === 'Nil' || data.sensitivity === 'No Bacterial Growth' ? '#047857' : '#dc2626', textAlign: 'left' }}>
+                          {data.sensitivity}
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

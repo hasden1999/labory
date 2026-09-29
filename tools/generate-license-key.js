@@ -36,25 +36,62 @@ function copyToClipboard(text) {
   return false;
 }
 
-// Check if arguments provided via CLI
+function parseTierAndDays(arg) {
+  const raw = (arg || 'LIFETIME').toString().trim().toUpperCase();
+  if (raw === '1' || raw === 'LIFETIME' || raw === 'PERMANENT' || raw === 'دائمي' || raw === 'دائم') {
+    return { tier: 'LIFETIME', days: 36500, label: 'دائم مدى الحياة (LIFETIME)' };
+  }
+  if (raw === '2' || raw === 'WEEK' || raw === 'WEEKLY' || raw === '7' || raw === '7DAYS' || raw === 'أسبوع') {
+    return { tier: 'WEEKLY', days: 7, label: 'أسبوع واحد (7 أيام)' };
+  }
+  if (raw === '3' || raw === '2DAYS' || raw === 'TWO_DAYS' || raw === 'يومين') {
+    return { tier: 'TWO_DAYS', days: 2, label: 'يومين فقط (48 ساعة)' };
+  }
+  if (raw === '4' || raw === 'MONTH' || raw === 'MONTHLY' || raw === '30' || raw === 'شهري') {
+    return { tier: 'MONTHLY', days: 30, label: 'اشتراك شهري (30 يوماً)' };
+  }
+  if (raw === '5' || raw === 'YEAR' || raw === 'YEARLY' || raw === '365' || raw === 'سنوي') {
+    return { tier: 'YEARLY', days: 365, label: 'اشتراك سنوي (365 يوماً)' };
+  }
+  const parsedNum = parseInt(raw, 10);
+  if (!isNaN(parsedNum) && parsedNum > 0) {
+    if (parsedNum === 2) {
+      return { tier: 'TWO_DAYS', days: 2, label: 'يومين فقط (48 ساعة)' };
+    }
+    if (parsedNum === 7) {
+      return { tier: 'WEEKLY', days: 7, label: 'أسبوع واحد (7 أيام)' };
+    }
+    return { tier: 'CUSTOM', days: parsedNum, label: `مخصص (${parsedNum} يوماً)` };
+  }
+  return { tier: 'LIFETIME', days: 36500, label: 'دائم مدى الحياة (LIFETIME)' };
+}
+
+// Check if arguments provided via CLI: node generate-license-key.js <HWID> [TIER_OR_DAYS] [LAB_NAME]
 const args = process.argv.slice(2);
 if (args.length >= 1) {
-  const hwid = args[0];
-  const tier = (args[1] || 'LIFETIME').toUpperCase();
-  const days = tier === 'YEARLY' ? 365 : tier === 'MONTHLY' ? 30 : tier === 'TRIAL' ? 7 : 36500;
+  const hwid = args[0].trim();
+  const { tier, days, label } = parseTierAndDays(args[1]);
   const labName = args[2] || 'مختبر معتمد';
 
   const key = generateLicenseKey(hwid, days, tier, labName);
-  copyToClipboard(key);
+  const copied = copyToClipboard(key);
+
   console.log('\n======================================================');
-  console.log('  مفتاح تفعيل الترخيص المولد بنجاح:');
+  console.log('  مفتاح تفعيل الترخيص المولد بنجاح (Labryo LIMS):');
   console.log('======================================================');
+  console.log(`  بصمة الجهاز: ${hwid}`);
+  console.log(`  نوع الباقة:  ${label}`);
+  console.log(`  اسم المختبر: ${labName}`);
+  console.log('------------------------------------------------------');
   console.log('\n' + key + '\n');
-  console.log('تم نسخ كود التفعيل إلى الحافظة تلقائياً (Clipboard)!');
+  console.log('------------------------------------------------------');
+  if (copied) {
+    console.log('✅ تم نسخ كود التفعيل إلى الحافظة تلقائياً (Clipboard)!');
+  }
   process.exit(0);
 }
 
-// Interactive Mode
+// Interactive CLI Mode
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
@@ -73,55 +110,55 @@ rl.question('1. أدخل كود بصمة الجهاز المستلم من الع
     process.exit(1);
   }
 
-  console.log('\n2. اختر نوع باقة الترخيص:');
+  console.log('\n2. اختر مدة ونوع باقة الترخيص:');
   console.log('   [1] دائم مدى الحياة (LIFETIME) - الخيار الافتراضي');
-  console.log('   [2] اشتراك سنوي (365 يوماً)');
-  console.log('   [3] اشتراك شهري (30 يوماً)');
-  console.log('   [4] تجريبي مؤقت (7 أيام)');
+  console.log('   [2] أسبوع واحد (7 أيام - WEEKLY)');
+  console.log('   [3] يومين فقط (48 ساعة - TWO_DAYS)');
+  console.log('   [4] اشتراك شهري (30 يوماً)');
+  console.log('   [5] اشتراك سنوي (365 يوماً)');
+  console.log('   [6] تخصيص عدد أيام معين (Custom Days)');
 
   rl.question('> ', (tierChoice) => {
-    let tier = 'LIFETIME';
-    let days = 36500;
-
     const c = tierChoice.trim();
-    if (c === '2') {
-      tier = 'YEARLY';
-      days = 365;
-    } else if (c === '3') {
-      tier = 'MONTHLY';
-      days = 30;
-    } else if (c === '4') {
-      tier = 'TRIAL';
-      days = 7;
-    }
-
-    rl.question('\n3. أدخل اسم المختبر (اختياري - اضغط Enter للتخطي):\n> ', (labNameInput) => {
-      const labName = labNameInput.trim() || 'مختبر معتمد';
-
-      const licenseKey = generateLicenseKey(cleanHwid, days, tier, labName);
-      const copied = copyToClipboard(licenseKey);
-
-      console.log('\n======================================================');
-      console.log('  ✅ تم توليد كود التفعيل المشفر بنجاح:');
-      console.log('======================================================');
-      console.log(`\n  بصمة الجهاز: ${cleanHwid}`);
-      console.log(`  نوع الباقة:  ${tier}`);
-      console.log(`  اسم المختبر: ${labName}`);
-      console.log('\n  كود التفعيل (License Key):');
-      console.log('  ----------------------------------------------------');
-      console.log(`  ${licenseKey}`);
-      console.log('  ----------------------------------------------------');
-
-      if (copied) {
-        console.log('\n  📋 تم نسخ كود التفعيل تلقائياً إلى الحافظة!');
-        console.log('  يمكنك الآن الضغط على (Ctrl + V) في واتساب ولصقه للعميل مباشرة.\n');
-      } else {
-        console.log('\n  يمكنك نسخ الكود أعلاه وإرساله للعميل عبر واتساب.\n');
-      }
-
-      rl.question('اضغط Enter للخروج...', () => {
-        rl.close();
+    if (c === '6') {
+      rl.question('\nأدخل عدد الأيام المطلوبة للتفعيل (مثلاً 14 أو 60):\n> ', (daysInput) => {
+        const customDays = parseInt(daysInput.trim(), 10) || 30;
+        proceedWithGeneration(cleanHwid, customDays, 'CUSTOM', `مخصص (${customDays} يوماً)`);
       });
-    });
+    } else {
+      const parsed = parseTierAndDays(c);
+      proceedWithGeneration(cleanHwid, parsed.days, parsed.tier, parsed.label);
+    }
   });
 });
+
+function proceedWithGeneration(cleanHwid, days, tier, label) {
+  rl.question('\n3. أدخل اسم المختبر (اختياري - اضغط Enter للتخطي):\n> ', (labNameInput) => {
+    const labName = labNameInput.trim() || 'مختبر معتمد';
+
+    const licenseKey = generateLicenseKey(cleanHwid, days, tier, labName);
+    const copied = copyToClipboard(licenseKey);
+
+    console.log('\n======================================================');
+    console.log('  ✅ تم توليد كود التفعيل المشفر بنجاح:');
+    console.log('======================================================');
+    console.log(`\n  بصمة الجهاز: ${cleanHwid}`);
+    console.log(`  نوع الباقة:  ${label}`);
+    console.log(`  اسم المختبر: ${labName}`);
+    console.log('\n  كود التفعيل (License Key):');
+    console.log('  ----------------------------------------------------');
+    console.log(`  ${licenseKey}`);
+    console.log('  ----------------------------------------------------');
+
+    if (copied) {
+      console.log('\n  📋 تم نسخ كود التفعيل تلقائياً إلى الحافظة!');
+      console.log('  يمكنك الآن الضغط على (Ctrl + V) في واتساب ولصقه للعميل مباشرة.\n');
+    } else {
+      console.log('\n  يمكنك نسخ الكود أعلاه وإرساله للعميل عبر واتساب.\n');
+    }
+
+    rl.question('اضغط Enter للخروج...', () => {
+      rl.close();
+    });
+  });
+}

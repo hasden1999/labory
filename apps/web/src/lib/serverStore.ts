@@ -124,13 +124,18 @@ export interface LicenseStore {
   isActivated: boolean;
   hardwareId: string;
   licenseKey?: string;
-  tier?: 'TRIAL' | 'MONTHLY' | 'YEARLY' | 'LIFETIME';
+  tier?: 'TWO_DAYS' | 'WEEKLY' | 'TRIAL' | 'MONTHLY' | 'YEARLY' | 'LIFETIME' | string;
   expiryDate?: string;
   activatedAt?: string;
   labName?: string;
   firstRunDate?: string;
   trialExpiresAt?: string;
   lastClockCheck?: string;
+  maxMonotonicTime?: string;
+  tamperSeal?: string;
+  isTampered?: boolean;
+  isClockTampered?: boolean;
+  trialFinished?: boolean;
 }
 
 export interface PatientRecord {

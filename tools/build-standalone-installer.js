@@ -110,9 +110,27 @@ async function run() {
   if (fs.existsSync(dataSrc)) {
     const dataDest = path.join(targetStandalone, 'apps', 'web', 'data');
     console.log('نسخ قاعدة البيانات الأولية والتصنيفات (seed data)...');
-    fs.cpSync(dataSrc, dataDest, { recursive: true });
+    const copySafe = (src, dest) => {
+      if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+      const entries = fs.readdirSync(src, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.name.endsWith('-shm') || entry.name.endsWith('-wal')) continue;
+        const sPath = path.join(src, entry.name);
+        const dPath = path.join(dest, entry.name);
+        if (entry.isDirectory()) {
+          copySafe(sPath, dPath);
+        } else {
+          try {
+            fs.copyFileSync(sPath, dPath);
+          } catch (e) {
+            console.warn(`تخطي ملف مشغول: ${entry.name}`);
+          }
+        }
+      }
+    };
+    copySafe(dataSrc, dataDest);
     const directDataDest = path.join(engineDir, 'data');
-    fs.cpSync(dataSrc, directDataDest, { recursive: true });
+    copySafe(dataSrc, directDataDest);
 
     // Seed SQLite database for new customer installations
     const sqliteDbSrc = path.join(rootDir, 'apps', 'server', 'prisma', 'lab.db');
