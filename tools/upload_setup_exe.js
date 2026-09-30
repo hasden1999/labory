@@ -6,7 +6,9 @@ const { execFileSync } = require('child_process');
 const token = fs.readFileSync('.env', 'utf-8').match(/GH_TOKEN=([^\r\n]+)/)[1].trim();
 const OWNER = 'hasden1999';
 const REPO = 'lab-releases';
-const TAG = 'v1.0.9';
+const TAG = process.argv[2] || 'v1.1.1';
+const VERSION = TAG.replace(/^v/, '');
+const FILE_NAME = process.argv[3] || `Labryo.LIMS.Setup.${VERSION}.exe`;
 
 https.get({
   hostname: 'api.github.com',
@@ -22,12 +24,20 @@ https.get({
   res.on('end', () => {
     try {
       const release = JSON.parse(d);
+      if (!release.upload_url) {
+        throw new Error('Release not found or upload_url missing: ' + d);
+      }
       const cleanUrl = release.upload_url.split('{')[0];
       const uploadUrl = new URL(cleanUrl);
-      uploadUrl.searchParams.set('name', 'Labryo.LIMS.Setup.1.0.9.exe');
+      uploadUrl.searchParams.set('name', FILE_NAME);
 
-      const filePath = path.resolve(__dirname, '../apps/desktop/dist/Labryo.LIMS.Setup.1.0.9.exe');
-      console.log('Uploading 147MB setup exe via curl HTTP/1.1...');
+      const filePath = path.resolve(__dirname, `../apps/desktop/dist/${FILE_NAME}`);
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`Local file not found: ${filePath}`);
+      }
+      const stats = fs.statSync(filePath);
+      const sizeMB = (stats.size / (1024 * 1024)).toFixed(1);
+      console.log(`Uploading ${FILE_NAME} (${sizeMB} MB) to release ${TAG}...`);
 
       const args = [
         '--http1.1',

@@ -20,71 +20,62 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'PAPER_DESIGN' | 'BACKUP' | 'NETWORK' | 'VERSION'>('PAPER_DESIGN');
 
-  // Milestone M5 & R3: Version Management & In-App Resumable Updater
+  // Milestone M5 & R3: Standard electron-updater Integration
   const [checkingUpdate, setCheckingUpdate] = useState(false);
-  const [updateInfo, setUpdateInfo] = useState<any>(null);
-  const [downloadState, setDownloadState] = useState<{
-    status: 'idle' | 'downloading' | 'paused' | 'reconnecting' | 'completed' | 'error';
-    progressPercent: number;
-    transferredBytes: number;
-    totalBytes: number;
-    speedBps: number;
-    retryCount: number;
-    errorMessage: string | null;
-    filePath: string | null;
-  }>({
-    status: 'idle',
-    progressPercent: 0,
-    transferredBytes: 0,
-    totalBytes: 0,
-    speedBps: 0,
-    retryCount: 0,
-    errorMessage: null,
-    filePath: null,
-  });
-  const [startingDownload, setStartingDownload] = useState(false);
+  const [updaterState, setUpdaterState] = useState<any>(null);
+  const [updateChannel, setUpdateChannel] = useState<'stable' | 'beta'>('stable');
   const [installing, setInstalling] = useState(false);
 
-  // Poll download state when active or reconnecting
   useEffect(() => {
-    let timer: any = null;
-    const fetchStatus = async () => {
-      try {
-        const res = await fetch('/api/version/download').then(r => r.json());
-        if (res && res.status) {
-          setDownloadState(res);
+    if (typeof window === 'undefined') return;
+    const desktop = (window as any).electronDesktop;
+    if (desktop?.updater) {
+      desktop.updater.getState().then((st: any) => {
+        if (st) {
+          setUpdaterState(st);
+          if (st.channel) setUpdateChannel(st.channel);
         }
-      } catch (e) {}
-    };
+      }).catch(() => {});
 
-    if (activeTab === 'VERSION') {
-      fetchStatus();
+      const unsub = desktop.updater.onStateChange((st: any) => {
+        setUpdaterState(st);
+        if (st.channel) setUpdateChannel(st.channel);
+      });
+      return () => {
+        if (typeof unsub === 'function') unsub();
+      };
     }
-
-    if (downloadState.status === 'downloading' || downloadState.status === 'reconnecting') {
-      timer = setInterval(fetchStatus, 600);
-    }
-
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [activeTab, downloadState.status]);
+  }, []);
 
   const handleCheckUpdate = async () => {
     setCheckingUpdate(true);
     try {
-      const res = await fetch('/api/version/check').then(r => r.json());
-      setUpdateInfo(res);
-      // Also check current download state
-      try {
-        const dState = await fetch('/api/version/download').then(r => r.json());
-        if (dState && dState.status) setDownloadState(dState);
-      } catch (e) {}
-
-      if (res.hasUpdate) {
-        toast.info(`يوجد إصدار أحدث متاح: ${res.latestVersion}`, 'تحديث جديد');
+      const desktop = (window as any).electronDesktop;
+      if (desktop?.updater) {
+        const res = await desktop.updater.check();
+        if (res?.success) {
+          if (res.updateInfo?.version) {
+            toast.info(`يوجد إصدار أحدث متاح: ${res.updateInfo.version}`, 'تحديث جديد');
+          } else {
+            toast.success('البرنامج محدث لآخر إصدار رسمي!', 'أحدث إصدار');
+          }
+        } else {
+          toast.warning(res?.message || res?.error || 'تعذر فحص التحديثات', 'تنبيه');
+        }
       } else {
-        toast.success(`البرنامج محدث لآخر إصدار مستقر: ${res.currentVersion}`, 'أحدث إصدار');
+        const res = await fetch('/api/version/check').then(r => r.json());
+        setUpdaterState({
+          status: res.hasUpdate ? 'available' : 'idle',
+          currentVersion: res.currentVersion,
+          latestVersion: res.latestVersion,
+          releaseNotes: res.releaseNotes,
+          downloadUrl: res.downloadUrl,
+        });
+        if (res.hasUpdate) {
+          toast.info(`يوجد إصدار أحدث متاح: ${res.latestVersion}`, 'تحديث جديد');
+        } else {
+          toast.success(`البرنامج محدث لآخر إصدار: ${res.currentVersion}`, 'أحدث إصدار');
+        }
       }
     } catch (err: any) {
       toast.error('تعذر الاتصال بسيرفر التحديثات', 'فحص التحديثات');
@@ -93,43 +84,24 @@ export default function SettingsPage() {
     }
   };
 
-  const handleStartInAppDownload = async () => {
-    if (!updateInfo?.downloadUrl) return;
-    setStartingDownload(true);
-    try {
-      const res = await fetch('/api/version/download', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          downloadUrl: updateInfo.downloadUrl,
-          version: updateInfo.latestVersion,
-        }),
-      }).then(r => r.json());
-      if (res && res.status) {
-        setDownloadState(res);
-        toast.info('بدأ تنزيل ملف التحديث مع ميزة الاستئناف التلقائي', 'تحميل التحديث');
-      }
-    } catch (err: any) {
-      toast.error('فشل بدء تحميل التحديث', 'خطأ في التحديث');
-    } finally {
-      setStartingDownload(false);
+  const handleChannelChange = async (ch: 'stable' | 'beta') => {
+    setUpdateChannel(ch);
+    const desktop = (window as any).electronDesktop;
+    if (desktop?.updater) {
+      await desktop.updater.setChannel(ch);
+      toast.info(`تم تغيير قناة التحديث إلى: ${ch === 'beta' ? 'الإصدارات التجريبية (Beta)' : 'الإصدارات المستقرة (Stable)'}`, 'قناة التحديث');
     }
   };
 
   const handleExecuteInstall = async () => {
     setInstalling(true);
     try {
-      const res = await fetch('/api/version/install', {
-        method: 'POST',
-      }).then(r => r.json());
-      if (res.success) {
-        toast.success(res.message, 'تثبيت التحديث');
-      } else {
-        toast.error(res.error || 'تعذر تشغيل مثبت التحديث', 'فشل التثبيت');
+      const desktop = (window as any).electronDesktop;
+      if (desktop?.updater) {
+        await desktop.updater.quitAndInstall();
       }
-    } catch (err: any) {
-      toast.error('حدث خطأ أثناء محاولة التثبيت', 'فشل التثبيت');
-    } finally {
+    } catch (e: any) {
+      toast.error(e?.message || 'تعذر بدء التثبيت', 'خطأ');
       setInstalling(false);
     }
   };
@@ -612,19 +584,36 @@ export default function SettingsPage() {
                   <div style={{ background: 'var(--bg-card-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>الإصدار المثبت حالياً</div>
                     <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--accent-cyan)', marginTop: '2px' }}>
-                      {updateInfo?.currentVersion || labProfile?.installedVersion || 'v1.0.9'}
+                      {updaterState?.currentVersion || labProfile?.installedVersion || 'v1.1.3'}
                     </div>
                   </div>
                   <div style={{ background: 'var(--bg-card-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>حالة البيئة والإنتاج</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>حالة التحديث التلقائي</div>
                     <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#10b981', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <CheckCircle2 size={15} />
-                      <span>إصدار إنتاجي مستقر 100%</span>
+                      <span>{updaterState?.status === 'downloaded' ? 'تحديث جاهز للتثبيت' : (updaterState?.status === 'downloading' ? 'جاري التحميل في الخلفية' : 'متصل بخادم التحديثات')}</span>
                     </div>
                   </div>
                   <div style={{ background: 'var(--bg-card-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>قناة التوزيع والتحديث</div>
-                    <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-main)', marginTop: '6px' }}>GitHub Releases / Auto-Update</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>قناة التحديث (Channel)</div>
+                    <select
+                      value={updateChannel}
+                      onChange={(e) => handleChannelChange(e.target.value as any)}
+                      style={{
+                        width: '100%',
+                        marginTop: '4px',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--text-main)',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                      }}
+                    >
+                      <option value="stable">الإصدارات المستقرة (Stable)</option>
+                      <option value="beta">الإصدارات التجريبية (Beta)</option>
+                    </select>
                   </div>
                 </div>
 
@@ -632,7 +621,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={handleCheckUpdate}
-                    disabled={checkingUpdate}
+                    disabled={checkingUpdate || updaterState?.status === 'downloading'}
                     className="btn-cyan-primary"
                     style={{ minHeight: '42px', padding: '0 20px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800 }}
                   >
@@ -641,55 +630,46 @@ export default function SettingsPage() {
                   </button>
                 </div>
 
-                {updateInfo && (
-                  <div style={{ marginTop: '16px', background: updateInfo.hasUpdate ? 'rgba(2, 132, 199, 0.08)' : 'rgba(16, 185, 129, 0.08)', border: `1px solid ${updateInfo.hasUpdate ? '#0284c7' : '#10b981'}`, borderRadius: '10px', padding: '16px' }}>
+                {updaterState && (updaterState.latestVersion || updaterState.status === 'downloading' || updaterState.status === 'downloaded') && (
+                  <div style={{ marginTop: '16px', background: updaterState.status === 'downloaded' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(2, 132, 199, 0.08)', border: `1px solid ${updaterState.status === 'downloaded' ? '#10b981' : '#0284c7'}`, borderRadius: '10px', padding: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                      <div style={{ fontWeight: 800, color: updateInfo.hasUpdate ? '#38bdf8' : '#34d399', fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {updateInfo.hasUpdate ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
-                        <span>{updateInfo.hasUpdate ? `يوجد تحديث أحدث متاح: ${updateInfo.latestVersion}` : `نظام المختبر لديك يعمل بأحدث إصدار رسمي (${updateInfo.currentVersion})`}</span>
+                      <div style={{ fontWeight: 800, color: updaterState.status === 'downloaded' ? '#34d399' : '#38bdf8', fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {updaterState.status === 'downloaded' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                        <span>
+                          {updaterState.status === 'downloaded'
+                            ? `اكتمل تحميل التحديث (الإصدار ${updaterState.latestVersion}) وهو جاهز للتثبيت`
+                            : `يتوفر تحديث جديد: ${updaterState.latestVersion}`}
+                        </span>
                       </div>
-                      {updateInfo.hasUpdate && (
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          تحديث محلي آمن مع الاحتفاظ التام بكافة البيانات وقاعدة البيانات
-                        </div>
-                      )}
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        تحديث آمن مع الاحتفاظ التام بكافة البيانات وقواعد البيانات
+                      </div>
                     </div>
 
-                    <p style={{ fontSize: '12px', color: 'var(--text-main)', margin: '8px 0 14px 0', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{updateInfo.releaseNotes}</p>
-
-                    {/* Auto-reconnecting status banner if internet drops */}
-                    {downloadState.status === 'reconnecting' && (
-                      <div style={{ background: 'rgba(234, 179, 8, 0.15)', border: '1px solid #eab308', borderRadius: '8px', padding: '10px 14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px', color: '#facc15', fontSize: '12px' }}>
-                        <RefreshCw size={16} className="animate-spin" />
-                        <span>انقطع اتصال الإنترنت، جاري محاولة الاستئناف التلقائي فور عودة الاتصال [المحاولة {downloadState.retryCount}/25]...</span>
-                      </div>
+                    {updaterState.releaseNotes && (
+                      <p style={{ fontSize: '12px', color: 'var(--text-main)', margin: '8px 0 14px 0', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                        {updaterState.releaseNotes}
+                      </p>
                     )}
 
-                    {/* Progress Bar & Real-Time Stats (During Download or Reconnecting or Completed) */}
-                    {(downloadState.status === 'downloading' || downloadState.status === 'reconnecting' || downloadState.status === 'completed') && (
+                    {/* Progress Bar & Real-Time Stats */}
+                    {updaterState.status === 'downloading' && updaterState.progress && (
                       <div style={{ background: 'var(--bg-card-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '14px', marginBottom: '14px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '12px' }}>
                           <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>
-                            {downloadState.status === 'completed'
-                              ? 'اكتمل التحميل بنجاح (100%)'
-                              : downloadState.status === 'reconnecting'
-                              ? 'في انتظار عودة الإنترنت للاستئناف...'
-                              : 'جاري تنزيل التحديث في الخلفية...'}
+                            جاري تنزيل التحديث في الخلفية...
                           </span>
-                          <span style={{ fontWeight: 800, color: downloadState.status === 'completed' ? '#10b981' : 'var(--accent-cyan)' }}>
-                            {downloadState.progressPercent.toFixed(1)}%
+                          <span style={{ fontWeight: 800, color: 'var(--accent-cyan)' }}>
+                            {updaterState.progress.percent}%
                           </span>
                         </div>
 
-                        {/* Progress bar container */}
                         <div style={{ width: '100%', height: '8px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '999px', overflow: 'hidden' }}>
                           <div
                             style={{
-                              width: `${downloadState.progressPercent}%`,
+                              width: `${updaterState.progress.percent}%`,
                               height: '100%',
-                              background: downloadState.status === 'completed'
-                                ? 'linear-gradient(90deg, #10b981, #34d399)'
-                                : 'linear-gradient(90deg, #0284c7, #06b6d4)',
+                              background: 'linear-gradient(90deg, #0284c7, #06b6d4)',
                               transition: 'width 0.3s ease',
                             }}
                           />
@@ -697,94 +677,67 @@ export default function SettingsPage() {
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
                           <span>
-                            تم تنزيل: {(downloadState.transferredBytes / (1024 * 1024)).toFixed(1)} ميغابايت
-                            {downloadState.totalBytes > 0 && ` من أصل ${(downloadState.totalBytes / (1024 * 1024)).toFixed(1)} ميغابايت`}
+                            تم تنزيل: {(updaterState.progress.transferred / (1024 * 1024)).toFixed(1)} ميغابايت
+                            {updaterState.progress.total > 0 && ` من أصل ${(updaterState.progress.total / (1024 * 1024)).toFixed(1)} ميغابايت`}
                           </span>
-                          {downloadState.status === 'downloading' && (
+                          {updaterState.progress.bytesPerSecond > 0 && (
                             <span>
-                              السرعة: {(downloadState.speedBps / (1024 * 1024)).toFixed(2)} MB/s
+                              السرعة: {(updaterState.progress.bytesPerSecond / (1024 * 1024)).toFixed(2)} MB/s
                             </span>
                           )}
                         </div>
                       </div>
                     )}
 
-                    {/* Action Buttons: Transition from 'تحميل التحديث' to 'تثبيت التحديث' */}
-                    {updateInfo.hasUpdate && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                        {downloadState.status === 'completed' ? (
-                          // Transition to Install Button
-                          <button
-                            type="button"
-                            onClick={handleExecuteInstall}
-                            disabled={installing}
-                            className="btn-cyan-primary"
-                            style={{
-                              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                              borderColor: '#10b981',
-                              minHeight: '40px',
-                              padding: '0 20px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              fontWeight: 800,
-                              fontSize: '13px',
-                              color: '#fff',
-                            }}
-                          >
-                            <Zap size={16} />
-                            <span>{installing ? 'جاري بدء التثبيت...' : 'تثبيت التحديث الآن (Install Update)'}</span>
-                          </button>
-                        ) : (
-                          // Download Button
-                          <button
-                            type="button"
-                            onClick={handleStartInAppDownload}
-                            disabled={startingDownload || downloadState.status === 'downloading' || downloadState.status === 'reconnecting'}
-                            className="btn-cyan-primary"
-                            style={{ minHeight: '40px', padding: '0 20px', display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: '13px' }}
-                          >
-                            {startingDownload || downloadState.status === 'downloading' || downloadState.status === 'reconnecting' ? (
-                              <RefreshCw size={15} className="animate-spin" />
-                            ) : (
-                              <Download size={15} />
-                            )}
-                            <span>
-                              {downloadState.status === 'downloading'
-                                ? `جاري التحميل (${downloadState.progressPercent.toFixed(0)}%)...`
-                                : downloadState.status === 'reconnecting'
-                                ? 'جاري الاستئناف التلقائي...'
-                                : `تحميل التحديث الجديد (${updateInfo.latestVersion})`}
-                            </span>
-                          </button>
-                        )}
+                    {/* Action Buttons */}
+                    {updaterState.status === 'downloaded' && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
+                        <button
+                          type="button"
+                          onClick={handleExecuteInstall}
+                          disabled={installing}
+                          className="btn-cyan-primary"
+                          style={{
+                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            borderColor: '#10b981',
+                            minHeight: '40px',
+                            padding: '0 20px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontWeight: 800,
+                            fontSize: '13px',
+                            color: '#fff',
+                          }}
+                        >
+                          <Zap size={16} />
+                          <span>{installing ? 'جاري إعادة التشغيل والتثبيت...' : 'إعادة التشغيل والتحديث الآن (Restart & Update)'}</span>
+                        </button>
+                        <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                          أو يمكنك المتابعة وسيتم التثبيت تلقائياً عند إغلاق البرنامج لاحقاً.
+                        </span>
+                      </div>
+                    )}
 
-                        {/* Dual-track parallel fallback: direct browser download link */}
-                        {updateInfo.downloadUrl && (
-                          <a
-                            href={updateInfo.downloadUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              background: 'transparent',
-                              border: '1px solid var(--border-color)',
-                              color: 'var(--text-muted)',
-                              padding: '8px 14px',
-                              borderRadius: '6px',
-                              fontSize: '11.5px',
-                              fontWeight: 700,
-                              textDecoration: 'none',
-                              transition: 'all 0.2s ease',
-                            }}
-                            title="رابط تحميل خارجي مباشر عبر المتصفح"
-                          >
-                            <ExternalLink size={13} />
-                            <span>تحميل يدوي خارجي عبر المتصفح (Dual-Track Fallback)</span>
-                          </a>
-                        )}
+                    {/* Browser Fallback direct download link */}
+                    {updaterState.downloadUrl && (
+                      <div style={{ marginTop: '10px' }}>
+                        <a
+                          href={updaterState.downloadUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            fontSize: '12px',
+                            color: 'var(--accent-cyan)',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          <Download size={14} />
+                          <span>تحميل حزمة التثبيت المستقلة مباشرة من GitHub (تثبيت يدوي)</span>
+                        </a>
                       </div>
                     )}
                   </div>

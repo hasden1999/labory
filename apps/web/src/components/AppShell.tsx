@@ -7,6 +7,7 @@ import GlobalQuickBar from './GlobalQuickBar';
 import { useTheme } from './ThemeContext';
 import { useLab } from './LabContext';
 import LabryoLogo from './LabryoLogo';
+import UpdateNotificationBanner from './common/UpdateNotificationBanner';
 import {
   LayoutDashboard,
   FlaskConical,
@@ -80,7 +81,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', color: 'var(--text-main)', fontFamily: 'var(--font-family)' }}>
-      
+      <UpdateNotificationBanner />
       {/* 1. TOP SLEEK NAVIGATION BAR (Concept Mockup Style) */}
       <header
         style={{

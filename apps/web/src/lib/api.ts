@@ -139,8 +139,10 @@ export async function apiRequest<T = any>(
     });
 
     if (!response.ok) {
-      const fallback = handleClientFallback(cleanEndpoint);
-      if (fallback !== null) return fallback as unknown as T;
+      if (method === 'GET') {
+        const fallback = handleClientFallback(cleanEndpoint);
+        if (fallback !== null) return fallback as unknown as T;
+      }
 
       let errMessage = 'حدث خطأ في الاتصال بالسيرفر';
       let errJson: any = null;
@@ -158,15 +160,17 @@ export async function apiRequest<T = any>(
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
       const jsonRes = await response.json();
-      if (cleanEndpoint.includes('/tests') && (!jsonRes?.tests || jsonRes.tests.length === 0)) {
+      if (method === 'GET' && cleanEndpoint.includes('/tests') && (!jsonRes?.tests || jsonRes.tests.length === 0)) {
         return handleClientFallback(cleanEndpoint) as unknown as T;
       }
       return jsonRes as T;
     }
     return (await response.text()) as unknown as T;
   } catch (err) {
-    const fallback = handleClientFallback(cleanEndpoint);
-    if (fallback !== null) return fallback as unknown as T;
+    if (method === 'GET') {
+      const fallback = handleClientFallback(cleanEndpoint);
+      if (fallback !== null) return fallback as unknown as T;
+    }
     throw err;
   }
 }

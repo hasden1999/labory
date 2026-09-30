@@ -13,6 +13,10 @@ import {
   syncSettingsToSqlite,
   syncExpenseToSqlite,
   deleteExpenseFromSqlite,
+  syncTestToSqlite,
+  deleteTestFromSqlite,
+  syncPanelToSqlite,
+  deletePanelFromSqlite,
 } from './sqliteSync';
 import { prisma } from './prisma';
 import fs from 'fs';
@@ -1071,6 +1075,153 @@ export function deletePatient(id: string): boolean {
   store.patients.splice(index, 1);
   saveStoreToFile();
   deletePatientFromSqlite(id).catch((e) => console.warn('[SqliteSync] deletePatient error:', e?.message));
+  return true;
+}
+
+export function createTestInStore(data: any): any {
+  const store = getStore();
+  const id = data.id || `test_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const newTest = {
+    id,
+    code: data.code || null,
+    name: data.name,
+    arabicName: data.arabicName || null,
+    category: data.category || 'عام',
+    price: Number(data.price) || 0,
+    costEstimate: data.costEstimate !== undefined && data.costEstimate !== null ? Number(data.costEstimate) : 0,
+    refRangeLow: data.refRangeLow !== undefined && data.refRangeLow !== null && data.refRangeLow !== '' ? Number(data.refRangeLow) : null,
+    refRangeHigh: data.refRangeHigh !== undefined && data.refRangeHigh !== null && data.refRangeHigh !== '' ? Number(data.refRangeHigh) : null,
+    normalMaleLow: data.normalMaleLow !== undefined && data.normalMaleLow !== null && data.normalMaleLow !== '' ? Number(data.normalMaleLow) : null,
+    normalMaleHigh: data.normalMaleHigh !== undefined && data.normalMaleHigh !== null && data.normalMaleHigh !== '' ? Number(data.normalMaleHigh) : null,
+    normalFemaleLow: data.normalFemaleLow !== undefined && data.normalFemaleLow !== null && data.normalFemaleLow !== '' ? Number(data.normalFemaleLow) : null,
+    normalFemaleHigh: data.normalFemaleHigh !== undefined && data.normalFemaleHigh !== null && data.normalFemaleHigh !== '' ? Number(data.normalFemaleHigh) : null,
+    criticalLow: data.criticalLow !== undefined && data.criticalLow !== null && data.criticalLow !== '' ? Number(data.criticalLow) : null,
+    criticalHigh: data.criticalHigh !== undefined && data.criticalHigh !== null && data.criticalHigh !== '' ? Number(data.criticalHigh) : null,
+    refRangeText: data.refRangeText || null,
+    unit: data.unit || null,
+    sampleType: data.sampleType || 'مصل الدم (Serum)',
+    active: data.active !== undefined ? Boolean(data.active) : true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  store.tests.push(newTest);
+  saveStoreToFile();
+  syncTestToSqlite(newTest).catch((e) => console.warn('[SqliteSync] createTest error:', e?.message));
+  return newTest;
+}
+
+export function updateTestInStore(id: string, data: any): any | null {
+  const store = getStore();
+  const index = store.tests.findIndex(t => t.id === id);
+  if (index === -1) return null;
+  const existing = store.tests[index];
+  const updated = {
+    ...existing,
+    ...(data.code !== undefined ? { code: data.code || null } : {}),
+    ...(data.name !== undefined ? { name: data.name } : {}),
+    ...(data.arabicName !== undefined ? { arabicName: data.arabicName || null } : {}),
+    ...(data.category !== undefined ? { category: data.category } : {}),
+    ...(data.price !== undefined ? { price: Number(data.price) } : {}),
+    ...(data.costEstimate !== undefined ? { costEstimate: Number(data.costEstimate) } : {}),
+    ...(data.refRangeLow !== undefined ? { refRangeLow: data.refRangeLow !== '' && data.refRangeLow !== null ? Number(data.refRangeLow) : null } : {}),
+    ...(data.refRangeHigh !== undefined ? { refRangeHigh: data.refRangeHigh !== '' && data.refRangeHigh !== null ? Number(data.refRangeHigh) : null } : {}),
+    ...(data.normalMaleLow !== undefined ? { normalMaleLow: data.normalMaleLow !== '' && data.normalMaleLow !== null ? Number(data.normalMaleLow) : null } : {}),
+    ...(data.normalMaleHigh !== undefined ? { normalMaleHigh: data.normalMaleHigh !== '' && data.normalMaleHigh !== null ? Number(data.normalMaleHigh) : null } : {}),
+    ...(data.normalFemaleLow !== undefined ? { normalFemaleLow: data.normalFemaleLow !== '' && data.normalFemaleLow !== null ? Number(data.normalFemaleLow) : null } : {}),
+    ...(data.normalFemaleHigh !== undefined ? { normalFemaleHigh: data.normalFemaleHigh !== '' && data.normalFemaleHigh !== null ? Number(data.normalFemaleHigh) : null } : {}),
+    ...(data.criticalLow !== undefined ? { criticalLow: data.criticalLow !== '' && data.criticalLow !== null ? Number(data.criticalLow) : null } : {}),
+    ...(data.criticalHigh !== undefined ? { criticalHigh: data.criticalHigh !== '' && data.criticalHigh !== null ? Number(data.criticalHigh) : null } : {}),
+    ...(data.refRangeText !== undefined ? { refRangeText: data.refRangeText } : {}),
+    ...(data.unit !== undefined ? { unit: data.unit } : {}),
+    ...(data.sampleType !== undefined ? { sampleType: data.sampleType } : {}),
+    ...(data.active !== undefined ? { active: Boolean(data.active) } : {}),
+    updatedAt: new Date().toISOString(),
+  };
+
+  store.tests[index] = updated;
+  saveStoreToFile();
+  syncTestToSqlite(updated).catch((e) => console.warn('[SqliteSync] updateTest error:', e?.message));
+  return updated;
+}
+
+export function deleteTestInStore(id: string): boolean {
+  const store = getStore();
+  const index = store.tests.findIndex(t => t.id === id);
+  if (index === -1) return false;
+  store.tests[index].active = false;
+  saveStoreToFile();
+  deleteTestFromSqlite(id).catch((e) => console.warn('[SqliteSync] deleteTest error:', e?.message));
+  return true;
+}
+
+export function createPanelInStore(data: any): any {
+  const store = getStore();
+  const id = data.id || `panel_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const newPanel = {
+    id,
+    name: data.name,
+    code: data.code || null,
+    shortName: data.shortName || null,
+    category: data.category || null,
+    department: data.department || null,
+    isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
+    description: data.description || null,
+    price: Number(data.price) || 0,
+    testIds: data.testIds || [],
+    items: (data.testIds || []).map((tId: string) => ({
+      panelId: id,
+      testId: tId,
+      test: store.tests.find(t => t.id === tId),
+    })),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  store.panels.push(newPanel);
+  saveStoreToFile();
+  syncPanelToSqlite(newPanel).catch((e) => console.warn('[SqliteSync] createPanel error:', e?.message));
+  return newPanel;
+}
+
+export function updatePanelInStore(id: string, data: any): any | null {
+  const store = getStore();
+  const index = store.panels.findIndex(p => p.id === id);
+  if (index === -1) return null;
+  const existing = store.panels[index];
+  const testIds = data.testIds !== undefined ? data.testIds : existing.testIds;
+  const updated = {
+    ...existing,
+    ...(data.name !== undefined ? { name: data.name } : {}),
+    ...(data.code !== undefined ? { code: data.code } : {}),
+    ...(data.shortName !== undefined ? { shortName: data.shortName } : {}),
+    ...(data.category !== undefined ? { category: data.category } : {}),
+    ...(data.department !== undefined ? { department: data.department } : {}),
+    ...(data.isActive !== undefined ? { isActive: Boolean(data.isActive) } : {}),
+    ...(data.description !== undefined ? { description: data.description } : {}),
+    ...(data.price !== undefined ? { price: Number(data.price) } : {}),
+    testIds,
+    items: (testIds || []).map((tId: string) => ({
+      panelId: id,
+      testId: tId,
+      test: store.tests.find(t => t.id === tId),
+    })),
+    updatedAt: new Date().toISOString(),
+  };
+
+  store.panels[index] = updated;
+  saveStoreToFile();
+  syncPanelToSqlite(updated).catch((e) => console.warn('[SqliteSync] updatePanel error:', e?.message));
+  return updated;
+}
+
+export function deletePanelInStore(id: string): boolean {
+  const store = getStore();
+  const index = store.panels.findIndex(p => p.id === id);
+  if (index === -1) return false;
+  store.panels.splice(index, 1);
+  saveStoreToFile();
+  deletePanelFromSqlite(id).catch((e) => console.warn('[SqliteSync] deletePanel error:', e?.message));
   return true;
 }
 

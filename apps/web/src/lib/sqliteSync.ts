@@ -552,3 +552,120 @@ export async function deleteExpenseFromSqlite(id: string): Promise<void> {
   }
 }
 
+export async function syncTestToSqlite(t: any): Promise<void> {
+  if (!t || !t.id) return;
+  try {
+    await initDbWAL();
+    await prisma.testCatalog.upsert({
+      where: { id: t.id },
+      update: {
+        code: t.code || null,
+        name: t.name,
+        arabicName: t.arabicName || null,
+        category: t.category || 'عام',
+        price: Number(t.price) || 0,
+        costEstimate: t.costEstimate !== undefined && t.costEstimate !== null ? Number(t.costEstimate) : 0,
+        refRangeLow: t.refRangeLow !== undefined && t.refRangeLow !== null && t.refRangeLow !== '' ? Number(t.refRangeLow) : null,
+        refRangeHigh: t.refRangeHigh !== undefined && t.refRangeHigh !== null && t.refRangeHigh !== '' ? Number(t.refRangeHigh) : null,
+        normalMaleLow: t.normalMaleLow !== undefined && t.normalMaleLow !== null && t.normalMaleLow !== '' ? Number(t.normalMaleLow) : null,
+        normalMaleHigh: t.normalMaleHigh !== undefined && t.normalMaleHigh !== null && t.normalMaleHigh !== '' ? Number(t.normalMaleHigh) : null,
+        normalFemaleLow: t.normalFemaleLow !== undefined && t.normalFemaleLow !== null && t.normalFemaleLow !== '' ? Number(t.normalFemaleLow) : null,
+        normalFemaleHigh: t.normalFemaleHigh !== undefined && t.normalFemaleHigh !== null && t.normalFemaleHigh !== '' ? Number(t.normalFemaleHigh) : null,
+        criticalLow: t.criticalLow !== undefined && t.criticalLow !== null && t.criticalLow !== '' ? Number(t.criticalLow) : null,
+        criticalHigh: t.criticalHigh !== undefined && t.criticalHigh !== null && t.criticalHigh !== '' ? Number(t.criticalHigh) : null,
+        refRangeText: t.refRangeText || null,
+        unit: t.unit || null,
+        sampleType: t.sampleType || 'مصل الدم (Serum)',
+        active: t.active !== undefined ? Boolean(t.active) : true,
+      },
+      create: {
+        id: t.id,
+        code: t.code || null,
+        name: t.name,
+        arabicName: t.arabicName || null,
+        category: t.category || 'عام',
+        price: Number(t.price) || 0,
+        costEstimate: t.costEstimate !== undefined && t.costEstimate !== null ? Number(t.costEstimate) : 0,
+        refRangeLow: t.refRangeLow !== undefined && t.refRangeLow !== null && t.refRangeLow !== '' ? Number(t.refRangeLow) : null,
+        refRangeHigh: t.refRangeHigh !== undefined && t.refRangeHigh !== null && t.refRangeHigh !== '' ? Number(t.refRangeHigh) : null,
+        normalMaleLow: t.normalMaleLow !== undefined && t.normalMaleLow !== null && t.normalMaleLow !== '' ? Number(t.normalMaleLow) : null,
+        normalMaleHigh: t.normalMaleHigh !== undefined && t.normalMaleHigh !== null && t.normalMaleHigh !== '' ? Number(t.normalMaleHigh) : null,
+        normalFemaleLow: t.normalFemaleLow !== undefined && t.normalFemaleLow !== null && t.normalFemaleLow !== '' ? Number(t.normalFemaleLow) : null,
+        normalFemaleHigh: t.normalFemaleHigh !== undefined && t.normalFemaleHigh !== null && t.normalFemaleHigh !== '' ? Number(t.normalFemaleHigh) : null,
+        criticalLow: t.criticalLow !== undefined && t.criticalLow !== null && t.criticalLow !== '' ? Number(t.criticalLow) : null,
+        criticalHigh: t.criticalHigh !== undefined && t.criticalHigh !== null && t.criticalHigh !== '' ? Number(t.criticalHigh) : null,
+        refRangeText: t.refRangeText || null,
+        unit: t.unit || null,
+        sampleType: t.sampleType || 'مصل الدم (Serum)',
+        active: t.active !== undefined ? Boolean(t.active) : true,
+      },
+    });
+  } catch (e: any) {
+    console.error('[SQLite Sync] Failed to sync test to SQLite:', e?.message);
+  }
+}
+
+export async function deleteTestFromSqlite(id: string): Promise<void> {
+  if (!id) return;
+  try {
+    await initDbWAL();
+    await prisma.testCatalog.update({
+      where: { id },
+      data: { active: false },
+    });
+  } catch (e: any) {
+    console.error('[SQLite Sync] Failed to deactivate test in SQLite:', e?.message);
+  }
+}
+
+export async function syncPanelToSqlite(p: any): Promise<void> {
+  if (!p || !p.id) return;
+  try {
+    await initDbWAL();
+    await prisma.testPanel.upsert({
+      where: { id: p.id },
+      update: {
+        name: p.name,
+        description: p.description || null,
+        price: Number(p.price) || 0,
+      },
+      create: {
+        id: p.id,
+        name: p.name,
+        description: p.description || null,
+        price: Number(p.price) || 0,
+      },
+    });
+    if (p.testIds && Array.isArray(p.testIds)) {
+      await prisma.testPanelItem.deleteMany({ where: { panelId: p.id } });
+      for (const tId of p.testIds) {
+        try {
+          const testExists = await prisma.test.findUnique({ where: { id: tId }, select: { id: true } });
+          if (testExists) {
+            await prisma.testPanelItem.create({
+              data: {
+                panelId: p.id,
+                testId: tId,
+              }
+            });
+          }
+        } catch {}
+      }
+    }
+  } catch (e: any) {
+    console.error('[SQLite Sync] Failed to sync panel to SQLite:', e?.message);
+  }
+}
+
+export async function deletePanelFromSqlite(id: string): Promise<void> {
+  if (!id) return;
+  try {
+    await initDbWAL();
+    await prisma.testPanelItem.deleteMany({ where: { panelId: id } });
+    await prisma.testPanel.delete({ where: { id } });
+  } catch (e: any) {
+    console.error('[SQLite Sync] Failed to delete panel from SQLite:', e?.message);
+  }
+}
+
+

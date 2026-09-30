@@ -21,8 +21,7 @@
       "normalRange": "0.2 - 2.0",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "1667-5"
+      "active": true
     },
     {
       "id": "t-u-phos-24h",
@@ -45,8 +44,7 @@
       "normalRange": "0.4 - 1.3",
       "unit": "g/24h",
       "sampleType": "إدرار 24 ساعة",
-      "active": true,
-      "loincCode": "2779-7"
+      "active": true
     },
     {
       "id": "t-u-prot-24h",
@@ -69,8 +67,7 @@
       "normalRange": "< 150",
       "unit": "mg/24h",
       "sampleType": "إدرار 24 ساعة",
-      "active": true,
-      "loincCode": "2888-6"
+      "active": true
     },
     {
       "id": "t-acth",
@@ -93,8 +90,7 @@
       "normalRange": "7.2 - 63.3",
       "unit": "pg/mL",
       "sampleType": "بلازما (EDTA مبردة)",
-      "active": true,
-      "loincCode": "2141-0"
+      "active": true
     },
     {
       "id": "t-ag-ratio",
@@ -117,8 +113,7 @@
       "normalRange": "1.1 - 2.5",
       "unit": "Ratio",
       "sampleType": "محسوب",
-      "active": true,
-      "loincCode": "1759-0"
+      "active": true
     },
     {
       "id": "t-alp",
@@ -187,8 +182,7 @@
       "normalRange": "< 20 (Negative) / 20 - 39 (Weak Pos) / >= 40 (Strong Pos)",
       "unit": "U/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "33935-8"
+      "active": true
     },
     {
       "id": "t-dsdna",
@@ -211,8 +205,7 @@
       "normalRange": "< 25 (Negative) / 25 - 35 (Borderline) / > 35 (Positive)",
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "5130-0"
+      "active": true
     },
     {
       "id": "t-amh",
@@ -281,8 +274,7 @@
       "normalRange": "< 115 (Negative)",
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "8098-6"
+      "active": true
     },
     {
       "id": "t-anti-tpo",
@@ -305,8 +297,7 @@
       "normalRange": "< 34 (Negative)",
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "8099-4"
+      "active": true
     },
     {
       "id": "t-ana",
@@ -352,8 +343,7 @@
       "normalRange": "80 - 120",
       "unit": "%",
       "sampleType": "بلازما (Sodium Citrate)",
-      "active": true,
-      "loincCode": "3174-0"
+      "active": true
     },
     {
       "id": "t-b2m",
@@ -376,8 +366,7 @@
       "normalRange": "0.7 - 2.5",
       "unit": "mg/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "1952-1"
+      "active": true
     },
     {
       "id": "t-bhcg",
@@ -423,8 +412,7 @@
       "normalRange": "2.0 - 7.0",
       "unit": "min",
       "sampleType": "دم شعيري (Capillary)",
-      "active": true,
-      "loincCode": "34555-3"
+      "active": true
     },
     {
       "id": "t-bg",
@@ -516,8 +504,7 @@
       "normalRange": "Negative (< 1:80)",
       "unit": "Titer",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "5070-2"
+      "active": true
     },
     {
       "id": "t-cpep",
@@ -678,8 +665,7 @@
       "normalRange": "5.0 - 11.0",
       "unit": "min",
       "sampleType": "دم كامل (أنابيب زجاجية)",
-      "active": true,
-      "loincCode": "3187-2"
+      "active": true
     },
     {
       "id": "t-c3",
@@ -702,8 +688,7 @@
       "normalRange": "90 - 180",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "4485-9"
+      "active": true
     },
     {
       "id": "t-c4",
@@ -726,8 +711,7 @@
       "normalRange": "10 - 40",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "4498-2"
+      "active": true
     },
     {
       "id": "t-cbc",
@@ -773,8 +757,7 @@
       "normalRange": "30 - 200",
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "2157-6"
+      "active": true
     },
     {
       "id": "t-ckmb",
@@ -797,8 +780,7 @@
       "normalRange": "0 - 25",
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "2154-3"
+      "active": true
     },
     {
       "id": "t-cmv-g",
@@ -821,8 +803,7 @@
       "normalRange": "< 6.0 (Negative)",
       "unit": "U/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "25416-9"
+      "active": true
     },
     {
       "id": "t-cmv-m",
@@ -845,8 +826,7 @@
       "normalRange": "< 0.7 (Negative)",
       "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "25418-5"
+      "active": true
     },
     {
       "id": "t-ddimer",
@@ -892,8 +872,7 @@
       "normalRange": "80 - 450",
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "2198-0"
+      "active": true
     },
     {
       "id": "t-dengue",
@@ -916,8 +895,7 @@
       "normalRange": "Negative",
       "unit": "Qualitative",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "75378-0"
+      "active": true
     },
     {
       "id": "t-dirbil",
@@ -963,8 +941,53 @@
       "normalRange": "Negative for all 10 drug classes",
       "unit": "Qualitative",
       "sampleType": "إدرار طازج",
-      "active": true,
-      "loincCode": "69739-1"
+      "active": true
+    },
+    {
+      "id": "test_1790788415091_im6y5",
+      "code": "TEST_E2E_1790788415074",
+      "name": "E2E Automated Serum Biomarker",
+      "arabicName": "E2E Automated Serum Biomarker",
+      "category": "CHEMISTRY",
+      "price": 35000,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": null,
+      "refRangeHigh": null,
+      "normalMaleLow": null,
+      "normalMaleHigh": null,
+      "normalFemaleLow": null,
+      "normalFemaleHigh": null,
+      "criticalLow": null,
+      "criticalHigh": null,
+      "refRangeText": null,
+      "normalRange": null,
+      "unit": "ng/mL",
+      "sampleType": "Serum",
+      "active": true
+    },
+    {
+      "id": "test_1790788540254_0p64a",
+      "code": "TEST_E2E_1790788540237",
+      "name": "E2E Automated Serum Biomarker",
+      "arabicName": "E2E Automated Serum Biomarker",
+      "category": "CHEMISTRY",
+      "price": 35000,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": null,
+      "refRangeHigh": null,
+      "normalMaleLow": null,
+      "normalMaleHigh": null,
+      "normalFemaleLow": null,
+      "normalFemaleHigh": null,
+      "criticalLow": null,
+      "criticalHigh": null,
+      "refRangeText": null,
+      "normalRange": null,
+      "unit": "ng/mL",
+      "sampleType": "Serum",
+      "active": true
     },
     {
       "id": "t-ebv-vca",
@@ -987,8 +1010,7 @@
       "normalRange": "< 20 (Negative)",
       "unit": "U/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "22297-6"
+      "active": true
     },
     {
       "id": "t-esr",
@@ -1149,8 +1171,7 @@
       "normalRange": "200 - 400",
       "unit": "mg/dL",
       "sampleType": "بلازما (Sodium Citrate)",
-      "active": true,
-      "loincCode": "3255-7"
+      "active": true
     },
     {
       "id": "t-fsh",
@@ -1219,8 +1240,7 @@
       "normalRange": "0.0 - 0.9 (Free/Total Ratio > 25% Favorable)",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "10886-0"
+      "active": true
     },
     {
       "id": "t-free-testo",
@@ -1243,8 +1263,7 @@
       "normalRange": "8.8 - 27.0 (Male) / 0.2 - 4.1 (Female)",
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "2991-8"
+      "active": true
     },
     {
       "id": "t-ft4",
@@ -1589,8 +1608,7 @@
       "normalRange": "< 0.9 (Negative)",
       "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "26927-4"
+      "active": true
     },
     {
       "id": "t-hsv-m",
@@ -1613,8 +1631,7 @@
       "normalRange": "< 0.9 (Negative)",
       "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "26928-2"
+      "active": true
     },
     {
       "id": "t-hscrp",
@@ -1637,8 +1654,7 @@
       "normalRange": "< 1.0 (Low risk) / 1.0 - 3.0 (Avg) / > 3.0 (High)",
       "unit": "mg/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "30522-7"
+      "active": true
     },
     {
       "id": "t-gh",
@@ -1661,8 +1677,7 @@
       "normalRange": "0.05 - 5.0 (Basal Fasting)",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "2965-2"
+      "active": true
     },
     {
       "id": "cmt8fowsm0011ijmdf13h2j70",
@@ -1708,8 +1723,7 @@
       "normalRange": "115 - 307",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "2483-6"
+      "active": true
     },
     {
       "id": "t-pth",
@@ -1732,8 +1746,7 @@
       "normalRange": "15 - 65",
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "2731-8"
+      "active": true
     },
     {
       "id": "t-ca-ion",
@@ -1756,8 +1769,7 @@
       "normalRange": "1.15 - 1.33",
       "unit": "mmol/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "1994-3"
+      "active": true
     },
     {
       "id": "t-ldl",
@@ -1803,8 +1815,7 @@
       "normalRange": "140 - 280",
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "2532-0"
+      "active": true
     },
     {
       "id": "t-lh",
@@ -1850,8 +1861,7 @@
       "normalRange": "Negative",
       "unit": "Qualitative",
       "sampleType": "دم كامل (EDTA)",
-      "active": true,
-      "loincCode": "44558-5"
+      "active": true
     },
     {
       "id": "t-malb",
@@ -1897,8 +1907,7 @@
       "normalRange": "< 125 (Age < 75) / < 450 (Age >= 75)",
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "33762-6"
+      "active": true
     },
     {
       "id": "t-ogtt",
@@ -2013,8 +2022,7 @@
       "normalRange": "0.1 - 1.0 (Follicular) / 2.0 - 25.0 (Luteal)",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "2839-9"
+      "active": true
     },
     {
       "id": "t-prl",
@@ -2060,8 +2068,7 @@
       "normalRange": "70 - 140",
       "unit": "%",
       "sampleType": "بلازما (Sodium Citrate)",
-      "active": true,
-      "loincCode": "27817-6"
+      "active": true
     },
     {
       "id": "t-prot-s",
@@ -2084,8 +2091,7 @@
       "normalRange": "65 - 140",
       "unit": "%",
       "sampleType": "بلازما (Sodium Citrate)",
-      "active": true,
-      "loincCode": "27821-8"
+      "active": true
     },
     {
       "id": "t-pt",
@@ -2223,8 +2229,7 @@
       "normalRange": "> 10.0 (Immune) / < 10.0 (Non-immune)",
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "25528-1"
+      "active": true
     },
     {
       "id": "t-rub-m",
@@ -2247,8 +2252,7 @@
       "normalRange": "< 0.8 (Negative)",
       "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "25530-7"
+      "active": true
     },
     {
       "id": "t-got",
@@ -2363,8 +2367,7 @@
       "normalRange": "28 - 100",
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "1798-8"
+      "active": true
     },
     {
       "id": "t-calcitonin",
@@ -2387,8 +2390,7 @@
       "normalRange": "< 10.0 (Male) / < 5.0 (Female)",
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "1992-7"
+      "active": true
     },
     {
       "id": "t-cl",
@@ -2434,8 +2436,7 @@
       "normalRange": "70 - 140",
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "2147-7"
+      "active": true
     },
     {
       "id": "t-cort-pm",
@@ -2458,8 +2459,7 @@
       "normalRange": "3.0 - 15.0",
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "2142-8"
+      "active": true
     },
     {
       "id": "t-cort-am",
@@ -2482,8 +2482,7 @@
       "normalRange": "6.0 - 23.0",
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "2143-6"
+      "active": true
     },
     {
       "id": "t-creat",
@@ -2552,8 +2551,7 @@
       "normalRange": "3.0 - 20.0",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "2284-8"
+      "active": true
     },
     {
       "id": "t-iron",
@@ -2599,8 +2597,7 @@
       "normalRange": "13 - 60",
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "3040-3"
+      "active": true
     },
     {
       "id": "t-mg",
@@ -2646,8 +2643,7 @@
       "normalRange": "25 - 72",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "2639-3"
+      "active": true
     },
     {
       "id": "t-osm",
@@ -2670,8 +2666,7 @@
       "normalRange": "275 - 295",
       "unit": "mOsm/kg",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "2692-2"
+      "active": true
     },
     {
       "id": "t-phos",
@@ -2809,8 +2804,7 @@
       "normalRange": "14.0 - 19.0",
       "unit": "sec",
       "sampleType": "بلازما (Sodium Citrate)",
-      "active": true,
-      "loincCode": "3243-3"
+      "active": true
     },
     {
       "id": "t-tsh",
@@ -2902,8 +2896,7 @@
       "normalRange": "5.0 - 15.0",
       "unit": "umol/L",
       "sampleType": "بلازما (EDTA مفصولة فوراً)",
-      "active": true,
-      "loincCode": "13965-9"
+      "active": true
     },
     {
       "id": "t-tibc",
@@ -3041,8 +3034,7 @@
       "normalRange": "< 7.2 (Negative) / >= 8.8 (Positive)",
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "22576-3"
+      "active": true
     },
     {
       "id": "t-toxo-m",
@@ -3065,8 +3057,7 @@
       "normalRange": "< 0.8 (Negative) / >= 1.0 (Positive)",
       "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "25537-2"
+      "active": true
     },
     {
       "id": "t-tpha",
@@ -3089,8 +3080,7 @@
       "normalRange": "Negative (< 1:80)",
       "unit": "Titer",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "22587-0"
+      "active": true
     },
     {
       "id": "t-tg",
@@ -3159,8 +3149,7 @@
       "normalRange": "Negative",
       "unit": "Qualitative",
       "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "loincCode": "49007-8"
+      "active": true
     },
     {
       "id": "t-upcr",
@@ -3183,8 +3172,7 @@
       "normalRange": "< 200",
       "unit": "mg/g",
       "sampleType": "إدرار عشوائي",
-      "active": true,
-      "loincCode": "2890-2"
+      "active": true
     },
     {
       "id": "t-vdrl",
@@ -3326,6 +3314,13 @@
     }
   ],
   "panels": [
+    {
+      "id": "panel_1790788540269_s46rn",
+      "name": "E2E Comprehensive Biomarker Panel",
+      "description": null,
+      "price": 75000,
+      "testIds": []
+    },
     {
       "id": "cmt8fowxd002fijmdn9ua0hmy",
       "name": "الفحص الشامل للاطمئنان والصحة العامة (Comprehensive Health Check)",
@@ -9213,8 +9208,5 @@
       "paymentMethod": "نقداً",
       "date": "2026-08-25T08:59:44.025Z"
     }
-  ],
-  "incomingResults": [],
-  "deviceRawLogs": [],
-  "debtTransactions": []
+  ]
 }

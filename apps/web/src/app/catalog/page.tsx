@@ -23,6 +23,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useLab } from '../../components/LabContext';
+import { catalogCache } from '../../lib/catalogCache';
 
 export default function CatalogPage() {
   const toast = useToast();
@@ -167,7 +168,8 @@ export default function CatalogPage() {
       }
 
       setShowTestModal(false);
-      loadCatalog();
+      await loadCatalog();
+      await catalogCache.refresh(true);
     } catch (err: any) {
       toast.error(err.message || 'خطأ أثناء حفظ الفحص', 'فشل العملية');
     }
@@ -179,7 +181,8 @@ export default function CatalogPage() {
       await apiRequest(`/tests/${deleteTestId}`, 'DELETE');
       toast.success('تم حذف الفحص بنجاح!', 'تم الحذف');
       setDeleteTestId(null);
-      loadCatalog();
+      await loadCatalog();
+      await catalogCache.refresh(true);
     } catch (err: any) {
       toast.error(err.message || 'خطأ أثناء حذف الفحص', 'فشل الحذف');
     }
@@ -228,7 +231,8 @@ export default function CatalogPage() {
       }
 
       setShowPanelModal(false);
-      loadCatalog();
+      await loadCatalog();
+      await catalogCache.refresh(true);
     } catch (err: any) {
       toast.error(err.message || 'خطأ أثناء حفظ الباقة', 'فشل العملية');
     }
@@ -240,7 +244,8 @@ export default function CatalogPage() {
       await apiRequest(`/tests/panels/${deletePanelId}`, 'DELETE');
       toast.success('تم حذف الباقة بنجاح!', 'تم الحذف');
       setDeletePanelId(null);
-      loadCatalog();
+      await loadCatalog();
+      await catalogCache.refresh(true);
     } catch (err: any) {
       toast.error(err.message || 'خطأ أثناء حذف الباقة', 'فشل الحذف');
     }
