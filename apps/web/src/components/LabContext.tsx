@@ -57,7 +57,41 @@ export interface LabProfile {
   fontFamily?: 'Tajawal' | 'Cairo' | 'IBM Plex Sans Arabic' | 'Almarai' | 'System';
   fontSize?: 'SMALL' | 'MEDIUM' | 'LARGE';
   installedVersion?: string;
+
+  // Milestone: Two-Tab Form Design System (Visual Styling & Columns Layout)
+  formBgColor?: string;
+  headerBgColor?: string;
+  headerTextColor?: string;
+  textColor?: string;
+  borderColor?: string;
+  reportTitleFontSize?: number;
+  testNameFontSize?: number;
+  resultValueFontSize?: number;
+  unitFontSize?: number;
+  refRangeFontSize?: number;
+  testNameFontWeight?: 'normal' | 'bold';
+  resultValueFontWeight?: 'normal' | 'bold';
+  tableColumns?: FormTableColumn[];
+  groupByCategory?: boolean;
+  tableRowBorders?: boolean;
+  tableZebraStriping?: boolean;
+  tableRowSpacing?: 'COMPACT' | 'COMFORTABLE' | 'RELAXED';
 }
+
+export interface FormTableColumn {
+  id: 'testName' | 'result' | 'unit' | 'refRange' | 'notes';
+  label: string;
+  visible: boolean;
+  align: 'left' | 'center' | 'right';
+}
+
+export const DEFAULT_TABLE_COLUMNS: FormTableColumn[] = [
+  { id: 'testName', label: 'INVESTIGATION (اسم التحليل)', visible: true, align: 'left' },
+  { id: 'result', label: 'RESULT (النتيجة)', visible: true, align: 'left' },
+  { id: 'unit', label: 'UNIT (الوحدة)', visible: true, align: 'left' },
+  { id: 'refRange', label: 'REFERENCE RANGE (المعدل الطبيعي)', visible: true, align: 'left' },
+  { id: 'notes', label: 'NOTES (الملاحظات السريرية)', visible: false, align: 'left' },
+];
 
 const DEFAULT_LAB_PROFILE: LabProfile = {
   labName: '',
@@ -105,6 +139,25 @@ const DEFAULT_LAB_PROFILE: LabProfile = {
   watermarkSize: 46,
   watermarkColor: '#0f172a',
   logoUrl: '',
+
+  // Form Design Defaults
+  formBgColor: '#ffffff',
+  headerBgColor: '#0284c7',
+  headerTextColor: '#ffffff',
+  textColor: '#0f172a',
+  borderColor: '#e2e8f0',
+  reportTitleFontSize: 20,
+  testNameFontSize: 12,
+  resultValueFontSize: 12,
+  unitFontSize: 11,
+  refRangeFontSize: 11,
+  testNameFontWeight: 'bold',
+  resultValueFontWeight: 'normal',
+  tableColumns: DEFAULT_TABLE_COLUMNS,
+  groupByCategory: false,
+  tableRowBorders: true,
+  tableZebraStriping: false,
+  tableRowSpacing: 'COMFORTABLE',
 };
 
 interface LabContextType {
@@ -167,32 +220,11 @@ export function LabProvider({ children }: { children: React.ReactNode }) {
           setLabProfile((prev) => {
             const merged: LabProfile = {
               ...prev,
-              labName: remote.labName || prev.labName,
-              labSubtitle: remote.labSubtitle || prev.labSubtitle,
-              doctorName: remote.doctorName || prev.doctorName,
-              doctorTitle: remote.doctorTitle || prev.doctorTitle,
-              labLicense: remote.labLicense || prev.labLicense,
-              whatsappNumber: remote.whatsappNumber || prev.whatsappNumber,
-              currency: remote.currency || prev.currency,
-              address: remote.address || prev.address,
-              phone: remote.phone || prev.phone,
-              reportHeader: remote.reportHeader || prev.reportHeader,
-              reportFooter: remote.reportFooter || prev.reportFooter,
-              reportTemplate: (remote.reportTemplate || prev.reportTemplate || 'CLASSIC') as any,
-              headerMode: remote.headerMode || prev.headerMode,
-              topMarginMm: remote.topMarginMm ?? prev.topMarginMm,
-              bottomMarginMm: remote.bottomMarginMm ?? prev.bottomMarginMm,
-              leftMarginMm: remote.leftMarginMm ?? prev.leftMarginMm,
-              rightMarginMm: remote.rightMarginMm ?? prev.rightMarginMm,
-              primaryColor: remote.primaryColor || prev.primaryColor,
-              enableQrCode: remote.enableQrCode ?? prev.enableQrCode,
-              qrCodePosition: remote.qrCodePosition || prev.qrCodePosition,
-              accreditationBadge: remote.accreditationBadge || prev.accreditationBadge,
+              ...remote,
               isConfigured: isConfig,
-              serverBaseUrl: remote.serverBaseUrl !== undefined ? remote.serverBaseUrl : prev.serverBaseUrl,
-              detectedLanIp: remote.detectedLanIp,
-              detectedPort: remote.detectedPort,
-              detectedLanUrl: remote.detectedLanUrl,
+              tableColumns: (remote.tableColumns && Array.isArray(remote.tableColumns) && remote.tableColumns.length > 0)
+                ? remote.tableColumns
+                : (prev.tableColumns || DEFAULT_TABLE_COLUMNS),
             };
             return merged;
           });

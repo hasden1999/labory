@@ -118,6 +118,30 @@ export interface LabSettings {
   // Typography Settings
   fontFamily?: 'Tajawal' | 'Cairo' | 'IBM Plex Sans Arabic' | 'Almarai' | 'System';
   fontSize?: 'SMALL' | 'MEDIUM' | 'LARGE';
+
+  // Form Design System (Visual Styling & Columns Layout)
+  formBgColor?: string;
+  headerBgColor?: string;
+  headerTextColor?: string;
+  textColor?: string;
+  borderColor?: string;
+  reportTitleFontSize?: number;
+  testNameFontSize?: number;
+  resultValueFontSize?: number;
+  unitFontSize?: number;
+  refRangeFontSize?: number;
+  testNameFontWeight?: 'normal' | 'bold';
+  resultValueFontWeight?: 'normal' | 'bold';
+  tableColumns?: {
+    id: 'testName' | 'result' | 'unit' | 'refRange' | 'notes';
+    label: string;
+    visible: boolean;
+    align: 'left' | 'center' | 'right';
+  }[];
+  groupByCategory?: boolean;
+  tableRowBorders?: boolean;
+  tableZebraStriping?: boolean;
+  tableRowSpacing?: 'COMPACT' | 'COMFORTABLE' | 'RELAXED';
 }
 
 export interface LicenseStore {

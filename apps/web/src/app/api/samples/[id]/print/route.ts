@@ -364,6 +364,45 @@ export async function GET(request: Request, { params }: { params: { id: string }
     tableCellPadding = '9px 12px';
   }
 
+  // Two-Tab Form Design System Settings
+  const formBgColor = settings.formBgColor || '#ffffff';
+  const headerBgColor = settings.headerBgColor || primaryCol;
+  const headerTextColor = settings.headerTextColor || '#ffffff';
+  const textColor = settings.textColor || '#0f172a';
+  const borderColor = settings.borderColor || (template === 'BLACK_WHITE' ? '#000000' : '#e2e8f0');
+
+  const reportTitleFontSize = settings.reportTitleFontSize || settings.labNameFontSize || 20;
+  const testNameFontSize = settings.testNameFontSize || (fontSize === 'SMALL' ? 10.5 : fontSize === 'LARGE' ? 13.5 : 12);
+  const resultValueFontSize = settings.resultValueFontSize || (fontSize === 'SMALL' ? 10.5 : fontSize === 'LARGE' ? 13.5 : 12);
+  const unitFontSize = settings.unitFontSize || (fontSize === 'SMALL' ? 9.5 : fontSize === 'LARGE' ? 12 : 11);
+  const refRangeFontSize = settings.refRangeFontSize || (fontSize === 'SMALL' ? 9.5 : fontSize === 'LARGE' ? 12 : 11);
+
+  const testNameFontWeight = settings.testNameFontWeight || 'bold';
+  const resultValueFontWeight = settings.resultValueFontWeight || 'normal';
+
+  const rawTableColumns = (settings.tableColumns && Array.isArray(settings.tableColumns) && settings.tableColumns.length > 0)
+    ? settings.tableColumns
+    : [
+        { id: 'testName', label: 'INVESTIGATION', visible: true, align: 'left' },
+        { id: 'result', label: 'RESULT', visible: true, align: 'left' },
+        { id: 'unit', label: 'UNIT', visible: true, align: 'left' },
+        { id: 'refRange', label: 'REFERENCE RANGE', visible: true, align: 'left' },
+        { id: 'notes', label: 'NOTES', visible: false, align: 'left' },
+      ];
+
+  const visibleColumns = rawTableColumns.filter((c: any) => c.visible !== false);
+  const groupByCategory = settings.groupByCategory === true;
+  const tableRowBorders = settings.tableRowBorders !== false;
+  const tableZebraStriping = settings.tableZebraStriping === true;
+  const tableRowSpacing = settings.tableRowSpacing || 'COMFORTABLE';
+
+  let customCellPadding = tableCellPadding;
+  if (tableRowSpacing === 'COMPACT') {
+    customCellPadding = '4px 8px';
+  } else if (tableRowSpacing === 'RELAXED') {
+    customCellPadding = '11px 14px';
+  }
+
   const rawBase = settings.serverBaseUrl?.trim();
   const baseDomain = rawBase || `http://${getLocalIpAddress()}:8080`;
   const cleanBase = baseDomain.replace(/\/+$/, '');
@@ -597,9 +636,24 @@ export async function GET(request: Request, { params }: { params: { id: string }
       .modern-header-banner { background: #000000 !important; color: #ffffff !important; border-radius: 0px !important; }
       table th { background: #000000 !important; color: #ffffff !important; border: 1px solid #000000 !important; }
       table td { border-bottom: 1px solid #000000 !important; color: #000000 !important; }
-      .abnormal-badge { border: 1.5px solid #000000 !important; color: #000000 !important; background: transparent !important; }
     `;
   }
+
+  // Apply User Form Design System Overrides
+  templateCss += `
+    .report-card {
+      background-color: ${formBgColor} !important;
+      color: ${textColor} !important;
+      ${showReportBorder ? `border: 1.5px solid ${borderColor} !important;` : 'border: none !important;'}
+    }
+    .table-header {
+      background: ${headerBgColor} !important;
+      color: ${headerTextColor} !important;
+    }
+    .header-border {
+      border-bottom: 2.5px solid ${borderColor} !important;
+    }
+  `;
 
   const safePatientName = escapeHtml(patient.name);
   const safeDoctorName = escapeHtml(doctor.name);
@@ -615,63 +669,29 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const renderedPages: string[] = [];
 
   // Helper: Clinical Finding Badge with strict Left-to-Right layout and Bidi isolation
-  const renderClinicalFindingBadge = (p: string, forceAbnormal = false) => {
-    const upper = p.toUpperCase();
-    const isBloodGroupFinding = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-', 'A POSITIVE', 'B POSITIVE', 'O POSITIVE', 'AB POSITIVE'].some(bg => upper.includes(bg));
-    const isAbn = !isBloodGroupFinding && (forceAbnormal || 
-      p.includes('1+') || p.includes('2+') || p.includes('3+') || p.includes('4+') || 
-      p.includes('Positive') || p.includes('+++') || p.includes('++') || 
-      p.includes('Full') || p.includes('Bloody') || 
-      p.includes('15-20') || p.includes('25-35') || p.includes('30-40') || p.includes('40-50'));
-
+  const renderClinicalFindingBadge = (p: string, isPositive?: boolean) => {
     const colonIdx = p.indexOf(':');
     let innerHtml = '';
     if (colonIdx > 0) {
       const key = p.substring(0, colonIdx).trim();
       const val = p.substring(colonIdx + 1).trim();
-      innerHtml = `<span style="color: ${isAbn ? '#991b1b' : '#64748b'}; font-weight: 700; white-space: nowrap;">${escapeHtml(key)}:</span> <span style="color: ${isAbn ? '#b91c1c' : '#0f172a'}; font-weight: 800; unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(toEnglishDigits(val))}</span>`;
+      innerHtml = `<span style="color: #64748b; font-weight: 700; white-space: nowrap;">${escapeHtml(key)}:</span> <span style="color: ${isPositive ? '#dc2626' : textColor}; font-weight: 800; unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(toEnglishDigits(val))}</span>`;
     } else {
-      innerHtml = `<span style="color: ${isAbn ? '#b91c1c' : '#0f172a'}; font-weight: 800; unicode-bidi: isolate;">${escapeHtml(toEnglishDigits(p))}</span>`;
+      innerHtml = `<span style="color: ${isPositive ? '#dc2626' : textColor}; font-weight: 800; unicode-bidi: isolate;">${escapeHtml(toEnglishDigits(p))}</span>`;
     }
 
-    const bg = isAbn ? '#fef2f2' : '#f8fafc';
-    const bdr = isAbn ? '#fca5a5' : '#e2e8f0';
-
-    return `<div style="background: ${bg}; border: 1px solid ${bdr}; padding: 6px 10px; border-radius: 4px; font-size: 11.5px; text-align: left; direction: ltr; unicode-bidi: isolate; display: flex; align-items: center; justify-content: flex-start;">${innerHtml}</div>`;
+    const borderCol = isPositive ? '#fecaca' : '#e2e8f0';
+    const bgCol = isPositive ? '#fef2f2' : '#f8fafc';
+    return `<div style="background: ${bgCol}; border: 1px solid ${borderCol}; padding: 6px 10px; border-radius: 4px; font-size: 11.5px; text-align: left; direction: ltr; unicode-bidi: isolate; display: flex; align-items: center; justify-content: flex-start;">${innerHtml}</div>`;
   };
 
   // 1. General Laboratory Tests (Blood, Chemistry, Hormones, etc.)
   if (shouldRenderGeneral) {
-    const hasAnyGeneralPrior = generalTests.some((t: any) => {
-      const code = (t.test?.code || t.testCode || t.test?.name || '').toUpperCase();
-      return priorSamples.some(ps => (ps.tests || []).some((x: any) => {
-        const c = (x.test?.code || x.testCode || x.test?.name || '').toUpperCase();
-        return (c && c === code) || (t.testId && x.testId === t.testId);
-      }));
-    });
-
-    const generalRows = generalTests.map((t: any) => {
-      const isBloodGroup = isBloodGroupTest(t.test || t);
-      const isAbnormal = isBloodGroup ? false : t.isAbnormal;
+    const renderGeneralTestRow = (t: any, rowIdx: number) => {
       let displayValue = t.resultValue ? escapeHtml(toEnglishDigits(t.resultValue)) : '<span style="color:#94a3b8;">Pending</span>';
       const testName = escapeHtml(t.test?.name || t.testCode || 'Test');
       const testUnit = escapeHtml(t.test?.unit || '-');
       const testRef = escapeHtml(t.test?.refRangeText || '-');
-
-      let priorValDisplay = '-';
-      if (hasAnyGeneralPrior) {
-        const testCode = (t.test?.code || t.testCode || t.test?.name || '').toUpperCase();
-        for (const ps of priorSamples) {
-          const pt = (ps.tests || []).find((x: any) => {
-            const c = (x.test?.code || x.testCode || x.test?.name || '').toUpperCase();
-            return (c && c === testCode) || (t.testId && x.testId === t.testId);
-          });
-          if (pt && pt.resultValue && String(pt.resultValue).trim() !== '') {
-            priorValDisplay = `${escapeHtml(toEnglishDigits(pt.resultValue))} <span style="font-size: 9px; color: #64748b; font-weight: 600;">(${formatEnglishDate(ps.createdAt)})</span>`;
-            break;
-          }
-        }
-      }
 
       if (typeof t.resultValue === 'string' && (t.resultValue.includes('MICROBIOLOGY') || t.resultValue.includes('ANTIBIOGRAM:'))) {
         const clean = t.resultValue.replace(/\[.*?MICROBIOLOGY.*?\]/gi, '').trim();
@@ -690,12 +710,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
                   <div style="font-size: 11px; font-weight: 800; color: #0d9488; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">ANTIBIOTIC SENSITIVITY PROFILE</div>
                   <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; font-size: 11px;">
                     ${items.map(item => {
-                      const isS = item.includes(': S');
-                      const isR = item.includes(': R');
-                      const bg = isS ? '#f0fdf4' : isR ? '#fef2f2' : '#fffbeb';
-                      const col = isS ? '#15803d' : isR ? '#b91c1c' : '#b45309';
-                      const bdr = isS ? '#bbf7d0' : isR ? '#fca5a5' : '#fde68a';
-                      return `<div style="background: ${bg}; color: ${col}; font-weight: 700; padding: 3px 6px; border-radius: 4px; border: 1px solid ${bdr};">${escapeHtml(item)}</div>`;
+                      return `<div style="background: #f8fafc; color: ${textColor}; font-weight: 700; padding: 3px 6px; border-radius: 4px; border: 1px solid #e2e8f0;">${escapeHtml(item)}</div>`;
                     }).join('')}
                   </div>
                 </div>`;
@@ -711,23 +726,59 @@ export async function GET(request: Request, { params }: { params: { id: string }
         displayValue = `<div style="text-align: left; background: #f0fdfa; padding: 8px 12px; border-radius: 8px; border: 1px solid #99f6e4; max-width: 520px; margin: 4px 0;">${metaHtml}${antiHtml}${notesHtml}</div>`;
       }
 
+      const rowBg = tableZebraStriping && rowIdx % 2 === 1 ? 'rgba(0,0,0,0.025)' : 'transparent';
+      const borderStyle = tableRowBorders ? `border-bottom: 1px solid ${borderColor};` : '';
+
       return `
-        <tr style="border-bottom: 1px solid #e2e8f0; page-break-inside: avoid;">
-          <td style="padding: 10px 12px; font-weight: 800; color: #0f172a; text-align: left;">
-            ${testName}
-          </td>
-          <td style="padding: 10px 12px; font-weight: 700; color: ${isAbnormal ? '#dc2626' : '#0f172a'}; text-align: left;">
-            ${displayValue}
-          </td>
-          ${hasAnyGeneralPrior ? `
-            <td style="padding: 10px 12px; color: #475569; font-weight: 700; text-align: left;">
-              ${priorValDisplay}
-            </td>
-          ` : ''}
-          <td style="padding: 10px 12px; color: #475569; font-weight: 600; text-align: left;">${testUnit}</td>
-          <td style="padding: 10px 12px; color: #334155; font-weight: 600; text-align: left;">${testRef}</td>
+        <tr style="${borderStyle} background-color: ${rowBg}; page-break-inside: avoid;">
+          ${visibleColumns.map((col) => {
+            const alignStyle = `text-align: ${col.align};`;
+            if (col.id === 'testName') {
+              return `<td style="padding: ${customCellPadding}; font-weight: ${testNameFontWeight === 'bold' ? 800 : 500}; font-size: ${testNameFontSize}px; color: ${textColor}; ${alignStyle}">${testName}</td>`;
+            }
+            if (col.id === 'result') {
+              // STRICT REQUIREMENT: Clean result, zero High/Low flags or alert coloring
+              return `<td style="padding: ${customCellPadding}; font-weight: ${resultValueFontWeight === 'bold' ? 800 : 500}; font-size: ${resultValueFontSize}px; color: ${textColor}; ${alignStyle}">${displayValue}</td>`;
+            }
+            if (col.id === 'unit') {
+              return `<td style="padding: ${customCellPadding}; font-size: ${unitFontSize}px; color: ${textColor}; opacity: 0.85; ${alignStyle}">${testUnit}</td>`;
+            }
+            if (col.id === 'refRange') {
+              return `<td style="padding: ${customCellPadding}; font-size: ${refRangeFontSize}px; color: ${textColor}; opacity: 0.85; ${alignStyle}">${testRef}</td>`;
+            }
+            if (col.id === 'notes') {
+              return `<td style="padding: ${customCellPadding}; font-size: ${unitFontSize}px; color: ${textColor}; opacity: 0.85; ${alignStyle}">${escapeHtml(t.notes || '-')}</td>`;
+            }
+            return '';
+          }).join('')}
         </tr>`;
-    }).join('');
+    };
+
+    let generalRowsHtml = '';
+    if (groupByCategory) {
+      const categories: { [key: string]: any[] } = {};
+      generalTests.forEach((t: any) => {
+        const cat = (t.test?.category || 'تحاليل عامة (General)').trim();
+        if (!categories[cat]) categories[cat] = [];
+        categories[cat].push(t);
+      });
+
+      let globalRowIdx = 0;
+      Object.keys(categories).forEach((catName) => {
+        generalRowsHtml += `
+          <tr style="background: rgba(0,0,0,0.04); page-break-inside: avoid;">
+            <td colspan="${visibleColumns.length}" style="padding: 6px 12px; font-weight: 800; font-size: ${testNameFontSize}px; color: ${headerBgColor}; border-bottom: 2px solid ${borderColor};">
+              📂 ${escapeHtml(catName)}
+            </td>
+          </tr>
+        `;
+        categories[catName].forEach((t) => {
+          generalRowsHtml += renderGeneralTestRow(t, globalRowIdx++);
+        });
+      });
+    } else {
+      generalRowsHtml = generalTests.map((t: any, idx: number) => renderGeneralTestRow(t, idx)).join('');
+    }
 
     renderedPages.push(`
       <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
@@ -737,16 +788,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
           ${renderPatientMetaBox(safePatientName, safeDoctorName)}
           <table dir="ltr" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; text-align: left;">
             <thead>
-              <tr class="table-header" style="background: #0f172a; color: #ffffff;">
-                <th style="padding: 8px 12px; text-align: left; border-radius: 6px 0 0 0;">INVESTIGATION</th>
-                <th style="padding: 8px 12px; text-align: left;">RESULT</th>
-                ${hasAnyGeneralPrior ? `<th style="padding: 8px 12px; text-align: left;">PREVIOUS (النتيجة السابقة)</th>` : ''}
-                <th style="padding: 8px 12px; text-align: left;">UNIT</th>
-                <th style="padding: 8px 12px; text-align: left; border-radius: 0 6px 0 0;">REFERENCE RANGE</th>
+              <tr class="table-header" style="background: ${headerBgColor}; color: ${headerTextColor};">
+                ${visibleColumns.map((col, idx) => `
+                  <th style="padding: 8px 12px; text-align: ${col.align}; font-size: ${testNameFontSize}px; ${idx === 0 ? 'border-radius: 6px 0 0 0;' : ''} ${idx === visibleColumns.length - 1 ? 'border-radius: 0 6px 0 0;' : ''}">
+                    ${escapeHtml(col.label)}
+                  </th>
+                `).join('')}
               </tr>
             </thead>
             <tbody>
-              ${generalRows}
+              ${generalRowsHtml}
             </tbody>
           </table>
         </div>
@@ -887,52 +938,45 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
   }
 
-  const renderCbcRow = (name: string, val: string, unit: string, ref: string, low: number, high: number, priorVal?: string) => {
-    const num = parseFloat(val);
+  const renderCbcRow = (name: string, val: string, unit: string, ref: string, _low: number, _high: number, priorVal?: string) => {
     const hasVal = val && val !== '-';
-    const isAbn = hasVal && !isNaN(num) && (num < low || num > high);
-    const flag = isAbn ? (num < low ? ' (L)' : ' (H)') : '';
-    const col = isAbn ? '#dc2626' : '#0f172a';
     const hasPrior = priorVal && priorVal !== '-';
     return `
       <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
-        <td style="padding: 7px 10px; font-weight: 700; color: #1e293b; text-align: left;">${name}</td>
-        <td style="padding: 7px 10px; font-weight: 800; color: ${col}; text-align: left;">
-          ${hasVal ? escapeHtml(val) : '<span style="color:#94a3b8;">Pending</span>'}${flag ? `<span style="font-size: 10px; font-weight: 900; color: #dc2626; margin-left: 3px;">${flag}</span>` : ''}
+        <td style="padding: ${customCellPadding}; font-weight: 700; color: #1e293b; text-align: left;">${name}</td>
+        <td style="padding: ${customCellPadding}; font-weight: 800; color: ${textColor}; text-align: left;">
+          ${hasVal ? escapeHtml(val) : '<span style="color:#94a3b8;">Pending</span>'}
         </td>
         ${priorCbcParsed ? `
-          <td style="padding: 7px 10px; font-weight: 700; color: #475569; text-align: left;">
+          <td style="padding: ${customCellPadding}; font-weight: 700; color: #475569; text-align: left;">
             ${hasPrior ? escapeHtml(priorVal!) : '-'}
           </td>
         ` : ''}
-        <td style="padding: 7px 10px; color: #64748b; font-weight: 600; text-align: left;">${unit}</td>
-        <td style="padding: 7px 10px; color: #334155; font-weight: 600; text-align: left;">${ref}</td>
+        <td style="padding: ${customCellPadding}; color: #64748b; font-weight: 600; text-align: left;">${unit}</td>
+        <td style="padding: ${customCellPadding}; color: #334155; font-weight: 600; text-align: left;">${ref}</td>
       </tr>`;
   };
 
-  const renderDiffRow = (name: string, pctStr: string, refPct: string, low: number, high: number, wbcVal: number, priorPct?: string) => {
+  const renderDiffRow = (name: string, pctStr: string, refPct: string, _low: number, _high: number, wbcVal: number, priorPct?: string) => {
     const num = parseFloat(pctStr);
     const hasVal = pctStr && pctStr !== '-';
-    const isAbn = hasVal && !isNaN(num) && (num < low || num > high);
-    const flag = isAbn ? (num < low ? ' (L)' : ' (H)') : '';
-    const col = isAbn ? '#dc2626' : '#0f172a';
     const absVal = hasVal && !isNaN(num) && wbcVal > 0 ? ((wbcVal * num) / 100).toFixed(2) : '-';
     const hasPrior = priorPct && priorPct !== '-';
     return `
       <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
-        <td style="padding: 7px 10px; font-weight: 700; color: #1e293b; text-align: left;">${name}</td>
-        <td style="padding: 7px 10px; font-weight: 800; color: ${col}; text-align: left;">
-          ${hasVal ? `${escapeHtml(pctStr)} %` : '<span style="color:#94a3b8;">Pending</span>'}${flag ? `<span style="font-size: 10px; font-weight: 900; color: #dc2626; margin-left: 3px;">${flag}</span>` : ''}
+        <td style="padding: ${customCellPadding}; font-weight: 700; color: #1e293b; text-align: left;">${name}</td>
+        <td style="padding: ${customCellPadding}; font-weight: 800; color: ${textColor}; text-align: left;">
+          ${hasVal ? `${escapeHtml(pctStr)} %` : '<span style="color:#94a3b8;">Pending</span>'}
         </td>
         ${priorCbcParsed ? `
-          <td style="padding: 7px 10px; font-weight: 700; color: #475569; text-align: left;">
+          <td style="padding: ${customCellPadding}; font-weight: 700; color: #475569; text-align: left;">
             ${hasPrior ? `${escapeHtml(priorPct!)} %` : '-'}
           </td>
         ` : ''}
-        <td style="padding: 7px 10px; font-weight: 700; color: #0284c7; text-align: left;">
+        <td style="padding: ${customCellPadding}; font-weight: 700; color: ${headerBgColor}; text-align: left;">
           ${absVal !== '-' ? `${absVal} <span style="font-size: 9.5px; color: #64748b; font-weight: 600;">10^3/uL</span>` : '-'}
         </td>
-        <td style="padding: 7px 10px; color: #334155; font-weight: 600; text-align: left;">${refPct}</td>
+        <td style="padding: ${customCellPadding}; color: #334155; font-weight: 600; text-align: left;">${refPct}</td>
       </tr>`;
   };
 

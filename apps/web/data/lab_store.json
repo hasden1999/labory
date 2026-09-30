@@ -423,7 +423,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative",
       "normalRange": "Negative",
-      "unit": "Index",
+      "unit": "",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
       "loincCode": "8061-4"
@@ -447,7 +447,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative (< 1:80)",
       "normalRange": "Negative (< 1:80)",
-      "unit": "Index",
+      "unit": "Titer",
       "sampleType": "مصل الدم (Serum)",
       "active": true
     },
@@ -589,7 +589,7 @@
       "criticalHigh": null,
       "refRangeText": "A / B / AB / O (Pos/Neg)",
       "normalRange": "A / B / AB / O (Pos/Neg)",
-      "unit": "Qualitative",
+      "unit": "",
       "sampleType": "دم كامل (EDTA)",
       "active": true,
       "loincCode": "882-1"
@@ -613,7 +613,7 @@
       "criticalHigh": null,
       "refRangeText": "A / B / AB / O (Pos/Neg)",
       "normalRange": "A / B / AB / O (Pos/Neg)",
-      "unit": "Qualitative",
+      "unit": null,
       "sampleType": "دم كامل (EDTA)",
       "active": true
     },
@@ -1511,7 +1511,7 @@
       "criticalHigh": null,
       "refRangeText": "> 90 (Normal)",
       "normalRange": "> 90 (Normal)",
-      "unit": "mL/min/1.73m²",
+      "unit": "mL/min/1.73m2",
       "sampleType": "محسوب",
       "active": true,
       "loincCode": "33914-3"
@@ -1535,7 +1535,7 @@
       "criticalHigh": null,
       "refRangeText": "> 90 (Normal) / 60 - 89 (Mild) / < 60 (CKD)",
       "normalRange": "> 90 (Normal) / 60 - 89 (Mild) / < 60 (CKD)",
-      "unit": "mL/min/1.73m²",
+      "unit": "mL/min/1.73m2",
       "sampleType": "محسوب",
       "active": true
     },
@@ -1699,7 +1699,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative",
       "normalRange": "Negative",
-      "unit": "Qualitative",
+      "unit": "",
       "sampleType": "عينة خروج",
       "active": true,
       "loincCode": "14563-1"
@@ -1723,7 +1723,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative",
       "normalRange": "Negative",
-      "unit": "Qualitative",
+      "unit": null,
       "sampleType": "عينة خروج",
       "active": true
     },
@@ -2029,7 +2029,7 @@
       "criticalHigh": null,
       "refRangeText": "Normal (No Parasites / FOBT: Negative)",
       "normalRange": "Normal (No Parasites / FOBT: Negative)",
-      "unit": "Microscopic",
+      "unit": "",
       "sampleType": "عينة خروج",
       "active": true,
       "loincCode": "10701-1"
@@ -2053,7 +2053,7 @@
       "criticalHigh": null,
       "refRangeText": "Normal (No Parasites / FOBT: Negative)",
       "normalRange": "Normal (No Parasites / FOBT: Negative)",
-      "unit": "Microscopic",
+      "unit": null,
       "sampleType": "عينة خروج",
       "active": true
     },
@@ -2076,7 +2076,7 @@
       "criticalHigh": null,
       "refRangeText": "Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)",
       "normalRange": "Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)",
-      "unit": "Microscopic",
+      "unit": "",
       "sampleType": "إدرار صباحي",
       "active": true,
       "loincCode": "24357-6"
@@ -2100,7 +2100,7 @@
       "criticalHigh": null,
       "refRangeText": "Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)",
       "normalRange": "Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)",
-      "unit": "Microscopic",
+      "unit": null,
       "sampleType": "إدرار صباحي",
       "active": true
     },
@@ -2170,7 +2170,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative",
       "normalRange": "Negative",
-      "unit": "Qualitative",
+      "unit": "",
       "sampleType": "عينة خروج",
       "active": true,
       "loincCode": "50549-5"
@@ -2194,7 +2194,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative",
       "normalRange": "Negative",
-      "unit": "Qualitative",
+      "unit": null,
       "sampleType": "عينة خروج",
       "active": true
     },
@@ -2264,7 +2264,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative (Non-reactive)",
       "normalRange": "Negative (Non-reactive)",
-      "unit": "Qualitative",
+      "unit": "",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
       "loincCode": "75622-1"
@@ -2288,7 +2288,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative (Non-reactive)",
       "normalRange": "Negative (Non-reactive)",
-      "unit": "Qualitative",
+      "unit": null,
       "sampleType": "مصل الدم (Serum)",
       "active": true
     },
@@ -2404,7 +2404,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative (Non-reactive)",
       "normalRange": "Negative (Non-reactive)",
-      "unit": "Qualitative",
+      "unit": "",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
       "loincCode": "5196-1"
@@ -2428,7 +2428,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative (Non-reactive)",
       "normalRange": "Negative (Non-reactive)",
-      "unit": "Qualitative",
+      "unit": null,
       "sampleType": "مصل الدم (Serum)",
       "active": true
     },
@@ -2451,7 +2451,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative (Non-reactive)",
       "normalRange": "Negative (Non-reactive)",
-      "unit": "Qualitative",
+      "unit": "",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
       "loincCode": "40726-2"
@@ -2475,7 +2475,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative (Non-reactive)",
       "normalRange": "Negative (Non-reactive)",
-      "unit": "Qualitative",
+      "unit": null,
       "sampleType": "مصل الدم (Serum)",
       "active": true
     },
@@ -2949,7 +2949,7 @@
       "criticalHigh": 80,
       "refRangeText": "25 - 38",
       "normalRange": "25 - 38",
-      "unit": "Seconds",
+      "unit": "sec",
       "sampleType": "بلازما (Sodium Citrate)",
       "active": true,
       "loincCode": "3173-2"
@@ -2973,7 +2973,7 @@
       "criticalHigh": 80,
       "refRangeText": "25 - 38",
       "normalRange": "25 - 38",
-      "unit": "Seconds",
+      "unit": "sec",
       "sampleType": "بلازما (Sodium Citrate)",
       "active": true
     },
@@ -2996,7 +2996,7 @@
       "criticalHigh": 1000000,
       "refRangeText": "150,000 - 450,000",
       "normalRange": "150,000 - 450,000",
-      "unit": "x10^3/uL",
+      "unit": "/uL",
       "sampleType": "دم كامل (EDTA)",
       "active": true,
       "loincCode": "777-3"
@@ -3020,7 +3020,7 @@
       "criticalHigh": 1000000,
       "refRangeText": "150,000 - 450,000",
       "normalRange": "150,000 - 450,000",
-      "unit": "x10^3/uL",
+      "unit": "/uL",
       "sampleType": "دم كامل (EDTA)",
       "active": true
     },
@@ -3279,7 +3279,7 @@
       "criticalHigh": null,
       "refRangeText": null,
       "normalRange": null,
-      "unit": "x10^6/uL",
+      "unit": "10*6/uL",
       "sampleType": "Serum",
       "active": true
     },
@@ -3349,7 +3349,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative",
       "normalRange": "Negative",
-      "unit": "Qualitative",
+      "unit": "",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
       "loincCode": "22159-8"
@@ -3373,7 +3373,7 @@
       "criticalHigh": null,
       "refRangeText": "Negative",
       "normalRange": "Negative",
-      "unit": "Qualitative",
+      "unit": null,
       "sampleType": "مصل الدم (Serum)",
       "active": true
     },
@@ -3538,7 +3538,7 @@
       "criticalHigh": null,
       "refRangeText": "WHO Criteria: Count >= 15M/mL, PR >= 32%, Normal Forms >= 4%",
       "normalRange": "WHO Criteria: Count >= 15M/mL, PR >= 32%, Normal Forms >= 4%",
-      "unit": "Report",
+      "unit": "",
       "sampleType": "سائل منوي (Semen)",
       "active": true,
       "loincCode": "10584-1"
@@ -3562,7 +3562,7 @@
       "criticalHigh": null,
       "refRangeText": "Normal (Conc >= 15 M/mL, PR >= 32%, Normal Forms >= 4%)",
       "normalRange": "Normal (Conc >= 15 M/mL, PR >= 32%, Normal Forms >= 4%)",
-      "unit": "Report",
+      "unit": "M/mL",
       "sampleType": "سائل منوي",
       "active": true
     },
@@ -4979,7 +4979,7 @@
       "criticalHigh": null,
       "refRangeText": "Non-reactive",
       "normalRange": "Non-reactive",
-      "unit": "Qualitative",
+      "unit": "",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
       "loincCode": "20507-0"
@@ -5003,7 +5003,7 @@
       "criticalHigh": null,
       "refRangeText": "Non-reactive",
       "normalRange": "Non-reactive",
-      "unit": "Qualitative",
+      "unit": "Titer",
       "sampleType": "مصل الدم (Serum)",
       "active": true
     },
@@ -5167,7 +5167,7 @@
       "criticalHigh": null,
       "refRangeText": null,
       "normalRange": null,
-      "unit": "x10^3/uL",
+      "unit": "10*3/uL",
       "sampleType": "Serum",
       "active": true
     },
@@ -5533,6 +5533,39 @@
   ],
   "patients": [
     {
+      "id": "pat-1790714669609",
+      "name": "علي حسن",
+      "phone": "",
+      "age": null,
+      "gender": "MALE",
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-09-29T20:44:29.609Z",
+      "updatedAt": "2026-09-29T20:44:29.609Z"
+    },
+    {
+      "id": "pat-1790714524006",
+      "name": "مريم سعدي خضير",
+      "phone": "",
+      "age": 45,
+      "gender": "FEMALE",
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-09-29T20:42:04.006Z",
+      "updatedAt": "2026-09-29T20:42:04.006Z"
+    },
+    {
+      "id": "pat-1790714500248",
+      "name": "علي كمال حسن",
+      "phone": "",
+      "age": 28,
+      "gender": "MALE",
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-09-29T20:41:40.248Z",
+      "updatedAt": "2026-09-29T20:41:40.248Z"
+    },
+    {
       "id": "pat-1789917365308",
       "name": "على كاظم",
       "phone": "",
@@ -5820,6 +5853,274 @@
     }
   ],
   "samples": [
+    {
+      "id": "s-2012",
+      "sampleNumber": 2012,
+      "patientId": "pat-1790714669609",
+      "patient": {
+        "id": "pat-1790714669609",
+        "name": "علي حسن",
+        "phone": "",
+        "age": null,
+        "gender": "MALE"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "status": "READY",
+      "isUrgent": false,
+      "priceTotal": 0,
+      "totalPrice": 0,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 0,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": null,
+      "createdById": "single_operator",
+      "collectionTime": "2026-09-29T20:44:29.618Z",
+      "createdAt": "2026-09-29T20:44:29.609Z",
+      "tests": [
+        {
+          "id": "s-2012_t-tibc",
+          "sampleId": "s-2012",
+          "testId": "t-tibc",
+          "test": {
+            "id": "t-tibc",
+            "code": "TIBC",
+            "name": "Total Iron Binding Capacity (TIBC)",
+            "arabicName": "السعة الكلية الرابطة للحديد",
+            "category": "أمراض الدم والتخثر",
+            "price": 12000,
+            "unit": "ug/dL",
+            "refRangeLow": 250,
+            "refRangeHigh": 450,
+            "refRangeText": "250 - 450"
+          },
+          "resultValue": null,
+          "value": null,
+          "notes": null,
+          "isAbnormal": false,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 0,
+          "costAtTime": 0,
+          "refRangeLow": null,
+          "refRangeHigh": null,
+          "refRangeText": null,
+          "normalRange": null,
+          "unit": null,
+          "createdAt": "2026-09-29T20:44:29.626Z"
+        }
+      ]
+    },
+    {
+      "id": "s-2011",
+      "sampleNumber": 2011,
+      "patientId": "cmtg2qt6d0000ulwitva0i137",
+      "patient": {
+        "id": "cmtg2qt6d0000ulwitva0i137",
+        "name": "علي حسين",
+        "phone": "",
+        "age": null,
+        "gender": "MALE"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "status": "RECEIVED",
+      "isUrgent": false,
+      "priceTotal": 0,
+      "totalPrice": 0,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 0,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": null,
+      "createdById": "single_operator",
+      "collectionTime": "2026-09-29T20:44:13.904Z",
+      "createdAt": "2026-09-29T20:44:13.891Z",
+      "tests": [
+        {
+          "id": "s-2011_t-cbc",
+          "sampleId": "s-2011",
+          "testId": "t-cbc",
+          "test": {
+            "id": "t-cbc",
+            "code": "CBC",
+            "name": "Complete Blood Count (CBC)",
+            "arabicName": "صورة الدم الكاملة",
+            "category": "أمراض الدم والتخثر",
+            "price": 15000,
+            "unit": "g/dL",
+            "refRangeLow": 12,
+            "refRangeHigh": 16,
+            "refRangeText": "12.0 - 16.0"
+          },
+          "resultValue": null,
+          "value": null,
+          "notes": null,
+          "isAbnormal": false,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 0,
+          "costAtTime": 0,
+          "refRangeLow": null,
+          "refRangeHigh": null,
+          "refRangeText": null,
+          "normalRange": null,
+          "unit": null,
+          "createdAt": "2026-09-29T20:44:13.911Z"
+        }
+      ]
+    },
+    {
+      "id": "s-2010",
+      "sampleNumber": 2010,
+      "patientId": "cmtepk85i00008qux16anysav",
+      "patient": {
+        "id": "cmtepk85i00008qux16anysav",
+        "name": "علي",
+        "phone": "",
+        "age": null,
+        "gender": "MALE"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "status": "RECEIVED",
+      "isUrgent": false,
+      "priceTotal": 0,
+      "totalPrice": 0,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 0,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": null,
+      "createdById": "single_operator",
+      "collectionTime": "2026-09-29T20:43:57.687Z",
+      "createdAt": "2026-09-29T20:43:57.663Z",
+      "tests": [
+        {
+          "id": "s-2010_t-cbc",
+          "sampleId": "s-2010",
+          "testId": "t-cbc",
+          "test": {
+            "id": "t-cbc",
+            "code": "CBC",
+            "name": "Complete Blood Count (CBC)",
+            "arabicName": "صورة الدم الكاملة",
+            "category": "أمراض الدم والتخثر",
+            "price": 15000,
+            "unit": "g/dL",
+            "refRangeLow": 12,
+            "refRangeHigh": 16,
+            "refRangeText": "12.0 - 16.0"
+          },
+          "resultValue": null,
+          "value": null,
+          "notes": null,
+          "isAbnormal": false,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 0,
+          "costAtTime": 0,
+          "refRangeLow": null,
+          "refRangeHigh": null,
+          "refRangeText": null,
+          "normalRange": null,
+          "unit": null,
+          "createdAt": "2026-09-29T20:43:57.696Z"
+        }
+      ]
+    },
+    {
+      "id": "s-2009",
+      "sampleNumber": 2009,
+      "patientId": "pat-1790714524006",
+      "patient": {
+        "id": "pat-1790714524006",
+        "name": "مريم سعدي خضير",
+        "phone": "",
+        "age": 45,
+        "gender": "FEMALE"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "status": "RECEIVED",
+      "isUrgent": false,
+      "priceTotal": 0,
+      "totalPrice": 0,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 0,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": null,
+      "createdById": "single_operator",
+      "collectionTime": "2026-09-29T20:42:04.022Z",
+      "createdAt": "2026-09-29T20:42:04.006Z",
+      "tests": []
+    },
+    {
+      "id": "s-2008",
+      "sampleNumber": 2008,
+      "patientId": "pat-1790714500248",
+      "patient": {
+        "id": "pat-1790714500248",
+        "name": "علي كمال حسن",
+        "phone": "",
+        "age": 28,
+        "gender": "MALE"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "status": "RECEIVED",
+      "isUrgent": false,
+      "priceTotal": 0,
+      "totalPrice": 0,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 0,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": null,
+      "createdById": "single_operator",
+      "collectionTime": "2026-09-29T20:41:40.306Z",
+      "createdAt": "2026-09-29T20:41:40.249Z",
+      "tests": [
+        {
+          "id": "s-2008_t-cbc",
+          "sampleId": "s-2008",
+          "testId": "t-cbc",
+          "test": {
+            "id": "t-cbc",
+            "code": "CBC",
+            "name": "Complete Blood Count (CBC)",
+            "arabicName": "صورة الدم الكاملة",
+            "category": "أمراض الدم والتخثر",
+            "price": 15000,
+            "unit": "g/dL",
+            "refRangeLow": 12,
+            "refRangeHigh": 16,
+            "refRangeText": "12.0 - 16.0"
+          },
+          "resultValue": null,
+          "value": null,
+          "notes": null,
+          "isAbnormal": false,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 0,
+          "costAtTime": 0,
+          "refRangeLow": null,
+          "refRangeHigh": null,
+          "refRangeText": null,
+          "normalRange": null,
+          "unit": null,
+          "createdAt": "2026-09-29T20:41:40.358Z"
+        }
+      ]
+    },
     {
       "id": "cmu9cjfdt000mtkknw8892rbt",
       "sampleNumber": 2007,
