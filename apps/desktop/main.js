@@ -68,74 +68,205 @@ try {
 }
 
 function initAutoUpdater() {
-  if (!autoUpdater || !app.isPackaged) return;
+  if (!app.isPackaged) return;
 
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  // 1. Silent standard electron-updater (for future SemVer increments)
+  if (autoUpdater) {
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
 
-  autoUpdater.on('checking-for-update', () => {
-    console.log('[AutoUpdater] Checking for updates via GitHub Releases...');
-  });
-
-  autoUpdater.on('update-available', (info) => {
-    console.log('[AutoUpdater] Update available:', info.version);
-    try {
-      if (Notification && Notification.isSupported()) {
-        new Notification({
-          title: 'نظام لابريو الطبي - تحديث جديد',
-          body: `تم اكتشاف الإصدار (${info.version})، يجري تنزيله تلقائياً في الخلفية...`,
-          icon: getTrayIcon(),
-        }).show();
-      }
-    } catch (e) {
-      console.warn('[AutoUpdater] Notification error:', e?.message);
-    }
-  });
-
-  autoUpdater.on('update-not-available', () => {
-    console.log('[AutoUpdater] System is up to date.');
-  });
-
-  autoUpdater.on('error', (err) => {
-    console.warn('[AutoUpdater] Update check failed (offline or network unreachable):', err?.message || err);
-  });
-
-  autoUpdater.on('update-downloaded', (info) => {
-    console.log('[AutoUpdater] Update downloaded:', info.version);
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.show();
-      mainWindow.focus();
-    }
-    dialog.showMessageBox(mainWindow || undefined, {
-      type: 'info',
-      title: 'تحديث جديد لنظام لابريو الطبي',
-      message: `تم تنزيل الإصدار الجديد (${info.version}) بنجاح!`,
-      detail: 'هل تريد إعادة تشغيل البرنامج الآن لتطبيق التحديث؟',
-      buttons: ['إعادة التشغيل الآن', 'لاحقاً عند الإغلاق'],
-      defaultId: 0,
-      cancelId: 1,
-    }).then((result) => {
-      if (result.response === 0) {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.hide();
-        }
-        if (splashWindow && !splashWindow.isDestroyed()) {
-          splashWindow.destroy();
-          splashWindow = null;
-        }
-        isQuitting = true;
-        killBackendProcess();
-        autoUpdater.quitAndInstall(false, true);
-      }
+    autoUpdater.on('checking-for-update', () => {
+      console.log('[AutoUpdater] Checking for updates via GitHub Releases silently in background...');
     });
-  });
 
-  // Delay initial check by 15 seconds after launch to ensure smooth startup
+    autoUpdater.on('update-available', (info) => {
+      console.log('[AutoUpdater] Silent update available in background:', info?.version);
+      // STRICT REQUIREMENT: Zero notifications, zero popups!
+    });
+
+    autoUpdater.on('update-not-available', () => {
+      console.log('[AutoUpdater] System is up to date.');
+    });
+
+    autoUpdater.on('error', (err) => {
+      console.warn('[AutoUpdater] Update check failed (offline or network unreachable):', err?.message || err);
+    });
+
+    autoUpdater.on('update-downloaded', (info) => {
+      console.log('[AutoUpdater] Silent update downloaded:', info?.version, '. Will install quietly on app quit.');
+      // STRICT REQUIREMENT: Zero dialogs, zero popups!
+    });
+
+    setTimeout(() => {
+      autoUpdater.checkForUpdates().catch((err) => {
+        console.warn('[AutoUpdater] Silent check warning:', err?.message);
+      });
+    }, 15000);
+  }
+
+  // 2. Silent Same-Version Background Updater (detects new builds under the same v1.1.1 tag via build date/hash/size)
   setTimeout(() => {
-    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
-      console.warn('[AutoUpdater] Silent check warning:', err?.message);
+    checkSilentSameVersionUpdate();
+  }, 25000);
+}
+
+function downloadFileSilently(targetUrl, tempPath, finalPath, onComplete) {
+  const https = require('https');
+  const http = require('http');
+  const url = require('url');
+
+  const fetchWithRedirects = (currentUrl, redirects = 0) => {
+    if (redirects > 8) return;
+    try {
+      const parsed = new url.URL(currentUrl);
+      const client = parsed.protocol === 'https:' ? https : http;
+      const req = client.get(parsed, {
+        headers: { 'User-Agent': 'Labryo-Desktop-SilentUpdater' },
+        timeout: 30000,
+      }, (res) => {
+        if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+          let redirect = res.headers.location;
+          if (!redirect.startsWith('http://') && !redirect.startsWith('https://')) {
+            redirect = new url.URL(redirect, parsed.origin).toString();
+          }
+          res.resume();
+          return fetchWithRedirects(redirect, redirects + 1);
+        }
+
+        if (res.statusCode !== 200) {
+          res.resume();
+          return;
+        }
+
+        const fileStream = fs.createWriteStream(tempPath);
+        res.pipe(fileStream);
+
+        fileStream.on('finish', () => {
+          fileStream.close(() => {
+            try {
+              if (fs.existsSync(finalPath)) {
+                fs.unlinkSync(finalPath);
+              }
+              fs.renameSync(tempPath, finalPath);
+              if (onComplete) onComplete();
+            } catch (e) {
+              console.warn('[SilentUpdater] Rename error:', e?.message);
+            }
+          });
+        });
+
+        fileStream.on('error', () => {
+          try { fs.unlinkSync(tempPath); } catch (e) {}
+        });
+      });
+
+      req.on('error', () => {
+        try { fs.unlinkSync(tempPath); } catch (e) {}
+      });
+      req.on('timeout', () => {
+        req.destroy();
+        try { fs.unlinkSync(tempPath); } catch (e) {}
+      });
+    } catch (e) {
+      console.warn('[SilentUpdater] Network stream error:', e?.message);
+    }
+  };
+
+  fetchWithRedirects(targetUrl);
+}
+
+async function checkSilentSameVersionUpdate() {
+  if (!app.isPackaged) return;
+  try {
+    const https = require('https');
+    const userData = app.getPath('userData');
+    const appliedMetaFile = path.join(userData, 'applied_build.json');
+    let appliedMeta = {};
+    if (fs.existsSync(appliedMetaFile)) {
+      try { appliedMeta = JSON.parse(fs.readFileSync(appliedMetaFile, 'utf-8')); } catch (e) {}
+    }
+
+    const currentTag = 'v' + app.getVersion();
+    const releaseData = await new Promise((resolve) => {
+      const req = https.get(`https://api.github.com/repos/hasden1999/lab-releases/releases/tags/${currentTag}`, {
+        headers: { 'User-Agent': 'Labryo-Desktop-SilentUpdater' },
+        timeout: 10000,
+      }, (res) => {
+        if (res.statusCode !== 200) {
+          res.resume();
+          return resolve(null);
+        }
+        let d = '';
+        res.on('data', c => d += c);
+        res.on('end', () => {
+          try { resolve(JSON.parse(d)); } catch (e) { resolve(null); }
+        });
+      });
+      req.on('error', () => resolve(null));
+      req.on('timeout', () => { req.destroy(); resolve(null); });
     });
-  }, 15000);
+
+    if (!releaseData || !releaseData.assets) return;
+
+    const exeAsset = releaseData.assets.find(a => a.name && a.name.endsWith('.exe'));
+    if (!exeAsset || !exeAsset.browser_download_url) return;
+
+    // Compare with applied build: if newer updated_at or different size, an update exists
+    const isNewer = !appliedMeta.updated_at ||
+      new Date(exeAsset.updated_at).getTime() > new Date(appliedMeta.updated_at).getTime() ||
+      appliedMeta.size !== exeAsset.size;
+
+    if (!isNewer) {
+      console.log(`[SilentUpdater] System is already running the latest build of ${currentTag}.`);
+      return;
+    }
+
+    console.log(`[SilentUpdater] New build detected silently for ${currentTag}. Size:`, exeAsset.size, 'Updated:', exeAsset.updated_at);
+    const targetFile = path.join(userData, 'pending_update.exe');
+    const targetPart = path.join(userData, 'pending_update.part');
+    const pendingMeta = path.join(userData, 'pending_update.json');
+
+    downloadFileSilently(exeAsset.browser_download_url, targetPart, targetFile, () => {
+      try {
+        fs.writeFileSync(pendingMeta, JSON.stringify({
+          updated_at: exeAsset.updated_at,
+          size: exeAsset.size,
+          name: exeAsset.name,
+          ready: true,
+        }), 'utf-8');
+        console.log('[SilentUpdater] Silent update package prepared. Will install on app exit.');
+      } catch (e) {}
+    });
+  } catch (e) {
+    console.warn('[SilentUpdater] Silent check skipped (offline or network error):', e?.message);
+  }
+}
+
+function applyPendingSilentUpdate() {
+  try {
+    const userData = app.getPath('userData');
+    const pendingFile = path.join(userData, 'pending_update.exe');
+    const pendingMeta = path.join(userData, 'pending_update.json');
+    if (fs.existsSync(pendingFile) && fs.existsSync(pendingMeta)) {
+      const meta = JSON.parse(fs.readFileSync(pendingMeta, 'utf-8'));
+      if (meta.ready) {
+        console.log('[SilentUpdater] Executing silent unattended background install on quit:', pendingFile);
+        const { spawn } = require('child_process');
+        const child = spawn(pendingFile, ['/S'], {
+          detached: true,
+          stdio: 'ignore',
+          windowsHide: true,
+        });
+        child.unref();
+
+        const appliedMeta = path.join(userData, 'applied_build.json');
+        fs.writeFileSync(appliedMeta, JSON.stringify(meta), 'utf-8');
+        try { fs.unlinkSync(pendingMeta); } catch (e) {}
+      }
+    }
+  } catch (err) {
+    console.warn('[SilentUpdater] Error during silent update execution on quit:', err?.message);
+  }
 }
 
 // Resolve project root reliably across dev and packaged modes (cached)
@@ -1421,6 +1552,7 @@ app.on('before-quit', () => {
   }
   isQuitting = true;
   killBackendProcess();
+  applyPendingSilentUpdate();
 });
 
 app.on('window-all-closed', () => {

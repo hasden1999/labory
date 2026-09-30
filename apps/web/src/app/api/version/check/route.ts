@@ -29,7 +29,7 @@ function getAppVersion(): string {
     }
   } catch (e) {}
 
-  return 'v1.0.9';
+  return 'v1.1.2';
 }
 
 export async function GET() {
@@ -80,9 +80,22 @@ export async function GET() {
     }
 
     const latestTag = latestRelease.tag_name || currentVersion;
-    // Compare versions (hasUpdate is true if latestTag != currentVersion)
-    const hasUpdate = latestTag !== currentVersion;
     const exeAsset = latestRelease.assets?.find((a: any) => a.name.endsWith('.exe'));
+
+    // Compare versions (hasUpdate is true if latestTag != currentVersion OR if newer build under same tag)
+    let hasUpdate = latestTag !== currentVersion;
+    if (!hasUpdate && exeAsset) {
+      const baseDir = process.env.LABRYO_DATA_DIR || path.join(process.cwd(), 'data');
+      const appliedMetaFile = path.join(baseDir, 'applied_build.json');
+      if (fs.existsSync(appliedMetaFile)) {
+        try {
+          const applied = JSON.parse(fs.readFileSync(appliedMetaFile, 'utf-8'));
+          if (applied.updated_at && new Date(exeAsset.updated_at || latestRelease.published_at).getTime() > new Date(applied.updated_at).getTime()) {
+            hasUpdate = true;
+          }
+        } catch (e) {}
+      }
+    }
 
     return NextResponse.json({
       currentVersion,

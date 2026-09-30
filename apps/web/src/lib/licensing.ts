@@ -18,52 +18,120 @@ export interface LicensePayload {
   labName?: string;
 }
 
-// 1. Get Clean Formatted Hardware ID (Multi-layered fallback)
-export function getMachineHWID(): string {
-  let rawId = '';
+// Memory caches for zero-latency, rock-solid consistency across the entire app lifecycle
+let _cachedRawId: string | null = null;
+let _cachedCanonicalHwid: string | null = null;
+let _cachedLegacyHwid: string | null = null;
 
-  // Attempt 1: Windows Registry MachineGuid (Very stable across reboots)
+export function getRawMachineId(): string {
+  if (_cachedRawId) return _cachedRawId;
+
+  let raw = '';
+
+  // Attempt 1: Windows Registry MachineGuid (via reg.exe with absolute paths & 6s timeout)
   if (process.platform === 'win32') {
-    try {
-      const out = execSync('reg query HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid', {
-        timeout: 2000,
-        stdio: ['ignore', 'pipe', 'ignore'],
-      }).toString();
-      const match = out.match(/MachineGuid\s+REG_SZ\s+(\S+)/i);
-      if (match && match[1]) {
-        rawId = match[1].trim();
+    const regPaths = [
+      'C:\\Windows\\System32\\reg.exe',
+      'C:\\Windows\\SysWOW64\\reg.exe',
+      'reg.exe',
+      'reg',
+    ];
+
+    for (const regBin of regPaths) {
+      try {
+        const out = execSync(`"${regBin}" query HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid`, {
+          timeout: 6000,
+          windowsHide: true,
+          stdio: ['ignore', 'pipe', 'ignore'],
+        }).toString();
+        const match = out.match(/MachineGuid\s+REG_SZ\s+(\S+)/i);
+        if (match && match[1]) {
+          raw = match[1].trim().toLowerCase();
+          break;
+        }
+      } catch {
+        // Continue to next candidate
       }
-    } catch {
-      // Fallback
     }
   }
 
-  // Attempt 2: node-machine-id
-  if (!rawId) {
+  // Attempt 2: node-machine-id with original: true (returns raw MachineGuid on Windows)
+  if (!raw) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const req = typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : eval('require');
       const { machineIdSync } = req('node-machine-id');
       if (typeof machineIdSync === 'function') {
-        rawId = machineIdSync();
+        const id = machineIdSync(true);
+        if (id && typeof id === 'string') {
+          raw = id.trim().toLowerCase();
+        }
       }
     } catch {
       // Fallback
     }
   }
 
-  // Attempt 3: OS Network / Platform fallback
-  if (!rawId) {
-    rawId = `${process.platform}-${process.arch}-${process.env.COMPUTERNAME || process.env.HOSTNAME || 'LAB-PC'}`;
+  // Attempt 3: node-machine-id without arguments (if only hashed version succeeds)
+  if (!raw) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const req = typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : eval('require');
+      const { machineIdSync } = req('node-machine-id');
+      if (typeof machineIdSync === 'function') {
+        const id = machineIdSync();
+        if (id && typeof id === 'string') {
+          raw = id.trim().toLowerCase();
+        }
+      }
+    } catch {
+      // Fallback
+    }
   }
 
+  // Attempt 4: OS Network / Platform fallback
+  if (!raw) {
+    raw = `${process.platform}-${process.arch}-${process.env.COMPUTERNAME || process.env.HOSTNAME || 'LAB-PC'}`.toLowerCase();
+  }
+
+  _cachedRawId = raw;
+  return raw;
+}
+
+function hashToLabFormat(data: string): string {
   const hash = crypto
     .createHash('sha256')
-    .update(rawId + MASTER_SECRET)
+    .update(data + MASTER_SECRET)
     .digest('hex')
     .toUpperCase();
 
   return `LAB-${hash.substring(0, 4)}-${hash.substring(4, 8)}-${hash.substring(8, 12)}`;
+}
+
+// 1. Get Clean Formatted Hardware ID (Cached in-memory, zero event-loop lag)
+export function getMachineHWID(): string {
+  if (_cachedCanonicalHwid) return _cachedCanonicalHwid;
+  const raw = getRawMachineId();
+  _cachedCanonicalHwid = hashToLabFormat(raw);
+  return _cachedCanonicalHwid;
+}
+
+// Legacy HWID: derived when node-machine-id was hashed with sha256 before HMAC
+export function getLegacyHwid(): string {
+  if (_cachedLegacyHwid) return _cachedLegacyHwid;
+  const raw = getRawMachineId();
+  const hashedRaw = crypto.createHash('sha256').update(raw).digest('hex').toLowerCase();
+  _cachedLegacyHwid = hashToLabFormat(hashedRaw);
+  return _cachedLegacyHwid;
+}
+
+// Verify if a hardware ID belongs to this computer (matches either canonical or legacy)
+export function isHardwareIdValidForMachine(hwidToCheck: string): boolean {
+  if (!hwidToCheck) return false;
+  const clean = hwidToCheck.trim().toUpperCase();
+  const canonical = getMachineHWID();
+  const legacy = getLegacyHwid();
+  return clean === canonical || clean === legacy;
 }
 
 // 2. Developer / Admin Keygen: Generate Signed Offline License Key
@@ -133,11 +201,15 @@ export function verifyLicenseKey(
       return { valid: false, message: 'مفتاح الترخيص مزور أو تم التعديل عليه' };
     }
 
-    // Verify HWID Match
-    if (keyHwid.trim().toUpperCase() !== currentHwid.trim().toUpperCase()) {
+    // Verify HWID Match (Checks canonical ID and legacy ID for 100% device compatibility)
+    const cleanKeyHwid = keyHwid.trim().toUpperCase();
+    const cleanCurrentHwid = (currentHwid || getMachineHWID()).trim().toUpperCase();
+    const isMatched = cleanKeyHwid === cleanCurrentHwid || isHardwareIdValidForMachine(cleanKeyHwid);
+
+    if (!isMatched) {
       return {
         valid: false,
-        message: `مفتاح الترخيص خاص بجهاز آخر (${keyHwid}) وغير مطابق لهذا الجهاز (${currentHwid})`,
+        message: `مفتاح الترخيص خاص بجهاز آخر (${cleanKeyHwid}) وغير مطابق لهذا الجهاز (${cleanCurrentHwid})`,
       };
     }
 

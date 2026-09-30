@@ -550,7 +550,7 @@ function initStore(): ServerStore {
       showPanicFlags: true,
       showClinicalComments: true,
       showReferenceRanges: true,
-      installedVersion: 'v1.0.9',
+      installedVersion: 'v1.1.2',
       showLabName: true,
       labNameFontSize: 22,
       labNameColor: '#0284c7',

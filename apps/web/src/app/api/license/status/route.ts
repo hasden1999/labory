@@ -76,10 +76,76 @@ export async function GET() {
     }
 
     // -------------------------------------------------------------------------
+    // 1.5. SQLite Auto-Recovery Fallback
+    // If local store has no active license, check SQLite prisma.license for active key
+    // -------------------------------------------------------------------------
+    let activeLicense = license;
+    if ((!activeLicense || !activeLicense.isActivated || !activeLicense.licenseKey) && prisma && prisma.license) {
+      try {
+        const sqliteLicenses = await prisma.license.findMany({
+          where: {
+            tier: { not: 'TRIAL' },
+            expiryDate: { gt: now },
+          },
+          orderBy: { expiryDate: 'desc' },
+        });
+
+        const tierWeights: Record<string, number> = {
+          LIFETIME: 100,
+          YEARLY: 80,
+          MONTHLY: 60,
+          WEEKLY: 40,
+          TWO_DAYS: 20,
+        };
+
+        sqliteLicenses.sort((a, b) => {
+          const weightA = tierWeights[a.tier?.toUpperCase() || ''] || 0;
+          const weightB = tierWeights[b.tier?.toUpperCase() || ''] || 0;
+          if (weightA !== weightB) return weightB - weightA;
+          return new Date(b.expiryDate).getTime() - new Date(a.expiryDate).getTime();
+        });
+
+        for (const candidate of sqliteLicenses) {
+          if (candidate.signature && candidate.signature.startsWith('LIC-')) {
+            const recoveryVerif = verifyLicenseKey(candidate.signature, hwid);
+            if (recoveryVerif.valid && recoveryVerif.payload) {
+              console.log('[License] Restored valid active license from SQLite database to local store.');
+              const nowIso = now.toISOString();
+              const seal = createLicenseTamperSeal({
+                hardwareId: hwid,
+                isActivated: true,
+                licenseKey: candidate.signature,
+                tier: recoveryVerif.payload.tier,
+                trialExpiresAt: recoveryVerif.payload.expiryDate,
+                maxMonotonicTime: nowIso,
+              });
+              activeLicense = updateLicenseStore({
+                isActivated: true,
+                hardwareId: hwid,
+                licenseKey: candidate.signature,
+                tier: recoveryVerif.payload.tier,
+                expiryDate: recoveryVerif.payload.expiryDate,
+                labName: recoveryVerif.payload.labName,
+                activatedAt: nowIso,
+                maxMonotonicTime: nowIso,
+                tamperSeal: seal,
+                isTampered: false,
+                isClockTampered: false,
+              });
+              break;
+            }
+          }
+        }
+      } catch (e: any) {
+        console.warn('[License] SQLite recovery fallback warning:', e?.message);
+      }
+    }
+
+    // -------------------------------------------------------------------------
     // 2. Case 1: Activated with Paid / Assigned License Key
     // -------------------------------------------------------------------------
-    if (license && license.isActivated && license.licenseKey) {
-      const verification = verifyLicenseKey(license.licenseKey, hwid);
+    if (activeLicense && activeLicense.isActivated && activeLicense.licenseKey) {
+      const verification = verifyLicenseKey(activeLicense.licenseKey, hwid);
 
       if (verification.valid && verification.payload) {
         const expiryDate = new Date(verification.payload.expiryDate);
@@ -88,7 +154,7 @@ export async function GET() {
         const isExpired = now > expiryDate || diffMs <= 0;
 
         // Advance monotonic timestamp
-        const updatedMonotonic = nowMs > maxHistoricalTimeMs ? now.toISOString() : (license.maxMonotonicTime || now.toISOString());
+        const updatedMonotonic = nowMs > maxHistoricalTimeMs ? now.toISOString() : (activeLicense.maxMonotonicTime || now.toISOString());
         updateLicenseStore({
           lastClockCheck: now.toISOString(),
           maxMonotonicTime: updatedMonotonic,
@@ -129,31 +195,18 @@ export async function GET() {
         });
       }
 
-      // Foreign machine HWID detected
-      if (verification.message && verification.message.includes('خاص بجهاز آخر')) {
-        console.log('[License] Detected foreign machine HWID. Resetting local store for:', hwid);
-        updateLicenseStore({
-          isActivated: false,
-          licenseKey: undefined,
-          hardwareId: hwid,
-          firstRunDate: undefined,
-          trialExpiresAt: undefined,
-          lastClockCheck: undefined,
-          tamperSeal: undefined,
-        });
-      } else {
-        return NextResponse.json({
-          status: 'INVALID',
-          hardwareId: hwid,
-          isLicensed: false,
-          isTrial: false,
-          isExpired: true,
-          isClockTampered: false,
-          developerPhone: DEVELOPER_PHONE,
-          developerWhatsApp: DEVELOPER_WHATSAPP,
-          message: verification.message || 'مفتاح الترخيص غير صالح أو غير معتمد لهذا الجهاز.',
-        });
-      }
+      // DO NOT DESTROY/WIPE LICENSE ON TEMPORARY MISMATCH!
+      return NextResponse.json({
+        status: 'INVALID',
+        hardwareId: hwid,
+        isLicensed: false,
+        isTrial: false,
+        isExpired: true,
+        isClockTampered: false,
+        developerPhone: DEVELOPER_PHONE,
+        developerWhatsApp: DEVELOPER_WHATSAPP,
+        message: verification.message || 'مفتاح الترخيص غير صالح أو غير معتمد لهذا الجهاز.',
+      });
     }
 
     // -------------------------------------------------------------------------

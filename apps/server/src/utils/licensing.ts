@@ -12,16 +12,83 @@ export interface LicensePayload {
   labName?: string;
 }
 
-// 1. Get Clean Formatted Hardware ID
-export function getMachineHWID(): string {
-  try {
-    const raw = machineIdSync();
-    const hash = crypto.createHash('sha256').update(raw + MASTER_SECRET).digest('hex').toUpperCase();
-    return `LAB-${hash.substring(0, 4)}-${hash.substring(4, 8)}-${hash.substring(8, 12)}`;
-  } catch (err) {
-    const fallback = crypto.createHash('sha256').update(process.platform + MASTER_SECRET).digest('hex').toUpperCase();
-    return `LAB-FLBK-${fallback.substring(0, 4)}-${fallback.substring(4, 8)}`;
+import { execSync } from 'child_process';
+
+let _cachedRawId: string | null = null;
+let _cachedCanonicalHwid: string | null = null;
+let _cachedLegacyHwid: string | null = null;
+
+function getRawMachineId(): string {
+  if (_cachedRawId) return _cachedRawId;
+
+  let raw = '';
+  if (process.platform === 'win32') {
+    const regPaths = [
+      'C:\\Windows\\System32\\reg.exe',
+      'C:\\Windows\\SysWOW64\\reg.exe',
+      'reg.exe',
+      'reg',
+    ];
+    for (const regBin of regPaths) {
+      try {
+        const out = execSync(`"${regBin}" query HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid`, {
+          timeout: 6000,
+          windowsHide: true,
+          stdio: ['ignore', 'pipe', 'ignore'],
+        }).toString();
+        const match = out.match(/MachineGuid\s+REG_SZ\s+(\S+)/i);
+        if (match && match[1]) {
+          raw = match[1].trim().toLowerCase();
+          break;
+        }
+      } catch {}
+    }
   }
+
+  if (!raw) {
+    try {
+      raw = machineIdSync(true).trim().toLowerCase();
+    } catch {}
+  }
+
+  if (!raw) {
+    try {
+      raw = machineIdSync().trim().toLowerCase();
+    } catch {}
+  }
+
+  if (!raw) {
+    raw = `${process.platform}-${process.arch}-${process.env.COMPUTERNAME || process.env.HOSTNAME || 'LAB-PC'}`.toLowerCase();
+  }
+
+  _cachedRawId = raw;
+  return raw;
+}
+
+function hashToLabFormat(data: string): string {
+  const hash = crypto.createHash('sha256').update(data + MASTER_SECRET).digest('hex').toUpperCase();
+  return `LAB-${hash.substring(0, 4)}-${hash.substring(4, 8)}-${hash.substring(8, 12)}`;
+}
+
+// 1. Get Clean Formatted Hardware ID (Cached in-memory)
+export function getMachineHWID(): string {
+  if (_cachedCanonicalHwid) return _cachedCanonicalHwid;
+  _cachedCanonicalHwid = hashToLabFormat(getRawMachineId());
+  return _cachedCanonicalHwid;
+}
+
+export function getLegacyHwid(): string {
+  if (_cachedLegacyHwid) return _cachedLegacyHwid;
+  const raw = getRawMachineId();
+  const hashedRaw = crypto.createHash('sha256').update(raw).digest('hex').toLowerCase();
+  _cachedLegacyHwid = hashToLabFormat(hashedRaw);
+  return _cachedLegacyHwid;
+}
+
+export function isHardwareIdValidForMachine(hwidToCheck: string): boolean {
+  if (!hwidToCheck) return false;
+  const clean = hwidToCheck.trim().toUpperCase();
+  return clean === getMachineHWID() || clean === getLegacyHwid();
 }
 
 // 2. Developer Keygen: Generate Signed Offline License Key
@@ -75,8 +142,10 @@ export function verifyLicenseKey(licenseKey: string, currentHwid: string): { val
     }
 
     // Verify HWID Match
-    if (keyHwid !== currentHwid.trim().toUpperCase()) {
-      return { valid: false, message: 'مفتاح الترخيص غير مطابق لهذا الجهاز' };
+    const cleanKeyHwid = keyHwid.trim().toUpperCase();
+    const cleanCurrentHwid = (currentHwid || getMachineHWID()).trim().toUpperCase();
+    if (cleanKeyHwid !== cleanCurrentHwid && !isHardwareIdValidForMachine(cleanKeyHwid)) {
+      return { valid: false, message: `مفتاح الترخيص غير مطابق لهذا الجهاز (${cleanCurrentHwid})` };
     }
 
     // Verify Expiry Date
