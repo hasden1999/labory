@@ -24,7 +24,8 @@ import {
   formatEnglishCurrency, 
   isBloodGroupTest, 
   BLOOD_GROUP_OPTIONS, 
-  evaluateQualitativeAbnormality 
+  evaluateQualitativeAbnormality,
+  evaluateClinicalResult 
 } from '../../lib/formatters';
 
 const UrineFormModal = nextDynamic(() => import('../../components/UrineFormModal'), { ssr: false });
@@ -534,25 +535,8 @@ function ResultsContent() {
       // Blood Group is normal physiological finding, NEVER abnormal (A+, B+, O+, AB+, etc.)
       isAbnormal = false;
     } else {
-      const num = parseNumericResult(val);
-      if (!isNaN(num)) {
-        if (test?.refRangeLow !== null && test?.refRangeLow !== undefined && num < test.refRangeLow) isAbnormal = true;
-        if (test?.refRangeHigh !== null && test?.refRangeHigh !== undefined && num > test.refRangeHigh) isAbnormal = true;
-      } else {
-        isAbnormal = evaluateQualitativeAbnormality(val, test);
-        const lower = val.trim().toLowerCase();
-        if (lower.startsWith('>') && test?.refRangeHigh !== null && test?.refRangeHigh !== undefined) {
-          const threshold = parseFloat(toEnglishDigits(lower.replace('>', '').trim()));
-          if (!isNaN(threshold) && threshold >= test.refRangeHigh) {
-            isAbnormal = true;
-          }
-        } else if (lower.startsWith('<') && test?.refRangeLow !== null && test?.refRangeLow !== undefined) {
-          const threshold = parseFloat(toEnglishDigits(lower.replace('<', '').trim()));
-          if (!isNaN(threshold) && threshold <= test.refRangeLow) {
-            isAbnormal = true;
-          }
-        }
-      }
+      const evalRes = evaluateClinicalResult(val, test);
+      isAbnormal = evalRes.isAbnormal;
     }
 
     // Always store the entered text safely without breaking calculations or losing user input
@@ -1628,7 +1612,10 @@ function ResultsContent() {
                 <tbody>
                   {selectedSample.tests?.map((st: any, index: number) => {
                     const currentVal = testResults[st.id]?.resultValue || '';
-                    const isAbnormal = testResults[st.id]?.isAbnormal || false;
+                    const clinicalEval = evaluateClinicalResult(currentVal, st.test);
+                    const isHigh = clinicalEval.status === 'HIGH';
+                    const isLow = clinicalEval.status === 'LOW';
+                    const isAbnormal = isHigh || isLow || testResults[st.id]?.isAbnormal || false;
                     const numVal = parseFloat(currentVal);
                     const isPanic = !isNaN(numVal) && ((st.test?.panicLow && numVal < st.test.panicLow) || (st.test?.panicHigh && numVal > st.test.panicHigh));
 
@@ -1972,9 +1959,9 @@ function ResultsContent() {
                                     fontSize: '13px',
                                     fontWeight: 800,
                                     background: 'var(--bg-input)',
-                                    borderColor: isPanic ? 'var(--color-danger)' : isAbnormal ? 'var(--color-warning)' : currentVal ? 'var(--accent-cyan)' : 'var(--border-color)',
-                                    boxShadow: isPanic ? '0 0 10px rgba(239, 68, 68, 0.4)' : isAbnormal ? '0 0 8px rgba(245, 158, 11, 0.3)' : 'none',
-                                    color: isPanic ? 'var(--color-danger)' : isAbnormal ? 'var(--color-warning)' : 'var(--text-main)',
+                                    borderColor: isPanic ? 'var(--color-danger)' : isHigh ? '#dc2626' : isLow ? '#2563eb' : isAbnormal ? 'var(--color-warning)' : currentVal ? 'var(--accent-cyan)' : 'var(--border-color)',
+                                    boxShadow: isPanic ? '0 0 10px rgba(239, 68, 68, 0.4)' : isHigh ? '0 0 8px rgba(220, 38, 38, 0.35)' : isLow ? '0 0 8px rgba(37, 99, 235, 0.35)' : isAbnormal ? '0 0 8px rgba(245, 158, 11, 0.3)' : 'none',
+                                    color: isPanic ? 'var(--color-danger)' : isHigh ? '#dc2626' : isLow ? '#2563eb' : isAbnormal ? 'var(--color-warning)' : 'var(--text-main)',
                                     flex: 1,
                                   }}
                                   placeholder="Enter value"
@@ -1993,6 +1980,36 @@ function ResultsContent() {
                                     }}
                                   >
                                     <CircleAlert size={16} />
+                                  </span>
+                                ) : isHigh ? (
+                                  <span
+                                    title="High Value (مرتفع)"
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '2px',
+                                      color: '#dc2626',
+                                      fontWeight: 800,
+                                      fontSize: '12px',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <span style={{ fontSize: '13px' }}>▲</span> High
+                                  </span>
+                                ) : isLow ? (
+                                  <span
+                                    title="Low Value (منخفض)"
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '2px',
+                                      color: '#2563eb',
+                                      fontWeight: 800,
+                                      fontSize: '12px',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <span style={{ fontSize: '13px' }}>▼</span> Low
                                   </span>
                                 ) : isAbnormal ? (
                                   <span
@@ -2045,9 +2062,9 @@ function ResultsContent() {
                                     fontSize: '13px',
                                     fontWeight: 800,
                                     background: 'var(--bg-input)',
-                                    borderColor: isPanic ? 'var(--color-danger)' : isAbnormal ? 'var(--color-warning)' : currentVal ? 'var(--accent-cyan)' : 'var(--border-color)',
-                                    boxShadow: isPanic ? '0 0 10px rgba(239, 68, 68, 0.4)' : isAbnormal ? '0 0 8px rgba(245, 158, 11, 0.3)' : 'none',
-                                    color: isPanic ? 'var(--color-danger)' : isAbnormal ? 'var(--color-warning)' : 'var(--text-main)',
+                                    borderColor: isPanic ? 'var(--color-danger)' : isHigh ? '#dc2626' : isLow ? '#2563eb' : isAbnormal ? 'var(--color-warning)' : currentVal ? 'var(--accent-cyan)' : 'var(--border-color)',
+                                    boxShadow: isPanic ? '0 0 10px rgba(239, 68, 68, 0.4)' : isHigh ? '0 0 8px rgba(220, 38, 38, 0.35)' : isLow ? '0 0 8px rgba(37, 99, 235, 0.35)' : isAbnormal ? '0 0 8px rgba(245, 158, 11, 0.3)' : 'none',
+                                    color: isPanic ? 'var(--color-danger)' : isHigh ? '#dc2626' : isLow ? '#2563eb' : isAbnormal ? 'var(--color-warning)' : 'var(--text-main)',
                                     flex: 1,
                                   }}
                                   placeholder="Enter value"
@@ -2066,6 +2083,36 @@ function ResultsContent() {
                                     }}
                                   >
                                     <CircleAlert size={16} />
+                                  </span>
+                                ) : isHigh ? (
+                                  <span
+                                    title="High Value (مرتفع)"
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '2px',
+                                      color: '#dc2626',
+                                      fontWeight: 800,
+                                      fontSize: '12px',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <span style={{ fontSize: '13px' }}>▲</span> High
+                                  </span>
+                                ) : isLow ? (
+                                  <span
+                                    title="Low Value (منخفض)"
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '2px',
+                                      color: '#2563eb',
+                                      fontWeight: 800,
+                                      fontSize: '12px',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <span style={{ fontSize: '13px' }}>▼</span> Low
                                   </span>
                                 ) : isAbnormal ? (
                                   <span

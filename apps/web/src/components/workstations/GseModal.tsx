@@ -19,11 +19,13 @@ import {
   Bug
 } from 'lucide-react';
 import { useToast } from '../Toast';
+import MultiEntryCombobox, { MultiEntryItem, SingleCombobox, generateUniqueId } from '../common/MultiEntryCombobox';
 
 export interface ParasiteEntry {
+  id: string;
   organism: string;
   stage: string;
-  severity: string;
+  archivedSeverity?: string;
 }
 
 export interface GseAnalysisData {
@@ -39,6 +41,11 @@ export interface GseAnalysisData {
   includeSensitivity: boolean;
   sensitivity: string;
 
+  // pH & Reducing Substances (Optional)
+  includePhAndReducing: boolean;
+  ph: string;
+  reducingSubstances: string;
+
   // Microscopic Examination (HPF)
   pusCells: string;
   rbcs: string;
@@ -46,6 +53,7 @@ export interface GseAnalysisData {
   starchGranules: string;
   fatGlobules: string;
   vegetableCells: string;
+  yeastMonilia: string; // Item 5: Yeast / Monilia in Stool
 
   // Parasitology Matrix
   parasites: ParasiteEntry[];
@@ -61,33 +69,48 @@ export const DEFAULT_GSE_DATA: GseAnalysisData = {
   fobt: 'Negative',
   includeSensitivity: false,
   sensitivity: 'Nil',
+  includePhAndReducing: false,
+  ph: '6.5',
+  reducingSubstances: 'Negative',
   pusCells: '0-2',
   rbcs: '0-1',
   muscleFibers: 'Nil',
   starchGranules: 'Nil',
   fatGlobules: 'Nil',
   vegetableCells: 'Nil',
+  yeastMonilia: 'Not seen',
   parasites: [],
   notes: 'No parasites, cysts, or ova seen in direct saline and iodine wet mounts.'
 };
 
-const COMMON_PARASITES = [
-  { organism: 'Entamoeba histolytica', defaultStage: 'Cyst' },
-  { organism: 'Entamoeba histolytica', defaultStage: 'Trophozoite (Hematophagous)' },
-  { organism: 'Entamoeba coli', defaultStage: 'Cyst' },
-  { organism: 'Giardia lamblia', defaultStage: 'Cyst' },
-  { organism: 'Giardia lamblia', defaultStage: 'Trophozoite' },
-  { organism: 'Blastocystis hominis', defaultStage: 'Vacuolar' },
-  { organism: 'Trichomonas hominis', defaultStage: 'Trophozoite' },
-  { organism: 'Ascaris lumbricoides', defaultStage: 'Fertilized Ova' },
-  { organism: 'Ancylostoma duodenale (Hookworm)', defaultStage: 'Ova' },
-  { organism: 'Hymenolepis nana', defaultStage: 'Ova' },
-  { organism: 'Enterobius vermicularis (Pinworm)', defaultStage: 'Ova' },
-  { organism: 'Taenia saginata/solium', defaultStage: 'Ova' },
-  { organism: 'Trichuris trichiura (Whipworm)', defaultStage: 'Ova' },
-  { organism: 'Schistosoma mansoni', defaultStage: 'Lateral-spine Ova' },
-  { organism: 'Strongyloides stercoralis', defaultStage: 'Rhabditiform Larva' },
+export const DEFAULT_PARASITE_SUGGESTIONS = [
+  'Entamoeba histolytica/dispar',
+  'Entamoeba coli',
+  'Giardia lamblia',
+  'Blastocystis hominis',
+  'Cryptosporidium spp.',
+  'Cyclospora cayetanensis',
+  'Ascaris lumbricoides',
+  'Enterobius vermicularis',
+  'Trichuris trichiura',
+  'Hookworm',
+  'Strongyloides stercoralis',
+  'Hymenolepis nana',
+  'Taenia spp.',
+  'Schistosoma mansoni'
 ];
+
+export const DEFAULT_STAGE_SUGGESTIONS = [
+  'Cyst',
+  'Trophozoite',
+  'Ova (Egg)',
+  'Larva',
+  'Adult worm',
+  'Proglottid (segment)',
+  'Oocyst'
+];
+
+export const YEAST_MONILIA_SUGGESTIONS = ['Not seen', 'Few', '+', '++', '+++', 'Many'];
 
 export function serializeGse(data: GseAnalysisData): string {
   const parts: string[] = ['[G.S.E - GENERAL STOOL EXAMINATION]'];
@@ -102,6 +125,11 @@ export function serializeGse(data: GseAnalysisData): string {
   // Only serialize Sensitivity if explicitly enabled!
   if (data.includeSensitivity && data.sensitivity && data.sensitivity !== 'Not Requested') {
     parts.push(`SENSITIVITY: ${data.sensitivity}`);
+  }
+
+  // Only serialize pH & Reducing Substances if explicitly enabled!
+  if (data.includePhAndReducing) {
+    parts.push(`PH_REDUCING: pH: ${data.ph || '6.5'} | Reducing Substances: ${data.reducingSubstances || 'Negative'}`);
   }
 
   const microItems: string[] = [
@@ -121,12 +149,20 @@ export function serializeGse(data: GseAnalysisData): string {
   if (data.vegetableCells && data.vegetableCells !== 'Nil') {
     microItems.push(`Vegetable: ${data.vegetableCells}`);
   }
+  // Item 5: Yeast / Monilia
+  if (data.yeastMonilia && data.yeastMonilia !== 'Not seen' && data.yeastMonilia !== 'Nil') {
+    microItems.push(`Yeast / Monilia: ${data.yeastMonilia}`);
+  }
 
   parts.push(`MICROSCOPIC: ${microItems.join(' | ')}`);
 
-  if (data.parasites.length > 0) {
-    const pStr = data.parasites.map(p => `${p.organism} [${p.stage}] (${p.severity})`).join(' | ');
-    parts.push(`PARASITOLOGY: ${pStr}`);
+  // Item 4: Multi-parasite without crosses, format: {name} – {stage}
+  if (data.parasites && data.parasites.length > 0) {
+    const pStr = data.parasites
+      .filter(p => p.organism && p.organism.trim())
+      .map(p => p.stage && p.stage.trim() ? `${p.organism.trim()} – ${p.stage.trim()}` : p.organism.trim())
+      .join(' | ');
+    parts.push(`PARASITOLOGY: ${pStr || 'Nil (No ova, cysts, or parasites seen)'}`);
   } else {
     parts.push(`PARASITOLOGY: Nil (No ova, cysts, or parasites seen)`);
   }
@@ -157,6 +193,12 @@ export function parseGse(raw: string): GseAnalysisData {
     } else if (trimmed.startsWith('SENSITIVITY:')) {
       parsed.includeSensitivity = true;
       parsed.sensitivity = trimmed.replace('SENSITIVITY:', '').trim();
+    } else if (trimmed.startsWith('PH_REDUCING:')) {
+      parsed.includePhAndReducing = true;
+      const matchPh = trimmed.match(/pH:\s*([^|]+)/i);
+      if (matchPh) parsed.ph = matchPh[1].trim();
+      const matchRed = trimmed.match(/Reducing Substances:\s*([^|\n]+)/i);
+      if (matchRed) parsed.reducingSubstances = matchRed[1].trim();
     } else if (trimmed.startsWith('MICROSCOPIC:')) {
       const pMatch = trimmed.match(/Pus Cells:\s*([^\/|]+)/i);
       if (pMatch) parsed.pusCells = pMatch[1].trim();
@@ -170,17 +212,94 @@ export function parseGse(raw: string): GseAnalysisData {
       if (fMatch) parsed.fatGlobules = fMatch[1].trim();
       const vMatch = trimmed.match(/Vegetable:\s*([^|]+)/i);
       if (vMatch) parsed.vegetableCells = vMatch[1].trim();
+      const ymMatch = trimmed.match(/(?:Yeast\s*\/?\s*Monilia|Monilia|Yeast):\s*([^|]+)/i);
+      if (ymMatch) parsed.yeastMonilia = ymMatch[1].trim();
+    } else if (trimmed.startsWith('YEAST:') || trimmed.startsWith('YEAST / MONILIA:')) {
+      parsed.yeastMonilia = trimmed.split(':')[1].trim();
     } else if (trimmed.startsWith('PARASITOLOGY:')) {
       const content = trimmed.replace('PARASITOLOGY:', '').trim();
-      if (!content.startsWith('Nil')) {
+      if (!content.toLowerCase().startsWith('nil')) {
         const items = content.split('|');
         parsed.parasites = items.map(item => {
-          const m = item.trim().match(/^(.*?)\s*\[(.*?)\]\s*\((.*?)\)$/);
-          if (m) {
-            return { organism: m[1].trim(), stage: m[2].trim(), severity: m[3].trim() };
+          const cleanItem = item.trim();
+          if (!cleanItem) return null;
+
+          // Check format: "Name [Stage] (Severity)" or "Name (Stage) (Severity)"
+          const bracketAndCrosses = cleanItem.match(/^(.*?)\s*[\[\(](.*?)[\]\)]\s*\(\s*(\+{1,4})\s*\)$/);
+          if (bracketAndCrosses) {
+            return {
+              id: generateUniqueId(),
+              organism: bracketAndCrosses[1].trim(),
+              stage: bracketAndCrosses[2].trim(),
+              archivedSeverity: bracketAndCrosses[3].trim()
+            };
           }
-          return { organism: item.trim(), stage: 'Observed', severity: '+' };
-        });
+
+          // Check format: "Name – Stage" or "Name - Stage" (requiring whitespace around dash/hyphen)
+          const dashMatch = cleanItem.match(/^(.*?)\s+[–\-]\s+(.*?)$/);
+          if (dashMatch) {
+            return {
+              id: generateUniqueId(),
+              organism: dashMatch[1].trim(),
+              stage: dashMatch[2].trim()
+            };
+          }
+
+          // Check format: "Name [Stage]: Severity" (old fixture format)
+          const bracketSeverity = cleanItem.match(/^(.*?)\s*\[(.*?)\]:\s*(.*?)$/);
+          if (bracketSeverity) {
+            return {
+              id: generateUniqueId(),
+              organism: bracketSeverity[1].trim(),
+              stage: bracketSeverity[2].trim(),
+              archivedSeverity: bracketSeverity[3].trim()
+            };
+          }
+
+          // Check format: "Name (+++)" without stage
+          const crossesOnly = cleanItem.match(/^(.*?)\s*\(\s*(\+{1,4})\s*\)$/);
+          if (crossesOnly) {
+            return {
+              id: generateUniqueId(),
+              organism: crossesOnly[1].trim(),
+              stage: '',
+              archivedSeverity: crossesOnly[2].trim()
+            };
+          }
+
+          // Check format: "Name [Stage]" or "Name (Stage)"
+          const bracketMatch = cleanItem.match(/^(.*?)\s*[\[\(](.*?)[\]\)]$/);
+          if (bracketMatch) {
+            const val = bracketMatch[2].trim();
+            const isCrosses = ['+', '++', '+++', '++++'].includes(val);
+            return {
+              id: generateUniqueId(),
+              organism: bracketMatch[1].trim(),
+              stage: isCrosses ? '' : val,
+              archivedSeverity: isCrosses ? val : undefined
+            };
+          }
+
+          // Check legacy crosses format: "Name: Severity" (e.g. "Entamoeba histolytica: +++")
+          const colonMatch = cleanItem.match(/^(.*?):\s*(.*?)$/);
+          if (colonMatch) {
+            const org = colonMatch[1].trim();
+            const val = colonMatch[2].trim();
+            const isSeverity = ['+', '++', '+++', '++++'].includes(val) || val.includes('+');
+            return {
+              id: generateUniqueId(),
+              organism: org,
+              stage: isSeverity ? '' : val,
+              archivedSeverity: isSeverity ? val : undefined
+            };
+          }
+
+          return {
+            id: generateUniqueId(),
+            organism: cleanItem,
+            stage: ''
+          };
+        }).filter(Boolean) as ParasiteEntry[];
       }
     } else if (trimmed.startsWith('NOTES:')) {
       parsed.notes = trimmed.replace('NOTES:', '').trim();
@@ -218,11 +337,6 @@ export default function GseModal({
   const [data, setData] = useState<GseAnalysisData>(DEFAULT_GSE_DATA);
   const [saving, setSaving] = useState(false);
 
-  // New parasite state
-  const [selectedOrganism, setSelectedOrganism] = useState(COMMON_PARASITES[0].organism);
-  const [selectedStage, setSelectedStage] = useState(COMMON_PARASITES[0].defaultStage);
-  const [selectedSeverity, setSelectedSeverity] = useState('+');
-
   const resolvedPatientName = patientName || sample?.patient?.name || 'مريض غير محدد';
   const resolvedSampleNumber = sampleNumber || sample?.sampleNumber || sample?.id || '---';
 
@@ -253,90 +367,50 @@ export default function GseModal({
     setData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleAddParasite = () => {
-    const exists = data.parasites.some(
-      (p) => p.organism === selectedOrganism && p.stage === selectedStage
-    );
-    if (exists) {
-      toast.warning('هذا الطفيلي مضاف مسبقاً بنفس الطور', 'تنبيه');
-      return;
-    }
-    setData((prev) => ({
-      ...prev,
-      parasites: [
-        ...prev.parasites,
-        { organism: selectedOrganism, stage: selectedStage, severity: selectedSeverity },
-      ],
-    }));
-    toast.success(`تمت إضافة ${selectedOrganism} بنجاح`);
-  };
-
-  const handleRemoveParasite = (index: number) => {
-    setData((prev) => ({
-      ...prev,
-      parasites: prev.parasites.filter((_, i) => i !== index),
-    }));
-  };
-
   const applyPreset = (presetName: 'NORMAL' | 'AMOEBIC' | 'GIARDIA' | 'RESET') => {
     if (presetName === 'NORMAL' || presetName === 'RESET') {
       setData({
-        color: 'Brown',
-        consistency: 'Formed',
-        includeFobt: false,
-        fobt: 'Negative',
-        includeSensitivity: false,
-        sensitivity: 'Nil',
-        pusCells: '0-2',
-        rbcs: '0-1',
-        muscleFibers: 'Nil',
-        starchGranules: 'Nil',
-        fatGlobules: 'Nil',
-        vegetableCells: 'Few',
-        parasites: [],
-        notes: 'No parasites, cysts, or ova seen in direct saline and iodine wet mounts.',
+        ...DEFAULT_GSE_DATA,
       });
       toast.success('تم تطبيق القيم الطبيعية لفحص الخروج (Normal G.S.E)', 'تم التحميل');
     } else if (presetName === 'AMOEBIC') {
       setData({
+        ...DEFAULT_GSE_DATA,
         color: 'Reddish Brown',
         consistency: 'Mucoid / Loose',
         includeFobt: true,
         fobt: 'Positive',
-        includeSensitivity: false,
-        sensitivity: 'Nil',
         pusCells: '25-30',
         rbcs: '35-40',
         muscleFibers: 'Present',
         starchGranules: 'Few',
         fatGlobules: 'Nil',
         vegetableCells: 'Few',
+        yeastMonilia: 'Not seen',
         parasites: [
-          { organism: 'Entamoeba histolytica', stage: 'Trophozoite (Hematophagous)', severity: '+++' },
-          { organism: 'Entamoeba histolytica', stage: 'Cyst', severity: '+' },
+          { id: generateUniqueId(), organism: 'Entamoeba histolytica', stage: 'Trophozoite' },
         ],
-        notes: 'Active amoebic dysentery picture. Ingested RBCs observed inside active trophozoites.',
+        notes: 'Active amoebic dysentery picture with red blood cells and tissue debris.',
       });
       toast.warning('تم تطبيق نموذج الزحار الأميبي الحاد (Amoebic Dysentery)', 'تم التحميل');
     } else if (presetName === 'GIARDIA') {
       setData({
+        ...DEFAULT_GSE_DATA,
         color: 'Yellow',
         consistency: 'Loose',
         includeFobt: false,
         fobt: 'Negative',
-        includeSensitivity: false,
-        sensitivity: 'Nil',
         pusCells: '2-4',
         rbcs: '0-1',
         muscleFibers: 'Few',
         starchGranules: 'Moderate',
         fatGlobules: '++',
         vegetableCells: 'Few',
+        yeastMonilia: 'Not seen',
         parasites: [
-          { organism: 'Giardia lamblia', stage: 'Cyst', severity: '++' },
-          { organism: 'Giardia lamblia', stage: 'Trophozoite', severity: '+' },
+          { id: generateUniqueId(), organism: 'Giardia lamblia', stage: 'Cyst' },
         ],
-        notes: 'Giardiasis pattern with fatty globules and presence of cysts and trophozoites.',
+        notes: 'Giardiasis pattern with fatty globules and presence of motile organisms.',
       });
       toast.info('تم تطبيق نموذج داء الجيارديات (Giardiasis)', 'تم التحميل');
     }
@@ -356,7 +430,8 @@ export default function GseModal({
     (data.includeSensitivity && data.sensitivity === 'Sensitive') ||
     data.parasites.length > 0 ||
     parseRangeMax(data.pusCells) > 5 ||
-    parseRangeMax(data.rbcs) > 3 ||
+    parseRangeMax(data.rbcs) > 2 ||
+    (Boolean(data.yeastMonilia) && !['Not seen', 'Nil'].includes(data.yeastMonilia)) ||
     data.consistency.includes('Loose') ||
     data.consistency.includes('Watery') ||
     data.consistency.includes('Mucoid') ||
@@ -999,6 +1074,113 @@ export default function GseModal({
                     </div>
                   )}
                 </div>
+
+                {/* pH & Reducing Substances (فحص الحموضة والمواد المختزلة) */}
+                <div
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: data.includePhAndReducing ? '1.5px solid #0d9488' : '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', userSelect: 'none' }}>
+                      <input
+                        type="checkbox"
+                        checked={data.includePhAndReducing}
+                        onChange={(e) => setField('includePhAndReducing', e.target.checked)}
+                        style={{ width: '16px', height: '16px', accentColor: '#0d9488', cursor: 'pointer' }}
+                      />
+                      <span>فحص الحموضة والمواد المختزلة (pH &amp; Reducing Substances)</span>
+                    </label>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: data.includePhAndReducing ? '#0d9488' : 'var(--text-muted)' }}>
+                      {data.includePhAndReducing ? 'مُفعّل بالتقرير' : 'غير مطلوب'}
+                    </span>
+                  </div>
+
+                  {data.includePhAndReducing && (
+                    <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-color)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
+                          درجة الحموضة (pH):
+                        </label>
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                          {['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0'].map((p) => {
+                            const isSel = data.ph === p;
+                            return (
+                              <button
+                                key={p}
+                                type="button"
+                                onClick={() => setField('ph', p)}
+                                style={{
+                                  padding: '4px 8px',
+                                  borderRadius: '5px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  border: isSel ? '1.5px solid #0d9488' : '1px solid var(--border-color)',
+                                  background: isSel ? 'rgba(13, 148, 136, 0.15)' : 'var(--bg-input)',
+                                  color: isSel ? '#0d9488' : 'var(--text-main)',
+                                }}
+                              >
+                                {p}
+                              </button>
+                            );
+                          })}
+                          <input
+                            type="text"
+                            placeholder="يدوي..."
+                            value={data.ph}
+                            onChange={(e) => setField('ph', e.target.value)}
+                            style={{
+                              width: '60px',
+                              padding: '3px 6px',
+                              borderRadius: '5px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              border: '1px solid var(--border-color)',
+                              background: 'var(--bg-input)',
+                              color: 'var(--text-main)',
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
+                          المواد المختزلة (Reducing Substances):
+                        </label>
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                          {['Negative', 'Trace', '0.25% (+)', '0.5% (++)', '0.75% (+++)', '>=1.0% (++++)'].map((rs) => {
+                            const isSel = data.reducingSubstances === rs;
+                            return (
+                              <button
+                                key={rs}
+                                type="button"
+                                onClick={() => setField('reducingSubstances', rs)}
+                                style={{
+                                  padding: '4px 8px',
+                                  borderRadius: '5px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  border: isSel ? '1.5px solid #0d9488' : '1px solid var(--border-color)',
+                                  background: isSel ? 'rgba(13, 148, 136, 0.15)' : 'var(--bg-input)',
+                                  color: isSel ? '#0d9488' : 'var(--text-main)',
+                                }}
+                              >
+                                {rs}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1185,13 +1367,8 @@ export default function GseModal({
                     onChange={(val) => setField('vegetableCells', val)}
                   />
                 </div>
-              </div>
-            )}
 
-            {/* TAB 3: PARASITOLOGY & NOTES */}
-            {activeTab === 'PARASITOLOGY' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {/* Add Parasite Card */}
+                {/* Yeast / Monilia Box (Item 5) */}
                 <div
                   style={{
                     background: 'var(--bg-card)',
@@ -1201,176 +1378,98 @@ export default function GseModal({
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                   }}
                 >
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Plus size={15} color="#0284c7" />
-                    <span>إضافة طفيلي مكتشف (Add Parasite Entry)</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      Yeast / Monilia (خمائر الخروج)
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      Ref: <strong style={{ color: '#0284c7' }}>Not seen</strong>
+                    </span>
                   </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
-                        الكائن الطفيلي (Organism):
-                      </label>
-                      <select
-                        value={selectedOrganism}
-                        onChange={(e) => {
-                          setSelectedOrganism(e.target.value);
-                          const found = COMMON_PARASITES.find((p) => p.organism === e.target.value);
-                          if (found) setSelectedStage(found.defaultStage);
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '7px 10px',
-                          borderRadius: '6px',
-                          border: '1px solid var(--border-color)',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          background: 'var(--bg-input)',
-                          color: 'var(--text-main)',
-                        }}
-                      >
-                        {COMMON_PARASITES.map((p, i) => (
-                          <option key={i} value={p.organism}>
-                            {p.organism} ({p.defaultStage})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
-                        الطور المكتشف (Stage):
-                      </label>
-                      <select
-                        value={selectedStage}
-                        onChange={(e) => setSelectedStage(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '7px 10px',
-                          borderRadius: '6px',
-                          border: '1px solid var(--border-color)',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          background: 'var(--bg-input)',
-                          color: 'var(--text-main)',
-                        }}
-                      >
-                        <option value="Cyst">Cyst</option>
-                        <option value="Trophozoite">Trophozoite</option>
-                        <option value="Trophozoite (Hematophagous)">Trophozoite (Hematophagous)</option>
-                        <option value="Ova">Ova</option>
-                        <option value="Fertilized Ova">Fertilized Ova</option>
-                        <option value="Larva">Larva</option>
-                        <option value="Vacuolar">Vacuolar</option>
-                        <option value="Observed">Observed</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Severity Pills & Add Button */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>الكثافة (Severity):</span>
-                      {['+', '++', '+++', '++++'].map((s) => {
-                        const isSel = selectedSeverity === s;
-                        return (
-                          <button
-                            key={s}
-                            type="button"
-                            onClick={() => setSelectedSeverity(s)}
-                            style={{
-                              padding: '4px 10px',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: 800,
-                              cursor: 'pointer',
-                              border: isSel ? '1.5px solid #dc2626' : '1px solid var(--border-color)',
-                              background: isSel ? '#fee2e2' : 'var(--bg-input)',
-                              color: isSel ? '#b91c1c' : 'var(--text-main)',
-                            }}
-                          >
-                            {s}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleAddParasite}
-                      style={{
-                        padding: '6px 14px',
-                        borderRadius: '6px',
-                        background: '#0284c7',
-                        color: '#fff',
-                        border: 'none',
-                        fontSize: '12px',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                      }}
-                    >
-                      <Plus size={14} />
-                      <span>إضافة للقائمة (Add)</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Added Parasites List */}
-                <div
-                  style={{
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '8px',
-                    padding: '10px 14px',
-                  }}
-                >
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '6px' }}>
-                    الطفيليات المسجلة في العينة:
-                  </div>
-                  {data.parasites.length === 0 ? (
-                    <div style={{ fontSize: '12px', color: '#10b981', padding: '6px 0', fontWeight: 700 }}>
-                      ✓ لا توجد طفيليات مسجلة (Nil / No ova or parasites seen)
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {data.parasites.map((p, idx) => (
-                        <div
-                          key={idx}
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {YEAST_MONILIA_SUGGESTIONS.map((opt) => {
+                      const isSelected = data.yeastMonilia === opt;
+                      const isAbn = !['Not seen', 'Nil'].includes(opt);
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => setField('yeastMonilia', opt)}
                           style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            background: '#fef2f2',
-                            border: '1px solid #fecaca',
+                            padding: '5px 12px',
                             borderRadius: '6px',
-                            padding: '6px 10px',
+                            fontSize: '11.5px',
+                            fontWeight: isSelected ? 800 : 600,
+                            cursor: 'pointer',
+                            border: isSelected
+                              ? isAbn
+                                ? '1.5px solid #dc2626'
+                                : '1.5px solid #0284c7'
+                              : '1px solid var(--border-color)',
+                            background: isSelected
+                              ? isAbn
+                                ? '#fee2e2'
+                                : '#e0f2fe'
+                              : 'var(--bg-input)',
+                            color: isSelected
+                              ? isAbn
+                                ? '#b91c1c'
+                                : '#0369a1'
+                              : 'var(--text-main)',
                           }}
                         >
-                          <div style={{ fontSize: '12px', fontWeight: 800, color: '#b91c1c' }}>
-                            • {p.organism} <span style={{ color: '#64748b', fontWeight: 600 }}>[{p.stage}]</span> <span style={{ color: '#dc2626' }}>({p.severity})</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveParasite(idx)}
-                            style={{
-                              background: '#fee2e2',
-                              border: 'none',
-                              color: '#b91c1c',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              padding: '4px',
-                            }}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      ))}
+                          {opt}
+                        </button>
+                      );
+                    })}
+                    <div style={{ minWidth: '160px', flex: 1 }}>
+                      <SingleCombobox
+                        value={data.yeastMonilia}
+                        onChange={(val) => setField('yeastMonilia', val)}
+                        suggestions={YEAST_MONILIA_SUGGESTIONS}
+                        placeholder="أو اكتب قيمة مخصصة (حر)..."
+                        ariaLabel="Yeast Monilia value"
+                      />
                     </div>
-                  )}
+                  </div>
                 </div>
+              </div>
+            )}
+
+            {/* TAB 3: PARASITOLOGY & NOTES */}
+            {activeTab === 'PARASITOLOGY' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Item 4: Parasites & Stage MultiEntryCombobox */}
+                <MultiEntryCombobox
+                  label="طفيليات الخروج (Parasitology: Organisms & Stages)"
+                  items={data.parasites.map((p) => ({
+                    id: p.id,
+                    name: p.organism,
+                    secondValue: p.stage,
+                  }))}
+                  onChange={(items) => {
+                    const newParasites: ParasiteEntry[] = items.map((item) => {
+                      const existing = data.parasites.find((p) => p.id === item.id);
+                      return {
+                        id: item.id,
+                        organism: item.name,
+                        stage: item.secondValue,
+                        archivedSeverity: existing?.archivedSeverity,
+                      };
+                    });
+                    setField('parasites', newParasites);
+                  }}
+                  nameSuggestions={DEFAULT_PARASITE_SUGGESTIONS}
+                  namePlaceholder="اختر أو اكتب اسم الطفيلي (مثل Entamoeba histolytica)..."
+                  secondFieldLabel="الطور (Stage)"
+                  secondSuggestions={DEFAULT_STAGE_SUGGESTIONS}
+                  secondPlaceholder="الطور (Cyst, Trophozoite, Ova, Larva...)"
+                  addButtonText="إضافة طفيلي (Add Parasite)"
+                  emptyStateText="✓ لا توجد طفيليات مسجلة (Nil / No ova, cysts, or parasites seen)"
+                  badgeColor="#b91c1c"
+                  badgeBg="#fef2f2"
+                  badgeBorder="#fecaca"
+                />
 
                 {/* Clinical Notes */}
                 <div
@@ -1511,6 +1610,14 @@ export default function GseModal({
                         </td>
                       </tr>
                     )}
+                    {data.includePhAndReducing && (
+                      <tr>
+                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>pH:</td>
+                        <td style={{ fontWeight: 700, color: '#0f172a', textAlign: 'left' }}>{data.ph}</td>
+                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>Reducing:</td>
+                        <td style={{ fontWeight: 700, color: data.reducingSubstances !== 'Negative' ? '#dc2626' : '#047857', textAlign: 'left' }}>{data.reducingSubstances}</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1556,6 +1663,12 @@ export default function GseModal({
                         <td colSpan={3} style={{ fontWeight: 600, color: '#0f172a', textAlign: 'left' }}>{data.vegetableCells}</td>
                       </tr>
                     )}
+                    {data.yeastMonilia && !['Not seen', 'Nil', ''].includes(data.yeastMonilia) && (
+                      <tr>
+                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>Yeast / Monilia:</td>
+                        <td colSpan={3} style={{ fontWeight: 700, color: '#dc2626', textAlign: 'left' }}>{data.yeastMonilia}</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1572,8 +1685,8 @@ export default function GseModal({
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', textAlign: 'left' }}>
                     {data.parasites.map((p, idx) => (
-                      <div key={idx} style={{ fontWeight: 800, color: '#b91c1c', textAlign: 'left' }}>
-                        • {p.organism} [{p.stage}] ({p.severity})
+                      <div key={p.id || idx} style={{ fontWeight: 800, color: '#b91c1c', textAlign: 'left' }}>
+                        • {p.organism} {p.stage ? `– ${p.stage}` : ''}
                       </div>
                     ))}
                   </div>

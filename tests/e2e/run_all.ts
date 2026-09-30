@@ -13,6 +13,7 @@ import { globalContext, printSummary } from './harness/testRunner';
 import './tier1_features/tier1_intake_reception.test';
 import './tier1_features/tier1_gue_workstation.test';
 import './tier1_features/tier1_gse_workstation.test';
+import './tier1_features/tier1_urine_stool_modifications.test';
 import './tier1_features/tier1_cbc_workstation.test';
 import './tier1_features/tier1_chemistry_workstation.test';
 import './tier1_features/tier1_microbiology_workstation.test';

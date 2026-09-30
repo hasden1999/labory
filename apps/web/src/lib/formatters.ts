@@ -185,3 +185,81 @@ export function evaluateQualitativeAbnormality(val: string, test: any): boolean 
 
   return false;
 }
+
+export interface ClinicalRangeEvaluation {
+  status: 'HIGH' | 'LOW' | 'NORMAL';
+  arrow: '▲' | '▼' | '';
+  color: string; // '#dc2626' for High, '#2563eb' for Low, '' for Normal
+  isAbnormal: boolean;
+}
+
+/**
+ * Evaluates a clinical test result against its reference ranges:
+ * - High: Red (#dc2626) with up arrow (▲)
+ * - Low: Blue (#2563eb) with down arrow (▼)
+ * - Normal: No color, no arrow
+ */
+export function evaluateClinicalResult(val: any, test: any): ClinicalRangeEvaluation {
+  if (val === null || val === undefined || isBloodGroupTest(test)) {
+    return { status: 'NORMAL', arrow: '', color: '', isAbnormal: false };
+  }
+  const cleanVal = toEnglishDigits(String(val)).trim();
+  if (!cleanVal || cleanVal === '-' || cleanVal.toLowerCase() === 'pending') {
+    return { status: 'NORMAL', arrow: '', color: '', isAbnormal: false };
+  }
+
+  // 1. Numeric evaluation
+  const num = parseFloat(cleanVal);
+  let low: number | null = (test?.refRangeLow !== null && test?.refRangeLow !== undefined && !isNaN(Number(test.refRangeLow)))
+    ? Number(test.refRangeLow)
+    : null;
+  let high: number | null = (test?.refRangeHigh !== null && test?.refRangeHigh !== undefined && !isNaN(Number(test.refRangeHigh)))
+    ? Number(test.refRangeHigh)
+    : null;
+
+  // Try parsing refRangeText if numbers not explicitly defined
+  if ((low === null || high === null) && test?.refRangeText) {
+    const text = toEnglishDigits(String(test.refRangeText)).trim();
+    const mRange = text.match(/([0-9]+(?:\.[0-9]+)?)\s*(?:-|–|to)\s*([0-9]+(?:\.[0-9]+)?)/i);
+    if (mRange) {
+      if (low === null) low = parseFloat(mRange[1]);
+      if (high === null) high = parseFloat(mRange[2]);
+    } else {
+      const mLess = text.match(/<\s*([0-9]+(?:\.[0-9]+)?)/);
+      if (mLess && high === null) high = parseFloat(mLess[1]);
+      const mGreater = text.match(/>\s*([0-9]+(?:\.[0-9]+)?)/);
+      if (mGreater && low === null) low = parseFloat(mGreater[1]);
+    }
+  }
+
+  if (!isNaN(num)) {
+    if (high !== null && !isNaN(high) && num > high) {
+      return { status: 'HIGH', arrow: '▲', color: '#dc2626', isAbnormal: true };
+    }
+    if (low !== null && !isNaN(low) && num < low) {
+      return { status: 'LOW', arrow: '▼', color: '#2563eb', isAbnormal: true };
+    }
+    return { status: 'NORMAL', arrow: '', color: '', isAbnormal: false };
+  }
+
+  // 2. Qualitative / Operator evaluation (e.g. "> 200", "< 50")
+  const lower = cleanVal.toLowerCase();
+  if (lower.startsWith('>') && high !== null && !isNaN(high)) {
+    const th = parseFloat(lower.replace('>', '').trim());
+    if (!isNaN(th) && th >= high) {
+      return { status: 'HIGH', arrow: '▲', color: '#dc2626', isAbnormal: true };
+    }
+  }
+  if (lower.startsWith('<') && low !== null && !isNaN(low)) {
+    const th = parseFloat(lower.replace('<', '').trim());
+    if (!isNaN(th) && th <= low) {
+      return { status: 'LOW', arrow: '▼', color: '#2563eb', isAbnormal: true };
+    }
+  }
+
+  if (evaluateQualitativeAbnormality(cleanVal, test)) {
+    return { status: 'HIGH', arrow: '▲', color: '#dc2626', isAbnormal: true };
+  }
+
+  return { status: 'NORMAL', arrow: '', color: '', isAbnormal: false };
+}

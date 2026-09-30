@@ -29,7 +29,7 @@ function getAppVersion(): string {
     }
   } catch (e) {}
 
-  return 'v1.1.2';
+  return 'v1.1.3';
 }
 
 export async function GET() {

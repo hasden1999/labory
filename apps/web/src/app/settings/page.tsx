@@ -8,92 +8,15 @@ import PaperDesignerV2 from '../../components/workspace/PaperDesignerV2';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useLab } from '../../components/LabContext';
-import { Settings as SettingsIcon, Save, Sparkles, Printer, CheckCircle2, Award, Phone, DollarSign, Building2, Layout, FileText, Maximize2, QrCode, Sliders, Palette, Eye, ShieldCheck, Check, TestTube, Zap, Database, Download, Upload, RefreshCw, HardDrive, AlertCircle, History, Share2, ExternalLink, Plus, Type, Droplet, AlignRight, AlignCenter, AlignLeft, Square, Layers, Trash2, EyeOff, CheckSquare, Sparkle, RotateCcw } from 'lucide-react';
-import { 
-  SUPPORTED_CURRENCIES, 
-  findCurrency, 
-  calculateConversionMultiplier, 
-  roundPriceForCurrency, 
-  getSamplePriceConversions 
-} from '../../lib/currencies';
-import { catalogCache } from '../../lib/catalogCache';
-import { toEnglishDigits, formatEnglishDate, formatEnglishDateTime } from '../../lib/formatters';
+import { Save, Sparkles, CheckCircle2, Award, Layout, Zap, Database, Download, Upload, RefreshCw, AlertCircle, Share2, ExternalLink, HardDrive, Plus } from 'lucide-react';
+import { formatEnglishDateTime } from '../../lib/formatters';
 
 export default function SettingsPage() {
   const toast = useToast();
   const { labProfile, updateLabProfile } = useLab();
 
-  // Basic Info
-  const [labName, setLabName] = useState(labProfile.labName);
-  const [labSubtitle, setLabSubtitle] = useState(labProfile.labSubtitle);
-  const [doctorName, setDoctorName] = useState(labProfile.doctorName);
-  const [doctorTitle, setDoctorTitle] = useState(labProfile.doctorTitle);
-  const [labLicense, setLabLicense] = useState(labProfile.labLicense);
-  const [whatsappNumber, setWhatsappNumber] = useState(labProfile.whatsappNumber);
-  const [currency, setCurrency] = useState(labProfile.currency);
-  const [address, setAddress] = useState(labProfile.address);
-  const [phone, setPhone] = useState(labProfile.phone);
-  const [reportHeader, setReportHeader] = useState(labProfile.reportHeader);
-  const [reportFooter, setReportFooter] = useState(labProfile.reportFooter);
-  const [selectedCurrencyCode, setSelectedCurrencyCode] = useState<string>(() => {
-    const found = findCurrency(labProfile.currency || 'د.ع');
-    return found ? found.code : 'IQD';
-  });
-  const [isCustomCurrency, setIsCustomCurrency] = useState<boolean>(false);
-  const [customMultiplier, setCustomMultiplier] = useState<string>('');
-  const [convertingPrices, setConvertingPrices] = useState<boolean>(false);
-  const [resettingPrices, setResettingPrices] = useState<boolean>(false);
-  const [conversionSuccessMsg, setConversionSuccessMsg] = useState<string | null>(null);
-  const [showPreviewSamples, setShowPreviewSamples] = useState<boolean>(false);
-
-  // Milestone M4: Universal Visual Form Designer Settings
-  const [headerMode, setHeaderMode] = useState<'DIGITAL' | 'PREPRINTED'>(
-    (labProfile.headerMode as any) || 'DIGITAL'
-  );
-  const [reportTemplate, setReportTemplate] = useState<'CLASSIC' | 'MODERN' | 'EXECUTIVE' | 'COMPACT' | 'SPECIALIZED' | 'BLACK_WHITE'>(
-    (labProfile.reportTemplate as any) || 'CLASSIC'
-  );
-  const [topMarginMm, setTopMarginMm] = useState<number>(labProfile.topMarginMm ?? 15);
-  const [bottomMarginMm, setBottomMarginMm] = useState<number>(labProfile.bottomMarginMm ?? 15);
-  const [leftMarginMm, setLeftMarginMm] = useState<number>(labProfile.leftMarginMm ?? 12);
-  const [rightMarginMm, setRightMarginMm] = useState<number>(labProfile.rightMarginMm ?? 12);
-  const [primaryColor, setPrimaryColor] = useState<string>(labProfile.primaryColor || '#0284c7');
-  const [enableQrCode, setEnableQrCode] = useState<boolean>(labProfile.enableQrCode ?? true);
-  const [qrCodePosition, setQrCodePosition] = useState<'HEADER' | 'FOOTER'>(labProfile.qrCodePosition || 'HEADER');
-  const [accreditationBadge, setAccreditationBadge] = useState<string>(labProfile.accreditationBadge || 'ISO 15189 Certified Lab');
+  // Network & Portal settings
   const [serverBaseUrl, setServerBaseUrl] = useState<string>(labProfile.serverBaseUrl || '');
-
-  // Sheet Elements & Lab Name Customization
-  const [showLabName, setShowLabName] = useState<boolean>(labProfile.showLabName ?? true);
-  const [labNameFontSize, setLabNameFontSize] = useState<number>(labProfile.labNameFontSize ?? 22);
-  const [labNameColor, setLabNameColor] = useState<string>(labProfile.labNameColor || labProfile.primaryColor || '#0284c7');
-  const [labNameAlignment, setLabNameAlignment] = useState<'RIGHT' | 'CENTER' | 'LEFT'>(labProfile.labNameAlignment || 'RIGHT');
-  const [labNameStyle, setLabNameStyle] = useState<'DEFAULT' | 'BOLD' | 'MODERN_BADGE' | 'ELEGANT_BORDER'>(labProfile.labNameStyle || 'DEFAULT');
-  const [showLabSubtitle, setShowLabSubtitle] = useState<boolean>(labProfile.showLabSubtitle ?? true);
-  const [showContactInfo, setShowContactInfo] = useState<boolean>(labProfile.showContactInfo ?? true);
-  const [showDoctorInfo, setShowDoctorInfo] = useState<boolean>(labProfile.showDoctorInfo ?? true);
-  const [showPatientBox, setShowPatientBox] = useState<boolean>(labProfile.showPatientBox ?? true);
-  const [showReportBorder, setShowReportBorder] = useState<boolean>(labProfile.showReportBorder ?? true);
-  const [showFooter, setShowFooter] = useState<boolean>(labProfile.showFooter ?? true);
-  const [showFooterSignature, setShowFooterSignature] = useState<boolean>(labProfile.showFooterSignature ?? true);
-
-  // Watermark Customization
-  const [enableWatermark, setEnableWatermark] = useState<boolean>(labProfile.enableWatermark ?? false);
-  const [watermarkType, setWatermarkType] = useState<'TEXT' | 'IMAGE'>(labProfile.watermarkType || 'TEXT');
-  const [watermarkText, setWatermarkText] = useState<string>(labProfile.watermarkText ?? '');
-  const [watermarkOpacity, setWatermarkOpacity] = useState<number>(labProfile.watermarkOpacity ?? 0.08);
-  const [watermarkAngle, setWatermarkAngle] = useState<number>(labProfile.watermarkAngle ?? -30);
-  const [watermarkSize, setWatermarkSize] = useState<number>(labProfile.watermarkSize ?? 46);
-  const [watermarkColor, setWatermarkColor] = useState<string>(labProfile.watermarkColor || '#0f172a');
-
-  // Typography Settings
-  const [fontFamily, setFontFamily] = useState<'Tajawal' | 'Cairo' | 'IBM Plex Sans Arabic' | 'Almarai' | 'System'>(
-    (labProfile.fontFamily as any) || 'Tajawal'
-  );
-  const [fontSize, setFontSize] = useState<'SMALL' | 'MEDIUM' | 'LARGE'>(
-    (labProfile.fontSize as any) || 'MEDIUM'
-  );
-
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'PAPER_DESIGN' | 'BACKUP' | 'NETWORK' | 'VERSION'>('PAPER_DESIGN');
 
@@ -221,204 +144,25 @@ export default function SettingsPage() {
   const [restoreSummary, setRestoreSummary] = useState<{ patients: number; samples: number; labName: string } | null>(null);
 
   useEffect(() => {
-    if (labProfile) {
-      setLabName(labProfile.labName || '');
-      setLabSubtitle(labProfile.labSubtitle || '');
-      setDoctorName(labProfile.doctorName || '');
-      setDoctorTitle(labProfile.doctorTitle || '');
-      setLabLicense(labProfile.labLicense || '');
-      setWhatsappNumber(labProfile.whatsappNumber || '');
-      setCurrency(labProfile.currency || 'د.ع');
-      setAddress(labProfile.address || '');
-      setPhone(labProfile.phone || '');
-      setReportHeader(labProfile.reportHeader || '');
-      setReportFooter(labProfile.reportFooter || '');
-      setHeaderMode((labProfile.headerMode as any) || 'DIGITAL');
-      setReportTemplate((labProfile.reportTemplate as any) || 'CLASSIC');
-      setTopMarginMm(labProfile.topMarginMm ?? 15);
-      setBottomMarginMm(labProfile.bottomMarginMm ?? 15);
-      setLeftMarginMm(labProfile.leftMarginMm ?? 12);
-      setRightMarginMm(labProfile.rightMarginMm ?? 12);
-      setPrimaryColor(labProfile.primaryColor || '#0284c7');
-      setEnableQrCode(labProfile.enableQrCode ?? true);
-      setQrCodePosition(labProfile.qrCodePosition || 'HEADER');
-      setAccreditationBadge(labProfile.accreditationBadge || 'ISO 15189 Certified Lab');
-      setServerBaseUrl(labProfile.serverBaseUrl || '');
-
-      setShowLabName(labProfile.showLabName ?? true);
-      setLabNameFontSize(labProfile.labNameFontSize ?? 22);
-      setLabNameColor(labProfile.labNameColor || labProfile.primaryColor || '#0284c7');
-      setLabNameAlignment(labProfile.labNameAlignment || 'RIGHT');
-      setLabNameStyle(labProfile.labNameStyle || 'DEFAULT');
-      setShowLabSubtitle(labProfile.showLabSubtitle ?? true);
-      setShowContactInfo(labProfile.showContactInfo ?? true);
-      setShowDoctorInfo(labProfile.showDoctorInfo ?? true);
-      setShowPatientBox(labProfile.showPatientBox ?? true);
-      setShowReportBorder(labProfile.showReportBorder ?? true);
-      setShowFooter(labProfile.showFooter ?? true);
-      setShowFooterSignature(labProfile.showFooterSignature ?? true);
-
-      setEnableWatermark(labProfile.enableWatermark ?? false);
-      setWatermarkType(labProfile.watermarkType || 'TEXT');
-      setWatermarkText(labProfile.watermarkText ?? '');
-      setWatermarkOpacity(labProfile.watermarkOpacity ?? 0.08);
-      setWatermarkAngle(labProfile.watermarkAngle ?? -30);
-      setWatermarkSize(labProfile.watermarkSize ?? 46);
-      setWatermarkColor(labProfile.watermarkColor || '#0f172a');
-      setFontFamily((labProfile.fontFamily as any) || 'Tajawal');
-      setFontSize((labProfile.fontSize as any) || 'MEDIUM');
+    if (labProfile?.serverBaseUrl) {
+      setServerBaseUrl(labProfile.serverBaseUrl);
     }
-  }, [labProfile]);
+  }, [labProfile?.serverBaseUrl]);
 
-  // Handle Save
-  const handleSave = async (e?: React.FormEvent) => {
+  const handleSaveNetwork = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setSaving(true);
     try {
       const payload = {
-        labName,
-        labSubtitle,
-        doctorName,
-        doctorTitle,
-        labLicense,
-        whatsappNumber,
-        currency,
-        address,
-        phone,
-        reportHeader: reportHeader || labName,
-        reportFooter,
-        headerMode,
-        reportTemplate,
-        topMarginMm: Number(topMarginMm),
-        bottomMarginMm: Number(bottomMarginMm),
-        leftMarginMm: Number(leftMarginMm),
-        rightMarginMm: Number(rightMarginMm),
-        primaryColor,
-        enableQrCode,
-        qrCodePosition,
-        accreditationBadge,
         serverBaseUrl: serverBaseUrl.trim(),
-
-        // Customization
-        showLabName,
-        labNameFontSize: Number(labNameFontSize),
-        labNameColor,
-        labNameAlignment,
-        labNameStyle,
-        showLabSubtitle,
-        showContactInfo,
-        showDoctorInfo,
-        showPatientBox,
-        showReportBorder,
-        showFooter,
-        showFooterSignature,
-
-        // Watermark
-        enableWatermark,
-        watermarkType,
-        watermarkText: watermarkText.trim(),
-        watermarkOpacity: Number(watermarkOpacity),
-        watermarkAngle: Number(watermarkAngle),
-        watermarkSize: Number(watermarkSize),
-        watermarkColor,
-        logoUrl: labProfile.logoUrl || '',
-
-        // Typography
-        fontFamily,
-        fontSize,
       };
-
       await updateLabProfile(payload as any);
-      toast.success('تم حفظ إعدادات وهوية المختبر ومصمم التقارير بنجاح!', 'حفظ التكوين');
+      await apiRequest('/settings', 'POST', payload);
+      toast.success('تم حفظ إعدادات البوابة والنطاق الشبكي بنجاح!', 'تم الحفظ');
     } catch (err: any) {
-      toast.error(err.message || 'خطأ في حفظ الإعدادات', 'خطأ');
+      toast.error(err?.message || 'خطأ في حفظ الإعدادات', 'خطأ');
     } finally {
       setSaving(false);
-    }
-  };
-
-  // Backup & Restore Handlers
-  const handleSelectCurrency = (code: string) => {
-    setSelectedCurrencyCode(code);
-    setConversionSuccessMsg(null);
-    if (code === 'CUSTOM') {
-      setIsCustomCurrency(true);
-    } else {
-      setIsCustomCurrency(false);
-      const currDef = SUPPORTED_CURRENCIES.find((c) => c.code === code);
-      if (currDef) {
-        setCurrency(currDef.symbol);
-        const fromCurr = labProfile.currency || 'د.ع';
-        const mult = calculateConversionMultiplier(fromCurr, currDef.code);
-        setCustomMultiplier(String(mult < 0.001 ? mult.toFixed(7) : mult < 0.01 ? mult.toFixed(5) : mult < 1 ? mult.toFixed(4) : mult.toFixed(2)));
-      }
-    }
-  };
-
-  const handleConvertPrices = async () => {
-    if (!currency.trim()) {
-      toast.warning('يرجى تحديد رمز العملة أولاً', 'تنبيه');
-      return;
-    }
-    setConvertingPrices(true);
-    try {
-      const multVal = customMultiplier ? Number(customMultiplier) : undefined;
-      const res = await apiRequest('/tests/convert-currency', 'POST', {
-        targetCurrency: currency.trim(),
-        rate: multVal && multVal > 0 ? multVal : undefined,
-      });
-
-      if (res && res.success) {
-        toast.success(
-          `تم بنجاح تحويل وتعديل أسعار ${res.updatedTestsCount} فحصاً و ${res.updatedPanelsCount} باقة بالعملة الجديدة (${res.toCurrency})!`,
-          'اكتمل التحويل'
-        );
-        setConversionSuccessMsg(
-          `تم تحويل وتحديث أسعار كافة الفحوصات بالكتالوج بنجاح لتناسب ${res.toCurrency}`
-        );
-        if (res.tests && res.panels) {
-          catalogCache.update(res.tests, res.panels);
-        }
-        if (updateLabProfile) {
-          await updateLabProfile({ currency: res.toCurrency } as any);
-        }
-      } else {
-        throw new Error(res?.message || 'فشل التحويل');
-      }
-    } catch (err: any) {
-      toast.error(err.message || 'فشل تحويل أسعار الفحوصات', 'خطأ التحويل');
-    } finally {
-      setConvertingPrices(false);
-    }
-  };
-
-  const handleResetPricesToDefault = async () => {
-    setResettingPrices(true);
-    try {
-      const res = await apiRequest('/tests/reset-prices', 'POST');
-      if (res && res.success) {
-        setCurrency('د.ع');
-        setSelectedCurrencyCode('IQD');
-        setIsCustomCurrency(false);
-        setCustomMultiplier('1');
-        if (res.tests && res.panels) {
-          catalogCache.update(res.tests, res.panels);
-        }
-        if (updateLabProfile) {
-          await updateLabProfile({ currency: 'د.ع' } as any);
-        }
-        toast.success(
-          `تمت استعادة كافة أسعار الفحوصات (${res.testsCount} فحصاً) والتكاليف بالدينار العراقي (د.ع) بنجاح!`,
-          'تمت استعادة التسعير العراقي'
-        );
-        setConversionSuccessMsg('تمت استعادة الكتالوج بالكامل إلى التسعير العراقي الأصلي المعتمد (د.ع)');
-      } else {
-        throw new Error(res?.message || 'فشل استعادة الأسعار');
-      }
-    } catch (err: any) {
-      toast.error(err.message || 'فشل استعادة الأسعار الأصلية', 'خطأ');
-    } finally {
-      setResettingPrices(false);
     }
   };
 
@@ -496,68 +240,6 @@ export default function SettingsPage() {
     }
   };
 
-  const templates = [
-    {
-      id: 'CLASSIC',
-      title: 'كلاسيكي معتمد (Classic Hospital)',
-      desc: 'التصميم الطبي المعتمد للمستشفيات، حدود زرقاء ملكية داكنة وجداول مريحة للقراءة.',
-      color: '#0284c7',
-    },
-    {
-      id: 'MODERN',
-      title: 'عصري متدرج (Modern Tech Gradient)',
-      desc: 'ترويسة بتدرج فيروزي/سيان انسيابي وشارات نتائج ملونة تضفي طابعاً تكنولوجياً فائق التطور.',
-      color: '#0d9488',
-    },
-    {
-      id: 'EXECUTIVE',
-      title: 'مؤسسي رسمي (Executive Luxury)',
-      desc: 'تصميم ملكي كحلي مع إطارات ذهبية وعلامة مائية أمنية، موجه للمختبرات المركزية والاستشارية.',
-      color: '#b45309',
-    },
-    {
-      id: 'COMPACT',
-      title: 'مدمج مقتصد (Compact Dual-Column)',
-      desc: 'مخصص لتوفير الورق والأحبار، يعرض الفحوصات بكثافة بيانات عالية لمنع انقسام النتائج لعدة صفحات.',
-      color: '#334155',
-    },
-    {
-      id: 'BLACK_WHITE',
-      title: 'أبيض وأسود عالي التباين (Black & White Laser)',
-      desc: 'تصميم فائق التباين مخصص للطابعات الليزرية والاقتصادية بدون استهلاك للأحبار الملونة، نصوص واضحة وحادة 100%.',
-      color: '#000000',
-    },
-    {
-      id: 'SPECIALIZED',
-      title: 'تخصصي متقدم (Specialized Multi-Part)',
-      desc: 'تصميم مقسم إلى كتل سريرية واضحة مخصصة للتحاليل الكبرى كالإدرار، الخروج، وزراعة الجراثيم.',
-      color: '#e11d48',
-    },
-  ];
-
-  const colorPresets = [
-    { name: 'Royal Blue', hex: '#0284c7' },
-    { name: 'Emerald Teal', hex: '#0d9488' },
-    { name: 'Amber Gold', hex: '#b45309' },
-    { name: 'Crimson Red', hex: '#e11d48' },
-    { name: 'Slate Dark', hex: '#334155' },
-    { name: 'Violet Indigo', hex: '#6366f1' },
-  ];
-
-  const fontOptions = [
-    { id: 'Tajawal', name: 'تجوال (Tajawal)', desc: 'خط هندسي عصري ناعم، فائق الوضوح في التقارير الطبية', sample: 'فحص سريري معتمد 123' },
-    { id: 'Cairo', name: 'كايرو (Cairo)', desc: 'خط كلاسيكي عريض وواضح، ممتاز للقراءة السريعة', sample: 'فحص سريري معتمد 123' },
-    { id: 'IBM Plex Sans Arabic', name: 'آي بي إم بلكس (IBM Plex)', desc: 'خط علمي احترافي ذو معايير تقنية عالية', sample: 'فحص سريري معتمد 123' },
-    { id: 'Almarai', name: 'المراعي (Almarai)', desc: 'خط عربي ناعم ومريح للعين، متوازن وأنيق', sample: 'فحص سريري معتمد 123' },
-    { id: 'System', name: 'خط النظام (System / Arial)', desc: 'الخط الافتراضي للويندوز بدون تنزيل خطوط خارجية', sample: 'فحص سريري معتمد 123' },
-  ];
-
-  const fontSizeOptions = [
-    { id: 'SMALL', name: 'مدمج (Compact)', desc: 'حجم خط 11px - مناسب لحشر أكبر عدد من الفحوصات في صفحة واحدة' },
-    { id: 'MEDIUM', name: 'قياسي متوازن (Standard)', desc: 'حجم خط 12.5px - القياس الموصى به طبياً والمريح للعين' },
-    { id: 'LARGE', name: 'كبير وواضح (Large)', desc: 'حجم خط 14px - وضوح وقراءة فائقة لكبار السن والعيادات' },
-  ];
-
   return (
     <AppShell>
       {/* Load Google Fonts */}
@@ -577,18 +259,20 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            type="button"
-            onClick={() => handleSave()}
-            disabled={saving}
-            className="btn-cyan-primary"
-            style={{ padding: '0 18px', height: '36px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            <Save size={15} />
-            <span>{saving ? 'جاري الحفظ...' : 'حفظ الإعدادات والتصميم'}</span>
-          </button>
-        </div>
+        {activeTab === 'NETWORK' && (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={handleSaveNetwork}
+              disabled={saving}
+              className="btn-cyan-primary"
+              style={{ padding: '0 18px', height: '36px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Save size={15} />
+              <span>{saving ? 'جاري الحفظ...' : 'حفظ إعدادات البوابة'}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -1113,13 +797,13 @@ export default function SettingsPage() {
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '14px', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
                 <button
                   type="button"
-                  onClick={() => handleSave()}
+                  onClick={() => handleSaveNetwork()}
                   disabled={saving}
                   className="btn-cyan-primary"
                   style={{ padding: '0 24px', height: '36px', fontWeight: 800 }}
                 >
                   <Save size={15} />
-                  <span>{saving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}</span>
+                  <span>{saving ? 'جاري الحفظ...' : 'حفظ إعدادات البوابة والشبكة'}</span>
                 </button>
               </div>
             )}

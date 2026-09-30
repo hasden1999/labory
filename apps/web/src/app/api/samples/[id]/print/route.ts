@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStore, clampMargin, getLocalIpAddress } from '../../../../../lib/serverStore';
-import { toEnglishDigits, formatEnglishDate, formatEnglishDateTime, isBloodGroupTest } from '../../../../../lib/formatters';
+import { toEnglishDigits, formatEnglishDate, formatEnglishDateTime, isBloodGroupTest, evaluateClinicalResult } from '../../../../../lib/formatters';
 
 function escapeHtml(str: any): string {
   if (str === null || str === undefined) return '';
@@ -729,6 +729,17 @@ export async function GET(request: Request, { params }: { params: { id: string }
       const rowBg = tableZebraStriping && rowIdx % 2 === 1 ? 'rgba(0,0,0,0.025)' : 'transparent';
       const borderStyle = tableRowBorders ? `border-bottom: 1px solid ${borderColor};` : '';
 
+      const evalRes = evaluateClinicalResult(t.resultValue, t.test || t);
+      let resColor = textColor;
+      let arrowBadge = '';
+      if (evalRes.status === 'HIGH') {
+        resColor = '#dc2626';
+        arrowBadge = ' <span style="color: #dc2626; font-size: 11px; font-weight: 900;">▲</span>';
+      } else if (evalRes.status === 'LOW') {
+        resColor = '#2563eb';
+        arrowBadge = ' <span style="color: #2563eb; font-size: 11px; font-weight: 900;">▼</span>';
+      }
+
       return `
         <tr style="${borderStyle} background-color: ${rowBg}; page-break-inside: avoid;">
           ${visibleColumns.map((col) => {
@@ -737,8 +748,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
               return `<td style="padding: ${customCellPadding}; font-weight: ${testNameFontWeight === 'bold' ? 800 : 500}; font-size: ${testNameFontSize}px; color: ${textColor}; ${alignStyle}">${testName}</td>`;
             }
             if (col.id === 'result') {
-              // STRICT REQUIREMENT: Clean result, zero High/Low flags or alert coloring
-              return `<td style="padding: ${customCellPadding}; font-weight: ${resultValueFontWeight === 'bold' ? 800 : 500}; font-size: ${resultValueFontSize}px; color: ${textColor}; ${alignStyle}">${displayValue}</td>`;
+              const isComplexHtml = typeof t.resultValue === 'string' && (t.resultValue.includes('MICROBIOLOGY') || t.resultValue.includes('ANTIBIOGRAM:'));
+              const finalValHtml = isComplexHtml ? displayValue : `${displayValue}${arrowBadge}`;
+              return `<td style="padding: ${customCellPadding}; font-weight: ${resultValueFontWeight === 'bold' ? 800 : 500}; font-size: ${resultValueFontSize}px; color: ${resColor}; ${alignStyle}">${finalValHtml}</td>`;
             }
             if (col.id === 'unit') {
               return `<td style="padding: ${customCellPadding}; font-size: ${unitFontSize}px; color: ${textColor}; opacity: 0.85; ${alignStyle}">${testUnit}</td>`;
@@ -941,11 +953,23 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const renderCbcRow = (name: string, val: string, unit: string, ref: string, _low: number, _high: number, priorVal?: string) => {
     const hasVal = val && val !== '-';
     const hasPrior = priorVal && priorVal !== '-';
+    const num = parseFloat(val);
+    let rowColor = textColor;
+    let arrow = '';
+    if (hasVal && !isNaN(num)) {
+      if (num > _high) {
+        rowColor = '#dc2626';
+        arrow = ' <span style="color: #dc2626; font-size: 10px; font-weight: 900;">▲</span>';
+      } else if (num < _low) {
+        rowColor = '#2563eb';
+        arrow = ' <span style="color: #2563eb; font-size: 10px; font-weight: 900;">▼</span>';
+      }
+    }
     return `
       <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
         <td style="padding: ${customCellPadding}; font-weight: 700; color: #1e293b; text-align: left;">${name}</td>
-        <td style="padding: ${customCellPadding}; font-weight: 800; color: ${textColor}; text-align: left;">
-          ${hasVal ? escapeHtml(val) : '<span style="color:#94a3b8;">Pending</span>'}
+        <td style="padding: ${customCellPadding}; font-weight: 800; color: ${rowColor}; text-align: left;">
+          ${hasVal ? `${escapeHtml(val)}${arrow}` : '<span style="color:#94a3b8;">Pending</span>'}
         </td>
         ${priorCbcParsed ? `
           <td style="padding: ${customCellPadding}; font-weight: 700; color: #475569; text-align: left;">
@@ -962,11 +986,22 @@ export async function GET(request: Request, { params }: { params: { id: string }
     const hasVal = pctStr && pctStr !== '-';
     const absVal = hasVal && !isNaN(num) && wbcVal > 0 ? ((wbcVal * num) / 100).toFixed(2) : '-';
     const hasPrior = priorPct && priorPct !== '-';
+    let diffColor = textColor;
+    let diffArrow = '';
+    if (hasVal && !isNaN(num)) {
+      if (num > _high) {
+        diffColor = '#dc2626';
+        diffArrow = ' <span style="color: #dc2626; font-size: 10px; font-weight: 900;">▲</span>';
+      } else if (num < _low) {
+        diffColor = '#2563eb';
+        diffArrow = ' <span style="color: #2563eb; font-size: 10px; font-weight: 900;">▼</span>';
+      }
+    }
     return `
       <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
         <td style="padding: ${customCellPadding}; font-weight: 700; color: #1e293b; text-align: left;">${name}</td>
-        <td style="padding: ${customCellPadding}; font-weight: 800; color: ${textColor}; text-align: left;">
-          ${hasVal ? `${escapeHtml(pctStr)} %` : '<span style="color:#94a3b8;">Pending</span>'}
+        <td style="padding: ${customCellPadding}; font-weight: 800; color: ${diffColor}; text-align: left;">
+          ${hasVal ? `${escapeHtml(pctStr)} %${diffArrow}` : '<span style="color:#94a3b8;">Pending</span>'}
         </td>
         ${priorCbcParsed ? `
           <td style="padding: ${customCellPadding}; font-weight: 700; color: #475569; text-align: left;">
@@ -1234,10 +1269,28 @@ export async function GET(request: Request, { params }: { params: { id: string }
               </div>
               <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
                 ${(() => {
-                  const printableMicro = microParts.filter(p => {
-                    const up = p.toUpperCase().trim();
-                    return !(up === 'CRYSTALS: NIL' || up === 'CRYSTALS: NONE' || up === 'CRYSTALS: NOT SEEN' || up === 'CRYSTALS:');
-                  });
+                  const printableMicro = microParts
+                    .map(p => {
+                      const trimmed = p.trim();
+                      if (/^trichomonas:/i.test(trimmed)) {
+                        const val = trimmed.replace(/^trichomonas:\s*/i, '').trim();
+                        if (val && !['nil', 'none', 'not seen', '-', 'not detected'].includes(val.toLowerCase())) {
+                          return `Other: Trichomonas: ${val}`;
+                        }
+                        return '';
+                      }
+                      return trimmed;
+                    })
+                    .filter(p => {
+                      if (!p) return false;
+                      const up = p.toUpperCase().trim();
+                      if (up === 'CRYSTALS: NIL' || up === 'CRYSTALS: NONE' || up === 'CRYSTALS: NOT SEEN' || up === 'CRYSTALS:') return false;
+                      if (up === 'CASTS: NIL' || up === 'CASTS: NONE' || up === 'CASTS: NOT SEEN' || up === 'CASTS:') return false;
+                      if (up === 'YEAST: NIL' || up === 'YEAST: NONE' || up === 'YEAST: NOT SEEN' || up === 'YEAST:') return false;
+                      if (up === 'OTHER: NIL' || up === 'OTHER: NONE' || up === 'OTHER: NOT SEEN' || up === 'OTHER:') return false;
+                      if (up.startsWith('TRICHOMONAS:')) return false;
+                      return true;
+                    });
                   return printableMicro.length > 0 ? printableMicro.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>';
                 })()}
               </div>
@@ -1267,8 +1320,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
     const lines = clean.split('\n').filter(Boolean);
     let physicalParts: string[] = [];
     let fobtVal = '';
+    let phReducingParts: string[] = [];
     let microParts: string[] = [];
     let paraParts: string[] = [];
+    let sensitivityParts: string[] = [];
     let noteText = '';
 
     lines.forEach((line) => {
@@ -1277,11 +1332,33 @@ export async function GET(request: Request, { params }: { params: { id: string }
         physicalParts = cleanLine.replace('PHYSICAL:', '').split('|').map(p => p.trim()).filter(Boolean);
       } else if (cleanLine.startsWith('FOBT:')) {
         fobtVal = cleanLine.replace('FOBT:', '').trim();
+      } else if (cleanLine.startsWith('PH_REDUCING:')) {
+        phReducingParts = cleanLine.replace('PH_REDUCING:', '').split('|').map(p => p.trim()).filter(Boolean);
       } else if (cleanLine.startsWith('MICROSCOPIC:')) {
         microParts = cleanLine.replace('MICROSCOPIC:', '').split('|').map(p => p.trim()).filter(Boolean);
       } else if (cleanLine.startsWith('PARASITOLOGY:')) {
         const val = cleanLine.replace('PARASITOLOGY:', '').trim();
-        if (val) paraParts.push(val);
+        if (val) {
+          const items = val.split('|').map(p => p.trim()).filter(Boolean);
+          items.forEach(item => {
+            // Strip old severity crosses like (+), (++), (+++), (++++), (: +++)
+            let cleaned = item
+              .replace(/\s*\(\s*\+{1,4}\s*\)/g, '')
+              .replace(/\s*:\s*\+{1,4}(?=\s|$)/g, '')
+              .replace(/\s+\+{1,4}(?=\s|$)/g, '')
+              .replace(/\s+/g, ' ')
+              .trim();
+            // Normalize old bracketed stage like "Entamoeba histolytica [Cyst]" or "(Cyst)" to "Entamoeba histolytica – Cyst"
+            if (cleaned && !cleaned.toLowerCase().startsWith('nil') && !cleaned.includes('–') && !cleaned.includes(' - ')) {
+              cleaned = cleaned
+                .replace(/\s*\[([^\]]+)\]/g, ' – $1')
+                .replace(/\s*\(([^)]+)\)/g, ' – $1');
+            }
+            if (cleaned) paraParts.push(cleaned);
+          });
+        }
+      } else if (cleanLine.startsWith('SENSITIVITY:')) {
+        sensitivityParts = cleanLine.replace('SENSITIVITY:', '').split('|').map(p => p.trim()).filter(Boolean);
       } else if (cleanLine.startsWith('NOTES:')) {
         noteText = cleanLine.replace('NOTES:', '').trim();
       }
@@ -1310,6 +1387,18 @@ export async function GET(request: Request, { params }: { params: { id: string }
               </div>
             </div>
 
+            <!-- Chemical Evaluation (pH & Reducing Substances) Section -->
+            ${phReducingParts.length > 0 ? `
+              <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+                <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #0284c7; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+                  <span>CHEMICAL EVALUATION (pH &amp; REDUCING SUBSTANCES)</span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
+                  ${phReducingParts.map(p => renderClinicalFindingBadge(p)).join('')}
+                </div>
+              </div>
+            ` : ''}
+
             <!-- Occult Blood FOBT Section -->
             ${fobtVal ? `
               <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
@@ -1330,7 +1419,18 @@ export async function GET(request: Request, { params }: { params: { id: string }
                 <span>MICROSCOPIC EXAMINATION (HPF)</span>
               </div>
               <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
-                ${microParts.length > 0 ? microParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
+                ${(() => {
+                  const printableGseMicro = microParts.filter(p => {
+                    const colonIdx = p.indexOf(':');
+                    const val = colonIdx >= 0 ? p.substring(colonIdx + 1).trim().toLowerCase() : '';
+                    const key = colonIdx >= 0 ? p.substring(0, colonIdx).trim().toLowerCase() : p.toLowerCase();
+                    if (key.includes('yeast') || key.includes('monilia')) {
+                      return Boolean(val) && !['not seen', 'nil', 'none', '-', 'negative'].includes(val);
+                    }
+                    return true;
+                  });
+                  return printableGseMicro.length > 0 ? printableGseMicro.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>';
+                })()}
               </div>
             </div>
 
@@ -1340,8 +1440,20 @@ export async function GET(request: Request, { params }: { params: { id: string }
                 <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #7e22ce; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
                   <span>PARASITOLOGY &amp; HELMINTHS</span>
                 </div>
-                <div style="padding: 12px; font-size: 11.5px;" dir="ltr">
-                  ${paraParts.map(p => renderClinicalFindingBadge(p, !p.startsWith('Nil'))).join('')}
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
+                  ${paraParts.map(p => renderClinicalFindingBadge(p, !p.toLowerCase().startsWith('nil') && !p.toLowerCase().startsWith('none') && !p.toLowerCase().startsWith('not seen'))).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- Culture & Sensitivity Section -->
+            ${sensitivityParts.length > 0 ? `
+              <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+                <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #0d9488; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+                  <span>STOOL CULTURE &amp; SENSITIVITY PROFILE</span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
+                  ${sensitivityParts.map(p => renderClinicalFindingBadge(p)).join('')}
                 </div>
               </div>
             ` : ''}

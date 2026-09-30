@@ -19,6 +19,56 @@ import {
   Printer
 } from 'lucide-react';
 import { useToast } from './Toast';
+import MultiEntryCombobox, { MultiEntryItem, generateUniqueId } from './common/MultiEntryCombobox';
+
+export const DEFAULT_CRYSTALS_SUGGESTIONS = [
+  'Calcium oxalate',
+  'Calcium oxalate (monohydrate)',
+  'Calcium oxalate (dihydrate)',
+  'Uric acid',
+  'Triple phosphate',
+  'Amorphous urates',
+  'Amorphous phosphates',
+  'Calcium carbonate',
+  'Calcium phosphate',
+  'Ammonium biurate',
+  'Cystine',
+  'Cholesterol',
+  'Bilirubin',
+  'Leucine',
+  'Tyrosine',
+  'Sulfa crystals',
+  'Hippuric acid',
+  'Sodium urate'
+];
+
+export const DEFAULT_CASTS_SUGGESTIONS = [
+  'Hyaline casts',
+  'Hyaline cast',
+  'Granular casts',
+  'Granular cast (fine)',
+  'Granular cast (coarse)',
+  'Cellular casts',
+  'RBC cast',
+  'WBC cast',
+  'Epithelial cell cast',
+  'Waxy casts',
+  'Waxy cast',
+  'Fatty cast',
+  'Broad cast',
+  'Mixed cast'
+];
+
+export const DEFAULT_YEAST_SUGGESTIONS = [
+  'Yeast cells',
+  'Budding yeast',
+  'Yeast with pseudohyphae',
+  'Pseudohyphae',
+  'Budding yeast with pseudohyphae',
+  'Candida albicans'
+];
+
+export const QUANTITY_OPTIONS = ['Few', '+', '++', '+++', 'Many'];
 
 export interface UrineAnalysisData {
   // Physical Examination
@@ -43,17 +93,33 @@ export interface UrineAnalysisData {
   pusCells: string;
   rbcs: string;
   epithelialCells: string;
-  crystals: string;
-  calciumOxalate: string;
-  uricAcid: string;
-  triplePhosphate: string;
-  amorphous: string;
-  casts: string;
   bacteria: string;
-  yeast: string;
-  trichomonas: string;
   mucus: string;
   otherNotes: string;
+
+  // Multi-entry lists (Items 1 & 3)
+  crystalsList: MultiEntryItem[];
+  castsList: MultiEntryItem[];
+  yeastsList: MultiEntryItem[];
+
+  // Free-text Other (Item 2)
+  microscopicOther: string;
+
+  // Backward compatibility legacy fields
+  crystals?: string;
+  calciumOxalate?: string;
+  uricAcid?: string;
+  triplePhosphate?: string;
+  amorphous?: string;
+  casts?: string;
+  castType?: string;
+  castQty?: string;
+  yeast?: string;
+  yeastName?: string;
+  yeastQty?: string;
+  trichomonas?: string;
+  trichomonasName?: string;
+  trichomonasQty?: string;
 }
 
 export const DEFAULT_URINE_DATA: UrineAnalysisData = {
@@ -76,17 +142,29 @@ export const DEFAULT_URINE_DATA: UrineAnalysisData = {
   pusCells: '0-2',
   rbcs: '0-2',
   epithelialCells: 'Few',
+  bacteria: 'Nil',
+  mucus: 'Nil',
+  otherNotes: '',
+
+  crystalsList: [],
+  castsList: [],
+  yeastsList: [],
+  microscopicOther: '',
+
   crystals: 'Nil',
   calciumOxalate: 'Nil',
   uricAcid: 'Nil',
   triplePhosphate: 'Nil',
   amorphous: 'Nil',
-  casts: 'None',
-  bacteria: 'Nil',
-  yeast: 'Not Seen',
-  trichomonas: 'Not Seen',
-  mucus: 'Nil',
-  otherNotes: '',
+  casts: 'Nil',
+  castType: '',
+  castQty: 'Nil',
+  yeast: 'Nil',
+  yeastName: '',
+  yeastQty: 'Nil',
+  trichomonas: 'Nil',
+  trichomonasName: '',
+  trichomonasQty: 'Nil',
 };
 
 interface UrineFormModalProps {
@@ -117,12 +195,44 @@ export default function UrineFormModal({
   useEffect(() => {
     if (isOpen) {
       if (typeof initialData === 'object' && initialData !== null) {
-        setData((prev) => ({ ...prev, ...initialData }));
+        const obj = { ...initialData };
+        if (!obj.crystalsList || obj.crystalsList.length === 0) {
+          const cl: MultiEntryItem[] = [];
+          if (obj.calciumOxalate && obj.calciumOxalate !== 'Nil') {
+            cl.push({ id: generateUniqueId(), name: 'Calcium oxalate (monohydrate)', secondValue: obj.calciumOxalate });
+          }
+          if (obj.uricAcid && obj.uricAcid !== 'Nil') {
+            cl.push({ id: generateUniqueId(), name: 'Uric acid', secondValue: obj.uricAcid });
+          }
+          if (obj.crystals && obj.crystals !== 'Nil') {
+            cl.push({ id: generateUniqueId(), name: obj.crystals, secondValue: '' });
+          }
+          obj.crystalsList = cl;
+        }
+        if (!obj.castsList || obj.castsList.length === 0) {
+          if (obj.castType || obj.casts) {
+            obj.castsList = [{ id: generateUniqueId(), name: obj.castType || obj.casts || 'Casts', secondValue: obj.castQty || 'Seen' }];
+          } else {
+            obj.castsList = [];
+          }
+        }
+        if (!obj.yeastsList || obj.yeastsList.length === 0) {
+          if (obj.yeastName || obj.yeast) {
+            obj.yeastsList = [{ id: generateUniqueId(), name: obj.yeastName || obj.yeast || 'Yeast', secondValue: obj.yeastQty || '+' }];
+          } else {
+            obj.yeastsList = [];
+          }
+        }
+        if (!obj.microscopicOther && (obj.trichomonas || obj.trichomonasName || obj.trichomonasQty)) {
+          const tVal = obj.trichomonasQty && obj.trichomonasQty !== 'Nil' ? obj.trichomonasQty : (obj.trichomonas || 'Seen');
+          obj.microscopicOther = `Trichomonas: ${tVal}`;
+        }
+        setData((prev) => ({ ...prev, ...obj }));
       } else if (typeof initialData === 'string' && initialData.includes('G.U.E')) {
         // Parse key-values from formatted string if applicable
         const parsed = { ...DEFAULT_URINE_DATA };
         const matchVal = (key: string, str: string) => {
-          const regex = new RegExp(`${key}:\\s*([^|\\n,]+)`, 'i');
+          const regex = new RegExp(`${key}:\\s*([^|\\n]+)`, 'i');
           const m = str.match(regex);
           return m ? m[1].trim() : null;
         };
@@ -139,16 +249,96 @@ export default function UrineFormModal({
         parsed.pusCells = matchVal('Pus', initialData)?.replace('/HPF', '').trim() || parsed.pusCells;
         parsed.rbcs = matchVal('RBCs', initialData)?.replace('/HPF', '').trim() || parsed.rbcs;
         parsed.epithelialCells = matchVal('Epith', initialData) || parsed.epithelialCells;
+        
         parsed.bacteria = matchVal('Bacteria', initialData) || 'Nil';
+        if (parsed.bacteria.includes('Few')) parsed.bacteria = 'Few';
         parsed.mucus = matchVal('Mucus', initialData) || 'Nil';
-        parsed.calciumOxalate = matchVal('Ca\\.?\\s*Oxalate', initialData) || 'Nil';
-        parsed.uricAcid = matchVal('Uric\\s*Acid', initialData) || 'Nil';
-        parsed.triplePhosphate = matchVal('Triple\\s*Phos(?:phate)?', initialData) || 'Nil';
-        parsed.amorphous = matchVal('Amorphous', initialData) || 'Nil';
-        parsed.crystals = matchVal('Crystals', initialData) || 'Nil';
-        parsed.casts = matchVal('Casts', initialData) || 'None';
-        parsed.yeast = matchVal('Yeast', initialData) || 'Not Seen';
-        parsed.trichomonas = matchVal('Trichomonas', initialData) || 'Not Seen';
+        if (parsed.mucus.includes('Few')) parsed.mucus = 'Few';
+
+        // Crystals parsing: support multi-crystals comma-separated list
+        const rawCrystals = matchVal('Crystals', initialData);
+        const parsedCrystals: MultiEntryItem[] = [];
+        if (rawCrystals && !['NIL', 'NONE', 'NOT SEEN'].includes(rawCrystals.toUpperCase())) {
+          const items = rawCrystals.split(',').map(s => s.trim()).filter(Boolean);
+          items.forEach(item => {
+            const m = item.match(/^(.*?)\s*\((.*?)\)$/);
+            if (m) {
+              parsedCrystals.push({ id: generateUniqueId(), name: m[1].trim(), secondValue: m[2].trim() });
+            } else if (item.includes(':')) {
+              const [name, qty] = item.split(':');
+              parsedCrystals.push({ id: generateUniqueId(), name: name.trim(), secondValue: qty.trim() });
+            } else {
+              parsedCrystals.push({ id: generateUniqueId(), name: item, secondValue: '' });
+            }
+          });
+        }
+        // Legacy single fields fallback
+        const caOx = matchVal('Ca\\.?\\s*Oxalate', initialData);
+        if (caOx && caOx !== 'Nil' && !parsedCrystals.some(c => c.name.toLowerCase().includes('oxalate'))) {
+          parsedCrystals.push({ id: generateUniqueId(), name: 'Calcium oxalate (monohydrate)', secondValue: caOx });
+        }
+        const ua = matchVal('Uric\\s*Acid', initialData);
+        if (ua && ua !== 'Nil' && !parsedCrystals.some(c => c.name.toLowerCase().includes('uric'))) {
+          parsedCrystals.push({ id: generateUniqueId(), name: 'Uric acid', secondValue: ua });
+        }
+        const tp = matchVal('Triple\\s*Phos(?:phate)?', initialData);
+        if (tp && tp !== 'Nil' && !parsedCrystals.some(c => c.name.toLowerCase().includes('triple'))) {
+          parsedCrystals.push({ id: generateUniqueId(), name: 'Triple phosphate', secondValue: tp });
+        }
+        const amorph = matchVal('Amorphous', initialData);
+        if (amorph && amorph !== 'Nil' && !parsedCrystals.some(c => c.name.toLowerCase().includes('amorphous'))) {
+          parsedCrystals.push({ id: generateUniqueId(), name: 'Amorphous urates', secondValue: amorph });
+        }
+        parsed.crystalsList = parsedCrystals;
+
+        // Casts parsing: support multiple comma-separated items
+        const rawCasts = matchVal('Casts', initialData);
+        const parsedCasts: MultiEntryItem[] = [];
+        if (rawCasts && !['NIL', 'NONE', 'NOT SEEN'].includes(rawCasts.toUpperCase())) {
+          const items = rawCasts.split(',').map(s => s.trim()).filter(Boolean);
+          items.forEach(item => {
+            const m = item.match(/^(.*?)\s*\((.*?)\)$/);
+            if (m) {
+              parsedCasts.push({ id: generateUniqueId(), name: m[1].trim(), secondValue: m[2].trim() });
+            } else if (item.includes(':')) {
+              const [name, qty] = item.split(':');
+              parsedCasts.push({ id: generateUniqueId(), name: name.trim(), secondValue: qty.trim() });
+            } else {
+              parsedCasts.push({ id: generateUniqueId(), name: item, secondValue: 'Seen' });
+            }
+          });
+        }
+        parsed.castsList = parsedCasts;
+
+        // Yeast parsing: support multiple comma-separated items
+        const rawYeast = matchVal('Yeast', initialData) || matchVal('Candida', initialData);
+        const parsedYeasts: MultiEntryItem[] = [];
+        if (rawYeast && !['NIL', 'NONE', 'NOT SEEN'].includes(rawYeast.toUpperCase())) {
+          const items = rawYeast.split(',').map(s => s.trim()).filter(Boolean);
+          items.forEach(item => {
+            const m = item.match(/^(.*?)\s*\((.*?)\)$/);
+            if (m) {
+              parsedYeasts.push({ id: generateUniqueId(), name: m[1].trim(), secondValue: m[2].trim() });
+            } else if (item.includes(':')) {
+              const [name, qty] = item.split(':');
+              parsedYeasts.push({ id: generateUniqueId(), name: name.trim(), secondValue: qty.trim() });
+            } else {
+              parsedYeasts.push({ id: generateUniqueId(), name: item, secondValue: '+' });
+            }
+          });
+        }
+        parsed.yeastsList = parsedYeasts;
+
+        // Other & Trichomonas migration (Item 2)
+        const rawOther = matchVal('Other', initialData);
+        const rawTrich = matchVal('Trichomonas', initialData);
+        let otherVal = rawOther || '';
+        if (rawTrich && !['NIL', 'NONE', 'NOT SEEN'].includes(rawTrich.toUpperCase())) {
+          const trichStr = `Trichomonas: ${rawTrich}`;
+          otherVal = otherVal ? `${otherVal}\n${trichStr}` : trichStr;
+        }
+        parsed.microscopicOther = otherVal;
+
         parsed.otherNotes = matchVal('Notes', initialData) || '';
 
         setData(parsed);
@@ -158,7 +348,7 @@ export default function UrineFormModal({
 
   if (!isOpen) return null;
 
-  const setField = (field: keyof UrineAnalysisData, value: string) => {
+  const setField = (field: keyof UrineAnalysisData, value: any) => {
     setData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -178,7 +368,7 @@ export default function UrineFormModal({
         pusCells: '25-35',
         rbcs: '4-6',
         epithelialCells: 'Moderate',
-        bacteria: 'Many (+++)',
+        bacteria: '+++',
         mucus: 'Few',
         otherNotes: 'Acute Urinary Tract Infection (UTI) pattern with significant bacteriuria.',
       });
@@ -189,9 +379,11 @@ export default function UrineFormModal({
         appearance: 'Sl. Turbid',
         pusCells: '2-4',
         rbcs: '8-12',
-        crystals: 'Ca. Oxalate (+++)',
-        calciumOxalate: '+++',
-        mucus: 'Moderate',
+        crystalsList: [
+          { id: generateUniqueId(), name: 'Calcium oxalate (monohydrate)', secondValue: '+++' },
+          { id: generateUniqueId(), name: 'Uric acid', secondValue: '+' }
+        ],
+        mucus: 'Few',
         otherNotes: 'Significant Calcium Oxalate Crystalluria (Renal Colic pattern).',
       });
       toast.info('تم تطبيق نموذج ترسبات أملاح الأوكزالات (Ca. Oxalate)', 'تم التحميل');
@@ -204,7 +396,9 @@ export default function UrineFormModal({
         blood: '3+',
         rbcs: 'Packed / Bloody',
         pusCells: '4-6',
-        casts: 'RBC Casts',
+        castsList: [
+          { id: generateUniqueId(), name: 'RBC cast', secondValue: 'Seen' }
+        ],
         otherNotes: 'Gross Hematuria with intact red blood cells and RBC casts.',
       });
       toast.error('تم تطبيق نموذج البيلة الدموية (Gross Hematuria)', 'تم التحميل');
@@ -213,51 +407,54 @@ export default function UrineFormModal({
 
   // Format result output for system database and medical report
   const handleSaveAndApply = () => {
-    // 1. Collect non-Nil crystals
-    const activeCrystals: string[] = [];
-    if (data.crystals && data.crystals !== 'Nil' && data.crystals.trim() !== '') {
-      activeCrystals.push(`Crystals: ${data.crystals}`);
-    }
-    if (data.calciumOxalate && data.calciumOxalate !== 'Nil') {
-      activeCrystals.push(`Ca.Oxalate: ${data.calciumOxalate}`);
-    }
-    if (data.uricAcid && data.uricAcid !== 'Nil') {
-      activeCrystals.push(`Uric Acid: ${data.uricAcid}`);
-    }
-    if (data.triplePhosphate && data.triplePhosphate !== 'Nil') {
-      activeCrystals.push(`Triple Phos: ${data.triplePhosphate}`);
-    }
-    if (data.amorphous && data.amorphous !== 'Nil') {
-      activeCrystals.push(`Amorphous: ${data.amorphous}`);
-    }
+    // 1. Format Crystals (Item 1)
+    const crystalsStr = (data.crystalsList || [])
+      .filter(c => c.name && c.name.trim())
+      .map(c => c.secondValue?.trim() ? `${c.name.trim()} (${c.secondValue.trim()})` : c.name.trim())
+      .join(', ');
 
-    // 2. Base microscopic findings
+    // 2. Format Casts (Item 3)
+    const castsStr = (data.castsList || [])
+      .filter(c => c.name && c.name.trim())
+      .map(c => c.secondValue?.trim() ? `${c.name.trim()} (${c.secondValue.trim()})` : c.name.trim())
+      .join(', ');
+
+    // 3. Format Yeasts (Item 3)
+    const yeastsStr = (data.yeastsList || [])
+      .filter(y => y.name && y.name.trim())
+      .map(y => y.secondValue?.trim() ? `${y.name.trim()} (${y.secondValue.trim()})` : y.name.trim())
+      .join(', ');
+
+    // 4. Base microscopic findings
     const microParts: string[] = [
       `Pus: ${data.pusCells} /HPF`,
       `RBCs: ${data.rbcs} /HPF`,
       `Epith: ${data.epithelialCells}`
     ];
 
-    // Crystals section: only active crystals (omit if none so zero trace on print)
-    if (activeCrystals.length > 0) {
-      microParts.push(...activeCrystals);
+    if (crystalsStr) {
+      microParts.push(`Crystals: ${crystalsStr}`);
     }
 
-    // Microorganisms & casts: only include if selected / positive
-    if (data.casts && data.casts !== 'None' && data.casts !== 'Nil') {
-      microParts.push(`Casts: ${data.casts}`);
+    if (castsStr) {
+      microParts.push(`Casts: ${castsStr}`);
     }
+
     if (data.bacteria && data.bacteria !== 'Nil') {
       microParts.push(`Bacteria: ${data.bacteria}`);
     }
-    if (data.yeast && data.yeast !== 'Not Seen' && data.yeast !== 'Nil') {
-      microParts.push(`Yeast: ${data.yeast}`);
+
+    if (yeastsStr) {
+      microParts.push(`Yeast: ${yeastsStr}`);
     }
-    if (data.trichomonas && data.trichomonas !== 'Not Seen' && data.trichomonas !== 'Nil') {
-      microParts.push(`Trichomonas: ${data.trichomonas}`);
-    }
+
     if (data.mucus && data.mucus !== 'Nil') {
       microParts.push(`Mucus: ${data.mucus}`);
+    }
+
+    // Other free text (Item 2: Trichomonas replaced by Other)
+    if (data.microscopicOther && data.microscopicOther.trim()) {
+      microParts.push(`Other: ${data.microscopicOther.trim()}`);
     }
 
     const formatted = [
@@ -1008,8 +1205,8 @@ export default function UrineFormModal({
                   />
                 </div>
 
-                {/* Epithelial Cells & Unified Crystals Grid (FEAT-02) */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {/* Epithelial Cells */}
+                <div>
                   <PillSelector
                     label="Epithelial Cells"
                     refRange="Few /HPF"
@@ -1018,137 +1215,119 @@ export default function UrineFormModal({
                     options={['Nil', 'Few', 'Moderate', 'Many']}
                     abnormalValues={['Moderate', 'Many']}
                   />
-
-                  <PillSelector
-                    label="Crystals (البلورات)"
-                    refRange="Nil"
-                    value={data.crystals || 'Nil'}
-                    onChange={(v) => setField('crystals', v)}
-                    options={['Nil', 'Ca. Oxalate (+)', 'Ca. Oxalate (++)', 'Uric Acid (+)', 'Triple Phos (+)', 'Amorphous Urates', 'Amorphous Phos', 'Calcium Carbonate']}
-                    abnormalValues={['Ca. Oxalate (++)', 'Ca. Oxalate (+++)', 'Uric Acid (++)', 'Triple Phos (++)']}
-                    allowCustomInput={true}
-                    customInputPlaceholder="أو اكتب نوع البلورات يدوياً..."
-                  />
                 </div>
 
-                {/* Crystals & Amorphous Multi-Selector Grid (Advanced Matrix) */}
-                <details style={{
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '8px',
-                  padding: '10px 14px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-                }}>
-                  <summary style={{ cursor: 'pointer', fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', userSelect: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>تفاصيل مجهرية إضافية للبلورات (Advanced Crystals Matrix)</span>
-                    <span style={{ fontSize: '10.5px', color: 'var(--accent-cyan)', fontWeight: 700 }}>+ تخصيص تفصيلي</span>
-                  </summary>
-                  <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {/* Item 1: MultiEntryCombobox for Crystals */}
+                <MultiEntryCombobox
+                  label="Crystals (البلورات)"
+                  items={data.crystalsList || []}
+                  onChange={(items) => setData(prev => ({ ...prev, crystalsList: items }))}
+                  nameSuggestions={DEFAULT_CRYSTALS_SUGGESTIONS}
+                  namePlaceholder="اختر أو اكتب نوع البلورة..."
+                  secondFieldLabel="الكمية"
+                  secondSuggestions={QUANTITY_OPTIONS}
+                  secondPlaceholder="الكمية (Few, +, ++...)"
+                  addButtonText="+ إضافة بلورة"
+                  emptyStateText="لا توجد بلورات مضافة (Nil / Not Seen)"
+                  badgeColor="#0284c7"
+                  badgeBg="#f0f9ff"
+                  badgeBorder="#bae6fd"
+                />
 
-                  {/* Crystal 1: Calcium Oxalate */}
-                  <CrystalSelectorRow
-                    name="Ca. Oxalate"
-                    value={data.calciumOxalate}
-                    onChange={(lvl) => setField('calciumOxalate', lvl)}
-                  />
-
-                  {/* Crystal 2: Uric Acid */}
-                  <CrystalSelectorRow
-                    name="Uric Acid"
-                    value={data.uricAcid}
-                    onChange={(lvl) => setField('uricAcid', lvl)}
-                  />
-
-                  {/* Crystal 3: Triple Phosphate */}
-                  <CrystalSelectorRow
-                    name="Triple Phos"
-                    value={data.triplePhosphate}
-                    onChange={(lvl) => setField('triplePhosphate', lvl)}
-                  />
-
-                  {/* Crystal 4: Amorphous Urates / Phosphates */}
-                  <CrystalSelectorRow
-                    name="Amorphous"
-                    value={data.amorphous}
-                    onChange={(lvl) => setField('amorphous', lvl)}
-                  />
-                  </div>
-                </details>
-
-                {/* Microorganisms & Casts Grid */}
+                {/* Microorganisms Grid: Bacteria & Mucus Threads */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <PillSelector
-                    label="Bacteria"
+                    label="Bacteria (البكتيريا)"
                     refRange="Nil"
                     value={data.bacteria}
                     onChange={(v) => setField('bacteria', v)}
-                    options={['Nil', 'Few (+)', 'Moderate (++)', 'Many (+++)', '++++', 'Full Field']}
-                    abnormalValues={['Moderate (++)', 'Many (+++)', '++++', 'Full Field']}
+                    options={['Nil', 'Few', '+', '++', '+++']}
+                    abnormalValues={['+', '++', '+++']}
+                    allowCustomInput={true}
+                    customInputPlaceholder="كتابة يدوية (مثال: Few rods / Occasional)..."
                   />
 
                   <PillSelector
-                    label="Mucus Threads"
+                    label="Mucus Threads (المخاط)"
                     refRange="Nil"
                     value={data.mucus}
                     onChange={(v) => setField('mucus', v)}
-                    options={['Nil', 'Few (+)', 'Moderate (++)', 'Many (+++)', '++++', 'Full Field']}
-                    abnormalValues={['Many (+++)', '++++', 'Full Field']}
+                    options={['Nil', 'Few', '+', '++', '+++']}
+                    abnormalValues={['++', '+++']}
+                    allowCustomInput={true}
+                    customInputPlaceholder="كتابة يدوية (مثال: Strands / Strips)..."
                   />
                 </div>
 
-                {/* Yeast, Trichomonas, Casts */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 10px' }}>
-                    <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>Yeast</div>
-                    <select
-                      value={data.yeast}
-                      onChange={(e) => setField('yeast', e.target.value)}
-                      className="select-control"
-                      style={{ height: '32px', fontSize: '11.5px', width: '100%', background: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
-                    >
-                      <option value="Not Seen">Not Seen</option>
-                      <option value="Few (+)">Few (+)</option>
-                      <option value="Moderate (++)">Moderate (++)</option>
-                      <option value="Many (+++)">Many (+++)</option>
-                      <option value="++++">++++ (4+)</option>
-                      <option value="Full Field">Full Field</option>
-                    </select>
-                  </div>
+                {/* Item 3: MultiEntryCombobox for Casts & Yeast */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <MultiEntryCombobox
+                    label="Casts (الأسطوانات)"
+                    items={data.castsList || []}
+                    onChange={(items) => setData(prev => ({ ...prev, castsList: items }))}
+                    nameSuggestions={DEFAULT_CASTS_SUGGESTIONS}
+                    namePlaceholder="اختر أو اكتب نوع الأسطوانة..."
+                    secondFieldLabel="الكمية"
+                    secondSuggestions={QUANTITY_OPTIONS}
+                    secondPlaceholder="الكمية..."
+                    addButtonText="+ إضافة أسطوانة"
+                    emptyStateText="لا توجد أسطوانات مسجلة (Nil / Not Seen)"
+                    badgeColor="#7c3aed"
+                    badgeBg="#f5f3ff"
+                    badgeBorder="#ddd6fe"
+                  />
 
-                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 10px' }}>
-                    <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>Trichomonas</div>
-                    <select
-                      value={data.trichomonas}
-                      onChange={(e) => setField('trichomonas', e.target.value)}
-                      className="select-control"
-                      style={{ height: '32px', fontSize: '11.5px', width: '100%', background: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
-                    >
-                      <option value="Not Seen">Not Seen</option>
-                      <option value="Seen (+)">Seen (+)</option>
-                      <option value="Moderate (++)">Moderate (++)</option>
-                      <option value="Many (+++)">Many (+++)</option>
-                      <option value="Full Field">Full Field</option>
-                    </select>
-                  </div>
+                  <MultiEntryCombobox
+                    label="Yeast (الخمائر)"
+                    items={data.yeastsList || []}
+                    onChange={(items) => setData(prev => ({ ...prev, yeastsList: items }))}
+                    nameSuggestions={DEFAULT_YEAST_SUGGESTIONS}
+                    namePlaceholder="اختر أو اكتب نوع الخمائر..."
+                    secondFieldLabel="الكمية"
+                    secondSuggestions={QUANTITY_OPTIONS}
+                    secondPlaceholder="الكمية..."
+                    addButtonText="+ إضافة خمائر"
+                    emptyStateText="لا توجد خمائر مسجلة (Nil / Not Seen)"
+                    badgeColor="#d97706"
+                    badgeBg="#fffbeb"
+                    badgeBorder="#fde68a"
+                  />
+                </div>
 
-                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 10px' }}>
-                    <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>Casts</div>
-                    <select
-                      value={data.casts}
-                      onChange={(e) => setField('casts', e.target.value)}
-                      className="select-control"
-                      style={{ height: '32px', fontSize: '11.5px', width: '100%', background: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
-                    >
-                      <option value="None">None</option>
-                      <option value="Hyaline (+)">Hyaline (+)</option>
-                      <option value="Hyaline (++)">Hyaline (++)</option>
-                      <option value="Granular (+)">Granular (+)</option>
-                      <option value="Granular (++)">Granular (++)</option>
-                      <option value="WBC Casts">WBC Casts</option>
-                      <option value="RBC Casts">RBC Casts</option>
-                      <option value="Full Field">Full Field</option>
-                    </select>
+                {/* Item 2: Free unrestricted expandable Other textarea (Trichomonas removed) */}
+                <div
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-main)' }}>Other (عناصر وملاحظات مجهرية أخرى)</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>حقل نص حر قابل للتمدد بدون قيود</span>
                   </div>
+                  <textarea
+                    dir="auto"
+                    rows={2}
+                    value={data.microscopicOther || ''}
+                    onChange={(e) => setField('microscopicOther', e.target.value)}
+                    placeholder="اكتب أي عناصر أو ملاحظات مجهرية أخرى بحرية كاملة..."
+                    style={{
+                      width: '100%',
+                      minHeight: '65px',
+                      resize: 'vertical',
+                      fontSize: '12px',
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-input)',
+                      color: 'var(--text-main)',
+                      outline: 'none',
+                      fontFamily: 'inherit',
+                      boxSizing: 'border-box',
+                    }}
+                  />
                 </div>
 
                 {/* Additional Clinical Notes (FEAT-03: Multiline Unrestricted Free Text) */}
@@ -1314,14 +1493,7 @@ export default function UrineFormModal({
 
                     {/* Crystals: Only display selected / positive crystals, or clean Crystals: Nil */}
                     {(() => {
-                      const activeCrystals = [
-                        ...(data.crystals && data.crystals !== 'Nil' ? [{ name: 'Crystals', val: data.crystals }] : []),
-                        { name: 'Ca. Oxalate', val: data.calciumOxalate },
-                        { name: 'Uric Acid', val: data.uricAcid },
-                        { name: 'Triple Phos', val: data.triplePhosphate },
-                        { name: 'Amorphous', val: data.amorphous },
-                      ].filter(c => c.val && c.val !== 'Nil');
-
+                      const activeCrystals = (data.crystalsList || []).filter(c => c.name && c.name.trim());
                       if (activeCrystals.length === 0) {
                         return (
                           <tr>
@@ -1331,42 +1503,45 @@ export default function UrineFormModal({
                         );
                       }
 
-                      return activeCrystals.map((c, i) => {
-                        const isSevere = ['+++', '++++', 'Full Field'].includes(c.val);
-                        return (
-                          <tr key={i}>
-                            <td style={{ color: '#64748b', padding: '2px 0' }}>{c.name}:</td>
-                            <td colSpan={3} style={{ fontWeight: 800, color: isSevere ? '#dc2626' : '#0284c7' }}>
-                              {c.val}
-                            </td>
-                          </tr>
-                        );
-                      });
+                      return (
+                        <tr>
+                          <td style={{ color: '#64748b', padding: '2px 0' }}>Crystals:</td>
+                          <td colSpan={3} style={{ fontWeight: 800, color: '#0284c7' }}>
+                            {activeCrystals.map(c => c.secondValue?.trim() ? `${c.name.trim()} (${c.secondValue.trim()})` : c.name.trim()).join(', ')}
+                          </td>
+                        </tr>
+                      );
                     })()}
 
-                    {/* Microorganisms, Casts, Mucus: Only if positive / selected */}
+                    {/* Microorganisms, Casts, Mucus, Other */}
                     {data.mucus !== 'Nil' && (
                       <tr>
                         <td style={{ color: '#64748b', padding: '2px 0' }}>Mucus:</td>
                         <td colSpan={3} style={{ fontWeight: 600, color: '#0f172a' }}>{data.mucus}</td>
                       </tr>
                     )}
-                    {data.casts !== 'None' && data.casts !== 'Nil' && (
+                    {(data.castsList || []).length > 0 && (
                       <tr>
                         <td style={{ color: '#64748b', padding: '2px 0' }}>Casts:</td>
-                        <td colSpan={3} style={{ fontWeight: 700, color: '#dc2626' }}>{data.casts}</td>
+                        <td colSpan={3} style={{ fontWeight: 700, color: '#dc2626' }}>
+                          {data.castsList.map(c => c.secondValue?.trim() ? `${c.name.trim()} (${c.secondValue.trim()})` : c.name.trim()).join(', ')}
+                        </td>
                       </tr>
                     )}
-                    {data.yeast !== 'Not Seen' && data.yeast !== 'Nil' && (
+                    {(data.yeastsList || []).length > 0 && (
                       <tr>
                         <td style={{ color: '#64748b', padding: '2px 0' }}>Yeast:</td>
-                        <td colSpan={3} style={{ fontWeight: 700, color: '#dc2626' }}>{data.yeast}</td>
+                        <td colSpan={3} style={{ fontWeight: 700, color: '#dc2626' }}>
+                          {data.yeastsList.map(y => y.secondValue?.trim() ? `${y.name.trim()} (${y.secondValue.trim()})` : y.name.trim()).join(', ')}
+                        </td>
                       </tr>
                     )}
-                    {data.trichomonas !== 'Not Seen' && data.trichomonas !== 'Nil' && (
+                    {data.microscopicOther && data.microscopicOther.trim() && (
                       <tr>
-                        <td style={{ color: '#64748b', padding: '2px 0' }}>Trichomonas:</td>
-                        <td colSpan={3} style={{ fontWeight: 700, color: '#dc2626' }}>{data.trichomonas}</td>
+                        <td style={{ color: '#64748b', padding: '2px 0' }}>Other:</td>
+                        <td colSpan={3} style={{ fontWeight: 600, color: '#0f172a', whiteSpace: 'pre-wrap' }}>
+                          {data.microscopicOther.trim()}
+                        </td>
                       </tr>
                     )}
                   </tbody>
