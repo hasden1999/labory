@@ -26,6 +26,7 @@
     "deploy:backup": "node tools/deploy/backup.js",
     "deploy:rollback": "node tools/deploy/rollback.js",
     "deploy:publish": "node tools/deploy/index.js --publish",
+    "test": "npx tsx tests/e2e/run_all.ts",
     "test:devices": "python tests/integration/test_astm_analyzer.py"
   },
   "dependencies": {

@@ -226,15 +226,26 @@ export default function GseModal({
   const resolvedPatientName = patientName || sample?.patient?.name || 'مريض غير محدد';
   const resolvedSampleNumber = sampleNumber || sample?.sampleNumber || sample?.id || '---';
 
+  // FEAT-04: Auto-detect FOBT from sample.tests
+  const hasFobtTest = React.useMemo(() => {
+    if (!sample?.tests || !Array.isArray(sample.tests)) return false;
+    return sample.tests.some((st: any) => {
+      const code = (st.test?.code || st.testCode || '').toUpperCase();
+      const name = (st.test?.name || '').toLowerCase();
+      return code === 'FOBT' || name.includes('fobt') || name.includes('occult') || name.includes('دم خفي');
+    });
+  }, [sample]);
+
   useEffect(() => {
     if (isOpen) {
       if (initialValue && initialValue.includes('G.S.E')) {
         setData(parseGse(initialValue));
       } else {
-        setData({ ...DEFAULT_GSE_DATA, parasites: [] });
+        // Auto-enable FOBT if the test was explicitly ordered in the sample
+        setData({ ...DEFAULT_GSE_DATA, parasites: [], includeFobt: hasFobtTest });
       }
     }
-  }, [isOpen, initialValue]);
+  }, [isOpen, initialValue, hasFobtTest]);
 
   if (!isOpen) return null;
 
@@ -938,7 +949,7 @@ export default function GseModal({
                         refRange="Negative"
                         value={data.fobt}
                         onChange={(val) => setField('fobt', val)}
-                        options={['Negative', 'Weakly Positive', 'Positive']}
+                        options={['Nil', 'Negative', 'Weakly Positive', 'Positive']}
                         abnormalValues={['Weakly Positive', 'Positive']}
                       />
                     </div>
@@ -1604,7 +1615,7 @@ export default function GseModal({
                 direction: 'ltr',
               }}
             >
-              <span>Labryo Diagnostic System • Verified</span>
+              <span>Clinical Parasitology Diagnostics • Verified</span>
               <span>100% Medical Standard</span>
             </div>
           </div>

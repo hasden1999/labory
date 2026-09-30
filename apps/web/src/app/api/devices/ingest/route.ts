@@ -20,8 +20,12 @@ export async function POST(request: Request) {
       overridePatientName: body.patientName,
     });
 
+    if (!result.success && result.status === 'UNAUTHORIZED') {
+      return NextResponse.json({ message: result.message }, { status: 401 });
+    }
+
     return NextResponse.json(result);
   } catch (err: any) {
-    return NextResponse.json({ message: 'فشل معالجة واستقبال حزمة الجهاز', error: err?.message }, { status: 500 });
+    return NextResponse.json({ message: 'فشل معالجة واستقبال حزمة الجهاز' }, { status: 500 });
   }
 }

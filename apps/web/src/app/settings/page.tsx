@@ -321,6 +321,7 @@ export default function SettingsPage() {
         watermarkAngle: Number(watermarkAngle),
         watermarkSize: Number(watermarkSize),
         watermarkColor,
+        logoUrl: labProfile.logoUrl || '',
 
         // Typography
         fontFamily,

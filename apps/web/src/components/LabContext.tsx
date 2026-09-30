@@ -26,6 +26,7 @@ export interface LabProfile {
   qrCodePosition?: 'HEADER' | 'FOOTER';
   accreditationBadge?: string;
   logoPath?: string;
+  logoUrl?: string;
   isConfigured: boolean;
   serverBaseUrl?: string;
   detectedLanIp?: string;
@@ -103,6 +104,7 @@ const DEFAULT_LAB_PROFILE: LabProfile = {
   watermarkAngle: -30,
   watermarkSize: 46,
   watermarkColor: '#0f172a',
+  logoUrl: '',
 };
 
 interface LabContextType {

@@ -3,7 +3,9 @@ import { getStore } from '../../../../lib/serverStore';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const store = getStore();
-  const sample = store.samples.find((s: any) => s.id === params.id || String(s.sampleNumber) === params.id);
+  const targetId = (params.id || '').trim();
+  // Security Guard (SEC-007): Prevent trivial sequential enumeration by matching unique UUID or 6+ digit numbers
+  const sample = store.samples.find((s: any) => s.id === targetId || (targetId.length >= 6 && String(s.sampleNumber) === targetId));
   
   if (!sample) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });

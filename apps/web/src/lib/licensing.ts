@@ -3,8 +3,13 @@ import { execSync } from 'child_process';
 
 declare const __non_webpack_require__: any;
 
-// Master Secret for HMAC signatures (Private to system)
-export const MASTER_SECRET = 'LAB_MANAGER_OFFLINE_SECRET_KEY_v2026_HMAC_SECURE_981247';
+/**
+ * Master Secret for HMAC signatures
+ * In production or remote deployments, this should be overridden via process.env.LABRYO_LICENSE_SECRET.
+ * Architectural note: As part of the security roadmap (SEC-001 / SEC-002), symmetric HMAC licensing
+ * is planned for migration to Ed25519 asymmetric signatures (where client bundles only embed the public key).
+ */
+export const MASTER_SECRET = process.env.LABRYO_LICENSE_SECRET || 'LAB_MANAGER_OFFLINE_SECRET_KEY_v2026_HMAC_SECURE_981247';
 
 export interface LicensePayload {
   hwid: string;

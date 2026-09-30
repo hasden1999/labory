@@ -2093,6 +2093,7 @@ function IntakeContent() {
                         onClick={() => handleToggleTest(t)}
                         style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', padding: '2px' }}
                         title="إزالة الفحص"
+                        aria-label="إزالة الفحص"
                       >
                         <X size={13} />
                       </button>
@@ -2447,7 +2448,7 @@ function IntakeContent() {
                   <Printer size={13} />
                   <span>طباعة (Print)</span>
                 </button>
-                <button type="button" onClick={() => setDocPreviewUrl(null)} className="btn-secondary" style={{ height: '30px', padding: '0 8px' }}>
+                <button type="button" onClick={() => setDocPreviewUrl(null)} className="btn-secondary" style={{ height: '30px', padding: '0 8px' }} aria-label="إغلاق النافذة">
                   <X size={14} />
                 </button>
               </div>

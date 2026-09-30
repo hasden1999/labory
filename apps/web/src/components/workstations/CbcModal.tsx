@@ -1511,7 +1511,7 @@ export default function CbcModal({
                 direction: 'ltr',
               }}
             >
-              <span>Labryo Diagnostic System • Verified</span>
+              <span>Automated Hematology Diagnostics • Verified</span>
               <span>100% Medical Standard</span>
             </div>
           </div>

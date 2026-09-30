@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getStore } from '../../../../lib/serverStore';
-import { isCbcTest, isGueTest, isGseTest, isSfaTest, isGeneralTest } from '../../samples/[id]/print/route';
+import { isCbcTest, isGueTest, isGseTest, isSfaTest, isGeneralTest } from '../../../../lib/testClassifier';
+import { generatePuppeteerPdf } from '../../../../lib/puppeteerPdfGenerator';
 
 export async function POST(request: Request) {
   try {
@@ -105,13 +106,24 @@ export async function POST(request: Request) {
       cleanPhone = '964' + cleanPhone;
     }
 
-    const defaultGreeting = `السلام عليكم ورحمة الله وبركاته.\nالأخ/الأخت الفاضل(ة): ${patient.name}\n\nمرفق لكم تقرير نتائج الفحوصات الطبية المعتمدة من (${labName}) بعدد (${totalForms} ${totalForms === 1 ? 'صورة' : 'صور منفصلة'}).\nرقم العينة: #${sample.sampleNumber}\n\nنتمنى لكم دوام الصحة والعافية!`;
+    const defaultGreeting = `السلام عليكم ورحمة الله وبركاته.\nالأخ/الأخت الفاضل(ة): ${patient.name}\n\nيسر (${labName}) إعلامكم بصدور نتائج تحاليلكم الطبية المعتمدة للعينة رقم (#${sample.sampleNumber}).\nمرفق لكم طياً التقرير الطبي المعتمد بصيغة (PDF).\n\nنتمنى لكم دوام الصحة والعافية!`;
     const waLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultGreeting)}` : null;
 
-    // Active Server Dispatch via Authentic Baileys Engine
+    // Active Server Dispatch via Authentic Baileys Engine (FEAT-07: Real Puppeteer PDF Document)
     if (body.autoSend === true) {
       const SERVER_URL = process.env.FASTIFY_URL || process.env.BACKEND_URL || 'http://127.0.0.1:8000';
       try {
+        // 1. Generate authentic Puppeteer PDF report matching the exact print template and logo
+        const pdfBuffer = await generatePuppeteerPdf(sample.id, request.url);
+
+        // 2. Validate file size against WhatsApp document limits (100MB max)
+        if (pdfBuffer.length > 100 * 1024 * 1024) {
+          throw new Error('حجم ملف التقرير يتجاوز الحد المسموح به في واتساب');
+        }
+
+        const safeArabicPatient = (patient.name || 'مريض').replace(/[\\/:*?"<>|\s]/g, '_');
+        const pdfFileName = `تقرير_طبي_عينة_${sample.sampleNumber}_${safeArabicPatient}.pdf`;
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000);
 
@@ -122,6 +134,10 @@ export async function POST(request: Request) {
             sampleId: sample.id,
             phone: patientPhone,
             autoSend: true,
+            pdfBase64: pdfBuffer.toString('base64'),
+            fileName: pdfFileName,
+            asImage: Boolean(body.asImage),
+            caption: `📄 التقرير الطبي المعتمد بصيغة PDF - عينة #${sample.sampleNumber}\nالمريض: ${patient.name}\n${labName}`,
           }),
           signal: controller.signal,
           cache: 'no-store',
@@ -130,13 +146,14 @@ export async function POST(request: Request) {
         const serverData = await serverRes.json();
         return NextResponse.json(serverData, { status: serverRes.status });
       } catch (fErr: any) {
+        console.error('[WhatsAppDispatch] Error:', fErr);
         return NextResponse.json(
           {
             success: false,
             delivered: false,
-            message: 'تعذر الاتصال بمحرك واتساب المحلي لإرسال التقرير للمريض.',
+            message: fErr?.message || 'تعذر الاتصال بمحرك واتساب المحلي لإرسال التقرير للمريض.',
           },
-          { status: 503 }
+          { status: 500 }
         );
       }
     }

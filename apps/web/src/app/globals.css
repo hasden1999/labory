@@ -22,7 +22,7 @@
   
   --text-main: #0f172a;
   --text-muted: #64748b;
-  --text-dim: #94a3b8;
+  --text-dim: #64748b;
   --text-inverse: #ffffff;
   
   /* Clinical Accents */
@@ -72,8 +72,8 @@
   --badge-urgent-text: #f87171;
   
   --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
+  --text-muted: #cbd5e1;
+  --text-dim: #94a3b8;
   --text-inverse: #0f172a;
   
   --accent-cyan: #38bdf8;

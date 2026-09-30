@@ -135,6 +135,7 @@ model SampleTest {
   isCritical      Boolean?    @default(false) // قيمة حرجة تستوجب تنبيه الطبيب
   interpretation  String?     // التفسير التشخيصي للنتيجة
   technicianNotes String?
+  crystals        String?     // حقل الكريستالات المنظم (FEAT-02)
   priceAtTime     Float
   costAtTime      Float       @default(0)
   refRangeLow     Float?
@@ -379,6 +380,8 @@ model Settings {
   whatsappNumber       String? @default("07701234567")
   currency             String  @default("د.ع")
   logoPath             String?
+  logoUrl              String? // شعار المختبر المخزن محلياً كـ Data URI أو مسار ملف
+  enableWatermark      Boolean? @default(false)
   address              String? @default("بغداد - شارع الأطباء - مقابل المجمع الطبي الرئيسي")
   phone                String? @default("07701234567 / 07801234567")
   reportHeader         String? @default("مختبر الرضا للتحليلات الطبية التخصصية")

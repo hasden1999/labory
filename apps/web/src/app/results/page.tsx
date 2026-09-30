@@ -2149,6 +2149,7 @@ function ResultsContent() {
                               type="button"
                               onClick={() => setTestToDelete(st)}
                               title={`Delete ${formatTestDisplayName(st.test?.name) || 'test'}`}
+                              aria-label={`Delete ${formatTestDisplayName(st.test?.name) || 'test'}`}
                               style={{
                                 background: 'rgba(239, 68, 68, 0.1)',
                                 border: '1px solid rgba(239, 68, 68, 0.3)',

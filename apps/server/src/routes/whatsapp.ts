@@ -233,43 +233,53 @@ export async function whatsappRoutes(fastify: FastifyInstance) {
       }
 
       try {
-        // 1. Generate official vector PDF report
-        const reportData: ReportData = {
-          labName: currentLabName,
-          labAddress: settings?.address || null,
-          labPhone: settings?.phone || null,
-          patientName: sample.patient?.name || 'مريض',
-          patientAge: sample.patient?.age || null,
-          patientGender: sample.patient?.gender || null,
-          sampleNumber: sample.sampleNumber,
-          sampleDate: sample.createdAt
-            ? new Date(sample.createdAt).toLocaleDateString('ar-IQ')
-            : new Date().toLocaleDateString('ar-IQ'),
-          tests: tests.map((t: any) => ({
-            testName: t.test?.name || t.test?.arabicName || 'فحص طبي',
-            category: t.test?.category || 'عام',
-            resultValue: String(t.resultValue || ''),
-            unit: t.test?.unit || null,
-            refRangeLow: t.test?.refRangeLow ?? null,
-            refRangeHigh: t.test?.refRangeHigh ?? null,
-            refRangeText: t.test?.refRangeText ?? null,
-            isAbnormal: t.isAbnormal ?? false,
-          })),
-        };
+        // 1. Prepare PDF or Image buffer (uses provided authentic Puppeteer PDF or generates fallback)
+        let mediaBuffer: Buffer;
+        const mediaType = (body.type || (body.asImage ? 'image' : 'document')) as 'document' | 'image';
+        const defaultFileName = `تقرير_طبي_عينة_${sample.sampleNumber}_${(sample.patient?.name || 'مريض').replace(/[\\/:*?"<>|\s]/g, '_')}.${mediaType === 'image' ? 'jpg' : 'pdf'}`;
+        const fileName = body.fileName || defaultFileName;
 
-        const pdfBuffer = await generateSampleReportPDF(reportData);
+        if (body.pdfBase64 || body.mediaBuffer) {
+          const raw = body.pdfBase64 || body.mediaBuffer;
+          const cleanBase64 = raw.includes(',') ? raw.split(',')[1] : raw;
+          mediaBuffer = Buffer.from(cleanBase64, 'base64');
+        } else {
+          const reportData: ReportData = {
+            labName: currentLabName,
+            labAddress: settings?.address || null,
+            labPhone: settings?.phone || null,
+            patientName: sample.patient?.name || 'مريض',
+            patientAge: sample.patient?.age || null,
+            patientGender: sample.patient?.gender || null,
+            sampleNumber: sample.sampleNumber,
+            sampleDate: sample.createdAt
+              ? new Date(sample.createdAt).toLocaleDateString('ar-IQ')
+              : new Date().toLocaleDateString('ar-IQ'),
+            tests: tests.map((t: any) => ({
+              testName: t.test?.name || t.test?.arabicName || 'فحص طبي',
+              category: t.test?.category || 'عام',
+              resultValue: String(t.resultValue || ''),
+              unit: t.test?.unit || null,
+              refRangeLow: t.test?.refRangeLow ?? null,
+              refRangeHigh: t.test?.refRangeHigh ?? null,
+              refRangeText: t.test?.refRangeText ?? null,
+              isAbnormal: t.isAbnormal ?? false,
+            })),
+          };
+          mediaBuffer = await generateSampleReportPDF(reportData);
+        }
 
-        // 2. Dispatch official PDF document directly via Baileys socket
-        const pdfFileName = `Labryo_Report_${sample.sampleNumber}_${(sample.patient?.name || 'Patient').replace(/\s+/g, '_')}.pdf`;
-        const sendPdfResult = await whatsappService.sendMedia({
+        // 2. Dispatch official PDF/Image attachment directly via Baileys socket (ZERO web links!)
+        const sendMediaResult = await whatsappService.sendMedia({
           phone: targetJid,
-          type: 'document',
-          mediaBuffer: pdfBuffer,
-          fileName: pdfFileName,
-          caption: `📄 التقرير الطبي المعتمد بصيغة PDF - عينة #${sample.sampleNumber}\nالمريض: ${sample.patient?.name}\n${currentLabName}`,
+          type: mediaType,
+          mediaBuffer,
+          fileName,
+          mimetype: mediaType === 'image' ? 'image/jpeg' : 'application/pdf',
+          caption: body.caption || `📄 التقرير الطبي المعتمد بصيغة ${mediaType === 'image' ? 'صورة' : 'PDF'} - عينة #${sample.sampleNumber}\nالمريض: ${sample.patient?.name}\n${currentLabName}`,
         });
 
-        // 3. Send official greeting text
+        // 3. Send official greeting text (ZERO links!)
         await whatsappService.sendTextMessage(targetJid, greetingText);
 
         // Update sample status to READY or DELIVERED if all results present
@@ -284,7 +294,7 @@ export async function whatsappRoutes(fastify: FastifyInstance) {
         return reply.send({
           success: true,
           delivered: true,
-          messageId: sendPdfResult.messageId,
+          messageId: sendMediaResult.messageId,
           sampleId: sample.id,
           sampleNumber: sample.sampleNumber,
           patientName: sample.patient?.name,

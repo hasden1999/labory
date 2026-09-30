@@ -43,6 +43,7 @@ export interface UrineAnalysisData {
   pusCells: string;
   rbcs: string;
   epithelialCells: string;
+  crystals: string;
   calciumOxalate: string;
   uricAcid: string;
   triplePhosphate: string;
@@ -75,6 +76,7 @@ export const DEFAULT_URINE_DATA: UrineAnalysisData = {
   pusCells: '0-2',
   rbcs: '0-2',
   epithelialCells: 'Few',
+  crystals: 'Nil',
   calciumOxalate: 'Nil',
   uricAcid: 'Nil',
   triplePhosphate: 'Nil',
@@ -143,6 +145,7 @@ export default function UrineFormModal({
         parsed.uricAcid = matchVal('Uric\\s*Acid', initialData) || 'Nil';
         parsed.triplePhosphate = matchVal('Triple\\s*Phos(?:phate)?', initialData) || 'Nil';
         parsed.amorphous = matchVal('Amorphous', initialData) || 'Nil';
+        parsed.crystals = matchVal('Crystals', initialData) || 'Nil';
         parsed.casts = matchVal('Casts', initialData) || 'None';
         parsed.yeast = matchVal('Yeast', initialData) || 'Not Seen';
         parsed.trichomonas = matchVal('Trichomonas', initialData) || 'Not Seen';
@@ -186,6 +189,7 @@ export default function UrineFormModal({
         appearance: 'Sl. Turbid',
         pusCells: '2-4',
         rbcs: '8-12',
+        crystals: 'Ca. Oxalate (+++)',
         calciumOxalate: '+++',
         mucus: 'Moderate',
         otherNotes: 'Significant Calcium Oxalate Crystalluria (Renal Colic pattern).',
@@ -211,6 +215,9 @@ export default function UrineFormModal({
   const handleSaveAndApply = () => {
     // 1. Collect non-Nil crystals
     const activeCrystals: string[] = [];
+    if (data.crystals && data.crystals !== 'Nil' && data.crystals.trim() !== '') {
+      activeCrystals.push(`Crystals: ${data.crystals}`);
+    }
     if (data.calciumOxalate && data.calciumOxalate !== 'Nil') {
       activeCrystals.push(`Ca.Oxalate: ${data.calciumOxalate}`);
     }
@@ -231,11 +238,9 @@ export default function UrineFormModal({
       `Epith: ${data.epithelialCells}`
     ];
 
-    // Crystals section: only active or clean 'Crystals: Nil'
+    // Crystals section: only active crystals (omit if none so zero trace on print)
     if (activeCrystals.length > 0) {
       microParts.push(...activeCrystals);
-    } else {
-      microParts.push('Crystals: Nil');
     }
 
     // Microorganisms & casts: only include if selected / positive
@@ -290,6 +295,7 @@ export default function UrineFormModal({
     abnormalValues = [],
     allowCustomInput = false,
     customInputPlaceholder = 'أو اكتب يدوياً (مثال: 6-8)...',
+    isNumericOnly = false,
   }: {
     label: string;
     refRange?: string;
@@ -299,6 +305,7 @@ export default function UrineFormModal({
     abnormalValues?: string[];
     allowCustomInput?: boolean;
     customInputPlaceholder?: string;
+    isNumericOnly?: boolean;
   }) => {
     return (
       <div style={{
@@ -318,6 +325,45 @@ export default function UrineFormModal({
             </span>
           )}
         </div>
+
+        {/* Prominent Direct Manual Input with Validation (FEAT-01) */}
+        {allowCustomInput && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', width: '100%' }}>
+            <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>إدخال حر:</span>
+            <input
+              type="text"
+              placeholder={customInputPlaceholder}
+              value={value}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (isNumericOnly) {
+                  // Only allow positive numbers, clinical ranges (e.g. 4-6, 10-15), or markers (>100, Full Field, Packed)
+                  // Prevent negative numbers (-)
+                  if (/^[\d\s\-+><a-zA-Z\/]*$/.test(val) && !val.trim().startsWith('-')) {
+                    onChange(val);
+                  }
+                } else {
+                  onChange(val);
+                }
+              }}
+              style={{
+                flex: 1,
+                padding: '6px 12px',
+                borderRadius: '6px',
+                border: '1.5px solid var(--accent-cyan)',
+                background: 'var(--bg-input)',
+                color: 'var(--text-main)',
+                fontSize: '13px',
+                fontWeight: 800,
+                fontFamily: 'JetBrains Mono, monospace',
+                outline: 'none',
+              }}
+              onFocus={(e) => (e.target.style.borderColor = 'var(--accent-cyan)')}
+              onBlur={(e) => (e.target.style.borderColor = 'var(--border-color)')}
+            />
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
           {options.map((opt) => {
             const isSelected = value === opt;
@@ -350,30 +396,6 @@ export default function UrineFormModal({
               </button>
             );
           })}
-          {allowCustomInput && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', width: '100%' }}>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>كتابة يدوية:</span>
-              <input
-                type="text"
-                placeholder={customInputPlaceholder}
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: '5px 10px',
-                  borderRadius: '6px',
-                  border: '1.5px solid var(--border-color)',
-                  background: 'var(--bg-input)',
-                  color: 'var(--text-main)',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  outline: 'none',
-                }}
-                onFocus={(e) => (e.target.style.borderColor = 'var(--accent-cyan)')}
-                onBlur={(e) => (e.target.style.borderColor = 'var(--border-color)')}
-              />
-            </div>
-          )}
         </div>
       </div>
     );
@@ -970,6 +992,7 @@ export default function UrineFormModal({
                     abnormalValues={['8-10', '15-20', '25-35', '40-50', 'Full Slide']}
                     allowCustomInput={true}
                     customInputPlaceholder="أو اكتب عدد كريات القيح يدوياً (مثال: 6-8)..."
+                    isNumericOnly={true}
                   />
 
                   <PillSelector
@@ -981,38 +1004,46 @@ export default function UrineFormModal({
                     abnormalValues={['5-10', '15-25', 'Packed / Bloody']}
                     allowCustomInput={true}
                     customInputPlaceholder="أو اكتب عدد كريات الحمر يدوياً (مثال: 3-5)..."
+                    isNumericOnly={true}
                   />
                 </div>
 
-                {/* Epithelial Cells */}
-                <PillSelector
-                  label="Epithelial Cells"
-                  refRange="Few /HPF"
-                  value={data.epithelialCells}
-                  onChange={(v) => setField('epithelialCells', v)}
-                  options={['Nil', 'Few', 'Moderate', 'Many']}
-                  abnormalValues={['Moderate', 'Many']}
-                />
+                {/* Epithelial Cells & Unified Crystals Grid (FEAT-02) */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <PillSelector
+                    label="Epithelial Cells"
+                    refRange="Few /HPF"
+                    value={data.epithelialCells}
+                    onChange={(v) => setField('epithelialCells', v)}
+                    options={['Nil', 'Few', 'Moderate', 'Many']}
+                    abnormalValues={['Moderate', 'Many']}
+                  />
 
-                {/* Crystals & Amorphous Multi-Selector Grid */}
-                <div style={{
+                  <PillSelector
+                    label="Crystals (البلورات)"
+                    refRange="Nil"
+                    value={data.crystals || 'Nil'}
+                    onChange={(v) => setField('crystals', v)}
+                    options={['Nil', 'Ca. Oxalate (+)', 'Ca. Oxalate (++)', 'Uric Acid (+)', 'Triple Phos (+)', 'Amorphous Urates', 'Amorphous Phos', 'Calcium Carbonate']}
+                    abnormalValues={['Ca. Oxalate (++)', 'Ca. Oxalate (+++)', 'Uric Acid (++)', 'Triple Phos (++)']}
+                    allowCustomInput={true}
+                    customInputPlaceholder="أو اكتب نوع البلورات يدوياً..."
+                  />
+                </div>
+
+                {/* Crystals & Amorphous Multi-Selector Grid (Advanced Matrix) */}
+                <details style={{
                   background: 'var(--bg-card)',
                   border: '1px solid var(--border-color)',
                   borderRadius: '8px',
-                  padding: '12px 14px',
+                  padding: '10px 14px',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
-                      Crystals & Amorphous
-                    </span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      Multi-select enabled
-                    </span>
-                  </div>
+                  <summary style={{ cursor: 'pointer', fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', userSelect: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>تفاصيل مجهرية إضافية للبلورات (Advanced Crystals Matrix)</span>
+                    <span style={{ fontSize: '10.5px', color: 'var(--accent-cyan)', fontWeight: 700 }}>+ تخصيص تفصيلي</span>
+                  </summary>
+                  <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
                   {/* Crystal 1: Calcium Oxalate */}
                   <CrystalSelectorRow
@@ -1041,7 +1072,8 @@ export default function UrineFormModal({
                     value={data.amorphous}
                     onChange={(lvl) => setField('amorphous', lvl)}
                   />
-                </div>
+                  </div>
+                </details>
 
                 {/* Microorganisms & Casts Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -1119,18 +1151,30 @@ export default function UrineFormModal({
                   </div>
                 </div>
 
-                {/* Additional Clinical Notes */}
+                {/* Additional Clinical Notes (FEAT-03: Multiline Unrestricted Free Text) */}
                 <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '10px 12px' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
-                    Diagnostic Notes / Impression
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '6px', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Diagnostic Notes / Impression (ملاحظات سريرية وتشخيص حر)</span>
+                    <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>نص حر متعدد الأسطر بدون قيود</span>
                   </div>
-                  <input
-                    type="text"
+                  <textarea
+                    rows={3}
                     value={data.otherNotes}
                     onChange={(e) => setField('otherNotes', e.target.value)}
-                    placeholder="e.g. UTI pattern, Calcium Oxalate crystals, Normal findings..."
+                    placeholder="اكتب الملاحظات السريرية أو التشخيص المجهري المباشر بحرية كاملة..."
                     className="input-control"
-                    style={{ height: '34px', fontSize: '12px', width: '100%', background: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
+                    style={{
+                      fontSize: '12.5px',
+                      width: '100%',
+                      background: 'var(--bg-input)',
+                      borderColor: 'var(--border-color)',
+                      color: 'var(--text-main)',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      resize: 'vertical',
+                      lineHeight: '1.5',
+                      fontFamily: 'inherit',
+                    }}
                   />
                 </div>
 
@@ -1271,6 +1315,7 @@ export default function UrineFormModal({
                     {/* Crystals: Only display selected / positive crystals, or clean Crystals: Nil */}
                     {(() => {
                       const activeCrystals = [
+                        ...(data.crystals && data.crystals !== 'Nil' ? [{ name: 'Crystals', val: data.crystals }] : []),
                         { name: 'Ca. Oxalate', val: data.calciumOxalate },
                         { name: 'Uric Acid', val: data.uricAcid },
                         { name: 'Triple Phos', val: data.triplePhosphate },
@@ -1354,7 +1399,7 @@ export default function UrineFormModal({
               fontSize: '9.5px',
               color: '#94a3b8',
             }}>
-              <span>Labryo Diagnostic System • Verified</span>
+              <span>Diagnostic Laboratory Examination • Verified</span>
               <span>100% Medical Standard</span>
             </div>
 

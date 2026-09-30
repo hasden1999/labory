@@ -90,50 +90,8 @@ function generateHistogramSvg(type: 'WBC' | 'RBC' | 'PLT', points?: number[], wi
   `;
 }
 
-export const isCbcTest = (t: any) => {
-  const code = (t.test?.code || t.testCode || '').toUpperCase();
-  const name = (t.test?.name || '').toLowerCase();
-  const val = typeof t.resultValue === 'string' ? t.resultValue : '';
-  return code === 'CBC' || 
-         code === 'FBC' ||
-         name.includes('complete blood count') || 
-         name.includes('صورة الدم') || 
-         val.includes('CBC') || 
-         val.includes('ERYTHROID:') || 
-         val.includes('DIFFERENTIAL:');
-};
-
-export const isSfaTest = (t: any) => {
-  if (isCbcTest(t)) return false;
-  const code = (t.test?.code || t.testCode || '').toUpperCase();
-  const name = (t.test?.name || '').toLowerCase();
-  const val = typeof t.resultValue === 'string' ? t.resultValue : '';
-  return code === 'SFA' || 
-         val.includes('S.F.A') || 
-         val.includes('SEMINAL') || 
-         name.includes('semen') || 
-         name.includes('سائل منوي') || 
-         name.includes('نطف') || 
-         (val.includes('PHYSICAL:') && (val.includes('MOTILITY:') || val.includes('MORPHOLOGY:')));
-};
-
-export const isGueTest = (t: any) => {
-  if (isCbcTest(t) || isSfaTest(t)) return false;
-  const code = (t.test?.code || t.testCode || '').toUpperCase();
-  const name = (t.test?.name || '').toLowerCase();
-  const val = typeof t.resultValue === 'string' ? t.resultValue : '';
-  return code === 'GUE' || val.includes('G.U.E') || name.includes('urine') || name.includes('إدرار') || (val.includes('PHYSICAL:') && !val.includes('G.S.E') && !val.includes('PARASITOLOGY:'));
-};
-
-export const isGseTest = (t: any) => {
-  if (isCbcTest(t) || isSfaTest(t)) return false;
-  const code = (t.test?.code || t.testCode || '').toUpperCase();
-  const name = (t.test?.name || '').toLowerCase();
-  const val = typeof t.resultValue === 'string' ? t.resultValue : '';
-  return code === 'GSE' || val.includes('G.S.E') || name.includes('stool') || name.includes('خروج') || val.includes('PARASITOLOGY:');
-};
-
-export const isGeneralTest = (t: any) => !isCbcTest(t) && !isSfaTest(t) && !isGueTest(t) && !isGseTest(t);
+export { isCbcTest, isSfaTest, isGueTest, isGseTest, isGeneralTest } from '../../../../../lib/testClassifier';
+import { isCbcTest, isSfaTest, isGueTest, isGseTest, isGeneralTest } from '../../../../../lib/testClassifier';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const store = getStore();
@@ -520,7 +478,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
         <div style="flex: 1; ${labNameAlignStyle}">
           ${showLabName && safeLabName ? `
             <h1 style="margin: 0; font-size: ${labNameFontSize}px; color: ${labNameColor}; font-weight: 800; ${labNameStyleCss}">
-              ${safeLabName}
+              ${settings.logoUrl ? `<img src="${escapeHtml(settings.logoUrl)}" alt="Logo" style="height: ${Math.min(36, labNameFontSize + 8)}px; max-width: 60px; object-fit: contain; margin-left: 8px; vertical-align: middle;" />` : ''}
+              <span style="vertical-align: middle;">${safeLabName}</span>
             </h1>
           ` : ''}
           ${showLabSubtitle && safeLabSubtitle ? `
@@ -586,7 +545,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
           ${showFooterSignature ? `
             <div style="font-weight: 700; color: #0f172a; text-align: left;" dir="ltr">
               <div>Approved by Clinical Pathologist</div>
-              <div style="font-size: 9px; color: #64748b;">Labryo Clinical LIS Validated</div>
+              <div style="font-size: 9px; color: #64748b;">Clinically Validated &amp; Approved</div>
             </div>
           ` : ''}
         </div>
@@ -773,23 +732,27 @@ export async function GET(request: Request, { params }: { params: { id: string }
     renderedPages.push(`
       <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
         ${renderWatermark()}
-        ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
-        ${renderPatientMetaBox(safePatientName, safeDoctorName)}
-        <table dir="ltr" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; text-align: left;">
-          <thead>
-            <tr class="table-header" style="background: #0f172a; color: #ffffff;">
-              <th style="padding: 8px 12px; text-align: left; border-radius: 6px 0 0 0;">INVESTIGATION</th>
-              <th style="padding: 8px 12px; text-align: left;">RESULT</th>
-              ${hasAnyGeneralPrior ? `<th style="padding: 8px 12px; text-align: left;">PREVIOUS (النتيجة السابقة)</th>` : ''}
-              <th style="padding: 8px 12px; text-align: left;">UNIT</th>
-              <th style="padding: 8px 12px; text-align: left; border-radius: 0 6px 0 0;">REFERENCE RANGE</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${generalRows}
-          </tbody>
-        </table>
-        ${renderFooter(safeFooter, safeLabName)}
+        <div class="report-main-content">
+          ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
+          ${renderPatientMetaBox(safePatientName, safeDoctorName)}
+          <table dir="ltr" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; text-align: left;">
+            <thead>
+              <tr class="table-header" style="background: #0f172a; color: #ffffff;">
+                <th style="padding: 8px 12px; text-align: left; border-radius: 6px 0 0 0;">INVESTIGATION</th>
+                <th style="padding: 8px 12px; text-align: left;">RESULT</th>
+                ${hasAnyGeneralPrior ? `<th style="padding: 8px 12px; text-align: left;">PREVIOUS (النتيجة السابقة)</th>` : ''}
+                <th style="padding: 8px 12px; text-align: left;">UNIT</th>
+                <th style="padding: 8px 12px; text-align: left; border-radius: 0 6px 0 0;">REFERENCE RANGE</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${generalRows}
+            </tbody>
+          </table>
+        </div>
+        <div class="report-footer-pinned">
+          ${renderFooter(safeFooter, safeLabName)}
+        </div>
       </div>
     `);
   }
@@ -1008,10 +971,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
     renderedPages.push(`
       <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
         ${renderWatermark()}
-        ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
-        ${renderPatientMetaBox(safePatientName, safeDoctorName)}
+        <div class="report-main-content">
+          ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
+          ${renderPatientMetaBox(safePatientName, safeDoctorName)}
 
-        <!-- CBC Header Banner -->
+          <!-- CBC Header Banner -->
         <div style="background: linear-gradient(90deg, #be123c 0%, #e11d48 100%); color: #ffffff; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: 13px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
           <span>COMPLETE BLOOD COUNT (CBC) &amp; 5-PART DIFFERENTIAL</span>
           <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.5px; opacity: 0.95;">AUTOMATED HEMATOLOGY REPORT</span>
@@ -1153,7 +1117,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
           </div>
         ` : ''}
 
-        ${renderFooter(safeFooter, safeLabName)}
+        </div>
+        <div class="report-footer-pinned">
+          ${renderFooter(safeFooter, safeLabName)}
+        </div>
       </div>
     `);
     }
@@ -1186,53 +1153,63 @@ export async function GET(request: Request, { params }: { params: { id: string }
     renderedPages.push(`
       <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
         ${renderWatermark()}
-        ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
-        ${renderPatientMetaBox(safePatientName, safeDoctorName)}
-        
-        <div style="background: ${primaryCol}; color: #ffffff; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: 13px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-          <span>GENERAL URINE EXAMINATION (G.U.E)</span>
-          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.5px; opacity: 0.9;">CLINICAL ROUTINE URINALYSIS</span>
+        <div class="report-main-content">
+          ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
+          ${renderPatientMetaBox(safePatientName, safeDoctorName)}
+          
+          <div style="background: ${primaryCol}; color: #ffffff; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: 13px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+            <span>GENERAL URINE EXAMINATION (G.U.E)</span>
+            <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.5px; opacity: 0.9;">CLINICAL ROUTINE URINALYSIS</span>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <!-- Physical Examination Section -->
+            <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+              <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+                <span>PHYSICAL EXAMINATION</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
+                ${physicalParts.length > 0 ? physicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
+              </div>
+            </div>
+
+            <!-- Chemical Examination Section -->
+            <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+              <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+                <span>CHEMICAL EXAMINATION</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
+                ${chemicalParts.length > 0 ? chemicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
+              </div>
+            </div>
+
+            <!-- Microscopic Examination Section -->
+            <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+              <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+                <span>MICROSCOPIC EXAMINATION (HPF)</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
+                ${(() => {
+                  const printableMicro = microParts.filter(p => {
+                    const up = p.toUpperCase().trim();
+                    return !(up === 'CRYSTALS: NIL' || up === 'CRYSTALS: NONE' || up === 'CRYSTALS: NOT SEEN' || up === 'CRYSTALS:');
+                  });
+                  return printableMicro.length > 0 ? printableMicro.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>';
+                })()}
+              </div>
+            </div>
+
+            ${noteText ? `
+              <div style="background: #f8fafc; border-left: 4px solid ${primaryCol}; padding: 8px 12px; font-size: 11px; color: #334155; border-radius: 0 6px 6px 0; text-align: left; direction: ltr;">
+                <strong>Clinical Note:</strong> <span style="unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(noteText)}</span>
+              </div>
+            ` : ''}
+          </div>
         </div>
 
-        <div style="margin-bottom: 16px;">
-          <!-- Physical Examination Section -->
-          <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-              <span>PHYSICAL EXAMINATION</span>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
-              ${physicalParts.length > 0 ? physicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
-            </div>
-          </div>
-
-          <!-- Chemical Examination Section -->
-          <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-              <span>CHEMICAL EXAMINATION</span>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
-              ${chemicalParts.length > 0 ? chemicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
-            </div>
-          </div>
-
-          <!-- Microscopic Examination Section -->
-          <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: ${primaryCol}; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-              <span>MICROSCOPIC EXAMINATION (HPF)</span>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
-              ${microParts.length > 0 ? microParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
-            </div>
-          </div>
-
-          ${noteText ? `
-            <div style="background: #f8fafc; border-left: 4px solid ${primaryCol}; padding: 8px 12px; font-size: 11px; color: #334155; border-radius: 0 6px 6px 0; text-align: left; direction: ltr;">
-              <strong>Clinical Note:</strong> <span style="unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(noteText)}</span>
-            </div>
-          ` : ''}
+        <div class="report-footer-pinned">
+          ${renderFooter(safeFooter, safeLabName)}
         </div>
-
-        ${renderFooter(safeFooter, safeLabName)}
       </div>
     `);
     }
@@ -1269,69 +1246,73 @@ export async function GET(request: Request, { params }: { params: { id: string }
     renderedPages.push(`
       <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
         ${renderWatermark()}
-        ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
-        ${renderPatientMetaBox(safePatientName, safeDoctorName)}
-        
-        <div style="background: #b45309; color: #ffffff; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: 13px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-          <span>GENERAL STOOL EXAMINATION (G.S.E)</span>
-          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.5px; opacity: 0.9;">STOOL ROUTINE &amp; PARASITOLOGY REPORT</span>
-        </div>
-
-        <div style="margin-bottom: 16px;">
-          <!-- Physical Examination Section -->
-          <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b45309; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-              <span>PHYSICAL EXAMINATION</span>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
-              ${physicalParts.length > 0 ? physicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
-            </div>
+        <div class="report-main-content">
+          ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
+          ${renderPatientMetaBox(safePatientName, safeDoctorName)}
+          
+          <div style="background: #b45309; color: #ffffff; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: 13px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+            <span>GENERAL STOOL EXAMINATION (G.S.E)</span>
+            <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.5px; opacity: 0.9;">STOOL ROUTINE &amp; PARASITOLOGY REPORT</span>
           </div>
 
-          <!-- Occult Blood FOBT Section -->
-          ${fobtVal ? `
+          <div style="margin-bottom: 16px;">
+            <!-- Physical Examination Section -->
             <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-              <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b91c1c; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-                <span>OCCULT BLOOD (F.O.B.T)</span>
+              <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b45309; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+                <span>PHYSICAL EXAMINATION</span>
               </div>
-              <div style="padding: 12px;" dir="ltr">
-                <div style="background: ${fobtVal.includes('Positive') ? '#fef2f2' : '#f0fdf4'}; color: ${fobtVal.includes('Positive') ? '#b91c1c' : '#15803d'}; font-weight: 800; padding: 6px 12px; border-radius: 6px; border: 1px solid ${fobtVal.includes('Positive') ? '#fca5a5' : '#bbf7d0'}; font-size: 12px; display: inline-block; text-align: left; direction: ltr;">
-                  ${escapeHtml(fobtVal)}
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
+                ${physicalParts.length > 0 ? physicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
+              </div>
+            </div>
+
+            <!-- Occult Blood FOBT Section -->
+            ${fobtVal ? `
+              <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+                <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b91c1c; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+                  <span>OCCULT BLOOD (F.O.B.T)</span>
+                </div>
+                <div style="padding: 12px;" dir="ltr">
+                  <div style="background: ${fobtVal.includes('Positive') ? '#fef2f2' : '#f0fdf4'}; color: ${fobtVal.includes('Positive') ? '#b91c1c' : '#15803d'}; font-weight: 800; padding: 6px 12px; border-radius: 6px; border: 1px solid ${fobtVal.includes('Positive') ? '#fca5a5' : '#bbf7d0'}; font-size: 12px; display: inline-block; text-align: left; direction: ltr;">
+                    ${escapeHtml(fobtVal)}
+                  </div>
                 </div>
               </div>
-            </div>
-          ` : ''}
+            ` : ''}
 
-          <!-- Microscopic Examination Section -->
-          <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-            <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b45309; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-              <span>MICROSCOPIC EXAMINATION (HPF)</span>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
-              ${microParts.length > 0 ? microParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
-            </div>
-          </div>
-
-          <!-- Parasitology & Helminths Section -->
-          ${paraParts.length > 0 ? `
+            <!-- Microscopic Examination Section -->
             <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-              <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #7e22ce; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-                <span>PARASITOLOGY &amp; HELMINTHS</span>
+              <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #b45309; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+                <span>MICROSCOPIC EXAMINATION (HPF)</span>
               </div>
-              <div style="padding: 12px; font-size: 11.5px;" dir="ltr">
-                ${paraParts.map(p => renderClinicalFindingBadge(p, !p.startsWith('Nil'))).join('')}
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
+                ${microParts.length > 0 ? microParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
               </div>
             </div>
-          ` : ''}
 
-          ${noteText ? `
-            <div style="background: #f8fafc; border-left: 4px solid #b45309; padding: 8px 12px; font-size: 11px; color: #334155; border-radius: 0 6px 6px 0; text-align: left; direction: ltr;">
-              <strong>Clinical Note:</strong> <span style="unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(noteText)}</span>
-            </div>
-          ` : ''}
+            <!-- Parasitology & Helminths Section -->
+            ${paraParts.length > 0 ? `
+              <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+                <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #7e22ce; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+                  <span>PARASITOLOGY &amp; HELMINTHS</span>
+                </div>
+                <div style="padding: 12px; font-size: 11.5px;" dir="ltr">
+                  ${paraParts.map(p => renderClinicalFindingBadge(p, !p.startsWith('Nil'))).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            ${noteText ? `
+              <div style="background: #f8fafc; border-left: 4px solid #b45309; padding: 8px 12px; font-size: 11px; color: #334155; border-radius: 0 6px 6px 0; text-align: left; direction: ltr;">
+                <strong>Clinical Note:</strong> <span style="unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(noteText)}</span>
+              </div>
+            ` : ''}
+          </div>
         </div>
 
-        ${renderFooter(safeFooter, safeLabName)}
+        <div class="report-footer-pinned">
+          ${renderFooter(safeFooter, safeLabName)}
+        </div>
       </div>
     `);
     }
@@ -1375,77 +1356,81 @@ export async function GET(request: Request, { params }: { params: { id: string }
     renderedPages.push(`
       <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
         ${renderWatermark()}
-        ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
-        ${renderPatientMetaBox(safePatientName, safeDoctorName)}
-        
-        <div style="background: #4338ca; color: #ffffff; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: 13px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-          <span>SEMINAL FLUID ANALYSIS (S.F.A)</span>
-          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.5px; opacity: 0.9;">WHO LABORATORY MANUAL 6TH EDITION</span>
-        </div>
-
-        <div style="margin-bottom: 14px;">
-          <!-- 1. Physical / Macroscopic Examination -->
-          <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-            <div style="background: #f8fafc; padding: 6px 12px; font-weight: 800; font-size: 11.5px; color: #4338ca; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-              <span>1. MACROSCOPIC / PHYSICAL EXAMINATION</span>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px 12px; font-size: 11px;" dir="ltr">
-              ${physicalParts.length > 0 ? physicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
-            </div>
+        <div class="report-main-content">
+          ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
+          ${renderPatientMetaBox(safePatientName, safeDoctorName)}
+          
+          <div style="background: #4338ca; color: #ffffff; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: 13px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+            <span>SEMINAL FLUID ANALYSIS (S.F.A)</span>
+            <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.5px; opacity: 0.9;">WHO LABORATORY MANUAL 6TH EDITION</span>
           </div>
 
-          <!-- 2. Sperm Count & Microscopy -->
-          <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-            <div style="background: #f8fafc; padding: 6px 12px; font-weight: 800; font-size: 11.5px; color: #4338ca; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-              <span>2. SPERM COUNT &amp; MICROSCOPY <span style="font-size: 10px; font-weight: normal; color: #64748b; margin-left: 6px;">(Ref: Conc &ge; 15 M/mL, Total &ge; 39 M/ejac, Pus &lt; 5 /HPF)</span></span>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px 12px; font-size: 11px;" dir="ltr">
-              ${countParts.length > 0 ? countParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
-            </div>
-          </div>
-
-          <!-- 3. Motility Assessment -->
-          <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-            <div style="background: #f8fafc; padding: 6px 12px; font-weight: 800; font-size: 11.5px; color: #0284c7; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-              <span>3. SPERM MOTILITY ASSESSMENT <span style="font-size: 10px; font-weight: normal; color: #64748b; margin-left: 6px;">(WHO Ref: PR &ge; 32%, PR+NP &ge; 40%, Vitality &ge; 58%)</span></span>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px 12px; font-size: 11px;" dir="ltr">
-              ${motilityParts.length > 0 ? motilityParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
-            </div>
-          </div>
-
-          <!-- 4. Morphology -->
-          <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-            <div style="background: #f8fafc; padding: 6px 12px; font-weight: 800; font-size: 11.5px; color: #7c3aed; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-              <span>4. SPERM MORPHOLOGY <span style="font-size: 10px; font-weight: normal; color: #64748b; margin-left: 6px;">(Kruger Strict Criteria Ref: Normal Forms &ge; 4%)</span></span>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px 12px; font-size: 11px;" dir="ltr">
-              ${morphologyParts.length > 0 ? morphologyParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
-            </div>
-          </div>
-
-          <!-- Diagnostic Impression -->
-          ${impressionText ? `
-            <div style="margin-bottom: 10px; background: ${isNormo ? '#f0fdf4' : '#fef2f2'}; border: 1.5px solid ${isNormo ? '#bbf7d0' : '#fca5a5'}; border-radius: 8px; padding: 8px 14px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-              <div>
-                <span style="font-size: 11px; font-weight: 700; color: ${isNormo ? '#166534' : '#991b1b'}; text-transform: uppercase;">Diagnostic Impression:</span>
-                <span style="font-size: 13.5px; font-weight: 900; color: ${isNormo ? '#14532d' : '#7f1d1d'}; margin-left: 8px;">${escapeHtml(impressionText)}</span>
+          <div style="margin-bottom: 14px;">
+            <!-- 1. Physical / Macroscopic Examination -->
+            <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+              <div style="background: #f8fafc; padding: 6px 12px; font-weight: 800; font-size: 11.5px; color: #4338ca; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+                <span>1. MACROSCOPIC / PHYSICAL EXAMINATION</span>
               </div>
-              <span style="background: ${isNormo ? '#dcfce7' : '#fee2e2'}; color: ${isNormo ? '#15803d' : '#b91c1c'}; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 12px; border: 1px solid ${isNormo ? '#86efac' : '#fecaca'};">
-                ${isNormo ? 'NORMAL PARAMETERS' : 'CLINICAL VARIATION'}
-              </span>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px 12px; font-size: 11px;" dir="ltr">
+                ${physicalParts.length > 0 ? physicalParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
+              </div>
             </div>
-          ` : ''}
 
-          <!-- Laboratory Notes -->
-          ${noteText ? `
-            <div style="background: #f8fafc; border-left: 4px solid #4338ca; padding: 6px 12px; font-size: 11px; color: #334155; border-radius: 0 6px 6px 0; text-align: left; direction: ltr;">
-              <strong>Laboratory Notes:</strong> <span style="unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(noteText)}</span>
+            <!-- 2. Sperm Count & Microscopy -->
+            <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+              <div style="background: #f8fafc; padding: 6px 12px; font-weight: 800; font-size: 11.5px; color: #4338ca; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+                <span>2. SPERM COUNT &amp; MICROSCOPY <span style="font-size: 10px; font-weight: normal; color: #64748b; margin-left: 6px;">(Ref: Conc &ge; 15 M/mL, Total &ge; 39 M/ejac, Pus &lt; 5 /HPF)</span></span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px 12px; font-size: 11px;" dir="ltr">
+                ${countParts.length > 0 ? countParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
+              </div>
             </div>
-          ` : ''}
+
+            <!-- 3. Motility Assessment -->
+            <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+              <div style="background: #f8fafc; padding: 6px 12px; font-weight: 800; font-size: 11.5px; color: #0284c7; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+                <span>3. SPERM MOTILITY ASSESSMENT <span style="font-size: 10px; font-weight: normal; color: #64748b; margin-left: 6px;">(WHO Ref: PR &ge; 32%, PR+NP &ge; 40%, Vitality &ge; 58%)</span></span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px 12px; font-size: 11px;" dir="ltr">
+                ${motilityParts.length > 0 ? motilityParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
+              </div>
+            </div>
+
+            <!-- 4. Morphology -->
+            <div style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+              <div style="background: #f8fafc; padding: 6px 12px; font-weight: 800; font-size: 11.5px; color: #7c3aed; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+                <span>4. SPERM MORPHOLOGY <span style="font-size: 10px; font-weight: normal; color: #64748b; margin-left: 6px;">(Kruger Strict Criteria Ref: Normal Forms &ge; 4%)</span></span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px 12px; font-size: 11px;" dir="ltr">
+                ${morphologyParts.length > 0 ? morphologyParts.map(p => renderClinicalFindingBadge(p)).join('') : '<div style="color: #94a3b8; text-align: left;">Pending</div>'}
+              </div>
+            </div>
+
+            <!-- Diagnostic Impression -->
+            ${impressionText ? `
+              <div style="margin-bottom: 10px; background: ${isNormo ? '#f0fdf4' : '#fef2f2'}; border: 1.5px solid ${isNormo ? '#bbf7d0' : '#fca5a5'}; border-radius: 8px; padding: 8px 14px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+                <div>
+                  <span style="font-size: 11px; font-weight: 700; color: ${isNormo ? '#166534' : '#991b1b'}; text-transform: uppercase;">Diagnostic Impression:</span>
+                  <span style="font-size: 13.5px; font-weight: 900; color: ${isNormo ? '#14532d' : '#7f1d1d'}; margin-left: 8px;">${escapeHtml(impressionText)}</span>
+                </div>
+                <span style="background: ${isNormo ? '#dcfce7' : '#fee2e2'}; color: ${isNormo ? '#15803d' : '#b91c1c'}; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 12px; border: 1px solid ${isNormo ? '#86efac' : '#fecaca'};">
+                  ${isNormo ? 'NORMAL PARAMETERS' : 'CLINICAL VARIATION'}
+                </span>
+              </div>
+            ` : ''}
+
+            <!-- Laboratory Notes -->
+            ${noteText ? `
+              <div style="background: #f8fafc; border-left: 4px solid #4338ca; padding: 6px 12px; font-size: 11px; color: #334155; border-radius: 0 6px 6px 0; text-align: left; direction: ltr;">
+                <strong>Laboratory Notes:</strong> <span style="unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(noteText)}</span>
+              </div>
+            ` : ''}
+          </div>
         </div>
 
-        ${renderFooter(safeFooter, safeLabName)}
+        <div class="report-footer-pinned">
+          ${renderFooter(safeFooter, safeLabName)}
+        </div>
       </div>
     `);
     }
@@ -1456,12 +1441,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
     renderedPages.push(`
       <div class="${containerClass}">
         ${renderWatermark()}
-        ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
-        ${renderPatientMetaBox(safePatientName, safeDoctorName)}
-        <div style="padding: 30px; text-align: center; color: #64748b; font-size: 13px;">
-          لا توجد فحوصات مسجلة لهذه العينة.
+        <div class="report-main-content">
+          ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
+          ${renderPatientMetaBox(safePatientName, safeDoctorName)}
+          <div style="padding: 30px; text-align: center; color: #64748b; font-size: 13px;">
+            لا توجد فحوصات مسجلة لهذه العينة.
+          </div>
         </div>
-        ${renderFooter(safeFooter, safeLabName)}
+        <div class="report-footer-pinned">
+          ${renderFooter(safeFooter, safeLabName)}
+        </div>
       </div>
     `);
   }
@@ -1533,6 +1522,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
     .report-card {
       max-width: 820px;
+      min-height: 297mm;
       margin: 0 auto 24px auto;
       padding: 24px;
       position: relative;
@@ -1540,7 +1530,24 @@ export async function GET(request: Request, { params }: { params: { id: string }
       box-shadow: ${showReportBorder ? '0 4px 15px rgba(0,0,0,0.05)' : 'none'};
       border-radius: ${showReportBorder ? '8px' : '0'};
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-sizing: border-box;
       ${!showReportBorder ? 'border: none !important;' : ''}
+    }
+    .report-main-content {
+      flex: 1 0 auto;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+    }
+    .report-footer-pinned {
+      margin-top: auto;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
     }
     .page-break {
       page-break-before: always;
@@ -1595,6 +1602,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
     ${templateCss}
     @media print {
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
       * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -1611,14 +1622,29 @@ export async function GET(request: Request, { params }: { params: { id: string }
       .report-card { 
         border: none !important; 
         box-shadow: none !important; 
-        padding: 0 !important; 
+        padding: 16mm 14mm 14mm 14mm !important; 
         width: 100% !important; 
         max-width: none !important; 
+        min-height: 297mm !important;
+        height: 297mm !important;
         margin: 0 !important; 
         border-radius: 0 !important; 
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        box-sizing: border-box !important;
+        page-break-after: always;
+        break-after: page;
         -webkit-print-color-adjust: exact !important; 
         print-color-adjust: exact !important; 
         color-adjust: exact !important; 
+      }
+      .report-main-content {
+        flex: 1 0 auto !important;
+      }
+      .report-footer-pinned {
+        margin-top: auto !important;
+        flex-shrink: 0 !important;
       }
       .page-break { page-break-before: always !important; break-before: page !important; }
       .print-btn-bar { display: none !important; }

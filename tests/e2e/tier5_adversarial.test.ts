@@ -514,7 +514,7 @@ describe('Tier 5: Adversarial & Stress Testing', () => {
     store.settings.rightMarginMm = 300 as any;
 
     const sample = store.samples[0];
-    const req = makeRequest(`http://localhost:3000/api/samples/${sample.id}/print`);
+    const req = makeRequest(`http://localhost:3000/api/samples/${sample.id}/print?force=true`);
     const res = await getPrintRoute(req, { params: { id: sample.id } });
     expect(res.status).toBe(200);
 

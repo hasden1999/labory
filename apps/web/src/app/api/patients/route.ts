@@ -49,11 +49,23 @@ export async function GET() {
     } catch {}
   }
 
+  // High-Performance Indexed Lookup O(N + M): Pre-group samples by patient ID
+  const samplesByPatientId = new Map<string, any[]>();
+  for (const s of store.samples) {
+    const targetPatientId = s.patientId || s.patient?.id;
+    if (targetPatientId) {
+      let list = samplesByPatientId.get(targetPatientId);
+      if (!list) {
+        list = [];
+        samplesByPatientId.set(targetPatientId, list);
+      }
+      list.push(s);
+    }
+  }
+
   const allPatients = Array.from(patientMap.values());
   const enriched = allPatients.map((p) => {
-    const patientSamples = store.samples.filter(
-      (s) => s.patientId === p.id || s.patient?.id === p.id
-    );
+    const patientSamples = samplesByPatientId.get(p.id) || [];
     return {
       ...p,
       samples: patientSamples,

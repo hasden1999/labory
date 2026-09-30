@@ -1305,7 +1305,17 @@ ipcMain.on('app-exit', () => {
 });
 
 ipcMain.on('open-external', (event, url) => {
-  shell.openExternal(url);
+  if (!url || typeof url !== 'string') return;
+  try {
+    const parsed = new URL(url);
+    if (['http:', 'https:'].includes(parsed.protocol)) {
+      shell.openExternal(parsed.href);
+    } else {
+      console.warn('[Desktop Security] Blocked non-http/https external protocol navigation:', parsed.protocol);
+    }
+  } catch (err) {
+    console.warn('[Desktop Security] Invalid external URL rejected:', err?.message);
+  }
 });
 
 ipcMain.handle('get-app-version', () => app.getVersion());

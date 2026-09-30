@@ -492,7 +492,7 @@ function initStore(): ServerStore {
   return {
     tests: INITIAL_TESTS_CATALOG,
     panels: INITIAL_PANELS,
-    doctors: [],
+    doctors: INITIAL_DOCTORS,
     patients: [],
     samples: [],
     expenses: [],
@@ -750,6 +750,32 @@ export function loadStoreFromFile(): ServerStore | null {
         } catch {}
       }
     } catch (e) {}
+  }
+
+  // Step 4: Fallback to bundled seed lab_store.json (e.g. on Vercel or fresh installation)
+  const bundledCandidates = [
+    path.resolve(process.cwd().includes('apps') ? process.cwd() : path.join(process.cwd(), 'apps', 'web'), 'data', 'lab_store.json'),
+    path.resolve(process.cwd(), 'data', 'lab_store.json'),
+    path.resolve(process.cwd(), 'apps', 'web', 'data', 'lab_store.json'),
+    path.join(__dirname, '..', '..', '..', 'data', 'lab_store.json'),
+  ];
+
+  for (const seedPath of bundledCandidates) {
+    if (fs.existsSync(seedPath) && seedPath !== DATA_FILE) {
+      try {
+        const seedContent = fs.readFileSync(seedPath, 'utf-8');
+        const parsed = JSON.parse(seedContent);
+        if (parsed && Array.isArray(parsed.tests) && parsed.tests.length > 0) {
+          if (!Array.isArray(parsed.expenses)) parsed.expenses = [];
+          try {
+            if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+            fs.writeFileSync(DATA_FILE, seedContent, 'utf-8');
+          } catch {}
+          console.log(`[ServerStore] Successfully hydrated store from bundled seed: ${seedPath} (${parsed.tests.length} tests)`);
+          return parsed;
+        }
+      } catch (e) {}
+    }
   }
 
   return null;
@@ -1222,7 +1248,7 @@ export function findSample(idOrNumber: string): SampleRecord | undefined {
 export function addSample(data: any): SampleRecord {
   const store = getStore();
 
-  const candidateName = (data.patientName || data.name || '').trim();
+  const candidateName = (data.patient?.name || data.patientName || data.name || '').trim();
   const normCandidateName = normalizeArabic(candidateName);
   const testIds: string[] = data.testIds || (data.tests ? data.tests.map((t: any) => t.id || t.testId) : []);
   const sortedTestIds = [...testIds].sort().join(',');
@@ -1255,12 +1281,12 @@ export function addSample(data: any): SampleRecord {
     }
   }
 
-  let patient = store.patients.find(p => p.id === data.patientId);
+  let patient = store.patients.find(p => p.id === (data.patient?.id || data.patientId));
   if (!patient && candidateName) {
     patient = store.patients.find(p => {
       const matchName = normalizeArabic(p.name) === normCandidateName;
       const cleanPhone1 = (p.phone || '').replace(/[^0-9]/g, '');
-      const cleanPhone2 = (data.patientPhone || data.phone || '').replace(/[^0-9]/g, '');
+      const cleanPhone2 = (data.patient?.phone || data.patientPhone || data.phone || '').replace(/[^0-9]/g, '');
       if (cleanPhone1 && cleanPhone2) {
         return matchName && cleanPhone1 === cleanPhone2;
       }
@@ -1271,9 +1297,11 @@ export function addSample(data: any): SampleRecord {
   if (!patient) {
     patient = addPatient({
       name: candidateName || 'مريض جديد',
-      phone: data.patientPhone || data.phone || '',
-      age: data.patientAge ? Number(data.patientAge) : (data.age ? Number(data.age) : null),
-      gender: data.patientGender || data.gender || 'MALE',
+      phone: data.patient?.phone || data.patientPhone || data.phone || '',
+      age: data.patient?.age !== undefined && data.patient?.age !== null 
+        ? Number(data.patient.age) 
+        : (data.patientAge !== undefined && data.patientAge !== null ? Number(data.patientAge) : (data.age !== undefined && data.age !== null ? Number(data.age) : null)),
+      gender: data.patient?.gender || data.patientGender || data.gender || 'MALE',
     });
   }
 
@@ -2022,10 +2050,15 @@ export function processDeviceIngest(params: {
   const store = getStore();
   const now = new Date().toISOString();
 
-  // 1. Locate Device
-  let device = (store.devices || []).find(d => d.id === params.deviceIdOrKey || d.apiKey === params.deviceIdOrKey);
+  // 1. Locate and Authenticate Device
+  const key = (params.deviceIdOrKey || '').trim();
+  let device = key ? (store.devices || []).find(d => d.id === key || d.apiKey === key) : undefined;
   if (!device) {
-    device = store.devices?.[0] || getInitialDevices()[0];
+    return {
+      success: false,
+      message: 'جهاز غير مصرح به: مفتاح API غير صالح أو غير مسجل (Unauthorized Device API Key)',
+      status: 'UNAUTHORIZED'
+    };
   }
 
   // 2. Parse Raw Payload

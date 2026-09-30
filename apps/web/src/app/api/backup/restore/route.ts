@@ -5,6 +5,19 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
+    // Security Guard: Prevent arbitrary remote overwrites from LAN (SEC-003)
+    const host = request.headers.get('host') || '';
+    const origin = request.headers.get('origin') || '';
+    const adminToken = request.headers.get('x-admin-key') || '';
+    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1') || origin.includes('localhost') || origin.includes('127.0.0.1');
+
+    if (!isLocalhost && !adminToken) {
+      return NextResponse.json(
+        { message: 'غير مصرح: استرجاع النسخ الاحتياطية مسموح فقط من جهاز الخادم المحلي أو بمفتاح إداري' },
+        { status: 403 }
+      );
+    }
+
     const contentType = request.headers.get('content-type') || '';
     let jsonContent = '';
 
