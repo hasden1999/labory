@@ -8,7 +8,7 @@ import PaperDesignerV2 from '../../components/workspace/PaperDesignerV2';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useLab } from '../../components/LabContext';
-import { Save, Sparkles, CheckCircle2, Award, Layout, Zap, Database, Download, Upload, RefreshCw, AlertCircle, Share2, ExternalLink, HardDrive, Plus } from 'lucide-react';
+import { Save, Sparkles, CheckCircle2, Award, Layout, Zap, Database, Download, Upload, RefreshCw, AlertCircle, Share2, ExternalLink, HardDrive, Plus, Stethoscope } from 'lucide-react';
 import { formatEnglishDateTime } from '../../lib/formatters';
 
 export default function SettingsPage() {
@@ -356,6 +356,28 @@ export default function SettingsPage() {
           <Award size={14} />
           <span>🚀 إصدار النظام والتحديثات</span>
         </button>
+
+        <a
+          href="/doctors"
+          style={{
+            padding: '8px 16px',
+            borderRadius: '6px',
+            fontSize: '12.5px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            border: 'none',
+            background: 'transparent',
+            color: 'var(--text-muted)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            whiteSpace: 'nowrap',
+            textDecoration: 'none',
+          }}
+        >
+          <Stethoscope size={14} />
+          <span>🩺 الأطباء المحولون والعمولات</span>
+        </a>
       </div>
 
       {/* Settings Tab Content */}

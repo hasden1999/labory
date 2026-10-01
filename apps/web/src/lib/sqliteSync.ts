@@ -86,6 +86,7 @@ export async function loadStoreFromSqlite(): Promise<any | null> {
       clinicAddress: d.clinic || '',
       specialty: d.specialty || '',
       commissionPercent: d.commissionPercent,
+      isActive: (d as any).isActive !== false,
     }));
 
     // Format patients
@@ -287,6 +288,7 @@ export async function syncDoctorToSqlite(doc: any): Promise<void> {
         clinic: doc.clinic || doc.clinicAddress || null,
         specialty: doc.specialty || null,
         commissionPercent: Number(doc.commissionPercent) || 0,
+        isActive: doc.isActive !== false,
       },
       create: {
         id: doc.id,
@@ -295,6 +297,7 @@ export async function syncDoctorToSqlite(doc: any): Promise<void> {
         clinic: doc.clinic || doc.clinicAddress || null,
         specialty: doc.specialty || null,
         commissionPercent: Number(doc.commissionPercent) || 0,
+        isActive: doc.isActive !== false,
       }
     });
   } catch (e: any) {

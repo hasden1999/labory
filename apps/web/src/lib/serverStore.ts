@@ -187,6 +187,7 @@ export interface DoctorRecord {
   commissionPercent: number;
   clinicAddress?: string;
   notes?: string;
+  isActive?: boolean;
   createdAt?: string;
 }
 
@@ -1438,6 +1439,7 @@ export function addDoctor(data: Partial<DoctorRecord> & { name: string }): Docto
     commissionPercent: typeof data.commissionPercent === 'number' ? data.commissionPercent : 10,
     clinicAddress: data.clinicAddress?.trim() || '',
     notes: data.notes?.trim() || '',
+    isActive: data.isActive !== false,
     createdAt: new Date().toISOString(),
   };
   store.doctors.push(newDoctor);
@@ -1453,6 +1455,7 @@ export function updateDoctor(id: string, data: Partial<DoctorRecord>): DoctorRec
   const updated: DoctorRecord = {
     ...store.doctors[index],
     ...data,
+    isActive: data.isActive !== undefined ? data.isActive : (store.doctors[index].isActive !== false),
   };
   store.doctors[index] = updated;
 
@@ -1468,14 +1471,22 @@ export function updateDoctor(id: string, data: Partial<DoctorRecord>): DoctorRec
   return updated;
 }
 
-export function deleteDoctor(id: string): boolean {
+export function isDoctorInUse(id: string): boolean {
   const store = getStore();
+  return store.samples.some(s => s.doctorId === id) || store.patients.some(p => (p as any).referringDoctorId === id);
+}
+
+export function deleteDoctor(id: string): { success: boolean; inUse?: boolean } {
+  const store = getStore();
+  if (isDoctorInUse(id)) {
+    return { success: false, inUse: true };
+  }
   const index = store.doctors.findIndex(d => d.id === id);
-  if (index === -1) return false;
+  if (index === -1) return { success: false };
   store.doctors.splice(index, 1);
   saveStoreToFile();
   deleteDoctorFromSqlite(id).catch((e) => console.warn('[SqliteSync] deleteDoctor error:', e?.message));
-  return true;
+  return { success: true };
 }
 
 // -------------------------------------------------------------

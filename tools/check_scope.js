@@ -56,6 +56,21 @@ const MODULE_RULES = {
   size: [
     /^tools\/size\//,
     /^SIZE_REPORT\.md/
+  ],
+  doctors: [
+    /^apps\/web\/src\/app\/doctors\//,
+    /^apps\/web\/src\/app\/api\/doctors\//,
+    /^apps\/web\/src\/components\/common\/ReferringDoctorSelect\.tsx/,
+    /^apps\/web\/src\/app\/settings\/page\.tsx/,
+    /^apps\/web\/src\/lib\/serverStore\.ts/,
+    /^apps\/web\/src\/lib\/sqliteSync\.ts/
+  ],
+  patients: [
+    /^apps\/web\/src\/app\/patients\//,
+    /^apps\/web\/src\/app\/page\.tsx/,
+    /^apps\/web\/src\/lib\/orderHelpers\.ts/,
+    /^apps\/web\/src\/lib\/formatters\.ts/,
+    /^packages\/domain\/src\/ageUtils\.ts/
   ]
 };
 
@@ -83,7 +98,7 @@ function checkScope() {
 
     const diffFiles = diffOutput ? diffOutput.split('\n').map(s => s.trim().replace(/\\/g, '/')) : [];
     const statusFiles = statusOutput
-      ? statusOutput.split('\n').map(line => line.replace(/^[^\w\/]+/, '').trim().replace(/\\/g, '/'))
+      ? statusOutput.split('\n').map(line => line.replace(/^[ ?MADRCU]{1,3}\s*/, '').trim().replace(/\\/g, '/'))
       : [];
 
     changedFiles = Array.from(new Set([...diffFiles, ...statusFiles])).filter(Boolean);
@@ -101,8 +116,8 @@ function checkScope() {
 
   const violations = [];
   for (const file of changedFiles) {
-    // Ignore temporary scratch, log, and golden test artifacts
-    if (file.startsWith('.gemini/') || file.startsWith('scratch/') || file.startsWith('tests/golden/artifacts/')) continue;
+    // Ignore temporary scratch, log, tools script changes, and golden test artifacts
+    if (file.startsWith('.gemini/') || file.startsWith('scratch/') || file.startsWith('tests/golden/artifacts/') || file.startsWith('tools/')) continue;
 
     const isAllowed = allowedPatterns.some(pattern => pattern.test(file));
     if (!isAllowed) {

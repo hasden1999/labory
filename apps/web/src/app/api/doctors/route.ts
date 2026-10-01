@@ -30,6 +30,7 @@ export async function POST(request: Request) {
       commissionPercent: body.commissionPercent !== undefined ? Number(body.commissionPercent) : 10,
       clinicAddress: body.clinicAddress || '',
       notes: body.notes || '',
+      isActive: body.isActive !== undefined ? Boolean(body.isActive) : true,
     });
 
     return NextResponse.json(newDoctor, { status: 201 });

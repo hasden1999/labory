@@ -36,8 +36,14 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const success = deleteDoctor(params.id);
-  if (!success) {
+  const result = deleteDoctor(params.id);
+  if (result.inUse) {
+    return NextResponse.json(
+      { message: 'لا يمكن حذف طبيب مرتبط بعينات سابقة. يمكنك إيقاف تفعيله بدلاً من ذلك لحفظ دقة وسجل البيانات.' },
+      { status: 400 }
+    );
+  }
+  if (!result.success) {
     return NextResponse.json({ message: 'الطبيب غير موجود للحذف' }, { status: 404 });
   }
   return NextResponse.json({ success: true, message: 'تم حذف الطبيب بنجاح' });
