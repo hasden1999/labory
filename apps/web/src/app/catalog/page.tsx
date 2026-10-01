@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
@@ -56,6 +56,9 @@ export default function CatalogPage() {
   const [showPanelModal, setShowPanelModal] = useState(false);
   const [deleteTestId, setDeleteTestId] = useState<string | null>(null);
   const [deletePanelId, setDeletePanelId] = useState<string | null>(null);
+  const [isFormDirty, setIsFormDirty] = useState(false);
+  const [showDirtyConfirm, setShowDirtyConfirm] = useState(false);
+  const testFormRef = useRef<HTMLFormElement | null>(null);
 
   // Test Form States
   const [editingTestId, setEditingTestId] = useState<string | null>(null);
@@ -319,6 +322,7 @@ export default function CatalogPage() {
     setSampleType('مصل الدم (Serum)');
     setReferenceRanges([]);
     resetRangeForm();
+    setIsFormDirty(false);
     setShowTestModal(true);
   };
 
@@ -343,7 +347,29 @@ export default function CatalogPage() {
     setSampleType(test.sampleType || 'مصل الدم (Serum)');
     setReferenceRanges(test.referenceRanges && Array.isArray(test.referenceRanges) ? JSON.parse(JSON.stringify(test.referenceRanges)) : []);
     resetRangeForm();
+    setIsFormDirty(false);
     setShowTestModal(true);
+  };
+
+  useEffect(() => {
+    if (!showTestModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        testFormRef.current?.requestSubmit();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showTestModal]);
+
+  const handleCloseTestModal = () => {
+    if (isFormDirty) {
+      setShowDirtyConfirm(true);
+    } else {
+      setShowTestModal(false);
+      setIsFormDirty(false);
+    }
   };
 
   const handleSaveTest = async (e: React.FormEvent) => {
@@ -354,6 +380,35 @@ export default function CatalogPage() {
     }
 
     try {
+      // Auto-commit pending inline range if open and labeled
+      let finalReferenceRanges = [...referenceRanges];
+      if (showRangeForm && rangeLabel.trim()) {
+        const pendingRange = {
+          id: rangeEditIndex !== null && referenceRanges[rangeEditIndex]?.id
+            ? referenceRanges[rangeEditIndex].id
+            : `rr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          label: rangeLabel.trim(),
+          sex: rangeSex,
+          ageMin: rangeAgeMin !== '' ? Number(rangeAgeMin) : null,
+          ageMax: rangeAgeMax !== '' ? Number(rangeAgeMax) : null,
+          ageUnit: rangeAgeUnit,
+          low: rangeLow !== '' ? Number(rangeLow) : null,
+          high: rangeHigh !== '' ? Number(rangeHigh) : null,
+          text: rangeText.trim() || (rangeLow !== '' && rangeHigh !== '' ? `${rangeLow} - ${rangeHigh}` : null),
+          unit: rangeUnit.trim() || unit || null,
+          note: rangeNote.trim() || null,
+          source: rangeSource.trim() || null,
+          sourceUrl: rangeSourceUrl.trim() || null,
+          isUserEdited: true,
+          sortOrder: rangeEditIndex !== null ? rangeEditIndex : referenceRanges.length,
+        };
+        if (rangeEditIndex !== null) {
+          finalReferenceRanges[rangeEditIndex] = pendingRange;
+        } else {
+          finalReferenceRanges.push(pendingRange);
+        }
+      }
+
       const payload = {
         code: code.trim() || undefined,
         name: name.trim(),
@@ -372,7 +427,7 @@ export default function CatalogPage() {
         refRangeText: refRangeText.trim() || null,
         unit: unit.trim() || null,
         sampleType,
-        referenceRanges: referenceRanges.length > 0 ? referenceRanges : undefined,
+        referenceRanges: finalReferenceRanges.length > 0 ? finalReferenceRanges : undefined,
       };
 
       if (editingTestId) {
@@ -393,6 +448,7 @@ export default function CatalogPage() {
         toast.success('تمت إضافة الفحص الجديد للكتالوج بنجاح!', 'تم الحفظ');
       }
 
+      setIsFormDirty(false);
       setShowTestModal(false);
       await loadCatalog();
       await catalogCache.refresh(true);
@@ -748,19 +804,44 @@ export default function CatalogPage() {
 
       {/* Add / Edit Test Modal */}
       {showTestModal && (
-        <div className="modal-overlay" onClick={() => setShowTestModal(false)}>
-          <div className="modal-content" style={{ maxWidth: '620px' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}>
-                {editingTestId ? 'تعديل بيانات الفحص المخبري' : 'إضافة فحص مخبري جديد'}
-              </h3>
-              <button onClick={() => setShowTestModal(false)} className="toast-close">
+        <div className="modal-overlay" onClick={handleCloseTestModal}>
+          <div
+            className="modal-content"
+            style={{
+              maxWidth: '680px',
+              width: '95vw',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: 0,
+              overflow: 'hidden',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                  {editingTestId ? 'تعديل بيانات الفحص المخبري' : 'إضافة فحص مخبري جديد'}
+                </h3>
+                {isFormDirty && (
+                  <span style={{ fontSize: '11px', background: 'rgba(234, 179, 8, 0.15)', color: '#ca8a04', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
+                    تعديلات غير محفوظة
+                  </span>
+                )}
+              </div>
+              <button type="button" onClick={handleCloseTestModal} className="toast-close">
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveTest} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px' }}>
+            <form
+              ref={testFormRef}
+              onSubmit={handleSaveTest}
+              onChange={() => setIsFormDirty(true)}
+              style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}
+            >
+              <div style={{ flex: '1 1 auto', overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px' }}>
                 <div>
                   <label className="input-label">رمز الفحص (Code)</label>
                   <input
@@ -1227,14 +1308,32 @@ export default function CatalogPage() {
                   </div>
                 )}
               </div>
+              </div>
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button type="submit" className="btn-primary" style={{ flex: 1 }}>
-                  حفظ الفحص
-                </button>
-                <button type="button" onClick={() => setShowTestModal(false)} className="btn-secondary">
-                  إلغاء
-                </button>
+              {/* Sticky Footer */}
+              <div
+                style={{
+                  padding: '12px 20px',
+                  borderTop: '1px solid var(--border-color)',
+                  background: 'var(--bg-card, #ffffff)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 -2px 10px rgba(0,0,0,0.03)',
+                }}
+              >
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  اختصار للحفظ: <kbd style={{ padding: '2px 5px', borderRadius: '4px', background: 'var(--bg-input-deep, #f1f5f9)', fontSize: '10px', border: '1px solid var(--border-color)' }}>Ctrl+S</kbd>
+                </span>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button type="button" onClick={handleCloseTestModal} className="btn-secondary">
+                    إلغاء
+                  </button>
+                  <button type="submit" className="btn-primary" style={{ minWidth: '120px' }}>
+                    حفظ الفحص
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -1383,6 +1482,22 @@ export default function CatalogPage() {
         cancelText="تراجع"
         onConfirm={handleConfirmDeletePanel}
         onCancel={() => setDeletePanelId(null)}
+      />
+
+      {/* Unsaved Changes Confirm Modal */}
+      <ConfirmModal
+        isOpen={showDirtyConfirm}
+        title="تجاهل التعديلات غير المحفوظة؟"
+        message="هناك تعديلات غير محفوظة على بيانات هذا الفحص أو مدياته المرجعية. هل أنت متأكد من الإلغاء؟"
+        type="danger"
+        confirmText="نعم، تجاهل التعديلات"
+        cancelText="الرجوع للنموذج"
+        onConfirm={() => {
+          setShowDirtyConfirm(false);
+          setShowTestModal(false);
+          setIsFormDirty(false);
+        }}
+        onCancel={() => setShowDirtyConfirm(false)}
       />
     </AppShell>
   );

@@ -83,7 +83,7 @@ function checkScope() {
 
     const diffFiles = diffOutput ? diffOutput.split('\n').map(s => s.trim().replace(/\\/g, '/')) : [];
     const statusFiles = statusOutput
-      ? statusOutput.split('\n').map(line => line.replace(/^[A-Z ?]{2}\s+/, '').trim().replace(/\\/g, '/'))
+      ? statusOutput.split('\n').map(line => line.replace(/^[^\w\/]+/, '').trim().replace(/\\/g, '/'))
       : [];
 
     changedFiles = Array.from(new Set([...diffFiles, ...statusFiles])).filter(Boolean);
