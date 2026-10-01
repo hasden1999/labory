@@ -76,6 +76,7 @@ export interface LabProfile {
   tableRowBorders?: boolean;
   tableZebraStriping?: boolean;
   tableRowSpacing?: 'COMPACT' | 'COMFORTABLE' | 'RELAXED';
+  printRangeScope?: 'ALL' | 'APPLICABLE_ONLY';
 }
 
 export interface FormTableColumn {

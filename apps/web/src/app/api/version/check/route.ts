@@ -32,6 +32,20 @@ function getAppVersion(): string {
   return 'v1.1.3';
 }
 
+function isNewerVersion(latest: string, current: string): boolean {
+  if (!latest || !current) return false;
+  const parse = (v: string) => v.replace(/^v/i, '').split('.').map((n) => parseInt(n, 10) || 0);
+  const l = parse(latest);
+  const c = parse(current);
+  for (let i = 0; i < Math.max(l.length, c.length); i++) {
+    const numL = l[i] || 0;
+    const numC = c[i] || 0;
+    if (numL > numC) return true;
+    if (numL < numC) return false;
+  }
+  return false;
+}
+
 export async function GET() {
   const currentVersion = getAppVersion();
 
@@ -81,7 +95,7 @@ export async function GET() {
 
     const latestTag = latestRelease.tag_name || currentVersion;
     const exeAsset = latestRelease.assets?.find((a: any) => a.name.endsWith('.exe'));
-    const hasUpdate = latestTag !== currentVersion;
+    const hasUpdate = isNewerVersion(latestTag, currentVersion);
 
     return NextResponse.json({
       currentVersion,

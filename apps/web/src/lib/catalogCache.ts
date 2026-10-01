@@ -26,6 +26,34 @@ if (typeof window !== 'undefined') {
     if (rawPanels) cachedPanels = JSON.parse(rawPanels);
     if (rawDoctors) cachedDoctors = JSON.parse(rawDoctors);
   } catch {}
+
+  window.addEventListener('storage', (event) => {
+    try {
+      let changed = false;
+      if (event.key === 'labryo_cached_tests' && event.newValue) {
+        cachedTests = JSON.parse(event.newValue);
+        changed = true;
+      }
+      if (event.key === 'labryo_cached_panels' && event.newValue) {
+        cachedPanels = JSON.parse(event.newValue);
+        changed = true;
+      }
+      if (event.key === 'labryo_cached_doctors' && event.newValue) {
+        cachedDoctors = JSON.parse(event.newValue);
+        changed = true;
+      }
+      if (changed) {
+        lastFetchTime = Date.now();
+        notifySubscribers();
+      }
+    } catch {}
+  });
+
+  window.addEventListener('focus', () => {
+    if (catalogCache.isStale()) {
+      catalogCache.refresh();
+    }
+  });
 }
 
 export const catalogCache = {
@@ -36,6 +64,10 @@ export const catalogCache = {
   subscribe(callback: () => void): () => void {
     subscribers.add(callback);
     return () => { subscribers.delete(callback); };
+  },
+  invalidate(): Promise<{ tests: TestItem[]; panels: PanelItem[]; doctors: DoctorItem[] }> {
+    lastFetchTime = 0;
+    return this.refresh(true);
   },
   async refresh(force = false): Promise<{ tests: TestItem[]; panels: PanelItem[]; doctors: DoctorItem[] }> {
     if (!force && !catalogCache.isStale() && cachedTests.length > 0) {

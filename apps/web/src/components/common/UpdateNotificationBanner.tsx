@@ -58,7 +58,13 @@ export default function UpdateNotificationBanner() {
 
   const { status, latestVersion, releaseNotes, progress, isCritical } = updaterState;
 
-  if (status === 'idle' || status === 'checking' || status === 'error') {
+  interface ExtendedUpdaterState extends UpdaterState {
+    loopDetected?: boolean;
+    manualDownloadUrl?: string | null;
+  }
+  const extState = updaterState as ExtendedUpdaterState;
+
+  if (status === 'idle' || status === 'checking' || (status === 'error' && !extState?.loopDetected)) {
     return null;
   }
 
@@ -92,9 +98,11 @@ export default function UpdateNotificationBanner() {
         aria-label="إشعار التحديثات"
         dir="rtl"
         style={{
-          background: status === 'downloaded'
-            ? 'linear-gradient(90deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95))'
-            : 'linear-gradient(90deg, rgba(2, 132, 199, 0.95), rgba(6, 182, 212, 0.95))',
+          background: extState?.loopDetected
+            ? 'linear-gradient(90deg, rgba(220, 38, 38, 0.95), rgba(185, 28, 28, 0.95))'
+            : status === 'downloaded'
+              ? 'linear-gradient(90deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95))'
+              : 'linear-gradient(90deg, rgba(2, 132, 199, 0.95), rgba(6, 182, 212, 0.95))',
           color: '#ffffff',
           padding: '10px 20px',
           boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)',
@@ -110,17 +118,19 @@ export default function UpdateNotificationBanner() {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
           <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
-            {status === 'downloaded' ? <CheckCircle2 size={18} /> : <Sparkles size={18} />}
+            {extState?.loopDetected ? <AlertTriangle size={18} /> : status === 'downloaded' ? <CheckCircle2 size={18} /> : <Sparkles size={18} />}
           </div>
 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontWeight: 800 }}>
-                {status === 'downloaded'
-                  ? `التحديث جاهز (الإصدار ${latestVersion}) - أعد تشغيل البرنامج لتفعيل التغييرات`
-                  : `يتوفر تحديث جديد (الإصدار ${latestVersion})`}
+                {extState?.loopDetected
+                  ? (extState.error || 'تعذر إكمال التحديث التلقائي. يرجى تثبيت التحديث الكامل يدوياً.')
+                  : status === 'downloaded'
+                    ? `التحديث جاهز (الإصدار ${latestVersion}) - أعد تشغيل البرنامج لتفعيل التغييرات`
+                    : `يتوفر تحديث جديد (الإصدار ${latestVersion})`}
               </span>
-              {isCritical && (
+              {isCritical && !extState?.loopDetected && (
                 <span style={{ background: '#ef4444', color: '#fff', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
                   تحديث أمني إلزامي
                 </span>
@@ -158,7 +168,48 @@ export default function UpdateNotificationBanner() {
             </button>
           )}
 
-          {status === 'downloaded' ? (
+          {extState?.loopDetected ? (
+            <>
+              <a
+                href={extState.manualDownloadUrl || 'https://github.com/hasden1999/lab-releases/releases/latest'}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  background: '#ffffff',
+                  color: '#b91c1c',
+                  border: 'none',
+                  padding: '6px 16px',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  fontWeight: 800,
+                  fontSize: '12px',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Download size={14} />
+                <span>تحميل المثبت الكامل (.exe)</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => setDismissed(true)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  opacity: 0.8,
+                  padding: '4px',
+                }}
+                title="إغلاق التنبيه المؤقت"
+              >
+                <X size={16} />
+              </button>
+            </>
+          ) : status === 'downloaded' ? (
             <>
               <button
                 type="button"

@@ -56,6 +56,13 @@ async function handleSaveResults(request: Request, params: { id: string }) {
       }
       st.isAbnormal = !!r.isAbnormal;
       st.interpretation = r.interpretation || st.interpretation || null;
+      // Previous-result inclusion (item 8) + calculated flags (item 9)
+      if (r.includePrevious !== undefined) st.includePrevious = !!r.includePrevious;
+      if (r.previousValue !== undefined) st.previousValue = r.previousValue;
+      if (r.previousDate !== undefined) st.previousDate = r.previousDate;
+      if (r.previousSampleId !== undefined) st.previousSampleId = r.previousSampleId;
+      if (r.isCalculated !== undefined) st.isCalculated = !!r.isCalculated;
+      if (r.isDirectOverride !== undefined) st.isDirectOverride = !!r.isDirectOverride;
       st.status = 'COMPLETED';
     }
   }

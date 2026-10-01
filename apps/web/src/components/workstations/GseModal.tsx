@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { useToast } from '../Toast';
 import MultiEntryCombobox, { MultiEntryItem, SingleCombobox, generateUniqueId } from '../common/MultiEntryCombobox';
+import { DEFAULT_CLINICAL_TEMPLATES, ClinicalTemplates } from '../../lib/clinicalTemplatesConfig';
+import { applyReplacements } from '../../lib/clinicalIntelligence';
 
 export interface ParasiteEntry {
   id: string;
@@ -84,7 +86,7 @@ export const DEFAULT_GSE_DATA: GseAnalysisData = {
 };
 
 export const DEFAULT_PARASITE_SUGGESTIONS = [
-  'Entamoeba histolytica/dispar',
+  'Entamoeba histolytica',
   'Entamoeba coli',
   'Giardia lamblia',
   'Blastocystis hominis',
@@ -133,8 +135,8 @@ export function serializeGse(data: GseAnalysisData): string {
   }
 
   const microItems: string[] = [
-    `Pus Cells: ${data.pusCells} /HPF`,
-    `RBCs: ${data.rbcs} /HPF`
+    `Pus Cells: ${applyReplacements(data.pusCells)} /HPF`,
+    `RBCs: ${applyReplacements(data.rbcs)} /HPF`
   ];
 
   if (data.muscleFibers && data.muscleFibers !== 'Nil') {
@@ -201,9 +203,9 @@ export function parseGse(raw: string): GseAnalysisData {
       if (matchRed) parsed.reducingSubstances = matchRed[1].trim();
     } else if (trimmed.startsWith('MICROSCOPIC:')) {
       const pMatch = trimmed.match(/Pus Cells:\s*([^\/|]+)/i);
-      if (pMatch) parsed.pusCells = pMatch[1].trim();
+      if (pMatch) parsed.pusCells = applyReplacements(pMatch[1].trim());
       const rMatch = trimmed.match(/RBCs:\s*([^\/|]+)/i);
-      if (rMatch) parsed.rbcs = rMatch[1].trim();
+      if (rMatch) parsed.rbcs = applyReplacements(rMatch[1].trim());
       const mMatch = trimmed.match(/Muscle Fibers:\s*([^|]+)/i);
       if (mMatch) parsed.muscleFibers = mMatch[1].trim();
       const sMatch = trimmed.match(/Starch:\s*([^|]+)/i);
@@ -309,6 +311,174 @@ export function parseGse(raw: string): GseAnalysisData {
   return parsed;
 }
 
+// Color Swatches Definition
+const COLOR_OPTIONS = [
+  { name: 'Brown', hex: '#78350f', border: '#b45309' },
+  { name: 'Light Brown', hex: '#d97706', border: '#f59e0b' },
+  { name: 'Dark Brown', hex: '#451a03', border: '#78350f' },
+  { name: 'Yellow', hex: '#eab308', border: '#ca8a04' },
+  { name: 'Reddish Brown', hex: '#dc2626', border: '#b91c1c' },
+  { name: 'Green', hex: '#16a34a', border: '#15803d' },
+  { name: 'Clay / Pale', hex: '#94a3b8', border: '#64748b' },
+  { name: 'Black / Tar-like', hex: '#0f172a', border: '#334155' },
+];
+
+// Module-level Helper Component for Clinical Option Pills (Hoisted for stable DOM identity)
+const PillSelector = ({
+  label,
+  refRange,
+  value,
+  onChange,
+  options,
+  abnormalValues = [],
+}: {
+  label: string;
+  refRange?: string;
+  value: string;
+  onChange: (val: string) => void;
+  options: string[];
+  abnormalValues?: string[];
+}) => {
+  return (
+    <div
+      style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '8px',
+        padding: '10px 14px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>{label}</span>
+        {refRange && (
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            Ref: <span style={{ color: '#0284c7' }}>{refRange}</span>
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+        {options.map((opt) => {
+          const isSelected = value === opt;
+          const isAbn = abnormalValues.includes(opt);
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => onChange(opt)}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: isSelected ? 800 : 600,
+                cursor: 'pointer',
+                border: isSelected
+                  ? isAbn
+                    ? '1.5px solid #dc2626'
+                    : '1.5px solid #0284c7'
+                  : '1px solid var(--border-color)',
+                background: isSelected
+                  ? isAbn
+                    ? '#fee2e2'
+                    : '#e0f2fe'
+                  : 'var(--bg-input)',
+                color: isSelected
+                  ? isAbn
+                    ? '#b91c1c'
+                    : '#0369a1'
+                  : 'var(--text-main)',
+                boxShadow: isSelected ? '0 1px 4px rgba(2, 132, 199, 0.2)' : 'none',
+                transition: 'all 0.12s ease',
+              }}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// Module-level Helper Component for Stool Element Row Selector with Nil, +, ++, +++, ++++, Full Field
+const StoolElementRow = ({
+  name,
+  value,
+  onChange,
+}: {
+  name: string;
+  value: string;
+  onChange: (val: string) => void;
+}) => {
+  const levels = ['Nil', '+', '++', '+++', '++++', 'Full Field'];
+  const isPositive = value && value !== 'Nil';
+  const isSevere = ['+++', '++++', 'Full Field'].includes(value);
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '8px',
+        padding: '6px 0',
+        borderBottom: '1px dashed var(--border-color)',
+      }}
+    >
+      <div style={{ minWidth: '150px' }}>
+        <span style={{ fontSize: '12px', fontWeight: 700, color: isPositive ? (isSevere ? '#dc2626' : '#0284c7') : 'var(--text-main)' }}>
+          • {name} {isPositive && <span style={{ fontWeight: 800 }}>({value})</span>}
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: '4px', flex: 1, maxWidth: '340px' }}>
+        {levels.map((lvl) => {
+          const isSelected = value === lvl;
+          const isLvlHeavy = ['+++', '++++', 'Full Field'].includes(lvl);
+          return (
+            <button
+              key={lvl}
+              type="button"
+              onClick={() => onChange(lvl)}
+              style={{
+                flex: 1,
+                padding: '5px 0',
+                borderRadius: '6px',
+                fontSize: lvl === 'Full Field' ? '10px' : '11px',
+                fontWeight: isSelected ? 800 : 600,
+                cursor: 'pointer',
+                border: isSelected
+                  ? isLvlHeavy
+                    ? '1.5px solid #dc2626'
+                    : '1.5px solid #0284c7'
+                  : '1px solid var(--border-color)',
+                background: isSelected
+                  ? lvl === 'Nil'
+                    ? '#0284c7'
+                    : isLvlHeavy
+                    ? '#fee2e2'
+                    : '#e0f2fe'
+                  : 'var(--bg-input)',
+                color: isSelected
+                  ? lvl === 'Nil'
+                    ? '#ffffff'
+                    : isLvlHeavy
+                    ? '#b91c1c'
+                    : '#0369a1'
+                  : 'var(--text-main)',
+                boxShadow: isSelected ? '0 1px 3px rgba(2,132,199,0.2)' : 'none',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.12s ease',
+              }}
+            >
+              {lvl}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 interface GseModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -336,6 +506,19 @@ export default function GseModal({
   const [activeTab, setActiveTab] = useState<'PHYSICAL' | 'MICROSCOPIC' | 'PARASITOLOGY'>('PHYSICAL');
   const [data, setData] = useState<GseAnalysisData>(DEFAULT_GSE_DATA);
   const [saving, setSaving] = useState(false);
+  const [clinicalTemplates, setClinicalTemplates] = useState<ClinicalTemplates>(DEFAULT_CLINICAL_TEMPLATES);
+
+  // Load data-driven clinical templates
+  useEffect(() => {
+    fetch('/api/templates/clinical')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((resData) => {
+        if (resData?.templates) {
+          setClinicalTemplates(resData.templates);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const resolvedPatientName = patientName || sample?.patient?.name || 'مريض غير محدد';
   const resolvedSampleNumber = sampleNumber || sample?.sampleNumber || sample?.id || '---';
@@ -457,173 +640,13 @@ export default function GseModal({
     }
   };
 
-  // Color Swatches Definition
-  const COLOR_OPTIONS = [
-    { name: 'Brown', hex: '#78350f', border: '#b45309' },
-    { name: 'Light Brown', hex: '#d97706', border: '#f59e0b' },
-    { name: 'Dark Brown', hex: '#451a03', border: '#78350f' },
-    { name: 'Yellow', hex: '#eab308', border: '#ca8a04' },
-    { name: 'Reddish Brown', hex: '#dc2626', border: '#b91c1c' },
-    { name: 'Green', hex: '#16a34a', border: '#15803d' },
-    { name: 'Clay / Pale', hex: '#94a3b8', border: '#64748b' },
-    { name: 'Black / Tar-like', hex: '#0f172a', border: '#334155' },
-  ];
 
-  // Helper Component for Clinical Option Pills
-  const PillSelector = ({
-    label,
-    refRange,
-    value,
-    onChange,
-    options,
-    abnormalValues = [],
-  }: {
-    label: string;
-    refRange?: string;
-    value: string;
-    onChange: (val: string) => void;
-    options: string[];
-    abnormalValues?: string[];
-  }) => {
-    return (
-      <div
-        style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '8px',
-          padding: '10px 14px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>{label}</span>
-          {refRange && (
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
-              Ref: <span style={{ color: '#0284c7' }}>{refRange}</span>
-            </span>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-          {options.map((opt) => {
-            const isSelected = value === opt;
-            const isAbn = abnormalValues.includes(opt);
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => onChange(opt)}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: isSelected ? 800 : 600,
-                  cursor: 'pointer',
-                  border: isSelected
-                    ? isAbn
-                      ? '1.5px solid #dc2626'
-                      : '1.5px solid #0284c7'
-                    : '1px solid var(--border-color)',
-                  background: isSelected
-                    ? isAbn
-                      ? '#fee2e2'
-                      : '#e0f2fe'
-                    : 'var(--bg-input)',
-                  color: isSelected
-                    ? isAbn
-                      ? '#b91c1c'
-                      : '#0369a1'
-                    : 'var(--text-main)',
-                  boxShadow: isSelected ? '0 1px 4px rgba(2, 132, 199, 0.2)' : 'none',
-                  transition: 'all 0.12s ease',
-                }}
-              >
-                {opt}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
 
-  // Helper Component for Stool Element Row Selector with Nil, +, ++, +++, ++++, Full Field
-  const StoolElementRow = ({
-    name,
-    value,
-    onChange,
-  }: {
-    name: string;
-    value: string;
-    onChange: (val: string) => void;
-  }) => {
-    const levels = ['Nil', '+', '++', '+++', '++++', 'Full Field'];
-    const isPositive = value && value !== 'Nil';
-    const isSevere = ['+++', '++++', 'Full Field'].includes(value);
 
-    return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '8px',
-          padding: '6px 0',
-          borderBottom: '1px dashed var(--border-color)',
-        }}
-      >
-        <div style={{ minWidth: '150px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: isPositive ? (isSevere ? '#dc2626' : '#0284c7') : 'var(--text-main)' }}>
-            • {name} {isPositive && <span style={{ fontWeight: 800 }}>({value})</span>}
-          </span>
-        </div>
-        <div style={{ display: 'flex', gap: '4px', flex: 1, maxWidth: '340px' }}>
-          {levels.map((lvl) => {
-            const isSelected = value === lvl;
-            const isLvlHeavy = ['+++', '++++', 'Full Field'].includes(lvl);
-            return (
-              <button
-                key={lvl}
-                type="button"
-                onClick={() => onChange(lvl)}
-                style={{
-                  flex: 1,
-                  padding: '5px 0',
-                  borderRadius: '6px',
-                  fontSize: lvl === 'Full Field' ? '10px' : '11px',
-                  fontWeight: isSelected ? 800 : 600,
-                  cursor: 'pointer',
-                  border: isSelected
-                    ? isLvlHeavy
-                      ? '1.5px solid #dc2626'
-                      : '1.5px solid #0284c7'
-                    : '1px solid var(--border-color)',
-                  background: isSelected
-                    ? lvl === 'Nil'
-                      ? '#0284c7'
-                      : isLvlHeavy
-                      ? '#fee2e2'
-                      : '#e0f2fe'
-                    : 'var(--bg-input)',
-                  color: isSelected
-                    ? lvl === 'Nil'
-                      ? '#ffffff'
-                      : isLvlHeavy
-                      ? '#b91c1c'
-                      : '#0369a1'
-                    : 'var(--text-main)',
-                  boxShadow: isSelected ? '0 1px 3px rgba(2,132,199,0.2)' : 'none',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.12s ease',
-                }}
-              >
-                {lvl}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
+
+
+
+
 
   const isPusAbnormal = parseRangeMax(data.pusCells) > 5;
   const isRbcAbnormal = parseRangeMax(data.rbcs) > 2;
@@ -1213,7 +1236,7 @@ export default function GseModal({
                         <button
                           key={opt}
                           type="button"
-                          onClick={() => setField('pusCells', opt)}
+                          onClick={() => setField('pusCells', applyReplacements(opt))}
                           style={{
                             padding: '5px 10px',
                             borderRadius: '6px',
@@ -1243,18 +1266,24 @@ export default function GseModal({
                     })}
                     <input
                       type="text"
-                      placeholder="Or enter value..."
+                      placeholder="اكتب أي قيمة (مثال: 5-10 أو plenty)..."
                       value={data.pusCells}
                       onChange={(e) => setField('pusCells', e.target.value)}
+                      onBlur={(e) => {
+                        const replaced = applyReplacements(e.target.value);
+                        if (replaced !== e.target.value) setField('pusCells', replaced);
+                      }}
                       style={{
-                        width: '100px',
-                        padding: '4px 8px',
+                        minWidth: '160px',
+                        flex: 1,
+                        padding: '5px 10px',
                         borderRadius: '6px',
-                        border: '1px solid var(--border-color)',
+                        border: '1.5px solid var(--accent-cyan)',
                         background: 'var(--bg-input)',
                         color: 'var(--text-main)',
-                        fontSize: '11.5px',
+                        fontSize: '12px',
                         fontWeight: 700,
+                        outline: 'none',
                       }}
                     />
                   </div>
@@ -1286,7 +1315,7 @@ export default function GseModal({
                         <button
                           key={opt}
                           type="button"
-                          onClick={() => setField('rbcs', opt)}
+                          onClick={() => setField('rbcs', applyReplacements(opt))}
                           style={{
                             padding: '5px 10px',
                             borderRadius: '6px',
@@ -1316,18 +1345,24 @@ export default function GseModal({
                     })}
                     <input
                       type="text"
-                      placeholder="Or enter value..."
+                      placeholder="اكتب أي قيمة (مثال: 0-2 أو packed)..."
                       value={data.rbcs}
                       onChange={(e) => setField('rbcs', e.target.value)}
+                      onBlur={(e) => {
+                        const replaced = applyReplacements(e.target.value);
+                        if (replaced !== e.target.value) setField('rbcs', replaced);
+                      }}
                       style={{
-                        width: '100px',
-                        padding: '4px 8px',
+                        minWidth: '160px',
+                        flex: 1,
+                        padding: '5px 10px',
                         borderRadius: '6px',
-                        border: '1px solid var(--border-color)',
+                        border: '1.5px solid var(--accent-cyan)',
                         background: 'var(--bg-input)',
                         color: 'var(--text-main)',
-                        fontSize: '11.5px',
+                        fontSize: '12px',
                         fontWeight: 700,
+                        outline: 'none',
                       }}
                     />
                   </div>
@@ -1459,10 +1494,10 @@ export default function GseModal({
                     });
                     setField('parasites', newParasites);
                   }}
-                  nameSuggestions={DEFAULT_PARASITE_SUGGESTIONS}
+                  nameSuggestions={clinicalTemplates?.stool?.parasiteSuggestions || DEFAULT_PARASITE_SUGGESTIONS}
                   namePlaceholder="اختر أو اكتب اسم الطفيلي (مثل Entamoeba histolytica)..."
                   secondFieldLabel="الطور (Stage)"
-                  secondSuggestions={DEFAULT_STAGE_SUGGESTIONS}
+                  secondSuggestions={clinicalTemplates?.stool?.stageSuggestions || DEFAULT_STAGE_SUGGESTIONS}
                   secondPlaceholder="الطور (Cyst, Trophozoite, Ova, Larva...)"
                   addButtonText="إضافة طفيلي (Add Parasite)"
                   emptyStateText="✓ لا توجد طفيليات مسجلة (Nil / No ova, cysts, or parasites seen)"

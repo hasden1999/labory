@@ -101,6 +101,7 @@ model TestCatalog {
   sampleTests      SampleTest[]
   panelItems       TestPanelItem[]
   deviceMappings   DeviceTestMapping[]
+  referenceRanges  ReferenceRange[]
 
   @@index([code])
   @@index([name])
@@ -391,6 +392,7 @@ model Settings {
   fontFamily           String? @default("Tajawal")
   fontSize             String? @default("MEDIUM")
   installedVersion     String  @default("v1.0.3")
+  printRangeScope      String? @default("ALL") // APPLICABLE_ONLY, ALL
 }
 
 model AuditLog {
@@ -407,3 +409,28 @@ model AuditLog {
   @@index([entity, entityId, createdAt(sort: Desc)])
   @@index([action, createdAt(sort: Desc)])
 }
+
+model ReferenceRange {
+  id           String      @id @default(cuid())
+  testId       String
+  test         TestCatalog @relation(fields: [testId], references: [id], onDelete: Cascade)
+  label        String
+  sex          String      @default("any") // M, F, any
+  ageMin       Float?
+  ageMax       Float?
+  ageUnit      String      @default("years") // days, months, years
+  low          Float?
+  high         Float?
+  text         String?
+  unit         String?
+  note         String?
+  source       String?
+  sourceUrl    String?
+  isUserEdited Boolean     @default(false)
+  sortOrder    Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @default(now()) @updatedAt
+
+  @@index([testId])
+}
+

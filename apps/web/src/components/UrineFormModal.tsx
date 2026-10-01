@@ -20,6 +20,20 @@ import {
 } from 'lucide-react';
 import { useToast } from './Toast';
 import MultiEntryCombobox, { MultiEntryItem, generateUniqueId } from './common/MultiEntryCombobox';
+import { DEFAULT_CLINICAL_TEMPLATES, ClinicalTemplates } from '../lib/clinicalTemplatesConfig';
+import { applyReplacements } from '../lib/clinicalIntelligence';
+
+/**
+ * Item 1: Normalize graded chemical options 1+ -> +, 2+ -> ++, 3+ -> +++
+ */
+export function normalizeGradedChemical(val?: string | null): string {
+  if (!val) return '';
+  const s = String(val).trim();
+  if (s === '1+') return '+';
+  if (s === '2+') return '++';
+  if (s === '3+' || s === '4+') return '+++';
+  return s;
+}
 
 export const DEFAULT_CRYSTALS_SUGGESTIONS = [
   'Calcium oxalate',
@@ -167,6 +181,200 @@ export const DEFAULT_URINE_DATA: UrineAnalysisData = {
   trichomonasQty: 'Nil',
 };
 
+// Color Swatches Definition
+const COLOR_OPTIONS = [
+  { name: 'Straw', hex: '#fef9c3', border: '#facc15' },
+  { name: 'Yellow', hex: '#fde047', border: '#eab308' },
+  { name: 'Pale Yellow', hex: '#fef08a', border: '#eab308' },
+  { name: 'Dark Yellow', hex: '#eab308', border: '#ca8a04' },
+  { name: 'Amber', hex: '#d97706', border: '#b45309' },
+  { name: 'Red / Bloody', hex: '#f87171', border: '#dc2626' },
+  { name: 'Orange', hex: '#fb923c', border: '#ea580c' },
+  { name: 'Brownish', hex: '#a8a29e', border: '#78716c' },
+];
+
+// Module-level Helper Component for Clinical Option Pills (Hoisted for stable DOM identity)
+export const PillSelector = ({
+  label,
+  refRange,
+  value,
+  onChange,
+  options,
+  abnormalValues = [],
+  allowCustomInput = false,
+  customInputPlaceholder = 'أو اكتب يدوياً (مثال: 6-8)...',
+  isNumericOnly = false,
+}: {
+  label: string;
+  refRange?: string;
+  value: string;
+  onChange: (val: string) => void;
+  options: string[];
+  abnormalValues?: string[];
+  allowCustomInput?: boolean;
+  customInputPlaceholder?: string;
+  isNumericOnly?: boolean;
+}) => {
+  return (
+    <div style={{
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border-color)',
+      borderRadius: '8px',
+      padding: '10px 14px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+          {label}
+        </span>
+        {refRange && (
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            Ref: <span style={{ color: 'var(--accent-cyan)' }}>{refRange}</span>
+          </span>
+        )}
+      </div>
+
+      {/* Prominent Direct Free Text Manual Input (Item 2) */}
+      {allowCustomInput && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', width: '100%' }}>
+          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>إدخال حر:</span>
+          <input
+            type="text"
+            data-testid={`freetext-${label}`}
+            placeholder={customInputPlaceholder}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onBlur={(e) => {
+              e.target.style.borderColor = 'var(--border-color)';
+              const replaced = applyReplacements(e.target.value);
+              if (replaced !== e.target.value) {
+                onChange(replaced);
+              }
+            }}
+            style={{
+              flex: 1,
+              padding: '6px 12px',
+              borderRadius: '6px',
+              border: '1.5px solid var(--accent-cyan)',
+              background: 'var(--bg-input)',
+              color: 'var(--text-main)',
+              fontSize: '13px',
+              fontWeight: 800,
+              fontFamily: 'JetBrains Mono, monospace',
+              outline: 'none',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            }}
+            onFocus={(e) => (e.target.style.borderColor = 'var(--accent-cyan)')}
+          />
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+        {((value && !options.includes(value) && !allowCustomInput) ? [...options, value] : options).map((opt) => {
+          const isSelected = value === opt;
+          const isAbnormal = abnormalValues.includes(opt);
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => onChange(applyReplacements(opt))}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: isSelected ? 800 : 600,
+                cursor: 'pointer',
+                border: isSelected 
+                  ? isAbnormal ? '1.5px solid #dc2626' : '1.5px solid var(--accent-cyan)'
+                  : '1px solid var(--border-color)',
+                background: isSelected 
+                  ? isAbnormal ? 'rgba(239, 68, 68, 0.2)' : 'var(--accent-cyan-subtle)'
+                  : 'var(--bg-input)',
+                color: isSelected 
+                  ? isAbnormal ? '#ef4444' : 'var(--accent-cyan)'
+                  : 'var(--text-main)',
+                boxShadow: isSelected ? '0 1px 4px rgba(37, 99, 235, 0.2)' : 'none',
+                transition: 'all 0.12s ease',
+              }}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// Module-level Helper Component for Flexible Crystal Row with Nil, +, ++, +++, ++++, Full Field
+export const CrystalSelectorRow = ({
+  name,
+  arabicName,
+  value,
+  onChange,
+}: {
+  name: string;
+  arabicName?: string;
+  value: string;
+  onChange: (val: string) => void;
+}) => {
+  const levels = ['Nil', '+', '++', '+++', '++++', 'Full Field'];
+  const isPositive = value && value !== 'Nil';
+  const isSevere = ['+++', '++++', 'Full Field'].includes(value);
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: '8px',
+      padding: '5px 0',
+      borderBottom: '1px dashed var(--border-color)'
+    }}>
+      <div style={{ minWidth: '150px' }}>
+        <span style={{ fontSize: '12px', fontWeight: 700, color: isPositive ? (isSevere ? '#dc2626' : 'var(--accent-cyan)') : 'var(--text-main)' }}>
+          • {name} {isPositive && <span style={{ fontWeight: 800 }}>({value})</span>}
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: '4px', flex: 1, maxWidth: '340px' }}>
+        {levels.map((lvl) => {
+          const isSelected = value === lvl;
+          const isLvlHeavy = ['+++', '++++', 'Full Field'].includes(lvl);
+          return (
+            <button
+              key={lvl}
+              type="button"
+              onClick={() => onChange(lvl)}
+              style={{
+                flex: 1,
+                padding: '5px 0',
+                borderRadius: '6px',
+                fontSize: lvl === 'Full Field' ? '10px' : '11px',
+                fontWeight: isSelected ? 800 : 600,
+                cursor: 'pointer',
+                border: isSelected 
+                  ? (isLvlHeavy ? '1.5px solid #dc2626' : '1.5px solid var(--accent-cyan)')
+                  : '1px solid var(--border-color)',
+                background: isSelected 
+                  ? (lvl === 'Nil' ? 'var(--accent-cyan)' : isLvlHeavy ? 'rgba(239, 68, 68, 0.2)' : 'var(--accent-cyan-subtle)') 
+                  : 'var(--bg-input)',
+                color: isSelected 
+                  ? (lvl === 'Nil' ? 'var(--text-inverse)' : isLvlHeavy ? '#ef4444' : 'var(--accent-cyan)') 
+                  : 'var(--text-main)',
+                boxShadow: isSelected ? '0 1px 3px rgba(37,99,235,0.2)' : 'none',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.12s ease',
+              }}
+            >
+              {lvl}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 interface UrineFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -190,6 +398,19 @@ export default function UrineFormModal({
   const [activeTab, setActiveTab] = useState<'PHYSICAL' | 'CHEMICAL' | 'MICROSCOPIC'>('PHYSICAL');
 
   const [data, setData] = useState<UrineAnalysisData>(DEFAULT_URINE_DATA);
+  const [clinicalTemplates, setClinicalTemplates] = useState<ClinicalTemplates>(DEFAULT_CLINICAL_TEMPLATES);
+
+  // Load data-driven clinical templates
+  useEffect(() => {
+    fetch('/api/templates/clinical')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((resData) => {
+        if (resData?.templates) {
+          setClinicalTemplates(resData.templates);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Load initial data or parse if string
   useEffect(() => {
@@ -227,6 +448,13 @@ export default function UrineFormModal({
           const tVal = obj.trichomonasQty && obj.trichomonasQty !== 'Nil' ? obj.trichomonasQty : (obj.trichomonas || 'Seen');
           obj.microscopicOther = `Trichomonas: ${tVal}`;
         }
+        if (obj.protein) obj.protein = normalizeGradedChemical(obj.protein);
+        if (obj.glucose) obj.glucose = normalizeGradedChemical(obj.glucose);
+        if (obj.ketones) obj.ketones = normalizeGradedChemical(obj.ketones);
+        if (obj.blood) obj.blood = normalizeGradedChemical(obj.blood);
+        if (obj.leukocyteEsterase) obj.leukocyteEsterase = normalizeGradedChemical(obj.leukocyteEsterase);
+        if (obj.pusCells) obj.pusCells = applyReplacements(obj.pusCells);
+        if (obj.rbcs) obj.rbcs = applyReplacements(obj.rbcs);
         setData((prev) => ({ ...prev, ...obj }));
       } else if (typeof initialData === 'string' && initialData.includes('G.U.E')) {
         // Parse key-values from formatted string if applicable
@@ -241,13 +469,16 @@ export default function UrineFormModal({
         parsed.appearance = matchVal('Clarity', initialData) || matchVal('Appearance', initialData) || parsed.appearance;
         parsed.spGravity = matchVal('Sp.Gr', initialData) || parsed.spGravity;
         parsed.reactionPh = matchVal('pH', initialData) || parsed.reactionPh;
-        parsed.protein = matchVal('Protein', initialData) || parsed.protein;
-        parsed.glucose = matchVal('Sugar', initialData) || matchVal('Glucose', initialData) || parsed.glucose;
-        parsed.ketones = matchVal('Ketones', initialData) || parsed.ketones;
-        parsed.blood = matchVal('Blood', initialData) || parsed.blood;
+        parsed.protein = normalizeGradedChemical(matchVal('Protein', initialData) || parsed.protein);
+        parsed.glucose = normalizeGradedChemical(matchVal('Sugar', initialData) || matchVal('Glucose', initialData) || parsed.glucose);
+        parsed.ketones = normalizeGradedChemical(matchVal('Ketones', initialData) || parsed.ketones);
+        parsed.blood = normalizeGradedChemical(matchVal('Blood', initialData) || parsed.blood);
         parsed.nitrite = matchVal('Nitrite', initialData) || parsed.nitrite;
-        parsed.pusCells = matchVal('Pus', initialData)?.replace('/HPF', '').trim() || parsed.pusCells;
-        parsed.rbcs = matchVal('RBCs', initialData)?.replace('/HPF', '').trim() || parsed.rbcs;
+        parsed.bilirubin = matchVal('Bilirubin', initialData) || parsed.bilirubin;
+        parsed.urobilinogen = matchVal('Urob', initialData) || matchVal('Urobilinogen', initialData) || parsed.urobilinogen;
+        parsed.leukocyteEsterase = normalizeGradedChemical(matchVal('Leukocytes', initialData) || parsed.leukocyteEsterase);
+        parsed.pusCells = applyReplacements(matchVal('Pus', initialData)?.replace('/HPF', '').trim() || parsed.pusCells);
+        parsed.rbcs = applyReplacements(matchVal('RBCs', initialData)?.replace('/HPF', '').trim() || parsed.rbcs);
         parsed.epithelialCells = matchVal('Epith', initialData) || parsed.epithelialCells;
         
         parsed.bacteria = matchVal('Bacteria', initialData) || 'Nil';
@@ -362,9 +593,9 @@ export default function UrineFormModal({
         ...DEFAULT_URINE_DATA,
         color: 'Dark Yellow',
         appearance: 'Turbid',
-        protein: '1+',
+        protein: '+',
         nitrite: 'Positive (+)',
-        leukocyteEsterase: 'Positive (++)',
+        leukocyteEsterase: '++',
         pusCells: '25-35',
         rbcs: '4-6',
         epithelialCells: 'Moderate',
@@ -392,8 +623,8 @@ export default function UrineFormModal({
         ...DEFAULT_URINE_DATA,
         color: 'Red / Bloody',
         appearance: 'Turbid',
-        protein: '1+',
-        blood: '3+',
+        protein: '+',
+        blood: '+++',
         rbcs: 'Packed / Bloody',
         pusCells: '4-6',
         castsList: [
@@ -425,11 +656,22 @@ export default function UrineFormModal({
       .map(y => y.secondValue?.trim() ? `${y.name.trim()} (${y.secondValue.trim()})` : y.name.trim())
       .join(', ');
 
+    const normalizedData = {
+      ...data,
+      pusCells: applyReplacements(data.pusCells),
+      rbcs: applyReplacements(data.rbcs),
+      protein: normalizeGradedChemical(data.protein),
+      glucose: normalizeGradedChemical(data.glucose),
+      ketones: normalizeGradedChemical(data.ketones),
+      blood: normalizeGradedChemical(data.blood),
+      leukocyteEsterase: normalizeGradedChemical(data.leukocyteEsterase),
+    };
+
     // 4. Base microscopic findings
     const microParts: string[] = [
-      `Pus: ${data.pusCells} /HPF`,
-      `RBCs: ${data.rbcs} /HPF`,
-      `Epith: ${data.epithelialCells}`
+      `Pus: ${normalizedData.pusCells} /HPF`,
+      `RBCs: ${normalizedData.rbcs} /HPF`,
+      `Epith: ${normalizedData.epithelialCells}`
     ];
 
     if (crystalsStr) {
@@ -440,232 +682,37 @@ export default function UrineFormModal({
       microParts.push(`Casts: ${castsStr}`);
     }
 
-    if (data.bacteria && data.bacteria !== 'Nil') {
-      microParts.push(`Bacteria: ${data.bacteria}`);
+    if (normalizedData.bacteria && normalizedData.bacteria !== 'Nil') {
+      microParts.push(`Bacteria: ${normalizedData.bacteria}`);
     }
 
     if (yeastsStr) {
       microParts.push(`Yeast: ${yeastsStr}`);
     }
 
-    if (data.mucus && data.mucus !== 'Nil') {
-      microParts.push(`Mucus: ${data.mucus}`);
+    if (normalizedData.mucus && normalizedData.mucus !== 'Nil') {
+      microParts.push(`Mucus: ${normalizedData.mucus}`);
     }
 
     // Other free text (Item 2: Trichomonas replaced by Other)
-    if (data.microscopicOther && data.microscopicOther.trim()) {
-      microParts.push(`Other: ${data.microscopicOther.trim()}`);
+    if (normalizedData.microscopicOther && normalizedData.microscopicOther.trim()) {
+      microParts.push(`Other: ${normalizedData.microscopicOther.trim()}`);
     }
 
     const formatted = [
       '[GENERAL URINE EXAMINATION - G.U.E]',
-      `PHYSICAL: Color: ${data.color} | Clarity: ${data.appearance} | Sp.Gr: ${data.spGravity} | pH: ${data.reactionPh} | Volume: ${data.volume} | Odor: ${data.odor}`,
-      `CHEMICAL: Protein: ${data.protein} | Sugar: ${data.glucose} | Ketones: ${data.ketones} | Bilirubin: ${data.bilirubin} | Urob: ${data.urobilinogen} | Blood: ${data.blood} | Nitrite: ${data.nitrite} | Leukocytes: ${data.leukocyteEsterase}`,
+      `PHYSICAL: Color: ${normalizedData.color} | Clarity: ${normalizedData.appearance} | Sp.Gr: ${normalizedData.spGravity} | pH: ${normalizedData.reactionPh} | Volume: ${normalizedData.volume} | Odor: ${normalizedData.odor}`,
+      `CHEMICAL: Protein: ${normalizedData.protein} | Sugar: ${normalizedData.glucose} | Ketones: ${normalizedData.ketones} | Bilirubin: ${normalizedData.bilirubin} | Urob: ${normalizedData.urobilinogen} | Blood: ${normalizedData.blood} | Nitrite: ${normalizedData.nitrite} | Leukocytes: ${normalizedData.leukocyteEsterase}`,
       `MICROSCOPIC: ${microParts.join(' | ')}`,
-      data.otherNotes ? `Notes: ${data.otherNotes}` : ''
+      normalizedData.otherNotes ? `Notes: ${normalizedData.otherNotes}` : ''
     ].filter(Boolean).join('\n');
 
-    onApply(formatted, data);
+    onApply(formatted, normalizedData);
     toast.success('تم حفظ وإدراج نتائج فحص الإدرار بنجاح!', 'تم بنجاح');
     onClose();
   };
 
-  // Color Swatches Definition
-  const COLOR_OPTIONS = [
-    { name: 'Straw', hex: '#fef9c3', border: '#facc15' },
-    { name: 'Yellow', hex: '#fde047', border: '#eab308' },
-    { name: 'Pale Yellow', hex: '#fef08a', border: '#eab308' },
-    { name: 'Dark Yellow', hex: '#eab308', border: '#ca8a04' },
-    { name: 'Amber', hex: '#d97706', border: '#b45309' },
-    { name: 'Red / Bloody', hex: '#f87171', border: '#dc2626' },
-    { name: 'Orange', hex: '#fb923c', border: '#ea580c' },
-    { name: 'Brownish', hex: '#a8a29e', border: '#78716c' },
-  ];
 
-  // Helper Component for Clinical Option Pills
-  const PillSelector = ({
-    label,
-    refRange,
-    value,
-    onChange,
-    options,
-    abnormalValues = [],
-    allowCustomInput = false,
-    customInputPlaceholder = 'أو اكتب يدوياً (مثال: 6-8)...',
-    isNumericOnly = false,
-  }: {
-    label: string;
-    refRange?: string;
-    value: string;
-    onChange: (val: string) => void;
-    options: string[];
-    abnormalValues?: string[];
-    allowCustomInput?: boolean;
-    customInputPlaceholder?: string;
-    isNumericOnly?: boolean;
-  }) => {
-    return (
-      <div style={{
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '8px',
-        padding: '10px 14px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
-            {label}
-          </span>
-          {refRange && (
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
-              Ref: <span style={{ color: 'var(--accent-cyan)' }}>{refRange}</span>
-            </span>
-          )}
-        </div>
-
-        {/* Prominent Direct Manual Input with Validation (FEAT-01) */}
-        {allowCustomInput && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', width: '100%' }}>
-            <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>إدخال حر:</span>
-            <input
-              type="text"
-              placeholder={customInputPlaceholder}
-              value={value}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (isNumericOnly) {
-                  // Only allow positive numbers, clinical ranges (e.g. 4-6, 10-15), or markers (>100, Full Field, Packed)
-                  // Prevent negative numbers (-)
-                  if (/^[\d\s\-+><a-zA-Z\/]*$/.test(val) && !val.trim().startsWith('-')) {
-                    onChange(val);
-                  }
-                } else {
-                  onChange(val);
-                }
-              }}
-              style={{
-                flex: 1,
-                padding: '6px 12px',
-                borderRadius: '6px',
-                border: '1.5px solid var(--accent-cyan)',
-                background: 'var(--bg-input)',
-                color: 'var(--text-main)',
-                fontSize: '13px',
-                fontWeight: 800,
-                fontFamily: 'JetBrains Mono, monospace',
-                outline: 'none',
-              }}
-              onFocus={(e) => (e.target.style.borderColor = 'var(--accent-cyan)')}
-              onBlur={(e) => (e.target.style.borderColor = 'var(--border-color)')}
-            />
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-          {options.map((opt) => {
-            const isSelected = value === opt;
-            const isAbnormal = abnormalValues.includes(opt);
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => onChange(opt)}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: isSelected ? 800 : 600,
-                  cursor: 'pointer',
-                  border: isSelected 
-                    ? isAbnormal ? '1.5px solid #dc2626' : '1.5px solid var(--accent-cyan)'
-                    : '1px solid var(--border-color)',
-                  background: isSelected 
-                    ? isAbnormal ? 'rgba(239, 68, 68, 0.2)' : 'var(--accent-cyan-subtle)'
-                    : 'var(--bg-input)',
-                  color: isSelected 
-                    ? isAbnormal ? '#ef4444' : 'var(--accent-cyan)'
-                    : 'var(--text-main)',
-                  boxShadow: isSelected ? '0 1px 4px rgba(37, 99, 235, 0.2)' : 'none',
-                  transition: 'all 0.12s ease',
-                }}
-              >
-                {opt}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  // Helper Component for Flexible Crystal Row with Nil, +, ++, +++, ++++, Full Field
-  const CrystalSelectorRow = ({
-    name,
-    arabicName,
-    value,
-    onChange,
-  }: {
-    name: string;
-    arabicName?: string;
-    value: string;
-    onChange: (val: string) => void;
-  }) => {
-    const levels = ['Nil', '+', '++', '+++', '++++', 'Full Field'];
-    const isPositive = value && value !== 'Nil';
-    const isSevere = ['+++', '++++', 'Full Field'].includes(value);
-
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '8px',
-        padding: '5px 0',
-        borderBottom: '1px dashed var(--border-color)'
-      }}>
-        <div style={{ minWidth: '150px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: isPositive ? (isSevere ? '#dc2626' : 'var(--accent-cyan)') : 'var(--text-main)' }}>
-            • {name} {isPositive && <span style={{ fontWeight: 800 }}>({value})</span>}
-          </span>
-        </div>
-        <div style={{ display: 'flex', gap: '4px', flex: 1, maxWidth: '340px' }}>
-          {levels.map((lvl) => {
-            const isSelected = value === lvl;
-            const isLvlHeavy = ['+++', '++++', 'Full Field'].includes(lvl);
-            return (
-              <button
-                key={lvl}
-                type="button"
-                onClick={() => onChange(lvl)}
-                style={{
-                  flex: 1,
-                  padding: '5px 0',
-                  borderRadius: '6px',
-                  fontSize: lvl === 'Full Field' ? '10px' : '11px',
-                  fontWeight: isSelected ? 800 : 600,
-                  cursor: 'pointer',
-                  border: isSelected 
-                    ? (isLvlHeavy ? '1.5px solid #dc2626' : '1.5px solid var(--accent-cyan)')
-                    : '1px solid var(--border-color)',
-                  background: isSelected 
-                    ? (lvl === 'Nil' ? 'var(--accent-cyan)' : isLvlHeavy ? 'rgba(239, 68, 68, 0.2)' : 'var(--accent-cyan-subtle)') 
-                    : 'var(--bg-input)',
-                  color: isSelected 
-                    ? (lvl === 'Nil' ? 'var(--text-inverse)' : isLvlHeavy ? '#ef4444' : 'var(--accent-cyan)') 
-                    : 'var(--text-main)',
-                  boxShadow: isSelected ? '0 1px 3px rgba(37,99,235,0.2)' : 'none',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.12s ease',
-                }}
-              >
-                {lvl}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
 
   // Determine abnormal flags for Live Preview
   const isPusAbnormal = useMemo(() => {
@@ -1093,18 +1140,18 @@ export default function UrineFormModal({
                     label="Protein / Albumin"
                     refRange="Nil (Negative)"
                     value={data.protein}
-                    onChange={(v) => setField('protein', v)}
-                    options={['Nil', 'Trace', '1+', '2+', '3+', '4+']}
-                    abnormalValues={['1+', '2+', '3+', '4+']}
+                    onChange={(v) => setField('protein', normalizeGradedChemical(v))}
+                    options={['Nil', 'Trace', '+', '++', '+++']}
+                    abnormalValues={['+', '++', '+++']}
                   />
 
                   <PillSelector
                     label="Glucose / Sugar"
                     refRange="Nil (Negative)"
                     value={data.glucose}
-                    onChange={(v) => setField('glucose', v)}
-                    options={['Nil', 'Trace', '1+', '2+', '3+', '4+']}
-                    abnormalValues={['1+', '2+', '3+', '4+']}
+                    onChange={(v) => setField('glucose', normalizeGradedChemical(v))}
+                    options={['Nil', 'Trace', '+', '++', '+++']}
+                    abnormalValues={['+', '++', '+++']}
                   />
                 </div>
 
@@ -1114,18 +1161,18 @@ export default function UrineFormModal({
                     label="Ketones / Acetone"
                     refRange="Nil (Negative)"
                     value={data.ketones}
-                    onChange={(v) => setField('ketones', v)}
-                    options={['Nil', 'Trace', '1+', '2+', '3+']}
-                    abnormalValues={['1+', '2+', '3+']}
+                    onChange={(v) => setField('ketones', normalizeGradedChemical(v))}
+                    options={['Nil', 'Trace', '+', '++', '+++']}
+                    abnormalValues={['+', '++', '+++']}
                   />
 
                   <PillSelector
                     label="Blood / Hemoglobin"
                     refRange="Negative"
                     value={data.blood}
-                    onChange={(v) => setField('blood', v)}
-                    options={['Negative', 'Trace', '1+', '2+', '3+']}
-                    abnormalValues={['Trace', '1+', '2+', '3+']}
+                    onChange={(v) => setField('blood', normalizeGradedChemical(v))}
+                    options={['Negative', 'Trace', '+', '++', '+++']}
+                    abnormalValues={['Trace', '+', '++', '+++']}
                   />
                 </div>
 
@@ -1144,9 +1191,9 @@ export default function UrineFormModal({
                     label="Leukocyte Esterase"
                     refRange="Negative"
                     value={data.leukocyteEsterase}
-                    onChange={(v) => setField('leukocyteEsterase', v)}
-                    options={['Negative', 'Trace', '1+', '2+', '3+']}
-                    abnormalValues={['1+', '2+', '3+']}
+                    onChange={(v) => setField('leukocyteEsterase', normalizeGradedChemical(v))}
+                    options={['Negative', 'Trace', '+', '++', '+++']}
+                    abnormalValues={['+', '++', '+++']}
                   />
                 </div>
 
@@ -1154,20 +1201,20 @@ export default function UrineFormModal({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <PillSelector
                     label="Bilirubin"
-                    refRange="Negative"
+                    refRange={clinicalTemplates.urine.bilirubin.refRange || "Negative"}
                     value={data.bilirubin}
                     onChange={(v) => setField('bilirubin', v)}
-                    options={['Negative', '1+', '2+', '3+']}
-                    abnormalValues={['1+', '2+', '3+']}
+                    options={clinicalTemplates.urine.bilirubin.options}
+                    abnormalValues={clinicalTemplates.urine.bilirubin.abnormalValues}
                   />
 
                   <PillSelector
                     label="Urobilinogen"
-                    refRange="Normal"
+                    refRange={clinicalTemplates.urine.urobilinogen.refRange || "Normal"}
                     value={data.urobilinogen}
                     onChange={(v) => setField('urobilinogen', v)}
-                    options={['Normal', '1+', '2+', '3+']}
-                    abnormalValues={['2+', '3+']}
+                    options={clinicalTemplates.urine.urobilinogen.options}
+                    abnormalValues={clinicalTemplates.urine.urobilinogen.abnormalValues}
                   />
                 </div>
 
@@ -1182,26 +1229,26 @@ export default function UrineFormModal({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <PillSelector
                     label="Pus Cells / WBCs"
-                    refRange="0 - 5 /HPF"
+                    refRange={clinicalTemplates.urine.pusCells.refRange || "0 - 5 /HPF"}
                     value={data.pusCells}
                     onChange={(v) => setField('pusCells', v)}
-                    options={['0-2', '2-4', '4-6', '8-10', '15-20', '25-35', '40-50', 'Full Slide']}
-                    abnormalValues={['8-10', '15-20', '25-35', '40-50', 'Full Slide']}
+                    options={clinicalTemplates.urine.pusCells.options}
+                    abnormalValues={clinicalTemplates.urine.pusCells.abnormalValues}
                     allowCustomInput={true}
-                    customInputPlaceholder="أو اكتب عدد كريات القيح يدوياً (مثال: 6-8)..."
-                    isNumericOnly={true}
+                    customInputPlaceholder={clinicalTemplates.urine.pusCells.customInputPlaceholder || "اكتب أي قيمة (مثال: 2-4 أو 10-15 أو many)..."}
+                    isNumericOnly={clinicalTemplates.urine.pusCells.isNumericOnly ?? false}
                   />
 
                   <PillSelector
                     label="RBCs / Erythrocytes"
-                    refRange="0 - 2 /HPF"
+                    refRange={clinicalTemplates.urine.rbcs.refRange || "0 - 2 /HPF"}
                     value={data.rbcs}
                     onChange={(v) => setField('rbcs', v)}
-                    options={['0-2', '2-4', '5-10', '15-25', 'Packed / Bloody']}
-                    abnormalValues={['5-10', '15-25', 'Packed / Bloody']}
+                    options={clinicalTemplates.urine.rbcs.options}
+                    abnormalValues={clinicalTemplates.urine.rbcs.abnormalValues}
                     allowCustomInput={true}
-                    customInputPlaceholder="أو اكتب عدد كريات الحمر يدوياً (مثال: 3-5)..."
-                    isNumericOnly={true}
+                    customInputPlaceholder={clinicalTemplates.urine.rbcs.customInputPlaceholder || "اكتب أي قيمة (مثال: 0-2 أو 10-15 أو packed)..."}
+                    isNumericOnly={clinicalTemplates.urine.rbcs.isNumericOnly ?? false}
                   />
                 </div>
 

@@ -28,21 +28,46 @@ if (process.argv.includes('--build')) {
   execSync('node tools/build-standalone-installer.js --rebuild', { cwd: rootDir, stdio: 'inherit' });
 }
 
-// 2. البحث عن ملف المثبت الرئيسي Setup .exe
+// 2. البحث الدقيق عن ملف المثبت الرئيسي Setup .exe المطابق للإصدار
 const files = fs.readdirSync(distDir);
-const setupExe = files.find(f => f.endsWith('.exe') && f.includes('Setup') && f.includes(VERSION)) ||
-                 files.find(f => f.endsWith('.exe') && f.includes('Setup')) ||
-                 files.find(f => f.endsWith('.exe'));
+const sanitizedRemoteName = `Labryo.LIMS.Setup.${VERSION}.exe`;
+const setupExe = files.find(f => 
+  f.endsWith('.exe') && 
+  !f.includes('Portable') && 
+  f !== sanitizedRemoteName && 
+  f.includes('Setup') && 
+  f.includes(VERSION)
+);
 
 if (!setupExe) {
-  console.error(`❌ لم يتم العثور على أي ملف تثبيت .exe في مجلد: ${distDir}`);
+  console.error(`❌ لم يتم العثور على أي ملف تثبيت .exe للإصدار ${VERSION} في مجلد: ${distDir}`);
   process.exit(1);
 }
 
 const setupExePath = path.join(distDir, setupExe);
-const fileStats = fs.statSync(setupExePath);
 
-console.log(`تم تحديد ملف التثبيت: ${setupExe}`);
+// Strict Windows PE Header Validation
+const { execFileSync } = require('child_process');
+let productVersion = '';
+try {
+  productVersion = execFileSync('powershell.exe', [
+    '-NoProfile',
+    '-Command',
+    `(Get-Item -LiteralPath '${setupExePath}').VersionInfo.ProductVersion`
+  ], { encoding: 'utf-8' }).trim();
+} catch (e) {
+  console.error(`❌ فشل قراءة ProductVersion: ${e.message}`);
+  process.exit(1);
+}
+
+if (productVersion !== VERSION) {
+  console.error(`❌ تعارض في الإصدار الداخلي: الملف يحمل ${productVersion} والمطلوب ${VERSION}`);
+  process.exit(1);
+}
+
+const fileStats = fs.statSync(setupExePath);
+console.log(`تم التحقق بنجاح من ملف التثبيت المعتمد: ${setupExe}`);
+console.log(`رقم الإصدار المدمج الموثق: ${productVersion}`);
 console.log(`الحجم: ${(fileStats.size / (1024 * 1024)).toFixed(2)} MB`);
 
 // 3. حساب بصمة الأمان SHA-256

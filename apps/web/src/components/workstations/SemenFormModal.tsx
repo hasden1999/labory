@@ -209,6 +209,86 @@ export function parseSemen(raw: string): SemenAnalysisData {
   return parsed;
 }
 
+// Color Swatches
+const COLOR_OPTIONS = [
+  { name: 'Greyish-White', hex: '#f1f5f9', border: '#cbd5e1' },
+  { name: 'Opalescent Pearl', hex: '#e2e8f0', border: '#94a3b8' },
+  { name: 'Yellowish', hex: '#fef08a', border: '#facc15' },
+  { name: 'Amber / Dark', hex: '#fde047', border: '#eab308' },
+  { name: 'Brownish-Red', hex: '#fca5a5', border: '#ef4444' },
+];
+
+// Module-level Helper Pill Selector Component (Hoisted for stable DOM identity)
+const PillSelector = ({
+  label,
+  refRange,
+  value,
+  onChange,
+  options,
+  abnormalValues = [],
+}: {
+  label: string;
+  refRange?: string;
+  value: string;
+  onChange: (val: string) => void;
+  options: string[];
+  abnormalValues?: string[];
+}) => {
+  return (
+    <div style={{
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border-color)',
+      borderRadius: '8px',
+      padding: '10px 14px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+          {label}
+        </span>
+        {refRange && (
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            WHO Ref: <span style={{ color: 'var(--accent-cyan)' }}>{refRange}</span>
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+        {options.map((opt) => {
+          const isSelected = value === opt;
+          const isAbnormal = abnormalValues.includes(opt);
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => onChange(opt)}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: isSelected ? 800 : 600,
+                cursor: 'pointer',
+                border: isSelected 
+                  ? isAbnormal ? '1.5px solid #dc2626' : '1.5px solid var(--accent-cyan)'
+                  : '1px solid var(--border-color)',
+                background: isSelected 
+                  ? isAbnormal ? 'rgba(239, 68, 68, 0.2)' : 'var(--accent-cyan-subtle)'
+                  : 'var(--bg-input)',
+                color: isSelected 
+                  ? isAbnormal ? '#ef4444' : 'var(--accent-cyan)'
+                  : 'var(--text-main)',
+                boxShadow: isSelected ? '0 1px 4px rgba(6, 182, 212, 0.2)' : 'none',
+                transition: 'all 0.12s ease',
+              }}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 interface SemenFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -409,85 +489,7 @@ export default function SemenFormModal({
     onClose();
   };
 
-  // Color Swatches
-  const COLOR_OPTIONS = [
-    { name: 'Greyish-White', hex: '#f1f5f9', border: '#cbd5e1' },
-    { name: 'Opalescent Pearl', hex: '#e2e8f0', border: '#94a3b8' },
-    { name: 'Yellowish', hex: '#fef08a', border: '#facc15' },
-    { name: 'Amber / Dark', hex: '#fde047', border: '#eab308' },
-    { name: 'Brownish-Red', hex: '#fca5a5', border: '#ef4444' },
-  ];
 
-  // Helper Pill Selector Component
-  const PillSelector = ({
-    label,
-    refRange,
-    value,
-    onChange,
-    options,
-    abnormalValues = [],
-  }: {
-    label: string;
-    refRange?: string;
-    value: string;
-    onChange: (val: string) => void;
-    options: string[];
-    abnormalValues?: string[];
-  }) => {
-    return (
-      <div style={{
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '8px',
-        padding: '10px 14px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
-            {label}
-          </span>
-          {refRange && (
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
-              WHO Ref: <span style={{ color: 'var(--accent-cyan)' }}>{refRange}</span>
-            </span>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-          {options.map((opt) => {
-            const isSelected = value === opt;
-            const isAbnormal = abnormalValues.includes(opt);
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => onChange(opt)}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: isSelected ? 800 : 600,
-                  cursor: 'pointer',
-                  border: isSelected 
-                    ? isAbnormal ? '1.5px solid #dc2626' : '1.5px solid var(--accent-cyan)'
-                    : '1px solid var(--border-color)',
-                  background: isSelected 
-                    ? isAbnormal ? 'rgba(239, 68, 68, 0.2)' : 'var(--accent-cyan-subtle)'
-                    : 'var(--bg-input)',
-                  color: isSelected 
-                    ? isAbnormal ? '#ef4444' : 'var(--accent-cyan)'
-                    : 'var(--text-main)',
-                  boxShadow: isSelected ? '0 1px 4px rgba(6, 182, 212, 0.2)' : 'none',
-                  transition: 'all 0.12s ease',
-                }}
-              >
-                {opt}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>

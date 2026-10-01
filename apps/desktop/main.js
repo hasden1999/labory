@@ -1300,6 +1300,10 @@ app.whenReady().then(() => {
   tracer.mark('Main Window Pre-Created & Warmed');
 
   startAndLoadApp();
+  updateService.setBeforeInstallHandler(() => {
+    isQuitting = true;
+    killBackendProcess();
+  });
   updateService.init(mainWindow);
 
   app.on('activate', () => {

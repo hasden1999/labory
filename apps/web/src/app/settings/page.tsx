@@ -44,8 +44,28 @@ export default function SettingsPage() {
       return () => {
         if (typeof unsub === 'function') unsub();
       };
+    } else {
+      fetch('/api/version/check')
+        .then((r) => r.json())
+        .then((res) => {
+          setUpdaterState({
+            status: res.hasUpdate ? 'available' : 'idle',
+            currentVersion: res.currentVersion || labProfile?.installedVersion || 'v1.1.3',
+            latestVersion: res.latestVersion || res.currentVersion || 'v1.1.3',
+            releaseNotes: res.releaseNotes,
+            downloadUrl: res.downloadUrl,
+            hasUpdate: Boolean(res.hasUpdate),
+          });
+        })
+        .catch(() => {
+          setUpdaterState({
+            status: 'idle',
+            currentVersion: labProfile?.installedVersion || 'v1.1.3',
+            hasUpdate: false,
+          });
+        });
     }
-  }, []);
+  }, [labProfile?.installedVersion]);
 
   const handleCheckUpdate = async () => {
     setCheckingUpdate(true);
@@ -630,19 +650,21 @@ export default function SettingsPage() {
                   </button>
                 </div>
 
-                {updaterState && (updaterState.latestVersion || updaterState.status === 'downloading' || updaterState.status === 'downloaded') && (
-                  <div style={{ marginTop: '16px', background: updaterState.status === 'downloaded' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(2, 132, 199, 0.08)', border: `1px solid ${updaterState.status === 'downloaded' ? '#10b981' : '#0284c7'}`, borderRadius: '10px', padding: '16px' }}>
+                {updaterState && (
+                  <div style={{ marginTop: '16px', background: (updaterState.status === 'downloaded' || !updaterState.hasUpdate) ? 'rgba(16, 185, 129, 0.08)' : 'rgba(2, 132, 199, 0.08)', border: `1px solid ${updaterState.status === 'downloaded' || !updaterState.hasUpdate ? '#10b981' : '#0284c7'}`, borderRadius: '10px', padding: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                      <div style={{ fontWeight: 800, color: updaterState.status === 'downloaded' ? '#34d399' : '#38bdf8', fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {updaterState.status === 'downloaded' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                      <div style={{ fontWeight: 800, color: (updaterState.status === 'downloaded' || !updaterState.hasUpdate) ? '#34d399' : '#38bdf8', fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {(updaterState.status === 'downloaded' || !updaterState.hasUpdate) ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
                         <span>
                           {updaterState.status === 'downloaded'
                             ? `اكتمل تحميل التحديث (الإصدار ${updaterState.latestVersion}) وهو جاهز للتثبيت`
-                            : `يتوفر تحديث جديد: ${updaterState.latestVersion}`}
+                            : (updaterState.hasUpdate
+                                ? `يتوفر تحديث جديد: ${updaterState.latestVersion}`
+                                : `نظام المختبر لديك يعمل بأحدث إصدار رسمي (${updaterState.currentVersion || 'v1.1.3'})`)}
                         </span>
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        تحديث آمن مع الاحتفاظ التام بكافة البيانات وقواعد البيانات
+                        {updaterState.hasUpdate ? 'تحديث آمن مع الاحتفاظ التام بكافة البيانات وقواعد البيانات' : 'النظام وقواعد البيانات متوافقة ومستقرة 100%'}
                       </div>
                     </div>
 
@@ -720,7 +742,7 @@ export default function SettingsPage() {
                     )}
 
                     {/* Browser Fallback direct download link */}
-                    {updaterState.downloadUrl && (
+                    {updaterState.hasUpdate && updaterState.downloadUrl && (
                       <div style={{ marginTop: '10px' }}>
                         <a
                           href={updaterState.downloadUrl}
@@ -736,7 +758,7 @@ export default function SettingsPage() {
                           }}
                         >
                           <Download size={14} />
-                          <span>تحميل حزمة التثبيت المستقلة مباشرة من GitHub (تثبيت يدوي)</span>
+                          <span>تحميل حزمة التحديث مباشرة (تثبيت يدوي)</span>
                         </a>
                       </div>
                     )}

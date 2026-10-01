@@ -21,7 +21,7 @@ export async function loadStoreFromSqlite(): Promise<any | null> {
       dbDebtors,
       dbExpenses
     ] = await Promise.all([
-      prisma.testCatalog.findMany({ where: { active: true }, orderBy: { name: 'asc' } }),
+      prisma.testCatalog.findMany({ where: { active: true }, include: { referenceRanges: { orderBy: { sortOrder: 'asc' } } }, orderBy: { name: 'asc' } }),
       prisma.testPanel.findMany({ include: { items: true }, orderBy: { name: 'asc' } }),
       prisma.referringDoctor.findMany({ orderBy: { name: 'asc' } }),
       prisma.patient.findMany({ where: { isDeleted: false }, orderBy: { createdAt: 'desc' } }),
@@ -43,7 +43,7 @@ export async function loadStoreFromSqlite(): Promise<any | null> {
     ]);
 
     // Format tests
-    const tests = dbTests.map((t) => ({
+    const tests = dbTests.map((t: any) => ({
       id: t.id,
       code: t.code || t.id.replace(/^t-/, '').toUpperCase(),
       name: t.name,
@@ -65,6 +65,7 @@ export async function loadStoreFromSqlite(): Promise<any | null> {
       unit: t.unit,
       sampleType: t.sampleType || 'Serum',
       active: t.active,
+      referenceRanges: t.referenceRanges || [],
     }));
 
     // Format panels
@@ -446,6 +447,7 @@ export async function syncSettingsToSqlite(s: any): Promise<void> {
         fontFamily: s.fontFamily || 'Tajawal',
         fontSize: s.fontSize || 'MEDIUM',
         installedVersion: s.installedVersion || 'v1.0.9',
+        printRangeScope: s.printRangeScope || 'ALL',
       },
       create: {
         id: 'singleton',
@@ -468,6 +470,7 @@ export async function syncSettingsToSqlite(s: any): Promise<void> {
         fontFamily: s.fontFamily || 'Tajawal',
         fontSize: s.fontSize || 'MEDIUM',
         installedVersion: s.installedVersion || 'v1.0.9',
+        printRangeScope: s.printRangeScope || 'ALL',
       }
     });
   } catch (e: any) {
@@ -600,6 +603,49 @@ export async function syncTestToSqlite(t: any): Promise<void> {
         active: t.active !== undefined ? Boolean(t.active) : true,
       },
     });
+
+    if (Array.isArray(t.referenceRanges) && t.referenceRanges.length > 0) {
+      for (const rr of t.referenceRanges) {
+        const rrId = rr.id || `rr-${t.id}-${rr.sortOrder || 0}`;
+        await (prisma as any).referenceRange.upsert({
+          where: { id: rrId },
+          update: {
+            label: rr.label || 'المعدل العام',
+            sex: rr.sex || 'any',
+            ageMin: rr.ageMin != null ? Number(rr.ageMin) : null,
+            ageMax: rr.ageMax != null ? Number(rr.ageMax) : null,
+            ageUnit: rr.ageUnit || 'years',
+            low: rr.low != null ? Number(rr.low) : null,
+            high: rr.high != null ? Number(rr.high) : null,
+            text: rr.text || null,
+            unit: rr.unit || null,
+            note: rr.note || null,
+            source: rr.source || null,
+            sourceUrl: rr.sourceUrl || null,
+            isUserEdited: Boolean(rr.isUserEdited),
+            sortOrder: Number(rr.sortOrder || 0),
+          },
+          create: {
+            id: rrId,
+            testId: t.id,
+            label: rr.label || 'المعدل العام',
+            sex: rr.sex || 'any',
+            ageMin: rr.ageMin != null ? Number(rr.ageMin) : null,
+            ageMax: rr.ageMax != null ? Number(rr.ageMax) : null,
+            ageUnit: rr.ageUnit || 'years',
+            low: rr.low != null ? Number(rr.low) : null,
+            high: rr.high != null ? Number(rr.high) : null,
+            text: rr.text || null,
+            unit: rr.unit || null,
+            note: rr.note || null,
+            source: rr.source || null,
+            sourceUrl: rr.sourceUrl || null,
+            isUserEdited: Boolean(rr.isUserEdited),
+            sortOrder: Number(rr.sortOrder || 0),
+          }
+        }).catch((err: any) => console.warn('[SQLite Sync] ReferenceRange upsert warning:', err?.message));
+      }
+    }
   } catch (e: any) {
     console.error('[SQLite Sync] Failed to sync test to SQLite:', e?.message);
   }
@@ -640,7 +686,7 @@ export async function syncPanelToSqlite(p: any): Promise<void> {
       await prisma.testPanelItem.deleteMany({ where: { panelId: p.id } });
       for (const tId of p.testIds) {
         try {
-          const testExists = await prisma.test.findUnique({ where: { id: tId }, select: { id: true } });
+          const testExists = await prisma.testCatalog.findUnique({ where: { id: tId }, select: { id: true } });
           if (testExists) {
             await prisma.testPanelItem.create({
               data: {

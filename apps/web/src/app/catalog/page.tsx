@@ -20,10 +20,25 @@ import {
   CheckCircle2, 
   Tag, 
   Check,
-  Sparkles
+  Sparkles,
+  ChevronUp,
+  ChevronDown,
+  BookOpen,
+  ShieldCheck
 } from 'lucide-react';
 import { useLab } from '../../components/LabContext';
 import { catalogCache } from '../../lib/catalogCache';
+
+const cleanArabic = (text: string) => {
+  if (!text) return '';
+  return text
+    .replace(/[أإآء]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/[\u064B-\u065F]/g, '')
+    .toLowerCase()
+    .trim();
+};
 
 export default function CatalogPage() {
   const toast = useToast();
@@ -87,6 +102,202 @@ export default function CatalogPage() {
     loadCatalog();
   }, []);
 
+  // Multi Reference Ranges State (Item 5)
+  const [referenceRanges, setReferenceRanges] = useState<any[]>([]);
+  const [rangeEditIndex, setRangeEditIndex] = useState<number | null>(null);
+  const [rangeLabel, setRangeLabel] = useState('');
+  const [rangeSex, setRangeSex] = useState<'M' | 'F' | 'any'>('any');
+  const [rangeAgeMin, setRangeAgeMin] = useState('');
+  const [rangeAgeMax, setRangeAgeMax] = useState('');
+  const [rangeAgeUnit, setRangeAgeUnit] = useState<'days' | 'months' | 'years'>('years');
+  const [rangeLow, setRangeLow] = useState('');
+  const [rangeHigh, setRangeHigh] = useState('');
+  const [rangeText, setRangeText] = useState('');
+  const [rangeUnit, setRangeUnit] = useState('');
+  const [rangeNote, setRangeNote] = useState('');
+  const [rangeSource, setRangeSource] = useState('');
+  const [rangeSourceUrl, setRangeSourceUrl] = useState('');
+  const [showRangeForm, setShowRangeForm] = useState(false);
+
+  const resetRangeForm = () => {
+    setRangeEditIndex(null);
+    setRangeLabel('');
+    setRangeSex('any');
+    setRangeAgeMin('');
+    setRangeAgeMax('');
+    setRangeAgeUnit('years');
+    setRangeLow('');
+    setRangeHigh('');
+    setRangeText('');
+    setRangeUnit(unit || '');
+    setRangeNote('');
+    setRangeSource('');
+    setRangeSourceUrl('');
+    setShowRangeForm(false);
+  };
+
+  const handleOpenEditRange = (index: number) => {
+    const r = referenceRanges[index];
+    if (!r) return;
+    setRangeEditIndex(index);
+    setRangeLabel(r.label || '');
+    setRangeSex(r.sex || 'any');
+    setRangeAgeMin(r.ageMin != null ? String(r.ageMin) : '');
+    setRangeAgeMax(r.ageMax != null ? String(r.ageMax) : '');
+    setRangeAgeUnit(r.ageUnit || 'years');
+    setRangeLow(r.low != null ? String(r.low) : '');
+    setRangeHigh(r.high != null ? String(r.high) : '');
+    setRangeText(r.text || '');
+    setRangeUnit(r.unit || unit || '');
+    setRangeNote(r.note || '');
+    setRangeSource(r.source || '');
+    setRangeSourceUrl(r.sourceUrl || '');
+    setShowRangeForm(true);
+  };
+
+  const handleSaveRange = () => {
+    if (!rangeLabel.trim()) {
+      toast.warning('يرجى كتابة تسمية المدى المرجعي (مثال: ذكور، إناث، أطفال)');
+      return;
+    }
+    const newRange = {
+      id: rangeEditIndex !== null && referenceRanges[rangeEditIndex]?.id ? referenceRanges[rangeEditIndex].id : `rr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      label: rangeLabel.trim(),
+      sex: rangeSex,
+      ageMin: rangeAgeMin !== '' ? Number(rangeAgeMin) : null,
+      ageMax: rangeAgeMax !== '' ? Number(rangeAgeMax) : null,
+      ageUnit: rangeAgeUnit,
+      low: rangeLow !== '' ? Number(rangeLow) : null,
+      high: rangeHigh !== '' ? Number(rangeHigh) : null,
+      text: rangeText.trim() || (rangeLow !== '' && rangeHigh !== '' ? `${rangeLow} - ${rangeHigh}` : null),
+      unit: rangeUnit.trim() || unit || null,
+      note: rangeNote.trim() || null,
+      source: rangeSource.trim() || null,
+      sourceUrl: rangeSourceUrl.trim() || null,
+      isUserEdited: true,
+      sortOrder: rangeEditIndex !== null ? rangeEditIndex : referenceRanges.length,
+    };
+
+    if (rangeEditIndex !== null) {
+      const updated = [...referenceRanges];
+      updated[rangeEditIndex] = newRange;
+      setReferenceRanges(updated);
+      toast.success('تم تحديث المدى المرجعي');
+    } else {
+      setReferenceRanges([...referenceRanges, newRange]);
+      toast.success('تمت إضافة المدى المرجعي بنجاح');
+    }
+    resetRangeForm();
+  };
+
+  const handleDeleteRange = (index: number) => {
+    setReferenceRanges(referenceRanges.filter((_, i) => i !== index));
+    toast.info('تم حذف المدى المرجعي');
+  };
+
+  const handleMoveRange = (index: number, direction: 'UP' | 'DOWN') => {
+    const targetIdx = direction === 'UP' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= referenceRanges.length) return;
+    const reordered = [...referenceRanges];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(targetIdx, 0, moved);
+    reordered.forEach((r, idx) => (r.sortOrder = idx));
+    setReferenceRanges(reordered);
+  };
+
+  const handleAutoFillPcv = () => {
+    const pcvRanges = [
+      {
+        id: `rr_pcv_m_${Date.now()}`,
+        label: 'الرجال البالغين (Adult Men)',
+        sex: 'M',
+        ageMin: 18,
+        ageMax: 120,
+        ageUnit: 'years',
+        low: 40.0,
+        high: 52.0,
+        text: '40.0 - 52.0',
+        unit: '%',
+        note: 'auto-filled from Tietz / Mayo Clinic Laboratories — confirm against your analyzer/kit',
+        source: 'Mayo Clinic Laboratories / Tietz Clinical Guide to Laboratory Tests',
+        sourceUrl: 'https://www.mayocliniclabs.com/test-catalog/overview/8404',
+        isUserEdited: false,
+        sortOrder: 0
+      },
+      {
+        id: `rr_pcv_f_${Date.now()}`,
+        label: 'النساء البالغات (Adult Women)',
+        sex: 'F',
+        ageMin: 18,
+        ageMax: 120,
+        ageUnit: 'years',
+        low: 36.0,
+        high: 48.0,
+        text: '36.0 - 48.0',
+        unit: '%',
+        note: 'auto-filled from Tietz / Mayo Clinic Laboratories — confirm against your analyzer/kit',
+        source: 'Mayo Clinic Laboratories / Tietz Clinical Guide to Laboratory Tests',
+        sourceUrl: 'https://www.mayocliniclabs.com/test-catalog/overview/8404',
+        isUserEdited: false,
+        sortOrder: 1
+      },
+      {
+        id: `rr_pcv_nb_${Date.now()}`,
+        label: 'حديثي الولادة (Newborns 0-14 days)',
+        sex: 'any',
+        ageMin: 0,
+        ageMax: 14,
+        ageUnit: 'days',
+        low: 45.0,
+        high: 65.0,
+        text: '45.0 - 65.0',
+        unit: '%',
+        note: 'auto-filled from Harriet Lane Handbook / Nelson Pediatrics — confirm against your analyzer/kit',
+        source: 'Harriet Lane Handbook of Pediatrics / Nelson Textbook of Pediatrics',
+        sourceUrl: 'https://medlineplus.gov/ency/article/003646.htm',
+        isUserEdited: false,
+        sortOrder: 2
+      },
+      {
+        id: `rr_pcv_inf_${Date.now()}`,
+        label: 'الرضع (Infants 1-12 months)',
+        sex: 'any',
+        ageMin: 1,
+        ageMax: 12,
+        ageUnit: 'months',
+        low: 30.0,
+        high: 40.0,
+        text: '30.0 - 40.0',
+        unit: '%',
+        note: 'auto-filled from Harriet Lane / CALIPER — confirm against your analyzer/kit',
+        source: 'Harriet Lane Handbook 22nd ed. / CALIPER Pediatric Reference Database',
+        sourceUrl: 'https://medlineplus.gov/ency/article/003646.htm',
+        isUserEdited: false,
+        sortOrder: 3
+      },
+      {
+        id: `rr_pcv_ch_${Date.now()}`,
+        label: 'الأطفال (Children 1-10 years)',
+        sex: 'any',
+        ageMin: 1,
+        ageMax: 10,
+        ageUnit: 'years',
+        low: 34.0,
+        high: 44.0,
+        text: '34.0 - 44.0',
+        unit: '%',
+        note: 'auto-filled from Harriet Lane / CALIPER — confirm against your analyzer/kit',
+        source: 'Harriet Lane Handbook 22nd ed. / CALIPER Pediatric Reference Database',
+        sourceUrl: 'https://medlineplus.gov/ency/article/003646.htm',
+        isUserEdited: false,
+        sortOrder: 4
+      }
+    ];
+    setReferenceRanges(pcvRanges);
+    setUnit('%');
+    toast.success('تم ملء مديات PCV المعتمدة تلقائياً من Mayo Clinic و Harriet Lane — يرجى التأكيد وفقاً لجهازك');
+  };
+
   const handleOpenAddTest = () => {
     setEditingTestId(null);
     setCode('');
@@ -106,6 +317,8 @@ export default function CatalogPage() {
     setRefRangeText('');
     setUnit('');
     setSampleType('مصل الدم (Serum)');
+    setReferenceRanges([]);
+    resetRangeForm();
     setShowTestModal(true);
   };
 
@@ -128,6 +341,8 @@ export default function CatalogPage() {
     setRefRangeText(test.refRangeText || '');
     setUnit(test.unit || '');
     setSampleType(test.sampleType || 'مصل الدم (Serum)');
+    setReferenceRanges(test.referenceRanges && Array.isArray(test.referenceRanges) ? JSON.parse(JSON.stringify(test.referenceRanges)) : []);
+    resetRangeForm();
     setShowTestModal(true);
   };
 
@@ -145,18 +360,19 @@ export default function CatalogPage() {
         arabicName: arabicName.trim() || undefined,
         category,
         price: Number(price),
-        costEstimate: costEstimate ? Number(costEstimate) : undefined,
-        refRangeLow: refRangeLow ? Number(refRangeLow) : undefined,
-        refRangeHigh: refRangeHigh ? Number(refRangeHigh) : undefined,
-        normalMaleLow: normalMaleLow ? Number(normalMaleLow) : undefined,
-        normalMaleHigh: normalMaleHigh ? Number(normalMaleHigh) : undefined,
-        normalFemaleLow: normalFemaleLow ? Number(normalFemaleLow) : undefined,
-        normalFemaleHigh: normalFemaleHigh ? Number(normalFemaleHigh) : undefined,
-        criticalLow: criticalLow ? Number(criticalLow) : undefined,
-        criticalHigh: criticalHigh ? Number(criticalHigh) : undefined,
-        refRangeText: refRangeText.trim() || undefined,
-        unit: unit.trim() || undefined,
+        costEstimate: costEstimate !== '' ? Number(costEstimate) : null,
+        refRangeLow: refRangeLow !== '' ? Number(refRangeLow) : null,
+        refRangeHigh: refRangeHigh !== '' ? Number(refRangeHigh) : null,
+        normalMaleLow: normalMaleLow !== '' ? Number(normalMaleLow) : null,
+        normalMaleHigh: normalMaleHigh !== '' ? Number(normalMaleHigh) : null,
+        normalFemaleLow: normalFemaleLow !== '' ? Number(normalFemaleLow) : null,
+        normalFemaleHigh: normalFemaleHigh !== '' ? Number(normalFemaleHigh) : null,
+        criticalLow: criticalLow !== '' ? Number(criticalLow) : null,
+        criticalHigh: criticalHigh !== '' ? Number(criticalHigh) : null,
+        refRangeText: refRangeText.trim() || null,
+        unit: unit.trim() || null,
         sampleType,
+        referenceRanges: referenceRanges.length > 0 ? referenceRanges : undefined,
       };
 
       if (editingTestId) {
@@ -256,12 +472,17 @@ export default function CatalogPage() {
   }, [tests]);
 
   const filteredTests = useMemo(() => {
+    const rawSearch = searchQuery.trim();
+    const normSearch = cleanArabic(rawSearch);
     return tests.filter((t) => {
       const matchCat = selectedCategory === 'ALL' || t.category === selectedCategory;
-      const matchSearch = !searchQuery ||
-        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (t.arabicName && t.arabicName.includes(searchQuery)) ||
-        (t.code && t.code.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchSearch = !rawSearch ||
+        cleanArabic(t.name || '').includes(normSearch) ||
+        cleanArabic(t.arabicName || '').includes(normSearch) ||
+        cleanArabic(t.code || '').includes(normSearch) ||
+        cleanArabic(t.category || '').includes(normSearch) ||
+        t.name.toLowerCase().includes(rawSearch.toLowerCase()) ||
+        (t.code && t.code.toLowerCase().includes(rawSearch.toLowerCase()));
       return matchCat && matchSearch;
     });
   }, [tests, selectedCategory, searchQuery]);
@@ -423,7 +644,9 @@ export default function CatalogPage() {
                         <td style={{ fontWeight: 900, color: 'var(--accent-cyan)' }}>{t.price?.toLocaleString()} {currency}</td>
                         <td style={{ color: 'var(--text-muted)' }}>{t.costEstimate ? `${t.costEstimate.toLocaleString()} ${currency}` : '-'}</td>
                         <td style={{ fontSize: '11.5px' }}>
-                          {t.refRangeText || (t.refRangeLow !== null ? `${t.refRangeLow} - ${t.refRangeHigh}` : '-')}
+                          <span dir="ltr" style={{ display: 'inline-block', direction: 'ltr', unicodeBidi: 'isolate' }}>
+                            {t.refRangeText || (t.refRangeLow != null && t.refRangeHigh != null ? `${t.refRangeLow} - ${t.refRangeHigh}` : (t.refRangeLow != null ? `>= ${t.refRangeLow}` : (t.refRangeHigh != null ? `<= ${t.refRangeHigh}` : '-')))}
+                          </span>
                         </td>
                         <td>
                           {(t.criticalLow !== null || t.criticalHigh !== null) ? (
@@ -720,6 +943,279 @@ export default function CatalogPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Multi-Tier Reference Ranges Section (Item 5) */}
+              <div style={{ padding: '12px 14px', background: 'var(--bg-card)', borderRadius: '8px', border: '1.5px solid var(--accent-cyan-subtle, #0284c7)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <BookOpen size={15} />
+                      <span>المديات المرجعية المتقدمة حسب الجنس والعمر (Multiple Reference Ranges)</span>
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      تحديد مديات مفصلة للرجال، النساء، الأطفال، وحديثي الولادة مع توثيق المصدر السريري
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={handleAutoFillPcv}
+                      title="ملء تلقائي معتمد من Mayo Clinic و Harriet Lane لـ PCV"
+                      className="btn-secondary"
+                      style={{ fontSize: '11px', padding: '4px 10px', color: '#0284c7', borderColor: '#0284c7', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <Sparkles size={12} />
+                      <span>ملء معتمد لـ PCV</span>
+                    </button>
+
+                    {!showRangeForm && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          resetRangeForm();
+                          setShowRangeForm(true);
+                        }}
+                        className="btn-secondary"
+                        style={{ fontSize: '11px', padding: '4px 10px', color: 'var(--accent-emerald)', borderColor: 'var(--accent-emerald)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <Plus size={12} />
+                        <span>+ إضافة مدى</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Existing Ranges List */}
+                {referenceRanges.length === 0 ? (
+                  <div style={{ padding: '12px', background: 'var(--bg-input-deep)', borderRadius: '6px', textAlign: 'center', fontSize: '11.5px', color: 'var(--text-muted)', border: '1px dashed var(--border-color)' }}>
+                    لا توجد مديات فرعية مخصصة مسجلة لهذا الفحص — سيتم اعتماد المعدل العام أعلاه افتراضياً.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {referenceRanges.map((r, idx) => (
+                      <div
+                        key={r.id || idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '8px 12px',
+                          background: 'var(--bg-input-deep)',
+                          borderRadius: '6px',
+                          border: '1px solid var(--border-color)',
+                          fontSize: '11.5px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>{r.label}</span>
+                          <span style={{ padding: '1px 6px', borderRadius: '4px', background: r.sex === 'M' ? '#dbeafe' : r.sex === 'F' ? '#fce7f3' : '#f1f5f9', color: r.sex === 'M' ? '#1d4ed8' : r.sex === 'F' ? '#be185d' : '#475569', fontSize: '10px', fontWeight: 700 }}>
+                            {r.sex === 'M' ? 'ذكور (M)' : r.sex === 'F' ? 'إناث (F)' : 'الكل (Any)'}
+                          </span>
+                          {(r.ageMin != null || r.ageMax != null) && (
+                            <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
+                              العمر: {r.ageMin ?? 0} - {r.ageMax ?? '∞'} {r.ageUnit === 'days' ? 'يوم' : r.ageUnit === 'months' ? 'شهر' : 'سنة'}
+                            </span>
+                          )}
+                          <span dir="ltr" style={{ fontWeight: 800, color: 'var(--accent-cyan)', direction: 'ltr', unicodeBidi: 'isolate' }}>
+                            {r.text || (r.low != null && r.high != null ? `${r.low} - ${r.high}` : (r.low != null ? `>= ${r.low}` : r.high != null ? `<= ${r.high}` : '-'))} {r.unit || unit || ''}
+                          </span>
+                          {r.source && (
+                            <span style={{ fontSize: '10px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '2px' }} title={r.source}>
+                              <ShieldCheck size={11} /> {r.source.substring(0, 30)}...
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveRange(idx, 'UP')}
+                            disabled={idx === 0}
+                            style={{ background: 'none', border: 'none', cursor: idx === 0 ? 'default' : 'pointer', color: idx === 0 ? 'var(--text-dim)' : 'var(--text-muted)', padding: '2px' }}
+                            title="تحريك لأعلى"
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveRange(idx, 'DOWN')}
+                            disabled={idx === referenceRanges.length - 1}
+                            style={{ background: 'none', border: 'none', cursor: idx === referenceRanges.length - 1 ? 'default' : 'pointer', color: idx === referenceRanges.length - 1 ? 'var(--text-dim)' : 'var(--text-muted)', padding: '2px' }}
+                            title="تحريك لأسفل"
+                          >
+                            <ChevronDown size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditRange(idx)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0284c7', padding: '2px' }}
+                            title="تعديل المدى"
+                          >
+                            <Edit3 size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRange(idx)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '2px' }}
+                            title="حذف المدى"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Sub-form to Add or Edit Range */}
+                {showRangeForm && (
+                  <div style={{ padding: '12px', background: 'var(--bg-input-deep)', borderRadius: '8px', border: '1px solid var(--accent-cyan)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--accent-cyan)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{rangeEditIndex !== null ? 'تعديل بيانات المدى المرجعي' : 'إضافة مدى مرجعي جديد'}</span>
+                      <button type="button" onClick={resetRangeForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={14} /></button>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: '8px' }}>
+                      <div>
+                        <label className="input-label">التسمية (Label) *</label>
+                        <input
+                          type="text"
+                          placeholder="مثال: البالغين / حديثي الولادة"
+                          className="input-control"
+                          value={rangeLabel}
+                          onChange={(e) => setRangeLabel(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="input-label">الجنس (Sex)</label>
+                        <select className="input-control" value={rangeSex} onChange={(e) => setRangeSex(e.target.value as any)}>
+                          <option value="any">الكل (Any)</option>
+                          <option value="M">ذكور (M)</option>
+                          <option value="F">إناث (F)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="input-label">أدنى عمر</label>
+                        <input
+                          type="number"
+                          step="any"
+                          placeholder="0"
+                          className="input-control"
+                          value={rangeAgeMin}
+                          onChange={(e) => setRangeAgeMin(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="input-label">أعلى عمر</label>
+                        <input
+                          type="number"
+                          step="any"
+                          placeholder="120"
+                          className="input-control"
+                          value={rangeAgeMax}
+                          onChange={(e) => setRangeAgeMax(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="input-label">وحدة العمر</label>
+                        <select className="input-control" value={rangeAgeUnit} onChange={(e) => setRangeAgeUnit(e.target.value as any)}>
+                          <option value="years">سنوات (Years)</option>
+                          <option value="months">أشهر (Months)</option>
+                          <option value="days">أيام (Days)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr 1fr', gap: '8px' }}>
+                      <div>
+                        <label className="input-label">الحد الأدنى (Low)</label>
+                        <input
+                          type="number"
+                          step="any"
+                          placeholder="الأدنى"
+                          className="input-control"
+                          value={rangeLow}
+                          onChange={(e) => setRangeLow(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="input-label">الحد الأعلى (High)</label>
+                        <input
+                          type="number"
+                          step="any"
+                          placeholder="الأعلى"
+                          className="input-control"
+                          value={rangeHigh}
+                          onChange={(e) => setRangeHigh(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="input-label">نص المدى المرجعي (Text Range)</label>
+                        <input
+                          type="text"
+                          placeholder="مثال: 40.0 - 52.0 أو مرغوب <200"
+                          className="input-control"
+                          value={rangeText}
+                          onChange={(e) => setRangeText(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="input-label">الوحدة (Unit)</label>
+                        <input
+                          type="text"
+                          placeholder={unit || 'الوحدة'}
+                          className="input-control"
+                          value={rangeUnit}
+                          onChange={(e) => setRangeUnit(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 2fr', gap: '8px' }}>
+                      <div>
+                        <label className="input-label">المصدر المعتمد (Source)</label>
+                        <input
+                          type="text"
+                          placeholder="مثال: Mayo Clinic / WHO / Tietz"
+                          className="input-control"
+                          value={rangeSource}
+                          onChange={(e) => setRangeSource(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="input-label">رابط المصدر (Source URL)</label>
+                        <input
+                          type="url"
+                          placeholder="https://www.mayocliniclabs.com/..."
+                          className="input-control"
+                          value={rangeSourceUrl}
+                          onChange={(e) => setRangeSourceUrl(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="input-label">ملاحظات سريرية (Note)</label>
+                        <input
+                          type="text"
+                          placeholder="ملاحظة حول الطريقة المخبرية..."
+                          className="input-control"
+                          value={rangeNote}
+                          onChange={(e) => setRangeNote(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', marginTop: '4px' }}>
+                      <button type="button" onClick={handleSaveRange} className="btn-primary" style={{ fontSize: '11px', padding: '6px 14px' }}>
+                        {rangeEditIndex !== null ? 'تحديث المدى' : 'حفظ المدى'}
+                      </button>
+                      <button type="button" onClick={resetRangeForm} className="btn-secondary" style={{ fontSize: '11px', padding: '6px 12px' }}>
+                        إلغاء
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>

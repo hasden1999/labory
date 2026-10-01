@@ -17,16 +17,36 @@ import { compareSampleWithHistory, DeltaCheckResult } from '../../lib/deltaCheck
 import { Sample, SampleTest, Test } from '../../types';
 import ConfirmModal from '../../components/ConfirmModal';
 import { INITIAL_TESTS_CATALOG } from '../../lib/catalogData';
-import { 
-  toEnglishDigits, 
-  formatEnglishDate, 
-  formatEnglishDateTime, 
-  formatEnglishCurrency, 
-  isBloodGroupTest, 
-  BLOOD_GROUP_OPTIONS, 
+import {
+  toEnglishDigits,
+  formatEnglishDate,
+  formatEnglishDateTime,
+  formatEnglishCurrency,
+  isBloodGroupTest,
+  BLOOD_GROUP_OPTIONS,
   evaluateQualitativeAbnormality,
-  evaluateClinicalResult 
+  evaluateClinicalResult
 } from '../../lib/formatters';
+import {
+  normalizeIraqiPhone,
+  isCalculatedCatalogTest,
+  isBlockingOrderTest,
+  getMissingTests,
+  isOrderComplete,
+  orderTotalPrice,
+  formatIqd,
+  buildWhatsAppMessage,
+  buildWaLink,
+  matchLipidSlot,
+  getLipidUnit,
+  resolveReferenceRange,
+} from '../../lib/orderHelpers';
+import {
+  calculateLipidPanel,
+  normalizeLipidUnit,
+  LIPID_CATALOG_IDS,
+  LIPID_NOT_CALCULATED_MSG,
+} from '../../lib/clinicalIntelligence';
 
 const UrineFormModal = nextDynamic(() => import('../../components/UrineFormModal'), { ssr: false });
 const GseModal = nextDynamic(() => import('../../components/workstations/GseModal'), { ssr: false });
@@ -65,6 +85,15 @@ function ResultsContent() {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [deltaChecks, setDeltaChecks] = useState<Record<string, DeltaCheckResult>>({});
+  // Item 9: which rows currently hold an auto-calculated (overridable) value
+  const [calculatedFlags, setCalculatedFlags] = useState<Record<string, boolean>>({});
+  // Item 7/6: role + order totals + WhatsApp readiness
+  const [userRole, setUserRole] = useState<string>('OWNER');
+  // Item 8: previous-result inclusion per sampleTestId
+  const [prevOptions, setPrevOptions] = useState<Record<string, Array<{ value: string; date: string; sampleId: string; sampleNumber?: number }>>>({});
+  const [includePrev, setIncludePrev] = useState<Record<string, boolean>>({});
+  const [selectedPrevIdx, setSelectedPrevIdx] = useState<Record<string, number>>({});
+  const [manualPrev, setManualPrev] = useState<Record<string, { value: string; date: string }>>({});
   const [inventoryAlerts, setInventoryAlerts] = useState<any>(null);
   const [incompletePrintAlert, setIncompletePrintAlert] = useState<{
     open: boolean;
@@ -80,6 +109,10 @@ function ResultsContent() {
         }
       })
       .catch(() => {});
+    try {
+      const r = localStorage.getItem('user_role') || localStorage.getItem('role') || 'OWNER';
+      if (r) setUserRole(String(r).toUpperCase());
+    } catch {}
   }, []);
 
   // Refs for fast Shift / Enter navigation across table rows
@@ -318,6 +351,34 @@ function ResultsContent() {
     };
   }, []);
 
+  // Item 8: build per-test previous-result options (most recent default, selectable)
+  const buildPrevOptions = (sample: Sample, allSamples: any[]) => {
+    try {
+      const pid = (sample as any).patientId || (sample as any).patient?.id;
+      const pname = (sample as any).patient?.name;
+      const priors = (allSamples || [])
+        .filter((s: any) => s.id !== sample.id && ((pid && (s.patientId === pid || s.patient?.id === pid)) || (pname && s.patient?.name === pname)))
+        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const opts: Record<string, Array<{ value: string; date: string; sampleId: string; sampleNumber?: number }>> = {};
+      (sample.tests || []).forEach((st: any) => {
+        const tid = st.testId || st.test?.id;
+        const code = String(st.test?.code || (st as any).code || '').toUpperCase();
+        const list: Array<{ value: string; date: string; sampleId: string; sampleNumber?: number }> = [];
+        for (const ps of priors) {
+          const pt = (ps.tests || []).find((x: any) =>
+            (tid && (x.testId === tid || x.test?.id === tid)) ||
+            (code && String(x.test?.code || x.code || '').toUpperCase() === code)
+          );
+          if (pt && pt.resultValue !== undefined && pt.resultValue !== null && String(pt.resultValue).trim() !== '') {
+            list.push({ value: String(pt.resultValue), date: String(ps.createdAt).slice(0, 10), sampleId: ps.id, sampleNumber: ps.sampleNumber });
+          }
+        }
+        opts[st.id] = list;
+      });
+      setPrevOptions(opts);
+    } catch {}
+  };
+
   // Select Sample with SessionStorage Draft Recovery
   const selectSample = (sample: Sample) => {
     setSelectedSample(sample);
@@ -369,6 +430,38 @@ function ResultsContent() {
       setTestResults(initial);
       setIsDirty(false);
     }
+    // Restore calculated + previous-inclusion flags from stored sample (items 8/9)
+    try {
+      const calc: Record<string, boolean> = {};
+      const inc: Record<string, boolean> = {};
+      const selIdx: Record<string, number> = {};
+      const man: Record<string, { value: string; date: string }> = {};
+      (sample.tests || []).forEach((st: any) => {
+        if ((st as any).isCalculated) calc[st.id] = true;
+        if ((st as any).includePrevious) inc[st.id] = true;
+        if ((st as any).previousValue && !(st as any).includePrevious) {
+          // keep manual draft even if not yet enabled
+          man[st.id] = { value: String((st as any).previousValue || ''), date: (st as any).previousDate ? String((st as any).previousDate).slice(0, 10) : '' };
+        } else if ((st as any).previousValue) {
+          man[st.id] = { value: String((st as any).previousValue || ''), date: (st as any).previousDate ? String((st as any).previousDate).slice(0, 10) : '' };
+        }
+        selIdx[st.id] = 0;
+      });
+      setCalculatedFlags(calc);
+      setIncludePrev(inc);
+      setSelectedPrevIdx(selIdx);
+      setManualPrev(man);
+      buildPrevOptions(sample, samples);
+    } catch {}
+    // Item 8: also fetch full patient history for previous dropdown (most recent default)
+    try {
+      const pid = (sample as any).patientId || (sample as any).patient?.id;
+      if (pid) {
+        apiRequest(`/samples?patientId=${pid}`).then((fullList: any) => {
+          if (Array.isArray(fullList)) buildPrevOptions(sample, fullList);
+        }).catch(() => {});
+      }
+    } catch {}
 
     // Compute Delta Checks against patient's previous visits (Local fast check + async deep history)
     try {
@@ -546,108 +639,104 @@ function ResultsContent() {
       isAbnormal,
     };
 
-    // Precise Clinically-Standard Analyte Matchers
-    const isCholTest = (st: any) => {
-      const code = (st.test?.code || '').toUpperCase();
-      const name = (st.test?.name || '').toLowerCase();
-      const arName = st.test?.arabicName || '';
-      if (code === 'CHOL' || code === 'TC' || code === 'CHOL-TOTAL') return true;
-      if (name.includes('total cholesterol') || arName.includes('الكوليسترول الكلي')) return true;
-      if ((name === 'cholesterol' || name.startsWith('cholesterol ')) && !name.includes('hdl') && !name.includes('ldl') && !name.includes('vldl')) return true;
-      return false;
-    };
-
-    const isHdlTest = (st: any) => {
-      const code = (st.test?.code || '').toUpperCase();
-      const name = (st.test?.name || '').toLowerCase();
-      const arName = st.test?.arabicName || '';
-      return code === 'HDL' || code === 'HDL-C' || name.includes('hdl') || arName.includes('النافع') || arName.includes('عالي الكثافة');
-    };
-
-    const isLdlTest = (st: any) => {
-      const code = (st.test?.code || '').toUpperCase();
-      const name = (st.test?.name || '').toLowerCase();
-      const arName = st.test?.arabicName || '';
-      if (code === 'VLDL' || name.includes('vldl')) return false;
-      return code === 'LDL' || code === 'LDL-C' || (name.includes('ldl') && !name.includes('vldl')) || arName.includes('الضار') || (arName.includes('منخفض الكثافة') && !arName.includes('شديد'));
-    };
-
-    const isVldlTest = (st: any) => {
-      const code = (st.test?.code || '').toUpperCase();
-      const name = (st.test?.name || '').toLowerCase();
-      const arName = st.test?.arabicName || '';
-      return code === 'VLDL' || code === 'VLDL-C' || name.includes('vldl') || arName.includes('شديد انخفاض الكثافة');
-    };
-
-    const isTgTest = (st: any) => {
-      const code = (st.test?.code || '').toUpperCase();
-      const name = (st.test?.name || '').toLowerCase();
-      const arName = st.test?.arabicName || '';
-      if (code.includes('ANTI')) return false;
-      return code === 'TG' || code === 'TRIG' || name.includes('triglyceride') || arName.includes('الدهون الثلاثية') || arName.includes('ثلاثي الغليسريد');
-    };
-
-    const tgTest = selectedSample?.tests?.find(isTgTest);
-    const cholTest = selectedSample?.tests?.find(isCholTest);
-    const hdlTest = selectedSample?.tests?.find(isHdlTest);
-    const ldlTest = selectedSample?.tests?.find(isLdlTest);
-    const vldlTest = selectedSample?.tests?.find(isVldlTest);
+    // Item 9: Lipid auto-calculation by TEST ID (not display name), unit-aware, live, no button
+    // LDL = TC-HDL-TG/5 (mg/dL) or TG/2.2 (mmol/L); VLDL = TG/5 or TG/2.2; Non-HDL = TC-HDL; ratios 1 decimal.
+    // TG>=400 mg/dL (≈4.5 mmol/L) invalidates Friedewald: show "Not calculated (TG ≥ 400)", allow direct LDL override.
+    // Calculated fields are read-only but overridable (direct typed LDL wins), marked "calculated", cleared when inputs emptied.
+    const nextCalcFlags = { ...calculatedFlags };
+    const editingLdl = (() => {
+      const l = (selectedSample?.tests || []).find((st: any) => matchLipidSlot(st, 'LDL'));
+      return l && l.id === sampleTestId;
+    })();
+    if (editingLdl) {
+      // Direct LDL typed → it wins, clear calculated mark (overridable)
+      const typed = parseNumericResult(val);
+      if (!isNaN(typed)) nextCalcFlags[sampleTestId] = false;
+      else if (val.trim() === '') delete nextCalcFlags[sampleTestId];
+    }
+    const tgTest = (selectedSample?.tests || []).find((st: any) => matchLipidSlot(st, 'TG'));
+    const cholTest = (selectedSample?.tests || []).find((st: any) => matchLipidSlot(st, 'TC'));
+    const hdlTest = (selectedSample?.tests || []).find((st: any) => matchLipidSlot(st, 'HDL'));
+    const ldlTest = (selectedSample?.tests || []).find((st: any) => matchLipidSlot(st, 'LDL'));
+    const vldlTest = (selectedSample?.tests || []).find((st: any) => matchLipidSlot(st, 'VLDL'));
+    const nonHdlTest = (selectedSample?.tests || []).find((st: any) => matchLipidSlot(st, 'NON_HDL'));
+    const tcHdlTest = (selectedSample?.tests || []).find((st: any) => matchLipidSlot(st, 'TC_HDL_RATIO'));
+    const ldlHdlTest = (selectedSample?.tests || []).find((st: any) => matchLipidSlot(st, 'LDL_HDL_RATIO'));
 
     const currentTG = tgTest ? parseNumericResult(nextResults[tgTest.id]?.resultValue) : NaN;
     const currentCHOL = cholTest ? parseNumericResult(nextResults[cholTest.id]?.resultValue) : NaN;
     const currentHDL = hdlTest ? parseNumericResult(nextResults[hdlTest.id]?.resultValue) : NaN;
-
-    // VLDL calculation (Friedewald: TG / 5)
-    if (vldlTest && sampleTestId !== vldlTest.id) {
-      if (!isNaN(currentTG) && currentTG >= 0) {
-        if (currentTG >= 400) {
-          nextResults[vldlTest.id] = {
-            ...nextResults[vldlTest.id],
-            resultValue: 'غير صالح (TG ≥ 400)',
-            isAbnormal: true,
-          };
-        } else {
-          const vldlCalc = currentTG / 5;
-          const vldlVal = vldlCalc.toFixed(1);
-          nextResults[vldlTest.id] = {
-            ...nextResults[vldlTest.id],
-            resultValue: vldlVal,
-            isAbnormal: parseFloat(vldlVal) > 30,
-          };
+    const lipidUnit = getLipidUnit(selectedSample?.tests || []);
+    const panel = calculateLipidPanel(
+      isNaN(currentCHOL) ? undefined : currentCHOL,
+      isNaN(currentHDL) ? undefined : currentHDL,
+      isNaN(currentTG) ? undefined : currentTG,
+      lipidUnit,
+      undefined
+    );
+    const setCalcRow = (rowTest: any, value: number | null, invalidMsg?: string) => {
+      if (!rowTest || sampleTestId === rowTest.id) return;
+      // Never overwrite a direct-override LDL typed by user
+      if (rowTest.id && nextCalcFlags[rowTest.id] === false && nextResults[rowTest.id]?.resultValue?.trim() !== '') {
+        const isLdlRow = matchLipidSlot(rowTest, 'LDL');
+        if (isLdlRow) return;
+      }
+      if (value !== null && value !== undefined) {
+        nextResults[rowTest.id] = { ...nextResults[rowTest.id], resultValue: String(value), isAbnormal: false };
+        nextCalcFlags[rowTest.id] = true;
+      } else if (invalidMsg) {
+        // TG>=400: show Not calculated placeholder (allows typing direct LDL afterwards)
+        const cur = nextResults[rowTest.id]?.resultValue || '';
+        if (cur.trim() === '' || cur.includes('Not calculated') || cur.includes('Direct LDL') || cur.includes('غير صالح')) {
+          nextResults[rowTest.id] = { ...nextResults[rowTest.id], resultValue: invalidMsg, isAbnormal: false };
+          nextCalcFlags[rowTest.id] = true;
+        }
+      } else {
+        // Clear calculated when inputs emptied (only if it was calculated, never wipe direct entries)
+        if (nextCalcFlags[rowTest.id]) {
+          nextResults[rowTest.id] = { ...nextResults[rowTest.id], resultValue: '', isAbnormal: false };
+          delete nextCalcFlags[rowTest.id];
         }
       }
+    };
+    // VLDL + LDL (invalid when TG>=threshold)
+    if (vldlTest) {
+      if (!isNaN(currentTG)) setCalcRow(vldlTest, panel.vldl.value, panel.vldl.invalidReason ? LIPID_NOT_CALCULATED_MSG : undefined);
+      else if (nextCalcFlags[vldlTest.id]) { nextResults[vldlTest.id] = { ...nextResults[vldlTest.id], resultValue: '', isAbnormal: false }; delete nextCalcFlags[vldlTest.id]; }
     }
-
-    // LDL calculation (Friedewald: Total Chol - HDL - (TG / 5))
     if (ldlTest && sampleTestId !== ldlTest.id) {
-      if (!isNaN(currentCHOL) && !isNaN(currentHDL) && !isNaN(currentTG) && currentTG >= 0) {
-        if (currentTG >= 400) {
-          nextResults[ldlTest.id] = {
-            ...nextResults[ldlTest.id],
-            resultValue: 'Direct LDL required (TG ≥ 400)',
-            isAbnormal: true,
-          };
-        } else {
-          const ldlCalc = currentCHOL - currentHDL - (currentTG / 5);
-          if (!isNaN(ldlCalc) && isFinite(ldlCalc)) {
-            if (ldlCalc < 10) {
-              nextResults[ldlTest.id] = {
-                ...nextResults[ldlTest.id],
-                resultValue: 'Direct LDL required (Calculated <10)',
-                isAbnormal: true,
-              };
-            } else {
-              const ldlVal = ldlCalc.toFixed(1);
-              nextResults[ldlTest.id] = {
-                ...nextResults[ldlTest.id],
-                resultValue: ldlVal,
-                isAbnormal: parseFloat(ldlVal) > 130,
-              };
-            }
-          }
+      if (!isNaN(currentCHOL) && !isNaN(currentHDL) && !isNaN(currentTG)) {
+        if (panel.ldl.value !== null) setCalcRow(ldlTest, panel.ldl.value);
+        else setCalcRow(ldlTest, null, LIPID_NOT_CALCULATED_MSG);
+      } else if (nextCalcFlags[ldlTest.id]) {
+        const cur = nextResults[ldlTest.id]?.resultValue || '';
+        if (cur.trim() === '' || cur.includes('Not calculated') || cur.includes('Direct LDL')) {
+          nextResults[ldlTest.id] = { ...nextResults[ldlTest.id], resultValue: '', isAbnormal: false };
+          delete nextCalcFlags[ldlTest.id];
         }
       }
     }
+    // Non-HDL + ratios (always valid when inputs present; no H/L flags)
+    if (nonHdlTest && sampleTestId !== nonHdlTest.id) {
+      if (!isNaN(currentCHOL) && !isNaN(currentHDL)) setCalcRow(nonHdlTest, panel.nonHdl.value);
+      else if (nextCalcFlags[nonHdlTest.id]) { nextResults[nonHdlTest.id] = { ...nextResults[nonHdlTest.id], resultValue: '', isAbnormal: false }; delete nextCalcFlags[nonHdlTest.id]; }
+    }
+    if (tcHdlTest && sampleTestId !== tcHdlTest.id) {
+      if (!isNaN(currentCHOL) && !isNaN(currentHDL)) setCalcRow(tcHdlTest, panel.tcHdlRatio.value);
+      else if (nextCalcFlags[tcHdlTest.id]) { nextResults[tcHdlTest.id] = { ...nextResults[tcHdlTest.id], resultValue: '', isAbnormal: false }; delete nextCalcFlags[tcHdlTest.id]; }
+    }
+    if (ldlHdlTest && sampleTestId !== ldlHdlTest.id) {
+      // LDL/HDL needs HDL + (calculated or direct LDL override wins)
+      let ratioVal: number | null = panel.ldlHdlRatio.value;
+      if (ldlTest && nextCalcFlags[ldlTest.id] === false && !isNaN(currentHDL)) {
+        const direct = parseNumericResult(nextResults[ldlTest.id]?.resultValue);
+        if (!isNaN(direct) && currentHDL > 0) ratioVal = Math.round((direct / currentHDL) * 10) / 10;
+      }
+      if (!isNaN(currentHDL) && ratioVal !== null && ratioVal !== undefined) {
+        setCalcRow(ldlHdlTest, ratioVal);
+      } else if (nextCalcFlags[ldlHdlTest.id]) { nextResults[ldlHdlTest.id] = { ...nextResults[ldlHdlTest.id], resultValue: '', isAbnormal: false }; delete nextCalcFlags[ldlHdlTest.id]; }
+    }
+    setCalculatedFlags(nextCalcFlags);
 
     // Bilirubin matchers (supports TSB, DIR-BIL, INDIR-BIL, TBIL, DBIL, IBIL in English and Arabic)
     const isTbilTest = (st: any) => {
@@ -746,16 +835,31 @@ function ResultsContent() {
     }
   };
 
+  // Item 8 helper: effective previous for a row (selected dropdown or manual)
+  const getEffectivePrevious = (sampleTestId: string): { value: string; date: string; sampleId: string } | null => {
+    if (!includePrev[sampleTestId]) return null;
+    const opts = prevOptions[sampleTestId] || [];
+    if (opts.length > 0) {
+      const idx = Math.min(selectedPrevIdx[sampleTestId] || 0, opts.length - 1);
+      const o = opts[idx];
+      return { value: o.value, date: o.date, sampleId: o.sampleId };
+    }
+    const m = manualPrev[sampleTestId];
+    if (m && m.value.trim() !== '') return { value: m.value.trim(), date: m.date || '', sampleId: '' };
+    // Fallback to stored (e.g. after reload before options built)
+    const st: any = (selectedSample?.tests || []).find((x: any) => x.id === sampleTestId);
+    if (st && (st as any).previousValue) return { value: String((st as any).previousValue), date: (st as any).previousDate ? String((st as any).previousDate).slice(0, 10) : '', sampleId: (st as any).previousSampleId || '' };
+    return null;
+  };
+
   // Save Results
   const handleSaveResults = async (markReady: boolean = true) => {
     if (!selectedSample) return;
 
     // Clinical Safety Rule: Prevent printing when there are unperformed / incomplete tests
+    // Item 9: free calculated rows never block completion
     if (markReady) {
-      const incompleteTests = (selectedSample.tests || []).filter((st: any) => {
-        const cur = testResults[st.id]?.resultValue ?? st.resultValue;
-        return !cur || String(cur).trim() === '';
-      });
+      const incompleteTests = getMissingTests(selectedSample.tests || [], testResults as any);
 
       if (incompleteTests.length > 0) {
         setIncompletePrintAlert({
@@ -773,12 +877,21 @@ function ResultsContent() {
 
     try {
       setSavingResults(true);
-      const resultsPayload = Object.entries(testResults).map(([sampleTestId, data]: [string, any]) => ({
-        sampleTestId,
-        resultValue: data.resultValue,
-        isAbnormal: data.isAbnormal,
-        interpretation: data.interpretation,
-      }));
+      const resultsPayload = Object.entries(testResults).map(([sampleTestId, data]: [string, any]) => {
+        const prev = getEffectivePrevious(sampleTestId);
+        return {
+          sampleTestId,
+          resultValue: data.resultValue,
+          isAbnormal: data.isAbnormal,
+          interpretation: data.interpretation,
+          includePrevious: !!includePrev[sampleTestId],
+          previousValue: prev?.value || (manualPrev[sampleTestId]?.value || ''),
+          previousDate: prev?.date || (manualPrev[sampleTestId]?.date || ''),
+          previousSampleId: prev?.sampleId || '',
+          isCalculated: !!calculatedFlags[sampleTestId],
+          isDirectOverride: sampleTestId && calculatedFlags[sampleTestId] === false && (data.resultValue || '').trim() !== '' && (selectedSample?.tests || []).some((st: any) => st.id === sampleTestId && matchLipidSlot(st, 'LDL')),
+        };
+      });
 
       await apiRequest(`/samples/${selectedSample.id}/results`, 'PUT', {
         results: resultsPayload,
@@ -811,11 +924,8 @@ function ResultsContent() {
   const handleFastPathologistApprove = async () => {
     if (!selectedSample || savingResults) return;
 
-    // Clinical Safety Rule: Check for incomplete tests before fast-approving
-    const incompleteTests = (selectedSample.tests || []).filter((st: any) => {
-      const cur = testResults[st.id]?.resultValue ?? st.resultValue;
-      return !cur || String(cur).trim() === '';
-    });
+    // Clinical Safety Rule: Check for incomplete tests before fast-approving (free calculated never block)
+    const incompleteTests = getMissingTests(selectedSample.tests || [], testResults as any);
 
     if (incompleteTests.length > 0) {
       setIncompletePrintAlert({
@@ -831,12 +941,20 @@ function ResultsContent() {
     }
     try {
       setSavingResults(true);
-      const resultsPayload = Object.entries(testResults).map(([sampleTestId, data]: [string, any]) => ({
-        sampleTestId,
-        resultValue: data.resultValue,
-        isAbnormal: data.isAbnormal,
-        interpretation: data.interpretation,
-      }));
+      const resultsPayload = Object.entries(testResults).map(([sampleTestId, data]: [string, any]) => {
+        const prev = getEffectivePrevious(sampleTestId);
+        return {
+          sampleTestId,
+          resultValue: data.resultValue,
+          isAbnormal: data.isAbnormal,
+          interpretation: data.interpretation,
+          includePrevious: !!includePrev[sampleTestId],
+          previousValue: prev?.value || '',
+          previousDate: prev?.date || '',
+          previousSampleId: prev?.sampleId || '',
+          isCalculated: !!calculatedFlags[sampleTestId],
+        };
+      });
 
       await apiRequest(`/samples/${selectedSample.id}/results`, 'PUT', {
         results: resultsPayload,
@@ -958,14 +1076,76 @@ function ResultsContent() {
     };
   }, [dateFilteredSamples]);
 
-  // Track Incomplete Tests for Selected Sample
+  // Track Incomplete Tests for Selected Sample (item 6/9: free calculated never block)
   const incompleteTests = useMemo(() => {
     if (!selectedSample?.tests) return [];
-    return selectedSample.tests.filter((st: any) => {
-      const cur = testResults[st.id]?.resultValue ?? st.resultValue;
-      return !cur || String(cur).trim() === '';
-    });
+    return getMissingTests(selectedSample.tests || [], testResults as any);
   }, [selectedSample, testResults]);
+
+  // Item 7: live order total (sum of catalog prices, IQD)
+  const orderTotal = useMemo(() => orderTotalPrice(selectedSample?.tests || []), [selectedSample]);
+  const canSeePrices = userRole !== 'TECHNICIAN';
+
+  // Item 9: live lipid preview for virtual rows (when TC/HDL/TG present but calculated rows not ordered)
+  const lipidPreview = useMemo(() => {
+    if (!selectedSample?.tests) return null;
+    const num = (v: any) => {
+      if (v === undefined || v === null) return NaN;
+      const s = toEnglishDigits(String(v)).trim();
+      if (!/^-?\d+(\.\d+)?$/.test(s)) return NaN;
+      return parseFloat(s);
+    };
+    const g = (slot: 'TC' | 'HDL' | 'TG') => {
+      const st: any = (selectedSample.tests || []).find((x: any) => matchLipidSlot(x, slot));
+      return st ? num(testResults[st.id]?.resultValue ?? st.resultValue) : NaN;
+    };
+    const tc = g('TC'); const hdl = g('HDL'); const tg = g('TG');
+    if (isNaN(tc) && isNaN(hdl) && isNaN(tg)) return null;
+    const unit = getLipidUnit(selectedSample.tests || []);
+    try {
+      return calculateLipidPanel(isNaN(tc) ? undefined : tc, isNaN(hdl) ? undefined : hdl, isNaN(tg) ? undefined : tg, unit, undefined);
+    } catch { return null; }
+  }, [selectedSample, testResults]);
+
+  // Item 6: WhatsApp readiness (order complete + phone present), wa.me link with prefilled message (no API, no auto-send)
+  const waState = useMemo(() => {
+    if (!selectedSample) return { complete: false, missing: [] as any[], hasPhone: false, link: null as string | null, message: '', tooltip: 'No sample selected' };
+    const missing = getMissingTests(selectedSample.tests || [], testResults as any);
+    const complete = missing.length === 0;
+    const phone = (selectedSample.patient as any)?.phone || '';
+    const hasPhone = normalizeIraqiPhone(phone) !== '';
+    const dateStr = formatEnglishDate((selectedSample as any).createdAt);
+    const labName = (labProfile as any)?.labName || 'Laboratory';
+    const lines = (selectedSample.tests || []).map((st: any) => {
+      const v = testResults[st.id]?.resultValue ?? st.resultValue ?? '';
+      const prev = includePrev[st.id] ? (() => {
+        const opts = prevOptions[st.id] || [];
+        if (opts.length > 0) {
+          const o = opts[Math.min(selectedPrevIdx[st.id] || 0, opts.length - 1)];
+          return { value: String(o.value), date: String(o.date) };
+        }
+        const m = manualPrev[st.id];
+        if (m && m.value.trim() !== '') return { value: m.value.trim(), date: m.date || '' };
+        return undefined;
+      })() : undefined;
+      // No H/L flags per spec — plain value + unit
+      return { name: String(st.test?.name || st.test?.code || 'Test'), value: String(v || '').trim() === '' ? '-' : String(v), unit: String(st.test?.unit || ''), previous: prev };
+    });
+    // Append virtual calculated preview (price 0, never block) so WhatsApp matches print layout
+    if (lipidPreview) {
+      const hasId = (id: string) => (selectedSample.tests || []).some((st: any) => (st.testId === id || st.test?.id === id));
+      const unit = normalizeLipidUnit(getLipidUnit(selectedSample.tests || []));
+      if (lipidPreview.nonHdl.value !== null && !hasId(LIPID_CATALOG_IDS.NON_HDL)) lines.push({ name: 'Non-HDL Cholesterol (calculated)', value: String(lipidPreview.nonHdl.value), unit, previous: undefined });
+      if (lipidPreview.tcHdlRatio.value !== null && !hasId(LIPID_CATALOG_IDS.TC_HDL_RATIO)) lines.push({ name: 'TC/HDL Ratio (calculated)', value: String(lipidPreview.tcHdlRatio.value), unit: 'Ratio', previous: undefined });
+      if (lipidPreview.ldlHdlRatio.value !== null && !hasId(LIPID_CATALOG_IDS.LDL_HDL_RATIO)) lines.push({ name: 'LDL/HDL Ratio (calculated)', value: String(lipidPreview.ldlHdlRatio.value), unit: 'Ratio', previous: undefined });
+      if (!hasId(LIPID_CATALOG_IDS.LDL) && lipidPreview.ldl.value !== null) lines.push({ name: 'LDL Cholesterol (calculated)', value: String(lipidPreview.ldl.value), unit, previous: undefined });
+      if (!hasId(LIPID_CATALOG_IDS.VLDL) && lipidPreview.vldl.value !== null) lines.push({ name: 'VLDL Cholesterol (calculated)', value: String(lipidPreview.vldl.value), unit, previous: undefined });
+    }
+    const message = buildWhatsAppMessage({ labName, patientName: selectedSample.patient?.name || 'Patient', date: dateStr, sampleNumber: (selectedSample as any).sampleNumber, lines });
+    const link = complete && hasPhone ? buildWaLink(phone, message) : null;
+    const tooltip = !hasPhone ? 'No phone number for this patient' : !complete ? `Missing: ${missing.map((m: any) => m.test?.name || m.test?.code).join(', ')}` : 'Send via WhatsApp';
+    return { complete, missing, hasPhone, link, message, tooltip };
+  }, [selectedSample, testResults, includePrev, prevOptions, selectedPrevIdx, manualPrev, lipidPreview, labProfile]);
 
   // Helper for elapsed time indicator
   const getElapsedTime = (createdAt: string | Date) => {
@@ -1481,25 +1661,56 @@ function ResultsContent() {
                   </span>
                 )}
 
-                {selectedSample?.patient?.phone && (
-                  <button
-                    type="button"
-                    onClick={handleSendWhatsApp}
-                    className="btn-secondary"
-                    style={{
-                      color: 'var(--color-success)',
-                      borderColor: 'rgba(16, 185, 129, 0.4)',
-                      height: '32px',
-                      fontSize: '11px',
-                      padding: '0 10px',
-                      background: 'rgba(16, 185, 129, 0.1)'
-                    }}
-                    title="إرسال تقرير المريض ورابط التحقق عبر واتساب"
+                {/* Item 7: read-only order total (live, IQD, hidden from Technician) */}
+                {canSeePrices && (
+                  <span
+                    title={`Total price of this order's tests (sum of catalog prices): ${orderTotal.toLocaleString('en-US')} IQD`}
+                    style={{ fontSize: '11px', color: 'var(--text-main)', background: 'var(--bg-input-deep)', border: '1px solid var(--border-color)', padding: '6px 10px', borderRadius: '6px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                   >
-                    <MessageCircle size={13} />
-                    <span>WhatsApp</span>
-                  </button>
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Cost:</span>
+                    <span>{formatIqd(orderTotal)}</span>
+                  </span>
                 )}
+
+                {/* Item 6: Send via WhatsApp — wa.me only, no API, no auto-send */}
+                <button
+                  type="button"
+                  disabled={!waState.complete || !waState.hasPhone}
+                  onClick={() => { if (waState.link) window.open(waState.link, '_blank'); }}
+                  className="btn-secondary"
+                  style={{
+                    color: waState.complete && waState.hasPhone ? 'var(--color-success)' : 'var(--text-dim)',
+                    borderColor: waState.complete && waState.hasPhone ? 'rgba(16, 185, 129, 0.4)' : 'var(--border-color)',
+                    height: '32px',
+                    fontSize: '11px',
+                    padding: '0 10px',
+                    background: waState.complete && waState.hasPhone ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-input-deep)',
+                    opacity: waState.complete && waState.hasPhone ? 1 : 0.6,
+                    cursor: waState.complete && waState.hasPhone ? 'pointer' : 'not-allowed',
+                  }}
+                  title={waState.tooltip}
+                >
+                  <MessageCircle size={13} />
+                  <span>Send via WhatsApp</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSendWhatsApp}
+                  className="btn-secondary"
+                  style={{
+                    color: 'var(--text-muted)',
+                    borderColor: 'var(--border-color)',
+                    height: '32px',
+                    fontSize: '11px',
+                    padding: '0 10px',
+                    background: 'transparent'
+                  }}
+                  title="إرسال صور الفورمات الطبية عبر واتساب (وضع الصور القديم)"
+                >
+                  <MessageCircle size={13} />
+                  <span>WhatsApp Images</span>
+                </button>
               </div>
             </div>
 
@@ -1612,12 +1823,13 @@ function ResultsContent() {
                 <tbody>
                   {selectedSample.tests?.map((st: any, index: number) => {
                     const currentVal = testResults[st.id]?.resultValue || '';
-                    const clinicalEval = evaluateClinicalResult(currentVal, st.test);
-                    const isHigh = clinicalEval.status === 'HIGH';
-                    const isLow = clinicalEval.status === 'LOW';
-                    const isAbnormal = isHigh || isLow || testResults[st.id]?.isAbnormal || false;
+                    const isCalcRow = !!calculatedFlags[st.id];
+                    const clinicalEval = isCalcRow ? { status: 'NORMAL' as const } : evaluateClinicalResult(currentVal, st.test);
+                    const isHigh = (clinicalEval as any).status === 'HIGH';
+                    const isLow = (clinicalEval as any).status === 'LOW';
+                    const isAbnormal = isCalcRow ? false : (isHigh || isLow || testResults[st.id]?.isAbnormal || false);
                     const numVal = parseFloat(currentVal);
-                    const isPanic = !isNaN(numVal) && ((st.test?.panicLow && numVal < st.test.panicLow) || (st.test?.panicHigh && numVal > st.test.panicHigh));
+                    const isPanic = !isCalcRow && !isNaN(numVal) && ((st.test?.panicLow && numVal < st.test.panicLow) || (st.test?.panicHigh && numVal > st.test.panicHigh));
 
                     return (
                       <React.Fragment key={st.id}>
@@ -1625,6 +1837,11 @@ function ResultsContent() {
                           <td style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-main)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                               <span>{formatTestDisplayName(st.test?.name)}</span>
+                              {calculatedFlags[st.id] && (
+                                <span title="Auto-calculated value (overridable: type a direct measurement to replace it)" style={{ fontSize: '9px', fontWeight: 800, color: '#0d9488', background: 'rgba(13,148,136,0.12)', border: '1px solid rgba(13,148,136,0.4)', padding: '1px 5px', borderRadius: '4px' }}>
+                                  calculated
+                                </span>
+                              )}
                               {st.test?.code && (
                                 <span style={{ fontSize: '10px', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.05)', padding: '1px 4px', borderRadius: '3px' }}>
                                   {st.test?.code}
@@ -2131,60 +2348,86 @@ function ResultsContent() {
                             )}
                           </td>
 
-                          {/* Dedicated Column: PREVIOUS RESULT (النتيجة السابقة & Δ%) */}
-                          <td style={{ padding: '10px 14px', verticalAlign: 'middle' }}>
+                          {/* Dedicated Column: PREVIOUS RESULT + include toggle (item 8) + Δ% */}
+                          <td style={{ padding: '10px 14px', verticalAlign: 'middle', minWidth: '190px' }}>
                             {(() => {
                               const code = st.test?.code || st.test?.name;
-                              const delta = deltaChecks[code] || (st.test?.code && deltaChecks[st.test.code]);
-                              if (delta && delta.hasPrevious && delta.previousValue !== undefined && delta.previousValue !== null) {
-                                const isCrit = delta.badgeLevel === 'CRITICAL' || delta.badgeLevel === 'WARNING';
-                                const isSig = delta.badgeLevel === 'SIGNIFICANT';
-                                const deltaColor = isCrit ? '#ef4444' : isSig ? '#f59e0b' : '#10b981';
-                                const deltaBg = isCrit ? 'rgba(239, 68, 68, 0.15)' : isSig ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.12)';
-                                const deltaBdr = isCrit ? '#ef4444' : isSig ? '#f59e0b' : '#10b981';
-
-                                return (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      <span style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-main)' }}>
-                                        {delta.previousValue}
-                                      </span>
-                                      <span
-                                        style={{
-                                          fontSize: '9.5px',
-                                          fontWeight: 800,
-                                          padding: '1px 5px',
-                                          borderRadius: '4px',
-                                          background: deltaBg,
-                                          color: deltaColor,
-                                          border: `1px solid ${deltaBdr}`,
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: '2px',
-                                        }}
-                                        title={delta.message}
-                                      >
-                                        Δ {delta.deltaPercent}% {delta.direction === 'increased' ? '↑' : delta.direction === 'decreased' ? '↓' : '='}
-                                      </span>
-                                    </div>
-                                    {delta.previousDate && (
-                                      <span style={{ fontSize: '9.5px', color: 'var(--text-dim)' }}>
-                                        📅 {formatEnglishDate(delta.previousDate)}
-                                      </span>
-                                    )}
-                                  </div>
-                                );
-                              }
+                              const delta: any = (deltaChecks as any)[code] || (st.test?.code && (deltaChecks as any)[st.test.code]);
+                              const opts = prevOptions[st.id] || [];
+                              const enabled = !!includePrev[st.id];
+                              const sel = Math.min(selectedPrevIdx[st.id] || 0, Math.max(0, opts.length - 1));
+                              const cur = opts.length > 0 ? opts[sel] : null;
+                              const man = manualPrev[st.id];
                               return (
-                                <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontStyle: 'italic' }}>
-                                  - (أول فحص)
-                                </span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                  {opts.length > 0 && cur ? (
+                                    <>
+                                      <div style={{ fontSize: '12px', color: 'var(--text-main)' }}>
+                                        <span style={{ color: 'var(--text-dim)' }}>Previous: </span>
+                                        <strong>{cur.value}</strong>
+                                        <span style={{ color: 'var(--text-dim)', fontSize: '10.5px' }}> ({formatEnglishDate(cur.date)})</span>
+                                      </div>
+                                      {opts.length > 1 && (
+                                        <select
+                                          value={String(sel)}
+                                          onChange={(e) => { setSelectedPrevIdx((p) => ({ ...p, [st.id]: Number(e.target.value) })); setIsDirty(true); }}
+                                          style={{ fontSize: '11px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '5px', padding: '2px 5px', maxWidth: '180px' }}
+                                          title="Pick another previous date (default: most recent)"
+                                        >
+                                          {opts.map((o, i) => (
+                                            <option key={o.sampleId + i} value={String(i)}>{formatEnglishDate(o.date)} — {o.value}{o.sampleNumber ? ` (#${o.sampleNumber})` : ''}</option>
+                                          ))}
+                                        </select>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontStyle: 'italic' }}>- (أول فحص)</span>
+                                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <input
+                                          type="text"
+                                          placeholder="Prev value (manual)"
+                                          value={man?.value || ''}
+                                          onChange={(e) => { setManualPrev((p) => ({ ...p, [st.id]: { value: e.target.value, date: p[st.id]?.date || '' } })); setIsDirty(true); }}
+                                          style={{ width: '90px', fontSize: '11px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '5px', padding: '2px 5px' }}
+                                        />
+                                        <input
+                                          type="date"
+                                          value={man?.date || ''}
+                                          onChange={(e) => { setManualPrev((p) => ({ ...p, [st.id]: { value: p[st.id]?.value || '', date: e.target.value } })); setIsDirty(true); }}
+                                          style={{ fontSize: '11px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '5px', padding: '2px 5px' }}
+                                        />
+                                      </div>
+                                    </>
+                                  )}
+                                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={enabled}
+                                      onChange={(e) => { setIncludePrev((p) => ({ ...p, [st.id]: e.target.checked })); setIsDirty(true); }}
+                                    />
+                                    <span>Include previous result in report</span>
+                                  </label>
+                                  {delta && delta.hasPrevious && delta.deltaPercent !== undefined && (
+                                    <span
+                                      style={{ fontSize: '9.5px', fontWeight: 800, padding: '1px 5px', borderRadius: '4px', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid #f59e0b', display: 'inline-flex', alignItems: 'center', gap: '2px', width: 'fit-content' }}
+                                      title={delta.message}
+                                    >
+                                      Δ {delta.deltaPercent}% {delta.direction === 'increased' ? '↑' : delta.direction === 'decreased' ? '↓' : '='}
+                                    </span>
+                                  )}
+                                </div>
                               );
                             })()}
                           </td>
 
                           <td style={{ padding: '12px 14px', color: 'var(--text-muted)' }}>
-                            {st.test?.refRangeText || (st.test?.refRangeLow !== null && st.test?.refRangeHigh !== null ? `${st.test?.refRangeLow} - ${st.test?.refRangeHigh}` : 'N/A')}
+                            <span dir="ltr" style={{ display: 'inline-block', direction: 'ltr', unicodeBidi: 'isolate' }}>
+                              {(() => {
+                                const resolved = resolveReferenceRange(st.test || st, selectedSample?.patient?.gender, selectedSample?.patient?.age);
+                                return resolved.rangeText;
+                              })()}
+                            </span>
                           </td>
 
                           <td style={{ padding: '12px 14px', color: 'var(--text-muted)' }}>

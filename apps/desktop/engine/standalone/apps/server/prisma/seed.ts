@@ -6,37 +6,13 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting comprehensive medical laboratory database seeding...');
 
-  // Clean existing data
-  await prisma.sampleTest.deleteMany();
-  await prisma.debtRecord.deleteMany();
-  await prisma.sample.deleteMany();
-  await prisma.patient.deleteMany();
-  await prisma.debtor.deleteMany();
-  await prisma.testPanelItem.deleteMany();
-  await prisma.testPanel.deleteMany();
-  await prisma.testCatalog.deleteMany();
-  await prisma.referringDoctor.deleteMany();
-  await prisma.inventoryTransaction.deleteMany();
-  await prisma.inventoryItem.deleteMany();
-  await prisma.expense.deleteMany();
-  await prisma.resultArchive.deleteMany();
+  // Idempotent Seeding: NEVER delete or overwrite existing user data
+  console.log('🛡️ Preserving existing data and using non-destructive insert-if-missing...');
 
-  // 1. Lab Settings
+  // 1. Lab Settings (only create if not configured)
   await prisma.settings.upsert({
     where: { id: 'singleton' },
-    update: {
-      labName: 'مختبر الرضا للتحليلات الطبية التخصصية',
-      labSubtitle: 'فحوصات مرضية وتطبيقية دقيقة - تشخيص إلكتروني متكامل ومعتمد',
-      doctorName: 'د. أحمد الرضا',
-      doctorTitle: 'استشاري التحليلات المرضية والمناعة السريرية',
-      labLicense: 'MOH-IQ-2026-8842',
-      whatsappNumber: '07701234567',
-      currency: 'د.ع',
-      address: 'بغداد - شارع الأطباء - مقابل المجمع الطبي المركزي',
-      phone: '07701234567 / 07801234567',
-      reportHeader: 'مختبر الرضا للتحليلات الطبية التخصصية',
-      reportFooter: 'هذا التقرير تم إخراجه وتدقيقه إلكترونياً، ويعتبر معتمداً رسمياً ومطابقاً لمواصفات الجودة المخبرية الدولية (ISO 15189).',
-    },
+    update: {},
     create: {
       id: 'singleton',
       labName: 'مختبر الرضا للتحليلات الطبية التخصصية',
@@ -81,45 +57,45 @@ async function main() {
     },
   });
 
-  // 3. Referring Doctors
-  const doc1 = await prisma.referringDoctor.create({
-    data: {
-      name: 'د. علي حسين السعدي',
-      phone: '07709876543',
-      clinic: 'عيادة الباطنية والسكري - شارع الأطباء',
-      specialty: 'أمراض باطنية وسكري وغدد صماء',
-      commissionPercent: 10,
-    },
+  // 3. Referring Doctors (Idempotent)
+  const findOrCreateDoctor = async (data: any) => {
+    let doc = await prisma.referringDoctor.findFirst({ where: { name: data.name } });
+    if (!doc) {
+      doc = await prisma.referringDoctor.create({ data });
+    }
+    return doc;
+  };
+
+  const doc1 = await findOrCreateDoctor({
+    name: 'د. علي حسين السعدي',
+    phone: '07709876543',
+    clinic: 'عيادة الباطنية والسكري - شارع الأطباء',
+    specialty: 'أمراض باطنية وسكري وغدد صماء',
+    commissionPercent: 10,
   });
 
-  const doc2 = await prisma.referringDoctor.create({
-    data: {
-      name: 'د. مريم فاضل الخفاجي',
-      phone: '07801122334',
-      clinic: 'مجمع العائلة للنسائية والتوليد',
-      specialty: 'نسائية وتوليد وعقم',
-      commissionPercent: 15,
-    },
+  const doc2 = await findOrCreateDoctor({
+    name: 'د. مريم فاضل الخفاجي',
+    phone: '07801122334',
+    clinic: 'مجمع العائلة للنسائية والتوليد',
+    specialty: 'نسائية وتوليد وعقم',
+    commissionPercent: 15,
   });
 
-  const doc3 = await prisma.referringDoctor.create({
-    data: {
-      name: 'د. مصطفى كمال الزبيدي',
-      phone: '07703334455',
-      clinic: 'مركز النور الطبي - جراحة الكلى والمسالك',
-      specialty: 'جراحة الكلى والمسالك البولية والعقم',
-      commissionPercent: 12,
-    },
+  const doc3 = await findOrCreateDoctor({
+    name: 'د. مصطفى كمال الزبيدي',
+    phone: '07703334455',
+    clinic: 'مركز النور الطبي - جراحة الكلى والمسالك',
+    specialty: 'جراحة الكلى والمسالك البولية والعقم',
+    commissionPercent: 12,
   });
 
-  const doc4 = await prisma.referringDoctor.create({
-    data: {
-      name: 'د. سارة عادل الجبوري',
-      phone: '07806667788',
-      clinic: 'مجمع ابن سينا التخصصي',
-      specialty: 'أمراض الدم والأورام',
-      commissionPercent: 10,
-    },
+  const doc4 = await findOrCreateDoctor({
+    name: 'د. سارة عادل الجبوري',
+    phone: '07806667788',
+    clinic: 'مجمع ابن سينا التخصصي',
+    specialty: 'أمراض الدم والأورام',
+    commissionPercent: 10,
   });
 
   // 4. Test Catalog (85+ Comprehensive Tests)
@@ -230,10 +206,20 @@ async function main() {
 
   const createdTestsMap: Record<string, any> = {};
   for (const t of testsData) {
-    const created = await prisma.testCatalog.create({
-      data: t,
+    let existing = await prisma.testCatalog.findFirst({
+      where: {
+        OR: [
+          ...(t.code ? [{ code: t.code }] : []),
+          { name: t.name },
+        ],
+      },
     });
-    createdTestsMap[t.code] = created;
+    if (!existing) {
+      existing = await prisma.testCatalog.create({
+        data: t,
+      });
+    }
+    createdTestsMap[t.code] = existing;
   }
 
   // 5. Diagnostic Panels (Packages)
@@ -302,24 +288,29 @@ async function main() {
   ];
 
   for (const panel of panelsData) {
-    const validTestIds = panel.testCodes
-      .map((code) => createdTestsMap[code]?.id)
-      .filter(Boolean);
+    const existing = await prisma.testPanel.findFirst({ where: { name: panel.name } });
+    if (!existing) {
+      const validTestIds = panel.testCodes
+        .map((code) => createdTestsMap[code]?.id)
+        .filter(Boolean);
 
-    await prisma.testPanel.create({
-      data: {
-        name: panel.name,
-        description: panel.description,
-        price: panel.price,
-        items: {
-          create: validTestIds.map((tId) => ({ testId: tId })),
+      await prisma.testPanel.create({
+        data: {
+          name: panel.name,
+          description: panel.description,
+          price: panel.price,
+          items: {
+            create: validTestIds.map((tId) => ({ testId: tId })),
+          },
         },
-      },
-    });
+      });
+    }
   }
 
-  // 6. Patients & Samples Data
-  console.log('👥 Seeding patients, samples, and results...');
+  // 6. Patients & Samples Data (Protected: only seed if table is completely empty)
+  const existingPatientCount = await prisma.patient.count();
+  if (existingPatientCount === 0) {
+    console.log('👥 Database is empty - seeding initial demo patients, samples, and results...');
   const pat1 = await prisma.patient.create({
     data: { name: 'حيدر عبد الحسين الخفاجي', phone: '07701239988', age: 48, gender: 'ذكر' },
   });
@@ -655,6 +646,9 @@ async function main() {
       sampleDate: new Date('2025-11-20'),
     },
   });
+  } else {
+    console.log(`🔒 Existing patient records found (${existingPatientCount} patients). Skipped demo patient/sample seed to protect real data.`);
+  }
 
   console.log('✨ Comprehensive medical laboratory seeding completed successfully!');
 }

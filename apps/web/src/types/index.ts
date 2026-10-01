@@ -18,10 +18,30 @@ export interface Patient {
   notes?: string;
 }
 
+export interface ReferenceRange {
+  id: string;
+  testId: string;
+  label: string;
+  sex: 'M' | 'F' | 'any';
+  ageMin?: number | null;
+  ageMax?: number | null;
+  ageUnit: 'days' | 'months' | 'years';
+  low?: number | null;
+  high?: number | null;
+  text?: string | null;
+  unit?: string | null;
+  note?: string | null;
+  source?: string | null;
+  sourceUrl?: string | null;
+  isUserEdited?: boolean;
+  sortOrder?: number;
+}
+
 export interface Test {
   id: string;
   code: string;
   name: string;
+  arabicName?: string | null;
   price: number;
   category: string;
   unit?: string;
@@ -31,6 +51,10 @@ export interface Test {
   panicLow?: number | null;
   panicHigh?: number | null;
   loincCode?: string;
+  active?: boolean;
+  referenceRanges?: ReferenceRange[];
+  referenceSource?: string | null;
+  isCalculated?: boolean;
 }
 
 export interface SampleTest {

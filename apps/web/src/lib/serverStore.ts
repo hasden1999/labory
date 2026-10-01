@@ -770,6 +770,10 @@ export function loadStoreFromFile(): ServerStore | null {
           const snapContent = fs.readFileSync(snap.path, 'utf-8');
           const parsed = JSON.parse(snapContent);
           if (parsed && Array.isArray(parsed.patients) && Array.isArray(parsed.samples)) {
+            if (Array.isArray(parsed.tests) && parsed.tests.length < 140) {
+              console.warn(`[ServerStore] Skipping snapshot ${snap.path} because it contains only ${parsed.tests.length} tests (< 140).`);
+              continue;
+            }
             if (!Array.isArray(parsed.expenses)) parsed.expenses = [];
             fs.writeFileSync(DATA_FILE, snapContent, 'utf-8');
             console.log(`[ServerStore] Successfully recovered database from snapshot: ${snap.path}`);
@@ -816,6 +820,10 @@ export function triggerSqliteSync(): void {
   sqliteSyncTriggered = true;
   loadStoreFromSqlite().then((fromSqlite) => {
     if (fromSqlite && fromSqlite.tests && fromSqlite.tests.length > 0) {
+      if (global.__labStore && Array.isArray(global.__labStore.tests) && global.__labStore.tests.length > fromSqlite.tests.length) {
+        console.warn(`[ServerStore] Preserving ${global.__labStore.tests.length} in-memory tests over SQLite (${fromSqlite.tests.length} tests)`);
+        fromSqlite.tests = global.__labStore.tests;
+      }
       global.__labStore = fromSqlite;
       console.log('💎 [ServerStore] Authoritative state active from SQLite lab.db');
     }
@@ -871,17 +879,34 @@ export function getStore(): ServerStore {
   }
 
   // Ensure all tests from INITIAL_TESTS_CATALOG are present in tests catalog
+  // (dedupe by id AND code — item 3: never create duplicates)
   const currentStore = global.__labStore;
   if (currentStore && Array.isArray(currentStore.tests)) {
     let storeUpdated = false;
     INITIAL_TESTS_CATALOG.forEach(catalogItem => {
-      const found = currentStore.tests.find((t: any) => t.code === catalogItem.code || t.id === catalogItem.id);
+      const found = currentStore.tests.find((t: any) => t.id === catalogItem.id || (t.code && catalogItem.code && t.code === catalogItem.code));
       if (!found) {
         currentStore.tests.push(catalogItem);
         storeUpdated = true;
-      } else if (catalogItem.loincCode && !found.loincCode) {
-        found.loincCode = catalogItem.loincCode;
-        storeUpdated = true;
+      } else {
+        let touched = false;
+        if ((catalogItem as any).loincCode && !(found as any).loincCode) { (found as any).loincCode = (catalogItem as any).loincCode; touched = true; }
+        // Sync reference ranges/sources for guideline-verified tests (item 5/9) without overwriting prices
+        const syncKeys = ['refRangeLow','refRangeHigh','normalMaleLow','normalMaleHigh','normalFemaleLow','normalFemaleHigh','refRangeText','normalRange','unit','referenceSource','isCalculated','sampleType'] as const;
+        for (const k of syncKeys) {
+          const cv = (catalogItem as any)[k];
+          if (cv !== undefined && cv !== null && (found as any)[k] !== cv) {
+            // Only auto-sync when catalog carries an authoritative value (non-null) to avoid wiping custom edits with nulls
+            (found as any)[k] = cv;
+            touched = true;
+          }
+        }
+        // Ensure calculated tests stay free (item 9: add nothing to price/revenue)
+        if ((catalogItem as any).isCalculated && (found as any).price !== 0) {
+          (found as any).price = 0;
+          touched = true;
+        }
+        if (touched) storeUpdated = true;
       }
     });
 
@@ -1097,13 +1122,26 @@ export function createTestInStore(data: any): any {
     normalFemaleHigh: data.normalFemaleHigh !== undefined && data.normalFemaleHigh !== null && data.normalFemaleHigh !== '' ? Number(data.normalFemaleHigh) : null,
     criticalLow: data.criticalLow !== undefined && data.criticalLow !== null && data.criticalLow !== '' ? Number(data.criticalLow) : null,
     criticalHigh: data.criticalHigh !== undefined && data.criticalHigh !== null && data.criticalHigh !== '' ? Number(data.criticalHigh) : null,
-    refRangeText: data.refRangeText || null,
-    unit: data.unit || null,
+    refRangeText: data.refRangeText ? String(data.refRangeText).trim() : null,
+    unit: data.unit ? String(data.unit).trim() : null,
     sampleType: data.sampleType || 'مصل الدم (Serum)',
     active: data.active !== undefined ? Boolean(data.active) : true,
+    referenceSource: data.referenceSource || null,
+    isCalculated: data.isCalculated !== undefined ? Boolean(data.isCalculated) : false,
+    referenceRanges: data.referenceRanges || [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
+
+  if (!newTest.refRangeText && (newTest.refRangeLow !== null || newTest.refRangeHigh !== null)) {
+    if (newTest.refRangeLow !== null && newTest.refRangeHigh !== null) {
+      newTest.refRangeText = `${newTest.refRangeLow} - ${newTest.refRangeHigh}`;
+    } else if (newTest.refRangeLow !== null) {
+      newTest.refRangeText = `>= ${newTest.refRangeLow}`;
+    } else if (newTest.refRangeHigh !== null) {
+      newTest.refRangeText = `<= ${newTest.refRangeHigh}`;
+    }
+  }
 
   store.tests.push(newTest);
   saveStoreToFile();
@@ -1132,14 +1170,48 @@ export function updateTestInStore(id: string, data: any): any | null {
     ...(data.normalFemaleHigh !== undefined ? { normalFemaleHigh: data.normalFemaleHigh !== '' && data.normalFemaleHigh !== null ? Number(data.normalFemaleHigh) : null } : {}),
     ...(data.criticalLow !== undefined ? { criticalLow: data.criticalLow !== '' && data.criticalLow !== null ? Number(data.criticalLow) : null } : {}),
     ...(data.criticalHigh !== undefined ? { criticalHigh: data.criticalHigh !== '' && data.criticalHigh !== null ? Number(data.criticalHigh) : null } : {}),
-    ...(data.refRangeText !== undefined ? { refRangeText: data.refRangeText } : {}),
-    ...(data.unit !== undefined ? { unit: data.unit } : {}),
+    ...(data.refRangeText !== undefined ? { refRangeText: data.refRangeText ? String(data.refRangeText).trim() : null } : {}),
+    ...(data.unit !== undefined ? { unit: data.unit ? String(data.unit).trim() : null } : {}),
     ...(data.sampleType !== undefined ? { sampleType: data.sampleType } : {}),
     ...(data.active !== undefined ? { active: Boolean(data.active) } : {}),
+    ...(data.referenceSource !== undefined ? { referenceSource: data.referenceSource || null } : {}),
+    ...(data.isCalculated !== undefined ? { isCalculated: Boolean(data.isCalculated) } : {}),
+    ...(data.referenceRanges !== undefined ? { referenceRanges: data.referenceRanges } : {}),
     updatedAt: new Date().toISOString(),
   };
 
+  // Auto-sync refRangeText if empty but low/high are present
+  if (!updated.refRangeText && (updated.refRangeLow !== null || updated.refRangeHigh !== null)) {
+    if (updated.refRangeLow !== null && updated.refRangeHigh !== null) {
+      updated.refRangeText = `${updated.refRangeLow} - ${updated.refRangeHigh}`;
+    } else if (updated.refRangeLow !== null) {
+      updated.refRangeText = `>= ${updated.refRangeLow}`;
+    } else if (updated.refRangeHigh !== null) {
+      updated.refRangeText = `<= ${updated.refRangeHigh}`;
+    }
+  }
+
   store.tests[index] = updated;
+
+  // Live update all in-memory sample test references to prevent stale reference ranges and metadata
+  if (Array.isArray(store.samples)) {
+    store.samples.forEach(s => {
+      if (Array.isArray(s.tests)) {
+        s.tests.forEach(st => {
+          if (st.testId === id || st.test?.id === id) {
+            st.test = { ...st.test, ...updated };
+            if (!st.refRangeText || st.refRangeText === existing.refRangeText) {
+              st.refRangeText = updated.refRangeText;
+            }
+            if (st.refRangeLow === existing.refRangeLow) st.refRangeLow = updated.refRangeLow;
+            if (st.refRangeHigh === existing.refRangeHigh) st.refRangeHigh = updated.refRangeHigh;
+            if (st.unit === existing.unit) st.unit = updated.unit;
+          }
+        });
+      }
+    });
+  }
+
   saveStoreToFile();
   syncTestToSqlite(updated).catch((e) => console.warn('[SqliteSync] updateTest error:', e?.message));
   return updated;
@@ -1494,6 +1566,12 @@ export function addSample(data: any): SampleRecord {
       resultValue: null,
       isAbnormal: false,
       status: 'PENDING',
+      priceAtTime: catalogTest.price || 0,
+      costAtTime: catalogTest.costEstimate || 0,
+      refRangeLow: catalogTest.refRangeLow ?? null,
+      refRangeHigh: catalogTest.refRangeHigh ?? null,
+      refRangeText: catalogTest.refRangeText || (catalogTest.refRangeLow != null && catalogTest.refRangeHigh != null ? `${catalogTest.refRangeLow} - ${catalogTest.refRangeHigh}` : null),
+      unit: catalogTest.unit || null,
     };
   });
 

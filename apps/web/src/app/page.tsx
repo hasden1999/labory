@@ -12,6 +12,7 @@ import { FlaskConical, User, Phone, Calendar, Search, CheckCircle2, DollarSign, 
 import ConfirmModal from '../components/ConfirmModal';
 import { toEnglishDigits, formatEnglishDate } from '../lib/formatters';
 import { catalogCache } from '../lib/catalogCache';
+import { INITIAL_DOCTORS } from '../lib/catalogData';
 import { useLab } from '../components/LabContext';
 
 // English Clinical Category Mapping
@@ -60,7 +61,7 @@ function IntakeContent() {
   // Reference Data (Pre-hydrated from instant cache: 0ms load)
   const [tests, setTests] = useState<Test[]>(() => (catalogCache.getTests() as unknown as Test[]) || []);
   const [panels, setPanels] = useState<any[]>(() => catalogCache.getPanels() || []);
-  const [doctors, setDoctors] = useState<Doctor[]>(() => (catalogCache.getDoctors() as unknown as Doctor[]) || []);
+  const [doctors, setDoctors] = useState<Doctor[]>(() => (INITIAL_DOCTORS as unknown as Doctor[]) || []);
   const [loading, setLoading] = useState(false);
 
   // Form States - Patient
@@ -781,11 +782,16 @@ function IntakeContent() {
         }
       }
 
+      const rawSearch = testSearch.trim();
+      const normSearch = cleanArabic(rawSearch);
       const matchSearch =
-        !testSearch.trim() ||
-        t.name?.toLowerCase().includes(testSearch.toLowerCase()) ||
-        t.code?.toLowerCase().includes(testSearch.toLowerCase()) ||
-        t.category?.toLowerCase().includes(testSearch.toLowerCase());
+        !rawSearch ||
+        cleanArabic(t.name || '').includes(normSearch) ||
+        cleanArabic(t.arabicName || '').includes(normSearch) ||
+        cleanArabic(t.code || '').includes(normSearch) ||
+        cleanArabic(t.category || '').includes(normSearch) ||
+        (t.name || '').toLowerCase().includes(rawSearch.toLowerCase()) ||
+        (t.code || '').toLowerCase().includes(rawSearch.toLowerCase());
 
       return matchCat && matchSearch;
     });
@@ -1617,6 +1623,7 @@ function IntakeContent() {
               </label>
               <select
                 id="patient-doctor-select"
+                suppressHydrationWarning
                 ref={(el) => { inputRefs.current[4] = el; }}
                 onKeyDown={(e) => handleInputKeyDown(e, 4)}
                 className="select-control"
@@ -1626,7 +1633,7 @@ function IntakeContent() {
               >
                 <option value="">مباشر (بدون تحويل)</option>
                 {doctors.map((d) => (
-                  <option key={d.id} value={d.id}>
+                  <option key={d.id} value={d.id} suppressHydrationWarning>
                     د. {d.name} ({d.commissionPercent || 0}%)
                   </option>
                 ))}

@@ -16,6 +16,10 @@ async function run() {
   const desktopDir = path.join(rootDir, 'apps', 'desktop');
   const engineDir = path.join(desktopDir, 'engine');
 
+  logStep('0/5', 'التحقق الصارم من رقم الإصدار وتوافقه مع السيرفر...');
+  const allowSame = process.argv.includes('--allow-same-version') ? ' --allow-same-version' : '';
+  execSync(`node tools/verify_build_version.js${allowSame}`, { cwd: rootDir, stdio: 'inherit' });
+
   logStep('1/5', 'التحقق من وجود محرك Node.js المحمول...');
   const nodeCandidates = [
     'C:\\Program Files\\nodejs\\node.exe',
@@ -229,16 +233,43 @@ async function run() {
   console.log('======================================================');
 
   const distDir = path.join(desktopDir, 'dist');
+  const targetVersion = require(path.join(rootDir, 'package.json')).version;
   const files = fs.readdirSync(distDir);
-  const setupFile = files.find(f => f.includes('Setup') && f.endsWith('.exe'));
-  if (setupFile) {
-    const setupPath = path.join(distDir, setupFile);
-    const sizeMb = (fs.statSync(setupPath).size / (1024 * 1024)).toFixed(2);
-    console.log(`\n  📁 مسار ملف التثبيت النهائي:`);
-    console.log(`  ${setupPath}`);
-    console.log(`\n  📦 الحجم الإجمالي: ${sizeMb} MB`);
-    console.log(`\n  هذا الملف هو الوحيد الذي ترسله للعميل، وهو مستقل 100% ولا يحتاج أي برنامج مساند!`);
+  const setupFile = files.find(f => 
+    f.endsWith('.exe') && 
+    !f.includes('Portable') && 
+    !f.startsWith('Labryo.LIMS.Setup.') &&
+    f.includes('Setup') && 
+    f.includes(targetVersion)
+  );
+
+  if (!setupFile) {
+    throw new Error(`❌ خطأ جسيم: لم يتم العثور على ملف مثبت Setup.exe يحمل الإصدار ${targetVersion} بعد اكتمال البناء!`);
   }
+
+  const setupPath = path.join(distDir, setupFile);
+  const { execFileSync } = require('child_process');
+  let peVersion = '';
+  try {
+    peVersion = execFileSync('powershell.exe', [
+      '-NoProfile',
+      '-Command',
+      `(Get-Item -LiteralPath '${setupPath}').VersionInfo.ProductVersion`
+    ], { encoding: 'utf-8' }).trim();
+  } catch (e) {
+    throw new Error(`فشل فحص ترويسة ملف التثبيت: ${e.message}`);
+  }
+
+  if (peVersion !== targetVersion) {
+    throw new Error(`❌ خطأ جسيم: ترويسة ملف التثبيت المترجم (${peVersion}) لا تطابق الإصدار المطلوب (${targetVersion})!`);
+  }
+
+  const sizeMb = (fs.statSync(setupPath).size / (1024 * 1024)).toFixed(2);
+  console.log(`\n  📁 مسار ملف التثبيت النهائي المعتمد:`);
+  console.log(`  ${setupPath}`);
+  console.log(`  🔍 رقم الإصدار الموثق داخلياً: ${peVersion}`);
+  console.log(`  📦 الحجم الإجمالي: ${sizeMb} MB`);
+  console.log(`\n  هذا الملف هو الوحيد الذي ترسله للعميل، وهو مستقل 100% ولا يحتاج أي برنامج مساند!`);
 }
 
 run().catch(err => {

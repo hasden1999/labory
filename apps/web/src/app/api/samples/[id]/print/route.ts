@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getStore, clampMargin, getLocalIpAddress } from '../../../../../lib/serverStore';
 import { toEnglishDigits, formatEnglishDate, formatEnglishDateTime, isBloodGroupTest, evaluateClinicalResult } from '../../../../../lib/formatters';
+import { calculateLipidPanel, LIPID_REFERENCE_SOURCES, LIPID_CATALOG_IDS, normalizeLipidUnit } from '../../../../../lib/clinicalIntelligence';
+import { resolveReferenceRange } from '../../../../../lib/orderHelpers';
 
 function escapeHtml(str: any): string {
   if (str === null || str === undefined) return '';
@@ -438,11 +440,76 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const patId = sample.patientId || sample.patient?.id;
   const patName = sample.patient?.name;
   const priorSamples = (store.samples || [])
-    .filter(s => s.id !== sample.id && 
-      ((patId && (s.patientId === patId || s.patient?.id === patId)) || (patName && s.patient?.name === patName)) && 
+    .filter(s => s.id !== sample.id &&
+      ((patId && (s.patientId === patId || s.patient?.id === patId)) || (patName && s.patient?.name === patName)) &&
       new Date(s.createdAt).getTime() < new Date(sample.createdAt).getTime()
     )
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  // --- Item 8: Previous-result lookup (per testId/code, most recent first) ---
+  const findPriorForTest = (st: any): { value: string; date: string; sampleId: string } | null => {
+    if (st.previousValue && String(st.previousValue).trim() !== '' && st.includePrevious) {
+      return { value: String(st.previousValue), date: st.previousDate ? formatEnglishDate(st.previousDate) : '', sampleId: st.previousSampleId || '' };
+    }
+    if (!st.includePrevious) return null;
+    const tid = st.testId || st.test?.id;
+    const code = (st.test?.code || st.code || '').toUpperCase();
+    for (const ps of priorSamples) {
+      const pt = (ps.tests || []).find((x: any) =>
+        (tid && (x.testId === tid || x.test?.id === tid)) ||
+        (code && (String(x.test?.code || x.code || '').toUpperCase() === code))
+      );
+      if (pt && pt.resultValue && String(pt.resultValue).trim() !== '') {
+        return { value: String(pt.resultValue), date: formatEnglishDate(ps.createdAt), sampleId: ps.id };
+      }
+    }
+    return null;
+  };
+
+  // --- Item 9: Unit-aware lipid panel computed by test ID (not display name) ---
+  const matchCode = (st: any, codes: readonly string[]) => codes.includes(String(st.test?.code || st.code || '').toUpperCase().trim());
+  const matchId = (st: any, id: string) => (st.testId === id || st.test?.id === id);
+  const findLipid = (ids: string, codes: readonly string[]) => (allTests as any[]).find((st: any) => matchId(st, ids) || matchCode(st, codes));
+  const numOf = (st: any) => {
+    if (!st || st.resultValue === undefined || st.resultValue === null) return NaN;
+    const s = toEnglishDigits(String(st.resultValue)).trim();
+    if (!/^-?\d+(\.\d+)?$/.test(s)) return NaN;
+    return parseFloat(s);
+  };
+  // Compute lipid panel once (unit from TG/TC/HDL row, default mg/dL)
+  const lipidTcSt = findLipid(LIPID_CATALOG_IDS.TC, ['CHOL', 'TC', 'CHOL-TOTAL'] as unknown as readonly string[]);
+  const lipidHdlSt = findLipid(LIPID_CATALOG_IDS.HDL, ['HDL', 'HDL-C'] as unknown as readonly string[]);
+  const lipidTgSt = findLipid(LIPID_CATALOG_IDS.TG, ['TG', 'TRIG'] as unknown as readonly string[]);
+  const lipidLdlSt = findLipid(LIPID_CATALOG_IDS.LDL, ['LDL', 'LDL-C'] as unknown as readonly string[]);
+  const lipidVldlSt = findLipid(LIPID_CATALOG_IDS.VLDL, ['VLDL', 'VLDL-C'] as unknown as readonly string[]);
+  const lipidUnit = normalizeLipidUnit(lipidTgSt?.test?.unit || lipidTcSt?.test?.unit || lipidHdlSt?.test?.unit || 'mg/dL');
+  const lipidDirectLdl = (() => {
+    const v = lipidLdlSt ? numOf(lipidLdlSt) : NaN;
+    // If LDL row has a user-typed numeric value that differs from Friedewald, treat as direct override.
+    // (Calculated placeholders like "Not calculated..." are non-numeric and ignored by numOf.)
+    return isNaN(v) ? undefined : v;
+  })();
+  const lipidPanel = (() => {
+    const tc = lipidTcSt ? numOf(lipidTcSt) : NaN;
+    const hdl = lipidHdlSt ? numOf(lipidHdlSt) : NaN;
+    const tg = lipidTgSt ? numOf(lipidTgSt) : NaN;
+    // If LDL row holds a direct measurement while TG>=threshold, numOf gives it; pass as override only when TG invalid
+    // Otherwise let calculateLipidPanel derive LDL (override wins inside when provided).
+    try {
+      return calculateLipidPanel(isNaN(tc) ? undefined : tc, isNaN(hdl) ? undefined : hdl, isNaN(tg) ? undefined : tg, lipidUnit, undefined);
+    } catch { return null; }
+  })();
+  // Resolve effective LDL display: direct typed value wins over calculated
+  const lipidEffectiveLdl = (() => {
+    if (lipidDirectLdl !== undefined && lipidLdlSt && String(lipidLdlSt.resultValue || '').trim() !== '') {
+      // User typed a direct LDL — it wins (even if TG>=400)
+      return { value: lipidDirectLdl, isCalculated: false as boolean, invalidReason: undefined as string | undefined };
+    }
+    if (!lipidPanel) return null;
+    return lipidPanel.ldl.value !== null || lipidPanel.ldl.invalidReason
+      ? { value: lipidPanel.ldl.value, isCalculated: true as boolean, invalidReason: lipidPanel.ldl.invalidReason }
+      : null;
+  })();
 
   // Shared Helper: Digital or Pre-printed Header
   const renderHeader = (safeLabName: string, safeLabSubtitle: string, safeAddress: string, safePhone: string, safeDocName: string, safeDocTitle: string, safeLicense: string) => {
@@ -687,11 +754,99 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   // 1. General Laboratory Tests (Blood, Chemistry, Hormones, etc.)
   if (shouldRenderGeneral) {
+    // Build augmented list with unit-aware calculated lipid rows (item 9, no H/L flags, price 0)
+    const generalWithLipid: any[] = [...generalTests];
+    const hasLipidCode = (codes: readonly string[], id: string) =>
+      generalWithLipid.some((st: any) => (st.testId === id || st.test?.id === id) || codes.includes(String((st as any).test?.code || (st as any).code || '').toUpperCase().trim()));
+    const pushVirtual = (id: string, code: string, name: string, value: number | null, refDisplay: string, unit: string, invalidReason?: string) => {
+      if (value === null || value === undefined) {
+        // Still show "Not calculated" placeholder for LDL/VLDL when TG>=threshold and row missing? Only if inputs exist.
+        if (!invalidReason) return;
+        if (generalWithLipid.some((st: any) => (st.testId === id || st.test?.id === id))) return;
+        generalWithLipid.push({
+          id: `calc-${id}`, testId: id, resultValue: invalidReason, isCalculated: true, isVirtualCalculated: true,
+          test: { id, code, name, unit, refRangeText: refDisplay, price: 0, isCalculated: true, sampleType: 'محسوب' },
+        });
+        return;
+      }
+      if (hasLipidCode([code] as unknown as readonly string[], id)) return;
+      generalWithLipid.push({
+        id: `calc-${id}`, testId: id, resultValue: String(value), isCalculated: true, isVirtualCalculated: true,
+        test: { id, code, name, unit, refRangeText: refDisplay, price: 0, isCalculated: true, sampleType: 'محسوب' },
+      });
+    };
+    if (lipidPanel) {
+      const lipUnitStr = lipidUnit;
+      pushVirtual(LIPID_CATALOG_IDS.NON_HDL, 'NON-HDL', 'Non-HDL Cholesterol (calculated)', lipidPanel.nonHdl.value, LIPID_REFERENCE_SOURCES.NON_HDL.display, lipUnitStr);
+      pushVirtual(LIPID_CATALOG_IDS.TC_HDL_RATIO, 'TC/HDL', 'TC/HDL Ratio (calculated)', lipidPanel.tcHdlRatio.value, LIPID_REFERENCE_SOURCES.TC_HDL_RATIO.display, 'Ratio');
+      const ldlHdlV = lipidPanel.ldlHdlRatio.value ?? (lipidEffectiveLdl && lipidEffectiveLdl.value !== null && lipidHdlSt ? Math.round((Number(lipidEffectiveLdl.value) / numOf(lipidHdlSt)) * 10) / 10 : null);
+      pushVirtual(LIPID_CATALOG_IDS.LDL_HDL_RATIO, 'LDL/HDL', 'LDL/HDL Ratio (calculated)', ldlHdlV, LIPID_REFERENCE_SOURCES.LDL_HDL_RATIO.display, 'Ratio');
+      // LDL/VLDL virtual only when row missing entirely (existing rows render calculated inline below)
+      if (!lipidLdlSt && lipidEffectiveLdl) {
+        if (lipidEffectiveLdl.value !== null) pushVirtual(LIPID_CATALOG_IDS.LDL, 'LDL', 'LDL Cholesterol (Bad)', lipidEffectiveLdl.value, LIPID_REFERENCE_SOURCES.LDL.display, lipUnitStr, lipidEffectiveLdl.invalidReason);
+        else if (lipidEffectiveLdl.invalidReason) pushVirtual(LIPID_CATALOG_IDS.LDL, 'LDL', 'LDL Cholesterol (Bad)', null, LIPID_REFERENCE_SOURCES.LDL.display, lipUnitStr, lipidEffectiveLdl.invalidReason);
+      }
+      if (!lipidVldlSt && lipidPanel.vldl.value !== null) pushVirtual(LIPID_CATALOG_IDS.VLDL, 'VLDL', 'VLDL Cholesterol', lipidPanel.vldl.value, LIPID_REFERENCE_SOURCES.VLDL.display, lipUnitStr, lipidPanel.vldl.invalidReason);
+      else if (!lipidVldlSt && lipidPanel.vldl.invalidReason && lipidTgSt) pushVirtual(LIPID_CATALOG_IDS.VLDL, 'VLDL', 'VLDL Cholesterol', null, LIPID_REFERENCE_SOURCES.VLDL.display, lipUnitStr, lipidPanel.vldl.invalidReason);
+    }
+    // Effective columns: inject PREVIOUS when any row opts in (item 8)
+    const showPrevCol = generalWithLipid.some((st: any) => !!findPriorForTest(st));
+    const effectiveColumns: any[] = showPrevCol && !visibleColumns.some((c: any) => c.id === 'previous')
+      ? [...visibleColumns.slice(0, 2), { id: 'previous', label: 'PREVIOUS', visible: true, align: 'left' }, ...visibleColumns.slice(2)]
+      : visibleColumns;
+
+    const isLipidCalcRow = (t: any) => {
+      if (t.isVirtualCalculated) return true;
+      const id = String(t.testId || t.test?.id || '');
+      const code = String(t.test?.code || t.code || '').toUpperCase();
+      if ([LIPID_CATALOG_IDS.NON_HDL, LIPID_CATALOG_IDS.TC_HDL_RATIO, LIPID_CATALOG_IDS.LDL_HDL_RATIO].includes(id as any)) return true;
+      if (['NON-HDL', 'NONHDL', 'NON_HDL', 'TC/HDL', 'CHOL/HDL', 'LDL/HDL'].includes(code)) return true;
+      if ((id === LIPID_CATALOG_IDS.LDL || code === 'LDL' || code === 'LDL-C' || id === LIPID_CATALOG_IDS.VLDL || code === 'VLDL') && (t.isCalculated || t.test?.isCalculated)) return true;
+      // Existing LDL/VLDL rows displaying a calculated value (stored empty) are also flag-free
+      if ((id === LIPID_CATALOG_IDS.LDL || code === 'LDL') && (!t.resultValue || String(t.resultValue).trim() === '') && lipidEffectiveLdl && lipidEffectiveLdl.value !== null) return true;
+      if ((id === LIPID_CATALOG_IDS.VLDL || code === 'VLDL') && (!t.resultValue || String(t.resultValue).trim() === '') && lipidPanel && lipidPanel.vldl.value !== null) return true;
+      return false;
+    };
     const renderGeneralTestRow = (t: any, rowIdx: number) => {
-      let displayValue = t.resultValue ? escapeHtml(toEnglishDigits(t.resultValue)) : '<span style="color:#94a3b8;">Pending</span>';
-      const testName = escapeHtml(t.test?.name || t.testCode || 'Test');
-      const testUnit = escapeHtml(t.test?.unit || '-');
-      const testRef = escapeHtml(t.test?.refRangeText || '-');
+      // Resolve calculated display for existing empty LDL/VLDL rows
+      let effectiveValue: any = t.resultValue;
+      let calcLabel = '';
+      const tid = String(t.testId || t.test?.id || '');
+      const tcode = String(t.test?.code || t.code || '').toUpperCase();
+      const isLdlRow = tid === LIPID_CATALOG_IDS.LDL || tcode === 'LDL' || tcode === 'LDL-C';
+      const isVldlRow = tid === LIPID_CATALOG_IDS.VLDL || tcode === 'VLDL' || tcode === 'VLDL-C';
+      if ((!effectiveValue || String(effectiveValue).trim() === '')) {
+        if (isLdlRow && lipidEffectiveLdl) {
+          if (lipidEffectiveLdl.value !== null) { effectiveValue = String(lipidEffectiveLdl.value); calcLabel = ' <span style="font-size:9px;color:#0d9488;border:1px solid #99f6e4;background:#f0fdfa;padding:0 4px;border-radius:4px;">calculated</span>'; }
+          else if (lipidEffectiveLdl.invalidReason) { effectiveValue = lipidEffectiveLdl.invalidReason; calcLabel = ' <span style="font-size:9px;color:#b45309;border:1px solid #fde68a;background:#fffbeb;padding:0 4px;border-radius:4px;">calculated</span>'; }
+        } else if (isVldlRow && lipidPanel) {
+          if (lipidPanel.vldl.value !== null) { effectiveValue = String(lipidPanel.vldl.value); calcLabel = ' <span style="font-size:9px;color:#0d9488;border:1px solid #99f6e4;background:#f0fdfa;padding:0 4px;border-radius:4px;">calculated</span>'; }
+          else if (lipidPanel.vldl.invalidReason && lipidTgSt) { effectiveValue = lipidPanel.vldl.invalidReason; }
+        }
+      } else if (t.isVirtualCalculated || t.isCalculated) {
+        calcLabel = ' <span style="font-size:9px;color:#0d9488;border:1px solid #99f6e4;background:#f0fdfa;padding:0 4px;border-radius:4px;">calculated</span>';
+      }
+      let displayValue = effectiveValue ? escapeHtml(toEnglishDigits(effectiveValue)) + calcLabel : '<span style="color:#94a3b8;">Pending</span>';
+      const baseName = t.test?.name || (t as any).testCode || 'Test';
+      const testName = escapeHtml(baseName) + (t.isVirtualCalculated ? ' <span style="font-size:9px;color:#0d9488;">(calculated)</span>' : '');
+      const testUnit = escapeHtml(t.test?.unit || t.unit || '-');
+      let rawRef: string;
+      const printScope = (settings as any).printRangeScope || 'ALL';
+      if (printScope === 'APPLICABLE_ONLY') {
+        const resolved = resolveReferenceRange(t.test || t, sample.patient?.gender, sample.patient?.age);
+        rawRef = resolved.rangeText;
+      } else {
+        const rRanges = t.test?.referenceRanges || [];
+        if (rRanges.length > 1) {
+          rawRef = rRanges.map((r: any) => {
+            const txt = r.text || (r.low != null && r.high != null ? `${r.low} - ${r.high}` : (r.low != null ? `>= ${r.low}` : r.high != null ? `<= ${r.high}` : ''));
+            return r.label ? `${r.label}: ${txt}` : txt;
+          }).filter(Boolean).join(' | ');
+        } else {
+          rawRef = t.test?.refRangeText || (t.test?.refRangeLow != null && t.test?.refRangeHigh != null ? `${t.test.refRangeLow} - ${t.test.refRangeHigh}` : (t.refRangeText || (t.refRangeLow != null && t.refRangeHigh != null ? `${t.refRangeLow} - ${t.refRangeHigh}` : '-')));
+        }
+      }
+      const testRef = `<span dir="ltr" style="display:inline-block;direction:ltr;unicode-bidi:isolate;">${escapeHtml(rawRef)}</span>`;
 
       if (typeof t.resultValue === 'string' && (t.resultValue.includes('MICROBIOLOGY') || t.resultValue.includes('ANTIBIOGRAM:'))) {
         const clean = t.resultValue.replace(/\[.*?MICROBIOLOGY.*?\]/gi, '').trim();
@@ -729,28 +884,27 @@ export async function GET(request: Request, { params }: { params: { id: string }
       const rowBg = tableZebraStriping && rowIdx % 2 === 1 ? 'rgba(0,0,0,0.025)' : 'transparent';
       const borderStyle = tableRowBorders ? `border-bottom: 1px solid ${borderColor};` : '';
 
-      const evalRes = evaluateClinicalResult(t.resultValue, t.test || t);
-      let resColor = textColor;
-      let arrowBadge = '';
-      if (evalRes.status === 'HIGH') {
-        resColor = '#dc2626';
-        arrowBadge = ' <span style="color: #dc2626; font-size: 11px; font-weight: 900;">▲</span>';
-      } else if (evalRes.status === 'LOW') {
-        resColor = '#2563eb';
-        arrowBadge = ' <span style="color: #2563eb; font-size: 11px; font-weight: 900;">▼</span>';
-      }
+      // No H/L flags anywhere per spec (removed on purpose)
+      const resColor = textColor;
+      const prior = findPriorForTest(t);
+      const priorHtml = prior
+        ? `${escapeHtml(toEnglishDigits(prior.value))}<div style="font-size:9.5px;color:#64748b;">${escapeHtml(prior.date)}</div>`
+        : '-';
 
       return `
         <tr style="${borderStyle} background-color: ${rowBg}; page-break-inside: avoid;">
-          ${visibleColumns.map((col) => {
+          ${effectiveColumns.map((col: any) => {
             const alignStyle = `text-align: ${col.align};`;
             if (col.id === 'testName') {
               return `<td style="padding: ${customCellPadding}; font-weight: ${testNameFontWeight === 'bold' ? 800 : 500}; font-size: ${testNameFontSize}px; color: ${textColor}; ${alignStyle}">${testName}</td>`;
             }
             if (col.id === 'result') {
-              const isComplexHtml = typeof t.resultValue === 'string' && (t.resultValue.includes('MICROBIOLOGY') || t.resultValue.includes('ANTIBIOGRAM:'));
-              const finalValHtml = isComplexHtml ? displayValue : `${displayValue}${arrowBadge}`;
+              const isComplexHtml = typeof effectiveValue === 'string' && (effectiveValue.includes('MICROBIOLOGY') || effectiveValue.includes('ANTIBIOGRAM:'));
+              const finalValHtml = isComplexHtml ? displayValue : `${displayValue}`;
               return `<td style="padding: ${customCellPadding}; font-weight: ${resultValueFontWeight === 'bold' ? 800 : 500}; font-size: ${resultValueFontSize}px; color: ${resColor}; ${alignStyle}">${finalValHtml}</td>`;
+            }
+            if (col.id === 'previous') {
+              return `<td style="padding: ${customCellPadding}; font-size: ${refRangeFontSize}px; color: #475569; ${alignStyle}">${priorHtml}</td>`;
             }
             if (col.id === 'unit') {
               return `<td style="padding: ${customCellPadding}; font-size: ${unitFontSize}px; color: ${textColor}; opacity: 0.85; ${alignStyle}">${testUnit}</td>`;
@@ -769,7 +923,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     let generalRowsHtml = '';
     if (groupByCategory) {
       const categories: { [key: string]: any[] } = {};
-      generalTests.forEach((t: any) => {
+      generalWithLipid.forEach((t: any) => {
         const cat = (t.test?.category || 'تحاليل عامة (General)').trim();
         if (!categories[cat]) categories[cat] = [];
         categories[cat].push(t);
@@ -779,7 +933,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       Object.keys(categories).forEach((catName) => {
         generalRowsHtml += `
           <tr style="background: rgba(0,0,0,0.04); page-break-inside: avoid;">
-            <td colspan="${visibleColumns.length}" style="padding: 6px 12px; font-weight: 800; font-size: ${testNameFontSize}px; color: ${headerBgColor}; border-bottom: 2px solid ${borderColor};">
+            <td colspan="${effectiveColumns.length}" style="padding: 6px 12px; font-weight: 800; font-size: ${testNameFontSize}px; color: ${headerBgColor}; border-bottom: 2px solid ${borderColor};">
               📂 ${escapeHtml(catName)}
             </td>
           </tr>
@@ -789,7 +943,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         });
       });
     } else {
-      generalRowsHtml = generalTests.map((t: any, idx: number) => renderGeneralTestRow(t, idx)).join('');
+      generalRowsHtml = generalWithLipid.map((t: any, idx: number) => renderGeneralTestRow(t, idx)).join('');
     }
 
     renderedPages.push(`
@@ -801,8 +955,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
           <table dir="ltr" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; text-align: left;">
             <thead>
               <tr class="table-header" style="background: ${headerBgColor}; color: ${headerTextColor};">
-                ${visibleColumns.map((col, idx) => `
-                  <th style="padding: 8px 12px; text-align: ${col.align}; font-size: ${testNameFontSize}px; ${idx === 0 ? 'border-radius: 6px 0 0 0;' : ''} ${idx === visibleColumns.length - 1 ? 'border-radius: 0 6px 0 0;' : ''}">
+                ${effectiveColumns.map((col: any, idx: number) => `
+                  <th style="padding: 8px 12px; text-align: ${col.align}; font-size: ${testNameFontSize}px; ${idx === 0 ? 'border-radius: 6px 0 0 0;' : ''} ${idx === effectiveColumns.length - 1 ? 'border-radius: 0 6px 0 0;' : ''}">
                     ${escapeHtml(col.label)}
                   </th>
                 `).join('')}
@@ -939,37 +1093,53 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const hctLow = isFemale ? 36.0 : 40.0;
   const hctHigh = isFemale ? 48.0 : 52.0;
 
+  // Item 8: CBC previous per-component — only when toggled on for the CBC row
   let priorCbcParsed: ParsedCbc | null = null;
   let priorCbcDate = '';
-  for (const ps of priorSamples) {
-    const pCbc = (ps.tests || []).find((t: any) => isCbcTest(t.test || t));
-    if (pCbc && pCbc.resultValue && String(pCbc.resultValue).trim() !== '') {
-      priorCbcParsed = parseCbcData(String(pCbc.resultValue));
-      priorCbcDate = formatEnglishDate(ps.createdAt);
-      break;
+  const cbcToggle = cbcTests.find((t: any) => (t as any).includePrevious);
+  if (cbcToggle) {
+    // Manual or explicitly selected previous wins
+    if ((cbcToggle as any).previousValue && String((cbcToggle as any).previousValue).trim() !== '') {
+      priorCbcParsed = parseCbcData(String((cbcToggle as any).previousValue));
+      priorCbcDate = (cbcToggle as any).previousDate ? formatEnglishDate((cbcToggle as any).previousDate) : '';
+    } else {
+      const tid = (cbcToggle as any).testId || (cbcToggle as any).test?.id;
+      const wantId = (cbcToggle as any).previousSampleId;
+      const ordered = [...priorSamples].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const pick = wantId ? ordered.find((s) => s.id === wantId) : ordered.find((ps) => (ps.tests || []).some((x: any) => isCbcTest(x.test || x) && x.resultValue && String(x.resultValue).trim() !== ''));
+      if (pick) {
+        const pCbc: any = (pick.tests || []).find((x: any) => {
+          if (tid && (x.testId === tid || x.test?.id === tid)) return true;
+          return isCbcTest(x.test || x);
+        }) || (pick.tests || []).find((x: any) => isCbcTest(x.test || x));
+        if (pCbc && pCbc.resultValue && String(pCbc.resultValue).trim() !== '') {
+          priorCbcParsed = parseCbcData(String(pCbc.resultValue));
+          priorCbcDate = formatEnglishDate(pick.createdAt);
+        }
+      }
+      // Fallback: most recent CBC prior (legacy behavior, now gated by toggle)
+      if (!priorCbcParsed) {
+        for (const ps of priorSamples) {
+          const pCbc = (ps.tests || []).find((t: any) => isCbcTest(t.test || t));
+          if (pCbc && pCbc.resultValue && String(pCbc.resultValue).trim() !== '') {
+            priorCbcParsed = parseCbcData(String(pCbc.resultValue));
+            priorCbcDate = formatEnglishDate(ps.createdAt);
+            break;
+          }
+        }
+      }
     }
   }
 
   const renderCbcRow = (name: string, val: string, unit: string, ref: string, _low: number, _high: number, priorVal?: string) => {
     const hasVal = val && val !== '-';
     const hasPrior = priorVal && priorVal !== '-';
-    const num = parseFloat(val);
-    let rowColor = textColor;
-    let arrow = '';
-    if (hasVal && !isNaN(num)) {
-      if (num > _high) {
-        rowColor = '#dc2626';
-        arrow = ' <span style="color: #dc2626; font-size: 10px; font-weight: 900;">▲</span>';
-      } else if (num < _low) {
-        rowColor = '#2563eb';
-        arrow = ' <span style="color: #2563eb; font-size: 10px; font-weight: 900;">▼</span>';
-      }
-    }
+    const rowColor = textColor;
     return `
       <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
         <td style="padding: ${customCellPadding}; font-weight: 700; color: #1e293b; text-align: left;">${name}</td>
         <td style="padding: ${customCellPadding}; font-weight: 800; color: ${rowColor}; text-align: left;">
-          ${hasVal ? `${escapeHtml(val)}${arrow}` : '<span style="color:#94a3b8;">Pending</span>'}
+          ${hasVal ? `${escapeHtml(val)}` : '<span style="color:#94a3b8;">Pending</span>'}
         </td>
         ${priorCbcParsed ? `
           <td style="padding: ${customCellPadding}; font-weight: 700; color: #475569; text-align: left;">
@@ -977,7 +1147,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
           </td>
         ` : ''}
         <td style="padding: ${customCellPadding}; color: #64748b; font-weight: 600; text-align: left;">${unit}</td>
-        <td style="padding: ${customCellPadding}; color: #334155; font-weight: 600; text-align: left;">${ref}</td>
+        <td style="padding: ${customCellPadding}; color: #334155; font-weight: 600; text-align: left;"><span dir="ltr" style="display:inline-block;direction:ltr;unicode-bidi:isolate;">${ref}</span></td>
       </tr>`;
   };
 
@@ -986,22 +1156,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
     const hasVal = pctStr && pctStr !== '-';
     const absVal = hasVal && !isNaN(num) && wbcVal > 0 ? ((wbcVal * num) / 100).toFixed(2) : '-';
     const hasPrior = priorPct && priorPct !== '-';
-    let diffColor = textColor;
-    let diffArrow = '';
-    if (hasVal && !isNaN(num)) {
-      if (num > _high) {
-        diffColor = '#dc2626';
-        diffArrow = ' <span style="color: #dc2626; font-size: 10px; font-weight: 900;">▲</span>';
-      } else if (num < _low) {
-        diffColor = '#2563eb';
-        diffArrow = ' <span style="color: #2563eb; font-size: 10px; font-weight: 900;">▼</span>';
-      }
-    }
+    const diffColor = textColor;
     return `
       <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
         <td style="padding: ${customCellPadding}; font-weight: 700; color: #1e293b; text-align: left;">${name}</td>
         <td style="padding: ${customCellPadding}; font-weight: 800; color: ${diffColor}; text-align: left;">
-          ${hasVal ? `${escapeHtml(pctStr)} %${diffArrow}` : '<span style="color:#94a3b8;">Pending</span>'}
+          ${hasVal ? `${escapeHtml(pctStr)} %` : '<span style="color:#94a3b8;">Pending</span>'}
         </td>
         ${priorCbcParsed ? `
           <td style="padding: ${customCellPadding}; font-weight: 700; color: #475569; text-align: left;">
@@ -1011,7 +1171,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         <td style="padding: ${customCellPadding}; font-weight: 700; color: ${headerBgColor}; text-align: left;">
           ${absVal !== '-' ? `${absVal} <span style="font-size: 9.5px; color: #64748b; font-weight: 600;">10^3/uL</span>` : '-'}
         </td>
-        <td style="padding: ${customCellPadding}; color: #334155; font-weight: 600; text-align: left;">${refPct}</td>
+        <td style="padding: ${customCellPadding}; color: #334155; font-weight: 600; text-align: left;"><span dir="ltr" style="display:inline-block;direction:ltr;unicode-bidi:isolate;">${refPct}</span></td>
       </tr>`;
   };
 

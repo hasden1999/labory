@@ -160,6 +160,9 @@ export default function PaperDesignerV2() {
   const [tableRowSpacing, setTableRowSpacing] = useState<'COMPACT' | 'COMFORTABLE' | 'RELAXED'>(
     labProfile.tableRowSpacing || 'COMFORTABLE'
   );
+  const [printRangeScope, setPrintRangeScope] = useState<'ALL' | 'APPLICABLE_ONLY'>(
+    labProfile.printRangeScope || 'ALL'
+  );
 
   // Camera & File Logo States
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -254,6 +257,7 @@ export default function PaperDesignerV2() {
       setTableRowBorders(labProfile.tableRowBorders ?? true);
       setTableZebraStriping(labProfile.tableZebraStriping ?? false);
       if (labProfile.tableRowSpacing) setTableRowSpacing(labProfile.tableRowSpacing);
+      if (labProfile.printRangeScope) setPrintRangeScope(labProfile.printRangeScope);
     }
   }, [labProfile]);
 
@@ -535,6 +539,7 @@ export default function PaperDesignerV2() {
         tableRowBorders,
         tableZebraStriping,
         tableRowSpacing,
+        printRangeScope,
       };
 
       await updateLabProfile(payload as any);
@@ -1293,6 +1298,40 @@ export default function PaperDesignerV2() {
                         {sp.title}
                       </strong>
                       <span style={{ fontSize: '9.5px', color: 'var(--text-muted)' }}>{sp.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reference Range Scope Selection (Item 5) */}
+              <div style={{ marginTop: '16px', background: 'var(--bg-input-deep)', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>
+                  نطاق طباعة المديات المرجعية في التقرير الطبي (Reference Range Scope):
+                </span>
+                <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '10px' }}>
+                  تحديد ما إذا كان التقرير المطبوع يعرض جميع المديات للفحص أو المدى المطابق للمريض فقط
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px' }}>
+                  {[
+                    { id: 'ALL', title: 'كافة المديات المرجعية (All Ranges)', desc: 'عرض جميع المديات المسجلة (الوضع الافتراضي)' },
+                    { id: 'APPLICABLE_ONLY', title: 'المدى المطابق للمريض فقط (Applicable Range Only)', desc: 'عرض المدى المطابق لجنس وعمر المريض وقت الفحص' },
+                  ].map((sc) => (
+                    <div
+                      key={sc.id}
+                      onClick={() => setPrintRangeScope(sc.id as any)}
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        border: printRangeScope === sc.id ? '2px solid var(--accent-cyan)' : '1px solid var(--border-color)',
+                        background: printRangeScope === sc.id ? 'rgba(6, 182, 212, 0.12)' : 'var(--bg-card)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <strong style={{ fontSize: '12px', color: printRangeScope === sc.id ? 'var(--accent-cyan)' : 'var(--text-main)', display: 'block', marginBottom: '3px' }}>
+                        {sc.title}
+                      </strong>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{sc.desc}</span>
                     </div>
                   ))}
                 </div>

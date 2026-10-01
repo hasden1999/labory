@@ -244,6 +244,8 @@ export function calculateLdl(
 
 // --------------------------------------------------------------------------
 // 3. Lipid Fractions: VLDL, Non-HDL, Cardiac Risk Ratio
+// Ref: Friedewald WT et al. Clin Chem 1972; ACC/AHA 2018 Cholesterol Guideline;
+//      ESC/EAS 2019 Dyslipidaemia Guidelines. TG threshold 400 mg/dL ≈ 4.5 mmol/L.
 // --------------------------------------------------------------------------
 export function calculateVldl(tg: number): { value: number | null; invalidReason?: string } {
   if (isNaN(tg) || tg < 0) {
@@ -270,6 +272,195 @@ export function calculateCardiacRisk(tc: number, hdl: number): { value: number }
   if (isNaN(tc) || isNaN(hdl) || hdl <= 0 || tc < 0) return { value: 0 };
   return { value: Math.round((tc / hdl) * 100) / 100 };
 }
+
+// --------------------------------------------------------------------------
+// 3b. Unit-aware Lipid Panel (item 9): mg/dL vs mmol/L
+// - LDL (Friedewald) = TC − HDL − TG/5 (mg/dL); TG/2.2 in mmol/L
+// - VLDL = TG/5 (mg/dL) or TG/2.2 (mmol/L)
+// - Non-HDL = TC − HDL (unit-independent subtraction)
+// - Ratios TC/HDL and LDL/HDL: 1 decimal
+// - Invalid when TG ≥ 400 mg/dL (≈ 4.5 mmol/L): LDL/VLDL not computed
+// - mg/dL values rounded to integers; mmol/L to 2 decimals; ratios 1 decimal
+// - No H/L flags for calculated lipid values (display cut-offs only)
+// Sources stored in LIPID_REFERENCE_SOURCES.
+// --------------------------------------------------------------------------
+export type LipidUnit = 'mg/dL' | 'mmol/L';
+
+export const LIPID_TG_CUTOFF_MGDL = 400;
+export const LIPID_TG_CUTOFF_MMOLL = 4.5;
+export const LIPID_NOT_CALCULATED_MSG = 'Not calculated (TG ≥ 400)';
+
+export function normalizeLipidUnit(unit?: string | null): LipidUnit {
+  const u = String(unit || '').toLowerCase();
+  if (u.includes('mmol')) return 'mmol/L';
+  return 'mg/dL';
+}
+
+export function lipidTgThreshold(unit?: string | null): number {
+  return normalizeLipidUnit(unit) === 'mmol/L' ? LIPID_TG_CUTOFF_MMOLL : LIPID_TG_CUTOFF_MGDL;
+}
+
+export function lipidDivisor(unit?: string | null): number {
+  return normalizeLipidUnit(unit) === 'mmol/L' ? 2.2 : 5;
+}
+
+function roundLipidValue(v: number, unit?: string | null): number {
+  if (normalizeLipidUnit(unit) === 'mmol/L') return Math.round(v * 100) / 100;
+  return Math.round(v);
+}
+
+export function calculateLdlUnitAware(
+  tc: number,
+  hdl: number,
+  tg: number,
+  unit?: string | null
+): LdlResult {
+  if (isNaN(tc) || isNaN(hdl) || isNaN(tg) || tc < 0 || hdl < 0 || tg < 0) {
+    return { value: null, invalidReason: 'Invalid lipid panel values (negative or NaN input)' };
+  }
+  const threshold = lipidTgThreshold(unit);
+  if (tg >= threshold) {
+    const uLabel = normalizeLipidUnit(unit) === 'mmol/L' ? '4.5 mmol/L (≈400 mg/dL)' : '400 mg/dL';
+    return {
+      value: null,
+      invalidReason: `${LIPID_NOT_CALCULATED_MSG} — TG ≥ ${uLabel} (chylomicronemia invalidates Friedewald; direct LDL measurement required)`,
+    };
+  }
+  const ldl = tc - hdl - tg / lipidDivisor(unit);
+  if (normalizeLipidUnit(unit) === 'mg/dL' && ldl < 10) {
+    return {
+      value: null,
+      invalidReason: 'Calculated LDL < 10 mg/dL (clinically implausible) - Direct LDL measurement recommended per CLSI C56-A',
+    };
+  }
+  return { value: roundLipidValue(ldl, unit) };
+}
+
+export function calculateVldlUnitAware(
+  tg: number,
+  unit?: string | null
+): { value: number | null; invalidReason?: string } {
+  if (isNaN(tg) || tg < 0) {
+    return { value: null, invalidReason: 'Invalid triglycerides value (negative or NaN input)' };
+  }
+  const threshold = lipidTgThreshold(unit);
+  if (tg >= threshold) {
+    return { value: null, invalidReason: LIPID_NOT_CALCULATED_MSG };
+  }
+  return { value: roundLipidValue(tg / lipidDivisor(unit), unit) };
+}
+
+export function calculateNonHdlUnitAware(
+  tc: number,
+  hdl: number,
+  unit?: string | null
+): { value: number } {
+  if (isNaN(tc) || isNaN(hdl)) return { value: 0 };
+  return { value: roundLipidValue(tc - hdl, unit) };
+}
+
+export function calculateTcHdlRatio(tc: number, hdl: number): { value: number | null } {
+  if (isNaN(tc) || isNaN(hdl) || hdl <= 0 || tc < 0) return { value: null };
+  return { value: Math.round((tc / hdl) * 10) / 10 };
+}
+
+export function calculateLdlHdlRatio(ldl: number, hdl: number): { value: number | null } {
+  if (isNaN(ldl) || isNaN(hdl) || hdl <= 0 || ldl < 0) return { value: null };
+  return { value: Math.round((ldl / hdl) * 10) / 10 };
+}
+
+export interface LipidPanelResult {
+  unit: LipidUnit;
+  ldl: { value: number | null; invalidReason?: string; isCalculated: boolean };
+  vldl: { value: number | null; invalidReason?: string; isCalculated: boolean };
+  nonHdl: { value: number | null; isCalculated: boolean };
+  tcHdlRatio: { value: number | null; isCalculated: boolean };
+  ldlHdlRatio: { value: number | null; isCalculated: boolean };
+}
+
+export function calculateLipidPanel(
+  tc?: number | null,
+  hdl?: number | null,
+  tg?: number | null,
+  unit?: string | null,
+  directLdlOverride?: number | null
+): LipidPanelResult {
+  const u = normalizeLipidUnit(unit);
+  const has = (v: any) => v !== undefined && v !== null && !isNaN(Number(v));
+  const tcN = has(tc) ? Number(tc) : NaN;
+  const hdlN = has(hdl) ? Number(hdl) : NaN;
+  const tgN = has(tg) ? Number(tg) : NaN;
+  const directN = has(directLdlOverride) ? Number(directLdlOverride) : NaN;
+
+  let ldl: LipidPanelResult['ldl'] = { value: null, isCalculated: true };
+  let vldl: LipidPanelResult['vldl'] = { value: null, isCalculated: true };
+  let nonHdl: LipidPanelResult['nonHdl'] = { value: null, isCalculated: true };
+  let tcHdlRatio: LipidPanelResult['tcHdlRatio'] = { value: null, isCalculated: true };
+  let ldlHdlRatio: LipidPanelResult['ldlHdlRatio'] = { value: null, isCalculated: true };
+
+  if (!isNaN(tgN)) {
+    const v = calculateVldlUnitAware(tgN, u);
+    vldl = { value: v.value, invalidReason: v.invalidReason, isCalculated: true };
+  }
+  if (!isNaN(tcN) && !isNaN(hdlN)) {
+    nonHdl = { value: calculateNonHdlUnitAware(tcN, hdlN, u).value, isCalculated: true };
+    const r = calculateTcHdlRatio(tcN, hdlN);
+    tcHdlRatio = { value: r.value, isCalculated: true };
+  }
+  // LDL: direct override wins over calculated
+  if (!isNaN(directN)) {
+    ldl = { value: roundLipidValue(directN, u), isCalculated: false };
+  } else if (!isNaN(tcN) && !isNaN(hdlN) && !isNaN(tgN)) {
+    const c = calculateLdlUnitAware(tcN, hdlN, tgN, u);
+    ldl = { value: c.value, invalidReason: c.invalidReason, isCalculated: true };
+  }
+  // LDL/HDL needs a valid LDL (calculated or direct) + HDL
+  const ldlForRatio = !isNaN(directN) ? directN : (ldl.value ?? NaN);
+  if (!isNaN(ldlForRatio) && !isNaN(hdlN)) {
+    const r = calculateLdlHdlRatio(ldlForRatio, hdlN);
+    ldlHdlRatio = { value: r.value, isCalculated: true };
+  }
+  return { unit: u, ldl, vldl, nonHdl, tcHdlRatio, ldlHdlRatio };
+}
+
+// --------------------------------------------------------------------------
+// 3c. Lipid reference cut-offs (display only, no H/L flags on calculated rows)
+// Sources: ACC/AHA Guideline on the Management of Blood Cholesterol (2018);
+//          ESC/EAS Guidelines for Dyslipidaemias (2019); CLSI C56-A.
+// --------------------------------------------------------------------------
+export const LIPID_REFERENCE_SOURCES: Record<string, { display: string; source: string }> = {
+  TC: { display: '< 200 mg/dL (< 5.2 mmol/L) Desirable', source: 'ACC/AHA 2018 Cholesterol Guideline; ESC/EAS 2019' },
+  TG: { display: '< 150 mg/dL (< 1.7 mmol/L) Normal', source: 'ACC/AHA 2018; ESC/EAS 2019' },
+  HDL: { display: '> 40 mg/dL (M) / > 50 mg/dL (F) — low HDL is risk factor', source: 'ACC/AHA 2018; Framingham; ESC/EAS 2019' },
+  LDL: { display: '< 100 mg/dL (< 2.6 mmol/L) Optimal', source: 'ACC/AHA 2018; ESC/EAS 2019' },
+  VLDL: { display: '5–30 mg/dL (calculated TG/5)', source: 'Friedewald et al. Clin Chem 1972; CLSI C56-A' },
+  NON_HDL: { display: '< 130 mg/dL (< 3.4 mmol/L) Desirable', source: 'ACC/AHA 2018 (Non-HDL goal = LDL goal + 30 mg/dL)' },
+  TC_HDL_RATIO: { display: '< 5.0 Desirable; ≥ 6.0 High', source: 'Framingham Heart Study; ACC/AHA risk discussion' },
+  LDL_HDL_RATIO: { display: '< 2.5 Desirable; > 3.5 High', source: 'Framingham; preventive cardiology literature (descriptive, not a guideline target)' },
+};
+
+// Canonical catalog IDs for lipid linking (by test ID, not display name)
+export const LIPID_CATALOG_IDS = {
+  TC: 't-chol',
+  HDL: 't-hdl',
+  TG: 't-tg',
+  LDL: 't-ldl',
+  VLDL: 't-vldl',
+  NON_HDL: 't-nonhdl',
+  TC_HDL_RATIO: 't-tc-hdl-ratio',
+  LDL_HDL_RATIO: 't-ldl-hdl-ratio',
+} as const;
+
+export const LIPID_CATALOG_CODES = {
+  TC: ['CHOL', 'TC', 'CHOL-TOTAL'],
+  HDL: ['HDL', 'HDL-C'],
+  TG: ['TG', 'TRIG'],
+  LDL: ['LDL', 'LDL-C'],
+  VLDL: ['VLDL', 'VLDL-C'],
+  NON_HDL: ['NON-HDL', 'NONHDL', 'NON_HDL'],
+  TC_HDL_RATIO: ['TC/HDL', 'CHOL/HDL', 'TC-HDL-RATIO', 'TCHDL'],
+  LDL_HDL_RATIO: ['LDL/HDL', 'LDL-HDL-RATIO', 'LDLHDL'],
+} as const;
 
 // --------------------------------------------------------------------------
 // 4. Indirect Bilirubin & Error Invalidation
@@ -743,3 +934,23 @@ export function calculateAll(inputs: CalculationInputs): CalculationResults {
 
   return results;
 }
+
+// --------------------------------------------------------------------------
+// Item 2: Small editable dictionary and auto-replacement for Pus & RBC entries
+// Auto-replaces "full slide" (case-insensitive, whitespace-tolerant) with "full field" on blur/save.
+// --------------------------------------------------------------------------
+export const TEXT_REPLACEMENTS: Record<string, string> = {
+  'full slide': 'Full Field',
+};
+
+export function applyReplacements(val?: string | null): string {
+  if (!val || typeof val !== 'string') return val || '';
+  let res = val;
+  for (const [target, replacement] of Object.entries(TEXT_REPLACEMENTS)) {
+    const escaped = target.replace(/\s+/g, '\\s*');
+    const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
+    res = res.replace(regex, replacement);
+  }
+  return res;
+}
+

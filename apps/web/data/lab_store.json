@@ -21,7 +21,9 @@
       "normalRange": "0.2 - 2.0",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "1667-5"
     },
     {
       "id": "t-u-phos-24h",
@@ -44,7 +46,9 @@
       "normalRange": "0.4 - 1.3",
       "unit": "g/24h",
       "sampleType": "إدرار 24 ساعة",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2779-7"
     },
     {
       "id": "t-u-prot-24h",
@@ -67,7 +71,9 @@
       "normalRange": "< 150",
       "unit": "mg/24h",
       "sampleType": "إدرار 24 ساعة",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2888-6"
     },
     {
       "id": "t-acth",
@@ -90,7 +96,9 @@
       "normalRange": "7.2 - 63.3",
       "unit": "pg/mL",
       "sampleType": "بلازما (EDTA مبردة)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2141-0"
     },
     {
       "id": "t-ag-ratio",
@@ -113,7 +121,9 @@
       "normalRange": "1.1 - 2.5",
       "unit": "Ratio",
       "sampleType": "محسوب",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "1759-0"
     },
     {
       "id": "t-alp",
@@ -124,19 +134,21 @@
       "price": 8000,
       "cost": 1400,
       "costEstimate": 1400,
-      "refRangeLow": 40,
-      "refRangeHigh": 130,
-      "normalMaleLow": null,
-      "normalMaleHigh": null,
-      "normalFemaleLow": null,
-      "normalFemaleHigh": null,
+      "refRangeLow": 35,
+      "refRangeHigh": 129,
+      "normalMaleLow": 40,
+      "normalMaleHigh": 129,
+      "normalFemaleLow": 35,
+      "normalFemaleHigh": 104,
       "criticalLow": null,
       "criticalHigh": null,
-      "refRangeText": "40 - 130",
-      "normalRange": "40 - 130",
+      "refRangeText": "M: 40 - 129 / F: 35 - 104 (Adult)",
+      "normalRange": "M: 40 - 129 / F: 35 - 104 (Adult)",
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "Mayo Clinic Laboratories — Test ID ALP, Alkaline Phosphatase, Serum (adult: M 40-129 U/L, F 35-104 U/L); IFCC reference method"
     },
     {
       "id": "t-afp",
@@ -159,7 +171,8 @@
       "normalRange": "< 7.0",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-ccp",
@@ -182,7 +195,9 @@
       "normalRange": "< 20 (Negative) / 20 - 39 (Weak Pos) / >= 40 (Strong Pos)",
       "unit": "U/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "33935-8"
     },
     {
       "id": "t-dsdna",
@@ -205,7 +220,9 @@
       "normalRange": "< 25 (Negative) / 25 - 35 (Borderline) / > 35 (Positive)",
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "5130-0"
     },
     {
       "id": "t-amh",
@@ -228,7 +245,8 @@
       "normalRange": "1.0 - 3.5",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-aso",
@@ -251,7 +269,8 @@
       "normalRange": "< 200 (Negative)",
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-anti-tg",
@@ -274,7 +293,9 @@
       "normalRange": "< 115 (Negative)",
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "8098-6"
     },
     {
       "id": "t-anti-tpo",
@@ -297,7 +318,9 @@
       "normalRange": "< 34 (Negative)",
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "8099-4"
     },
     {
       "id": "t-ana",
@@ -320,7 +343,8 @@
       "normalRange": "Negative (< 1:80)",
       "unit": "Titer",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-at3",
@@ -343,7 +367,9 @@
       "normalRange": "80 - 120",
       "unit": "%",
       "sampleType": "بلازما (Sodium Citrate)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "3174-0"
     },
     {
       "id": "t-b2m",
@@ -366,7 +392,9 @@
       "normalRange": "0.7 - 2.5",
       "unit": "mg/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "1952-1"
     },
     {
       "id": "t-bhcg",
@@ -389,7 +417,8 @@
       "normalRange": "< 5 (Non-pregnant)",
       "unit": "mIU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-bt",
@@ -412,7 +441,9 @@
       "normalRange": "2.0 - 7.0",
       "unit": "min",
       "sampleType": "دم شعيري (Capillary)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "34555-3"
     },
     {
       "id": "t-bg",
@@ -435,7 +466,8 @@
       "normalRange": "A / B / AB / O (Pos/Neg)",
       "unit": null,
       "sampleType": "دم كامل (EDTA)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-urea",
@@ -458,7 +490,8 @@
       "normalRange": "15 - 45",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-bun",
@@ -481,7 +514,8 @@
       "normalRange": "7 - 20",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-bruc-sta",
@@ -504,7 +538,9 @@
       "normalRange": "Negative (< 1:80)",
       "unit": "Titer",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "5070-2"
     },
     {
       "id": "t-cpep",
@@ -527,7 +563,8 @@
       "normalRange": "0.8 - 3.8",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-crp",
@@ -550,7 +587,32 @@
       "normalRange": "< 6.0 (Normal)",
       "unit": "mg/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
+    },
+    {
+      "id": "cmuoj16fr003pq8spqzyyssic",
+      "code": "CKMB",
+      "name": "CK-MB (Creatine Kinase-MB)",
+      "arabicName": "إنزيم عضلة القلب سي كيه إم بي",
+      "category": "دهون الدم وصحة القلب",
+      "price": 20000,
+      "cost": 4500,
+      "costEstimate": 4500,
+      "refRangeLow": 0,
+      "refRangeHigh": 25,
+      "normalMaleLow": null,
+      "normalMaleHigh": null,
+      "normalFemaleLow": null,
+      "normalFemaleHigh": null,
+      "criticalLow": null,
+      "criticalHigh": 50,
+      "refRangeText": "< 25",
+      "normalRange": "< 25",
+      "unit": "U/L",
+      "sampleType": "مصل الدم (Serum)",
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-ca125",
@@ -573,7 +635,8 @@
       "normalRange": "< 35.0",
       "unit": "U/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-ca153",
@@ -596,7 +659,8 @@
       "normalRange": "< 30.0",
       "unit": "U/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-ca199",
@@ -619,7 +683,8 @@
       "normalRange": "< 37.0",
       "unit": "U/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-cea",
@@ -642,7 +707,8 @@
       "normalRange": "< 5.0",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-ct",
@@ -665,7 +731,9 @@
       "normalRange": "5.0 - 11.0",
       "unit": "min",
       "sampleType": "دم كامل (أنابيب زجاجية)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "3187-2"
     },
     {
       "id": "t-c3",
@@ -688,7 +756,9 @@
       "normalRange": "90 - 180",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "4485-9"
     },
     {
       "id": "t-c4",
@@ -711,7 +781,9 @@
       "normalRange": "10 - 40",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "4498-2"
     },
     {
       "id": "t-cbc",
@@ -734,7 +806,8 @@
       "normalRange": "12.0 - 16.0",
       "unit": "g/dL",
       "sampleType": "دم كامل (EDTA)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-ck",
@@ -757,7 +830,9 @@
       "normalRange": "30 - 200",
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2157-6"
     },
     {
       "id": "t-ckmb",
@@ -780,7 +855,9 @@
       "normalRange": "0 - 25",
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2154-3"
     },
     {
       "id": "t-cmv-g",
@@ -803,7 +880,9 @@
       "normalRange": "< 6.0 (Negative)",
       "unit": "U/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "25416-9"
     },
     {
       "id": "t-cmv-m",
@@ -826,7 +905,9 @@
       "normalRange": "< 0.7 (Negative)",
       "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "25418-5"
     },
     {
       "id": "t-ddimer",
@@ -849,7 +930,8 @@
       "normalRange": "< 0.5",
       "unit": "ug/mL",
       "sampleType": "بلازما",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-dhea-s",
@@ -872,7 +954,9 @@
       "normalRange": "80 - 450",
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2198-0"
     },
     {
       "id": "t-dengue",
@@ -895,7 +979,9 @@
       "normalRange": "Negative",
       "unit": "Qualitative",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "75378-0"
     },
     {
       "id": "t-dirbil",
@@ -918,7 +1004,8 @@
       "normalRange": "0.0 - 0.3",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-doa",
@@ -941,7 +1028,9 @@
       "normalRange": "Negative for all 10 drug classes",
       "unit": "Qualitative",
       "sampleType": "إدرار طازج",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "69739-1"
     },
     {
       "id": "test_1790788415091_im6y5",
@@ -964,7 +1053,8 @@
       "normalRange": null,
       "unit": "ng/mL",
       "sampleType": "Serum",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "test_1790788540254_0p64a",
@@ -987,7 +1077,8 @@
       "normalRange": null,
       "unit": "ng/mL",
       "sampleType": "Serum",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-ebv-vca",
@@ -1010,7 +1101,9 @@
       "normalRange": "< 20 (Negative)",
       "unit": "U/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "22297-6"
     },
     {
       "id": "t-esr",
@@ -1029,11 +1122,13 @@
       "normalFemaleHigh": 20,
       "criticalLow": null,
       "criticalHigh": 100,
-      "refRangeText": "0 - 20",
-      "normalRange": "0 - 20",
+      "refRangeText": "M <50y: 0-15 / F <50y: 0-20; M >=50y: 0-20 / F >=50y: 0-30 (Westergren)",
+      "normalRange": "M <50y: 0-15 / F <50y: 0-20; M >=50y: 0-20 / F >=50y: 0-30 (Westergren)",
       "unit": "mm/1st hr",
       "sampleType": "دم كامل (Citrate)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "Westergren method; CLSI H02-A5; Mayo Clinic Laboratories ESR (M 0-22/F 0-29 method-specific; age formula M age/2, F (age+10)/2)"
     },
     {
       "id": "t-egfr",
@@ -1056,7 +1151,8 @@
       "normalRange": "> 90 (Normal) / 60 - 89 (Mild) / < 60 (CKD)",
       "unit": "mL/min/1.73m2",
       "sampleType": "محسوب",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-e2",
@@ -1079,7 +1175,8 @@
       "normalRange": "30 - 120 (Follicular) / 130 - 370 (Mid-cycle)",
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-fbs",
@@ -1102,7 +1199,8 @@
       "normalRange": "70 - 100 (Normal)",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-insulin",
@@ -1125,7 +1223,8 @@
       "normalRange": "2.6 - 24.9",
       "unit": "uIU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-fobt",
@@ -1148,7 +1247,8 @@
       "normalRange": "Negative",
       "unit": null,
       "sampleType": "عينة خروج",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-fib",
@@ -1171,7 +1271,9 @@
       "normalRange": "200 - 400",
       "unit": "mg/dL",
       "sampleType": "بلازما (Sodium Citrate)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "3255-7"
     },
     {
       "id": "t-fsh",
@@ -1194,7 +1296,8 @@
       "normalRange": "1.5 - 12.4",
       "unit": "mIU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "cmt8fowwt0029ijmdb0ib3hd5",
@@ -1217,7 +1320,8 @@
       "normalRange": "< 0.9",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-fpsa",
@@ -1240,7 +1344,9 @@
       "normalRange": "0.0 - 0.9 (Free/Total Ratio > 25% Favorable)",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "10886-0"
     },
     {
       "id": "t-free-testo",
@@ -1263,7 +1369,9 @@
       "normalRange": "8.8 - 27.0 (Male) / 0.2 - 4.1 (Female)",
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2991-8"
     },
     {
       "id": "t-ft4",
@@ -1286,7 +1394,8 @@
       "normalRange": "0.8 - 1.8",
       "unit": "ng/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-ft3",
@@ -1309,7 +1418,8 @@
       "normalRange": "2.0 - 4.4",
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-ggt",
@@ -1332,7 +1442,8 @@
       "normalRange": "9 - 48",
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-gse",
@@ -1355,7 +1466,8 @@
       "normalRange": "Normal (No Parasites / FOBT: Negative)",
       "unit": null,
       "sampleType": "عينة خروج",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-gue",
@@ -1378,7 +1490,8 @@
       "normalRange": "Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)",
       "unit": null,
       "sampleType": "إدرار صباحي",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-hba1c",
@@ -1401,7 +1514,8 @@
       "normalRange": "4.0 - 5.6 % (Non-diabetic)",
       "unit": "%",
       "sampleType": "دم كامل (EDTA)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-hp",
@@ -1424,7 +1538,8 @@
       "normalRange": "Negative",
       "unit": null,
       "sampleType": "عينة خروج",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-hdl",
@@ -1443,11 +1558,13 @@
       "normalFemaleHigh": 65,
       "criticalLow": null,
       "criticalHigh": null,
-      "refRangeText": "> 40 (Male) / > 50 (Female)",
-      "normalRange": "> 40 (Male) / > 50 (Female)",
+      "refRangeText": "> 40 (M) / > 50 (F); low HDL is risk factor",
+      "normalRange": "> 40 (M) / > 50 (F); low HDL is risk factor",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "ACC/AHA 2018 Cholesterol Guideline; ESC/EAS 2019 Dyslipidaemias"
     },
     {
       "id": "t-hiv",
@@ -1470,7 +1587,8 @@
       "normalRange": "Negative (Non-reactive)",
       "unit": null,
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "cmu8t1io60003ggs4wegn8m0a",
@@ -1482,18 +1600,20 @@
       "cost": 0,
       "costEstimate": 0,
       "refRangeLow": 36,
-      "refRangeHigh": 50,
-      "normalMaleLow": null,
-      "normalMaleHigh": null,
-      "normalFemaleLow": null,
-      "normalFemaleHigh": null,
+      "refRangeHigh": 52,
+      "normalMaleLow": 40,
+      "normalMaleHigh": 52,
+      "normalFemaleLow": 36,
+      "normalFemaleHigh": 48,
       "criticalLow": null,
       "criticalHigh": null,
-      "refRangeText": null,
-      "normalRange": null,
+      "refRangeText": "M: 40 - 52 / F: 36 - 48 (Adult)",
+      "normalRange": "M: 40 - 52 / F: 36 - 48 (Adult)",
       "unit": "%",
-      "sampleType": "Serum",
-      "active": true
+      "sampleType": "دم كامل (EDTA)",
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "Dacie and Lewis Practical Haematology 12th ed.; Mayo Clinic Laboratories HCT (M 38.3-48.6, F 35.5-44.9 as method-specific); WHO anaemia companion ranges"
     },
     {
       "id": "cmu8t1int0002ggs4qmmcozcv",
@@ -1504,19 +1624,21 @@
       "price": 3000,
       "cost": 0,
       "costEstimate": 0,
-      "refRangeLow": 11.5,
+      "refRangeLow": 12,
       "refRangeHigh": 17.5,
-      "normalMaleLow": null,
-      "normalMaleHigh": null,
-      "normalFemaleLow": null,
-      "normalFemaleHigh": null,
+      "normalMaleLow": 13.5,
+      "normalMaleHigh": 17.5,
+      "normalFemaleLow": 12,
+      "normalFemaleHigh": 15.5,
       "criticalLow": null,
       "criticalHigh": null,
-      "refRangeText": null,
-      "normalRange": null,
+      "refRangeText": "M: 13.5 - 17.5 / F: 12.0 - 15.5 (Adult)",
+      "normalRange": "M: 13.5 - 17.5 / F: 12.0 - 15.5 (Adult)",
       "unit": "g/dL",
-      "sampleType": "Serum",
-      "active": true
+      "sampleType": "دم كامل (EDTA)",
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "Dacie and Lewis Practical Haematology 12th ed.; WHO Guideline on haemoglobin concentrations for anaemia diagnosis (2023) lower limits M 13.0/F 12.0; Mayo Clinic Laboratories"
     },
     {
       "id": "t-hb",
@@ -1528,18 +1650,20 @@
       "cost": 800,
       "costEstimate": 800,
       "refRangeLow": 12,
-      "refRangeHigh": 16.5,
+      "refRangeHigh": 17.5,
       "normalMaleLow": 13.5,
       "normalMaleHigh": 17.5,
       "normalFemaleLow": 12,
       "normalFemaleHigh": 15.5,
       "criticalLow": 7,
       "criticalHigh": 20,
-      "refRangeText": "12.0 - 16.5",
-      "normalRange": "12.0 - 16.5",
+      "refRangeText": "M: 13.5 - 17.5 / F: 12.0 - 15.5 (Adult)",
+      "normalRange": "M: 13.5 - 17.5 / F: 12.0 - 15.5 (Adult)",
       "unit": "g/dL",
       "sampleType": "دم كامل (EDTA)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "Dacie and Lewis Practical Haematology 12th ed.; WHO haemoglobin anaemia cutoffs 2023 (M <13.0/F <12.0); Mayo Clinic Laboratories"
     },
     {
       "id": "t-hbsag",
@@ -1562,7 +1686,8 @@
       "normalRange": "Negative (Non-reactive)",
       "unit": null,
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-hcv",
@@ -1585,7 +1710,8 @@
       "normalRange": "Negative (Non-reactive)",
       "unit": null,
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-hsv-g",
@@ -1608,7 +1734,9 @@
       "normalRange": "< 0.9 (Negative)",
       "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "26927-4"
     },
     {
       "id": "t-hsv-m",
@@ -1631,7 +1759,9 @@
       "normalRange": "< 0.9 (Negative)",
       "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "26928-2"
     },
     {
       "id": "t-hscrp",
@@ -1654,7 +1784,9 @@
       "normalRange": "< 1.0 (Low risk) / 1.0 - 3.0 (Avg) / > 3.0 (High)",
       "unit": "mg/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "30522-7"
     },
     {
       "id": "t-gh",
@@ -1677,7 +1809,9 @@
       "normalRange": "0.05 - 5.0 (Basal Fasting)",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2965-2"
     },
     {
       "id": "cmt8fowsm0011ijmdf13h2j70",
@@ -1700,7 +1834,8 @@
       "normalRange": "0.2 - 0.8",
       "unit": "mg/dL",
       "sampleType": "محسوب",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-igf1",
@@ -1723,7 +1858,9 @@
       "normalRange": "115 - 307",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2483-6"
     },
     {
       "id": "t-pth",
@@ -1746,7 +1883,9 @@
       "normalRange": "15 - 65",
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2731-8"
     },
     {
       "id": "t-ca-ion",
@@ -1769,7 +1908,9 @@
       "normalRange": "1.15 - 1.33",
       "unit": "mmol/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "1994-3"
     },
     {
       "id": "t-ldl",
@@ -1788,11 +1929,39 @@
       "normalFemaleHigh": null,
       "criticalLow": null,
       "criticalHigh": 190,
-      "refRangeText": "< 100 (Optimal)",
-      "normalRange": "< 100 (Optimal)",
+      "refRangeText": "< 100 Optimal (< 2.6 mmol/L); calc invalid if TG >= 400",
+      "normalRange": "< 100 Optimal (< 2.6 mmol/L); calc invalid if TG >= 400",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "ACC/AHA 2018 Cholesterol Guideline; ESC/EAS 2019; Friedewald Clin Chem 1972 (TG>=400 invalid); CLSI C56-A"
+    },
+    {
+      "id": "t-ldl-hdl-ratio",
+      "code": "LDL/HDL",
+      "name": "LDL/HDL Ratio (calculated)",
+      "arabicName": "نسبة الضار إلى النافع (محسوبة)",
+      "category": "دهون الدم وصحة القلب",
+      "price": 0,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": 0,
+      "refRangeHigh": 2.5,
+      "normalMaleLow": null,
+      "normalMaleHigh": null,
+      "normalFemaleLow": null,
+      "normalFemaleHigh": null,
+      "criticalLow": null,
+      "criticalHigh": null,
+      "refRangeText": "< 2.5 Desirable; > 3.5 High (descriptive)",
+      "normalRange": "< 2.5 Desirable; > 3.5 High (descriptive)",
+      "unit": "Ratio",
+      "sampleType": "محسوب",
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "Framingham; preventive cardiology literature (descriptive, not a guideline target)",
+      "isCalculated": true
     },
     {
       "id": "t-ldh",
@@ -1815,7 +1984,9 @@
       "normalRange": "140 - 280",
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2532-0"
     },
     {
       "id": "t-lh",
@@ -1838,7 +2009,8 @@
       "normalRange": "1.7 - 12.6",
       "unit": "mIU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-malaria",
@@ -1861,7 +2033,9 @@
       "normalRange": "Negative",
       "unit": "Qualitative",
       "sampleType": "دم كامل (EDTA)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "44558-5"
     },
     {
       "id": "t-malb",
@@ -1884,7 +2058,8 @@
       "normalRange": "< 30",
       "unit": "mg/L",
       "sampleType": "إدرار عشوائي",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-nt-probnp",
@@ -1907,7 +2082,35 @@
       "normalRange": "< 125 (Age < 75) / < 450 (Age >= 75)",
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "33762-6"
+    },
+    {
+      "id": "t-nonhdl",
+      "code": "NON-HDL",
+      "name": "Non-HDL Cholesterol (calculated)",
+      "arabicName": "الكوليسترول غير عالي الكثافة (محسوب)",
+      "category": "دهون الدم وصحة القلب",
+      "price": 0,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": 0,
+      "refRangeHigh": 130,
+      "normalMaleLow": null,
+      "normalMaleHigh": null,
+      "normalFemaleLow": null,
+      "normalFemaleHigh": null,
+      "criticalLow": null,
+      "criticalHigh": null,
+      "refRangeText": "< 130 Desirable (Non-HDL = TC - HDL)",
+      "normalRange": "< 130 Desirable (Non-HDL = TC - HDL)",
+      "unit": "mg/dL",
+      "sampleType": "محسوب",
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "ACC/AHA 2018 Cholesterol Guideline (Non-HDL goal = LDL goal + 30 mg/dL); ESC/EAS 2019",
+      "isCalculated": true
     },
     {
       "id": "t-ogtt",
@@ -1930,7 +2133,8 @@
       "normalRange": "< 140",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-ptt",
@@ -1953,7 +2157,8 @@
       "normalRange": "25 - 38",
       "unit": "sec",
       "sampleType": "بلازما (Sodium Citrate)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-plt",
@@ -1976,7 +2181,8 @@
       "normalRange": "150,000 - 450,000",
       "unit": "/uL",
       "sampleType": "دم كامل (EDTA)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "cmt8fowuf001jijmd4sy80buo",
@@ -1999,7 +2205,8 @@
       "normalRange": "5.0 - 20.0 (Luteal)",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-prg",
@@ -2022,7 +2229,9 @@
       "normalRange": "0.1 - 1.0 (Follicular) / 2.0 - 25.0 (Luteal)",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2839-9"
     },
     {
       "id": "t-prl",
@@ -2045,7 +2254,8 @@
       "normalRange": "4.0 - 25.0 (Female)",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-prot-c",
@@ -2068,7 +2278,9 @@
       "normalRange": "70 - 140",
       "unit": "%",
       "sampleType": "بلازما (Sodium Citrate)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "27817-6"
     },
     {
       "id": "t-prot-s",
@@ -2091,7 +2303,9 @@
       "normalRange": "65 - 140",
       "unit": "%",
       "sampleType": "بلازما (Sodium Citrate)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "27821-8"
     },
     {
       "id": "t-pt",
@@ -2114,7 +2328,8 @@
       "normalRange": "0.9 - 1.2",
       "unit": "Ratio",
       "sampleType": "بلازما (Sodium Citrate)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-rbs",
@@ -2137,7 +2352,8 @@
       "normalRange": "70 - 140",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "cmu8t1inj0001ggs4iqj7la41",
@@ -2148,19 +2364,21 @@
       "price": 3000,
       "cost": 0,
       "costEstimate": 0,
-      "refRangeLow": 3.8,
-      "refRangeHigh": 5.8,
-      "normalMaleLow": null,
-      "normalMaleHigh": null,
-      "normalFemaleLow": null,
-      "normalFemaleHigh": null,
+      "refRangeLow": 4,
+      "refRangeHigh": 5.9,
+      "normalMaleLow": 4.5,
+      "normalMaleHigh": 5.9,
+      "normalFemaleLow": 4,
+      "normalFemaleHigh": 5.2,
       "criticalLow": null,
       "criticalHigh": null,
-      "refRangeText": null,
-      "normalRange": null,
+      "refRangeText": "M: 4.5 - 5.9 / F: 4.0 - 5.2 (Adult)",
+      "normalRange": "M: 4.5 - 5.9 / F: 4.0 - 5.2 (Adult)",
       "unit": "10*6/uL",
-      "sampleType": "Serum",
-      "active": true
+      "sampleType": "دم كامل (EDTA)",
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "Dacie and Lewis Practical Haematology 12th ed.; Mayo Clinic Laboratories RBC (M 4.32-5.72, F 3.92-5.13 method-specific)"
     },
     {
       "id": "t-rf",
@@ -2183,7 +2401,8 @@
       "normalRange": "< 20 (Negative)",
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-rose",
@@ -2206,7 +2425,8 @@
       "normalRange": "Negative",
       "unit": null,
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-rub-g",
@@ -2229,7 +2449,9 @@
       "normalRange": "> 10.0 (Immune) / < 10.0 (Non-immune)",
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "25528-1"
     },
     {
       "id": "t-rub-m",
@@ -2252,7 +2474,9 @@
       "normalRange": "< 0.8 (Negative)",
       "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "25530-7"
     },
     {
       "id": "t-got",
@@ -2275,7 +2499,8 @@
       "normalRange": "5 - 40",
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-gpt",
@@ -2298,7 +2523,8 @@
       "normalRange": "5 - 45",
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-sfa",
@@ -2321,7 +2547,8 @@
       "normalRange": "Normal (Conc >= 15 M/mL, PR >= 32%, Normal Forms >= 4%)",
       "unit": "M/mL",
       "sampleType": "سائل منوي",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-alb",
@@ -2344,7 +2571,8 @@
       "normalRange": "3.5 - 5.0",
       "unit": "g/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-amy",
@@ -2367,7 +2595,9 @@
       "normalRange": "28 - 100",
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "1798-8"
     },
     {
       "id": "t-calcitonin",
@@ -2390,7 +2620,9 @@
       "normalRange": "< 10.0 (Male) / < 5.0 (Female)",
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "1992-7"
     },
     {
       "id": "t-cl",
@@ -2413,7 +2645,8 @@
       "normalRange": "98 - 107",
       "unit": "mmol/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-copper",
@@ -2436,7 +2669,9 @@
       "normalRange": "70 - 140",
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2147-7"
     },
     {
       "id": "t-cort-pm",
@@ -2459,7 +2694,9 @@
       "normalRange": "3.0 - 15.0",
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2142-8"
     },
     {
       "id": "t-cort-am",
@@ -2482,7 +2719,9 @@
       "normalRange": "6.0 - 23.0",
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2143-6"
     },
     {
       "id": "t-creat",
@@ -2501,11 +2740,13 @@
       "normalFemaleHigh": 1.1,
       "criticalLow": null,
       "criticalHigh": 5,
-      "refRangeText": "0.6 - 1.2",
-      "normalRange": "0.6 - 1.2",
+      "refRangeText": "M: 0.7 - 1.3 / F: 0.5 - 1.1 (Adult); child 0.3-0.7",
+      "normalRange": "M: 0.7 - 1.3 / F: 0.5 - 1.1 (Adult); child 0.3-0.7",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "Mayo Clinic Laboratories Creatinine Serum (M 0.74-1.35/F 0.59-1.04 IDMS-traceable); KDIGO 2024 CKD guideline; 2021 CKD-EPI equation (Inker NEJM 2021)"
     },
     {
       "id": "t-fer",
@@ -2517,18 +2758,20 @@
       "cost": 3500,
       "costEstimate": 3500,
       "refRangeLow": 15,
-      "refRangeHigh": 200,
+      "refRangeHigh": 400,
       "normalMaleLow": 30,
       "normalMaleHigh": 400,
       "normalFemaleLow": 15,
       "normalFemaleHigh": 150,
       "criticalLow": 5,
       "criticalHigh": null,
-      "refRangeText": "15 - 200",
-      "normalRange": "15 - 200",
+      "refRangeText": "M: 30 - 400 / F: 15 - 150 (Adult)",
+      "normalRange": "M: 30 - 400 / F: 15 - 150 (Adult)",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "WHO Guideline on use of ferritin for iron deficiency (2020); Roche Elecsys Ferritin method ranges (M 30-400/F 15-150); Mayo Clinic Laboratories"
     },
     {
       "id": "t-folate",
@@ -2551,7 +2794,9 @@
       "normalRange": "3.0 - 20.0",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2284-8"
     },
     {
       "id": "t-iron",
@@ -2574,7 +2819,8 @@
       "normalRange": "50 - 170",
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-lip",
@@ -2597,7 +2843,9 @@
       "normalRange": "13 - 60",
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "3040-3"
     },
     {
       "id": "t-mg",
@@ -2620,7 +2868,104 @@
       "normalRange": "1.7 - 2.4",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
+    },
+    {
+      "id": "test_1790828697869_kkwr6",
+      "code": "TEST_1790828697869_KKWR6",
+      "name": "Serum Magnesium Test",
+      "arabicName": "Serum Magnesium Test",
+      "category": "عام",
+      "price": 8000,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": 1.7,
+      "refRangeHigh": 2.2,
+      "normalMaleLow": null,
+      "normalMaleHigh": null,
+      "normalFemaleLow": null,
+      "normalFemaleHigh": null,
+      "criticalLow": null,
+      "criticalHigh": null,
+      "refRangeText": "1.7 - 2.2",
+      "normalRange": "1.7 - 2.2",
+      "unit": "mg/dL",
+      "sampleType": "مصل الدم (Serum)",
+      "active": true,
+      "referenceRanges": []
+    },
+    {
+      "id": "test_1790828764556_h7w3m",
+      "code": "TEST_1790828764556_H7W3M",
+      "name": "Serum Magnesium Test",
+      "arabicName": "Serum Magnesium Test",
+      "category": "عام",
+      "price": 8000,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": 1.7,
+      "refRangeHigh": 2.2,
+      "normalMaleLow": null,
+      "normalMaleHigh": null,
+      "normalFemaleLow": null,
+      "normalFemaleHigh": null,
+      "criticalLow": null,
+      "criticalHigh": null,
+      "refRangeText": "1.7 - 2.2",
+      "normalRange": "1.7 - 2.2",
+      "unit": "mg/dL",
+      "sampleType": "مصل الدم (Serum)",
+      "active": true,
+      "referenceRanges": []
+    },
+    {
+      "id": "test_1790829605686_p4j7e",
+      "code": "TEST_1790829605686_P4J7E",
+      "name": "Serum Magnesium Test",
+      "arabicName": "Serum Magnesium Test",
+      "category": "عام",
+      "price": 8000,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": 1.7,
+      "refRangeHigh": 2.2,
+      "normalMaleLow": null,
+      "normalMaleHigh": null,
+      "normalFemaleLow": null,
+      "normalFemaleHigh": null,
+      "criticalLow": null,
+      "criticalHigh": null,
+      "refRangeText": "1.7 - 2.2",
+      "normalRange": "1.7 - 2.2",
+      "unit": "mg/dL",
+      "sampleType": "مصل الدم (Serum)",
+      "active": true,
+      "referenceRanges": []
+    },
+    {
+      "id": "test_1790835687268_62rni",
+      "code": "TEST_1790835687268_62RNI",
+      "name": "Serum Magnesium Test",
+      "arabicName": "Serum Magnesium Test",
+      "category": "عام",
+      "price": 8000,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": 1.7,
+      "refRangeHigh": 2.2,
+      "normalMaleLow": null,
+      "normalMaleHigh": null,
+      "normalFemaleLow": null,
+      "normalFemaleHigh": null,
+      "criticalLow": null,
+      "criticalHigh": null,
+      "refRangeText": "1.7 - 2.2",
+      "normalRange": "1.7 - 2.2",
+      "unit": "mg/dL",
+      "sampleType": "مصل الدم (Serum)",
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-myo",
@@ -2643,7 +2988,9 @@
       "normalRange": "25 - 72",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2639-3"
     },
     {
       "id": "t-osm",
@@ -2666,7 +3013,9 @@
       "normalRange": "275 - 295",
       "unit": "mOsm/kg",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2692-2"
     },
     {
       "id": "t-phos",
@@ -2689,7 +3038,8 @@
       "normalRange": "2.5 - 4.5",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-k",
@@ -2712,7 +3062,8 @@
       "normalRange": "3.5 - 5.1",
       "unit": "mmol/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-na",
@@ -2735,7 +3086,8 @@
       "normalRange": "135 - 145",
       "unit": "mmol/L",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-uric",
@@ -2746,7 +3098,7 @@
       "price": 7000,
       "cost": 1200,
       "costEstimate": 1200,
-      "refRangeLow": 3.5,
+      "refRangeLow": 2.6,
       "refRangeHigh": 7.2,
       "normalMaleLow": 3.5,
       "normalMaleHigh": 7.2,
@@ -2754,11 +3106,13 @@
       "normalFemaleHigh": 6,
       "criticalLow": null,
       "criticalHigh": null,
-      "refRangeText": "3.5 - 7.2",
-      "normalRange": "3.5 - 7.2",
+      "refRangeText": "M: 3.5 - 7.2 / F: 2.6 - 6.0 (Adult)",
+      "normalRange": "M: 3.5 - 7.2 / F: 2.6 - 6.0 (Adult)",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "Mayo Clinic Laboratories Uric Acid Serum (M 3.4-7.0/F 2.4-6.0); ACR Gout Guideline 2020 (treat-to-target <6.0 mg/dL)"
     },
     {
       "id": "t-zinc",
@@ -2781,7 +3135,34 @@
       "normalRange": "70 - 120",
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
+    },
+    {
+      "id": "t-tc-hdl-ratio",
+      "code": "TC/HDL",
+      "name": "TC/HDL Ratio (calculated)",
+      "arabicName": "نسبة الكوليسترول الكلي إلى النافع (محسوبة)",
+      "category": "دهون الدم وصحة القلب",
+      "price": 0,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": 0,
+      "refRangeHigh": 5,
+      "normalMaleLow": null,
+      "normalMaleHigh": null,
+      "normalFemaleLow": null,
+      "normalFemaleHigh": null,
+      "criticalLow": null,
+      "criticalHigh": null,
+      "refRangeText": "< 5.0 Desirable; >= 6.0 High (descriptive)",
+      "normalRange": "< 5.0 Desirable; >= 6.0 High (descriptive)",
+      "unit": "Ratio",
+      "sampleType": "محسوب",
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "Framingham Heart Study; ACC/AHA risk discussion (ratio is descriptive, not a guideline target)",
+      "isCalculated": true
     },
     {
       "id": "t-tt",
@@ -2804,7 +3185,9 @@
       "normalRange": "14.0 - 19.0",
       "unit": "sec",
       "sampleType": "بلازما (Sodium Citrate)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "3243-3"
     },
     {
       "id": "t-tsh",
@@ -2827,7 +3210,8 @@
       "normalRange": "0.4 - 4.2",
       "unit": "uIU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-tsb",
@@ -2850,7 +3234,8 @@
       "normalRange": "0.2 - 1.2",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-chol",
@@ -2869,11 +3254,13 @@
       "normalFemaleHigh": null,
       "criticalLow": null,
       "criticalHigh": 300,
-      "refRangeText": "< 200 (Desirable)",
-      "normalRange": "< 200 (Desirable)",
+      "refRangeText": "< 200 Desirable (< 5.2 mmol/L)",
+      "normalRange": "< 200 Desirable (< 5.2 mmol/L)",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "ACC/AHA 2018 Cholesterol Guideline; ESC/EAS 2019"
     },
     {
       "id": "t-hcy",
@@ -2896,7 +3283,9 @@
       "normalRange": "5.0 - 15.0",
       "unit": "umol/L",
       "sampleType": "بلازما (EDTA مفصولة فوراً)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "13965-9"
     },
     {
       "id": "t-tibc",
@@ -2919,7 +3308,8 @@
       "normalRange": "250 - 450",
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-psa",
@@ -2942,7 +3332,8 @@
       "normalRange": "< 4.0",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-calc",
@@ -2965,7 +3356,8 @@
       "normalRange": "8.5 - 10.5",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-tp",
@@ -2988,7 +3380,8 @@
       "normalRange": "6.4 - 8.3",
       "unit": "g/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-testo",
@@ -3011,7 +3404,8 @@
       "normalRange": "2.8 - 8.0 (Male)",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-toxo-g",
@@ -3034,7 +3428,9 @@
       "normalRange": "< 7.2 (Negative) / >= 8.8 (Positive)",
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "22576-3"
     },
     {
       "id": "t-toxo-m",
@@ -3057,7 +3453,9 @@
       "normalRange": "< 0.8 (Negative) / >= 1.0 (Positive)",
       "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "25537-2"
     },
     {
       "id": "t-tpha",
@@ -3080,7 +3478,9 @@
       "normalRange": "Negative (< 1:80)",
       "unit": "Titer",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "22587-0"
     },
     {
       "id": "t-tg",
@@ -3099,11 +3499,13 @@
       "normalFemaleHigh": null,
       "criticalLow": null,
       "criticalHigh": 500,
-      "refRangeText": "< 150 (Normal)",
-      "normalRange": "< 150 (Normal)",
+      "refRangeText": "< 150 Normal (< 1.7 mmol/L); Friedewald invalid >= 400 (>= 4.5 mmol/L)",
+      "normalRange": "< 150 Normal (< 1.7 mmol/L); Friedewald invalid >= 400 (>= 4.5 mmol/L)",
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "ACC/AHA 2018; ESC/EAS 2019; Friedewald Clin Chem 1972 cutoff TG>=400 mg/dL"
     },
     {
       "id": "t-trop",
@@ -3126,7 +3528,8 @@
       "normalRange": "< 0.04 (Negative)",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-typh-rapid",
@@ -3149,7 +3552,9 @@
       "normalRange": "Negative",
       "unit": "Qualitative",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "49007-8"
     },
     {
       "id": "t-upcr",
@@ -3172,7 +3577,9 @@
       "normalRange": "< 200",
       "unit": "mg/g",
       "sampleType": "إدرار عشوائي",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "loincCode": "2890-2"
     },
     {
       "id": "t-vdrl",
@@ -3195,7 +3602,8 @@
       "normalRange": "Non-reactive",
       "unit": "Titer",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-vldl",
@@ -3203,7 +3611,7 @@
       "name": "VLDL Cholesterol",
       "arabicName": "الكوليسترول شديد انخفاض الكثافة",
       "category": "دهون الدم وصحة القلب",
-      "price": 5000,
+      "price": 0,
       "cost": 0,
       "costEstimate": 0,
       "refRangeLow": 5,
@@ -3214,11 +3622,14 @@
       "normalFemaleHigh": null,
       "criticalLow": null,
       "criticalHigh": null,
-      "refRangeText": "5 - 30",
-      "normalRange": "5 - 30",
+      "refRangeText": "5 - 30 (calculated TG/5; not valid if TG >= 400)",
+      "normalRange": "5 - 30 (calculated TG/5; not valid if TG >= 400)",
       "unit": "mg/dL",
       "sampleType": "محسوب",
-      "active": true
+      "active": true,
+      "referenceRanges": [],
+      "referenceSource": "Friedewald WT et al. Clin Chem 1972 (VLDL = TG/5); CLSI C56-A; ACC/AHA 2018",
+      "isCalculated": true
     },
     {
       "id": "t-vitb12",
@@ -3241,7 +3652,8 @@
       "normalRange": "200 - 900",
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-vitd",
@@ -3264,7 +3676,8 @@
       "normalRange": "30 - 100 (Sufficiency)",
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "cmu8t1im70000ggs4ngieis4e",
@@ -3287,7 +3700,8 @@
       "normalRange": null,
       "unit": "10*3/uL",
       "sampleType": "Serum",
-      "active": true
+      "active": true,
+      "referenceRanges": []
     },
     {
       "id": "t-widal",
@@ -3310,17 +3724,35 @@
       "normalRange": "Negative (< 1:80)",
       "unit": "Titer",
       "sampleType": "مصل الدم (Serum)",
-      "active": true
+      "active": true,
+      "referenceRanges": []
+    },
+    {
+      "id": "test_1790801986417_pyd4b",
+      "code": "TEST_1790801986417_PYD4B",
+      "name": "ههههه",
+      "arabicName": "ههههه",
+      "category": "أمراض الدم والتخثر",
+      "price": 7,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": null,
+      "refRangeHigh": null,
+      "normalMaleLow": null,
+      "normalMaleHigh": null,
+      "normalFemaleLow": null,
+      "normalFemaleHigh": null,
+      "criticalLow": null,
+      "criticalHigh": null,
+      "refRangeText": null,
+      "normalRange": null,
+      "unit": null,
+      "sampleType": "مصل الدم (Serum)",
+      "active": true,
+      "referenceRanges": []
     }
   ],
   "panels": [
-    {
-      "id": "panel_1790788540269_s46rn",
-      "name": "E2E Comprehensive Biomarker Panel",
-      "description": null,
-      "price": 75000,
-      "testIds": []
-    },
     {
       "id": "cmt8fowxd002fijmdn9ua0hmy",
       "name": "الفحص الشامل للاطمئنان والصحة العامة (Comprehensive Health Check)",
@@ -3557,6 +3989,39 @@
     }
   ],
   "patients": [
+    {
+      "id": "pat-1790838980852",
+      "name": "kkn",
+      "phone": "",
+      "age": null,
+      "gender": "MALE",
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-10-01T07:16:20.852Z",
+      "updatedAt": "2026-10-01T07:16:20.852Z"
+    },
+    {
+      "id": "pat-1790828697885",
+      "name": "Test Patient Ref",
+      "phone": "",
+      "age": 35,
+      "gender": "MALE",
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-10-01T04:24:57.886Z",
+      "updatedAt": "2026-10-01T04:24:57.886Z"
+    },
+    {
+      "id": "pat-1790809709116",
+      "name": "ifd",
+      "phone": "",
+      "age": null,
+      "gender": "MALE",
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-09-30T23:08:29.116Z",
+      "updatedAt": "2026-09-30T23:08:29.116Z"
+    },
     {
       "id": "pat-1790714669609",
       "name": "علي حسن",
@@ -3879,6 +4344,678 @@
   ],
   "samples": [
     {
+      "id": "s-2017",
+      "sampleNumber": 2017,
+      "patientId": "pat-1790838980852",
+      "patient": {
+        "id": "pat-1790838980852",
+        "name": "kkn",
+        "phone": "",
+        "age": null,
+        "gender": "MALE"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "status": "READY",
+      "isUrgent": false,
+      "priceTotal": 13000,
+      "totalPrice": 13000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 13000,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": null,
+      "createdById": "single_operator",
+      "collectionTime": "2026-10-01T07:16:20.861Z",
+      "createdAt": "2026-10-01T07:16:20.852Z",
+      "tests": [
+        {
+          "id": "s-2017_t-gse",
+          "sampleId": "s-2017",
+          "testId": "t-gse",
+          "test": {
+            "id": "t-gse",
+            "code": "GSE",
+            "name": "General Stool Examination (GSE)",
+            "arabicName": "فحص الخروج العام الشامل",
+            "category": "الفحص المجهري العام",
+            "price": 5000,
+            "unit": null,
+            "refRangeLow": null,
+            "refRangeHigh": null,
+            "refRangeText": "Normal (No Parasites / FOBT: Negative)"
+          },
+          "resultValue": "[G.S.E - GENERAL STOOL EXAMINATION]\nPHYSICAL: Color: Reddish Brown | Consistency: Mucoid / Loose\nFOBT: Positive\nMICROSCOPIC: Pus Cells: 25-30 /HPF | RBCs: 35-40 /HPF | Muscle Fibers: Present | Starch: Few | Vegetable: Few\nPARASITOLOGY: Entamoeba histolytica – Trophozoite\nNOTES: Active amoebic dysentery picture with red blood cells and tissue debris.",
+          "value": "[G.S.E - GENERAL STOOL EXAMINATION]\nPHYSICAL: Color: Reddish Brown | Consistency: Mucoid / Loose\nFOBT: Positive\nMICROSCOPIC: Pus Cells: 25-30 /HPF | RBCs: 35-40 /HPF | Muscle Fibers: Present | Starch: Few | Vegetable: Few\nPARASITOLOGY: Entamoeba histolytica – Trophozoite\nNOTES: Active amoebic dysentery picture with red blood cells and tissue debris.",
+          "notes": null,
+          "isAbnormal": true,
+          "isCritical": false,
+          "interpretation": "Abnormal Findings",
+          "priceAtTime": 5000,
+          "costAtTime": 800,
+          "refRangeLow": null,
+          "refRangeHigh": null,
+          "refRangeText": "Normal (No Parasites / FOBT: Negative)",
+          "normalRange": "Normal (No Parasites / FOBT: Negative)",
+          "unit": null,
+          "createdAt": "2026-10-01T07:16:20.872Z"
+        },
+        {
+          "id": "s-2017_t-gue",
+          "sampleId": "s-2017",
+          "testId": "t-gue",
+          "test": {
+            "id": "t-gue",
+            "code": "GUE",
+            "name": "General Urine Examination (GUE)",
+            "arabicName": "فحص الإدرار العام الشامل",
+            "category": "الفحص المجهري العام",
+            "price": 5000,
+            "unit": null,
+            "refRangeLow": null,
+            "refRangeHigh": null,
+            "refRangeText": "Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)"
+          },
+          "resultValue": "[GENERAL URINE EXAMINATION - G.U.E]\nPHYSICAL: Color: Yellow | Clarity: Clear | Sp.Gr: 1.020 | pH: 6.0 | Volume: Random | Odor: Normal\nCHEMICAL: Protein: Nil | Sugar: Nil | Ketones: Nil | Bilirubin: Negative | Urob: Normal | Blood: Negative | Nitrite: Negative | Leukocytes: Negative\nMICROSCOPIC: Pus:  /HPF | RBCs: 0-2 /HPF | Epith: Few",
+          "value": "[GENERAL URINE EXAMINATION - G.U.E]\nPHYSICAL: Color: Yellow | Clarity: Clear | Sp.Gr: 1.020 | pH: 6.0 | Volume: Random | Odor: Normal\nCHEMICAL: Protein: Nil | Sugar: Nil | Ketones: Nil | Bilirubin: Negative | Urob: Normal | Blood: Negative | Nitrite: Negative | Leukocytes: Negative\nMICROSCOPIC: Pus:  /HPF | RBCs: 0-2 /HPF | Epith: Few",
+          "notes": null,
+          "isAbnormal": true,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 5000,
+          "costAtTime": 800,
+          "refRangeLow": null,
+          "refRangeHigh": null,
+          "refRangeText": "Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)",
+          "normalRange": "Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)",
+          "unit": null,
+          "createdAt": "2026-10-01T07:16:20.879Z"
+        },
+        {
+          "id": "s-2017_cmu8t1io60003ggs4wegn8m0a",
+          "sampleId": "s-2017",
+          "testId": "cmu8t1io60003ggs4wegn8m0a",
+          "test": {
+            "id": "cmu8t1io60003ggs4wegn8m0a",
+            "code": "HCT",
+            "name": "Hematocrit (PCV)",
+            "arabicName": "مكداس الدم (PCV)",
+            "category": "أمراض الدم والتخثر",
+            "price": 3000,
+            "unit": "%",
+            "refRangeLow": 36,
+            "refRangeHigh": 52,
+            "refRangeText": "M: 40 - 52 / F: 36 - 48 (Adult)"
+          },
+          "resultValue": "11",
+          "value": "11",
+          "notes": null,
+          "isAbnormal": true,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 3000,
+          "costAtTime": 0,
+          "refRangeLow": 36,
+          "refRangeHigh": 52,
+          "refRangeText": "M: 40 - 52 / F: 36 - 48 (Adult)",
+          "normalRange": "M: 40 - 52 / F: 36 - 48 (Adult)",
+          "unit": "%",
+          "createdAt": "2026-10-01T07:16:20.888Z"
+        }
+      ]
+    },
+    {
+      "id": "s-2016",
+      "sampleNumber": 2016,
+      "patientId": "cmtepk85i00008qux16anysav",
+      "patient": {
+        "id": "cmtepk85i00008qux16anysav",
+        "name": "علي",
+        "phone": "",
+        "age": null,
+        "gender": "MALE"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "status": "READY",
+      "isUrgent": false,
+      "priceTotal": 42000,
+      "totalPrice": 42000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 42000,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": null,
+      "createdById": "single_operator",
+      "collectionTime": "2026-10-01T07:12:19.288Z",
+      "createdAt": "2026-10-01T07:12:19.227Z",
+      "tests": [
+        {
+          "id": "s-2016_t-vldl",
+          "sampleId": "s-2016",
+          "testId": "t-vldl",
+          "test": {
+            "id": "t-vldl",
+            "code": "VLDL",
+            "name": "VLDL Cholesterol",
+            "arabicName": "الكوليسترول شديد انخفاض الكثافة",
+            "category": "دهون الدم وصحة القلب",
+            "price": 0,
+            "unit": "mg/dL",
+            "refRangeLow": 5,
+            "refRangeHigh": 30,
+            "refRangeText": "5 - 30 (calculated TG/5; not valid if TG >= 400)"
+          },
+          "resultValue": "34221",
+          "value": "34221",
+          "notes": null,
+          "isAbnormal": true,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 0,
+          "costAtTime": 0,
+          "refRangeLow": 5,
+          "refRangeHigh": 30,
+          "refRangeText": "5 - 30 (calculated TG/5; not valid if TG >= 400)",
+          "normalRange": "5 - 30 (calculated TG/5; not valid if TG >= 400)",
+          "unit": "mg/dL",
+          "createdAt": "2026-10-01T07:12:19.325Z"
+        },
+        {
+          "id": "s-2016_t-chol",
+          "sampleId": "s-2016",
+          "testId": "t-chol",
+          "test": {
+            "id": "t-chol",
+            "code": "CHOL",
+            "name": "Total Cholesterol",
+            "arabicName": "الكوليسترول الكلي",
+            "category": "دهون الدم وصحة القلب",
+            "price": 7000,
+            "unit": "mg/dL",
+            "refRangeLow": 120,
+            "refRangeHigh": 200,
+            "refRangeText": "< 200 Desirable (< 5.2 mmol/L)"
+          },
+          "resultValue": "34421",
+          "value": "34421",
+          "notes": null,
+          "isAbnormal": true,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 7000,
+          "costAtTime": 1200,
+          "refRangeLow": 120,
+          "refRangeHigh": 200,
+          "refRangeText": "< 200 Desirable (< 5.2 mmol/L)",
+          "normalRange": "< 200 Desirable (< 5.2 mmol/L)",
+          "unit": "mg/dL",
+          "createdAt": "2026-10-01T07:12:19.337Z"
+        },
+        {
+          "id": "s-2016_t-nonhdl",
+          "sampleId": "s-2016",
+          "testId": "t-nonhdl",
+          "test": {
+            "id": "t-nonhdl",
+            "code": "NON-HDL",
+            "name": "Non-HDL Cholesterol (calculated)",
+            "arabicName": "الكوليسترول غير عالي الكثافة (محسوب)",
+            "category": "دهون الدم وصحة القلب",
+            "price": 0,
+            "unit": "mg/dL",
+            "refRangeLow": 0,
+            "refRangeHigh": 130,
+            "refRangeText": "< 130 Desirable (Non-HDL = TC - HDL)"
+          },
+          "resultValue": "-71111076690",
+          "value": "-71111076690",
+          "notes": null,
+          "isAbnormal": false,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 0,
+          "costAtTime": 0,
+          "refRangeLow": 0,
+          "refRangeHigh": 130,
+          "refRangeText": "< 130 Desirable (Non-HDL = TC - HDL)",
+          "normalRange": "< 130 Desirable (Non-HDL = TC - HDL)",
+          "unit": "mg/dL",
+          "createdAt": "2026-10-01T07:12:19.344Z"
+        },
+        {
+          "id": "s-2016_t-ldl",
+          "sampleId": "s-2016",
+          "testId": "t-ldl",
+          "test": {
+            "id": "t-ldl",
+            "code": "LDL",
+            "name": "LDL Cholesterol (Bad)",
+            "arabicName": "الكوليسترول منخفض الكثافة (الضار)",
+            "category": "دهون الدم وصحة القلب",
+            "price": 8000,
+            "unit": "mg/dL",
+            "refRangeLow": 0,
+            "refRangeHigh": 100,
+            "refRangeText": "< 100 Optimal (< 2.6 mmol/L); calc invalid if TG >= 400"
+          },
+          "resultValue": "42",
+          "value": "42",
+          "notes": null,
+          "isAbnormal": false,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 8000,
+          "costAtTime": 1500,
+          "refRangeLow": 0,
+          "refRangeHigh": 100,
+          "refRangeText": "< 100 Optimal (< 2.6 mmol/L); calc invalid if TG >= 400",
+          "normalRange": "< 100 Optimal (< 2.6 mmol/L); calc invalid if TG >= 400",
+          "unit": "mg/dL",
+          "createdAt": "2026-10-01T07:12:19.350Z"
+        },
+        {
+          "id": "s-2016_t-hdl",
+          "sampleId": "s-2016",
+          "testId": "t-hdl",
+          "test": {
+            "id": "t-hdl",
+            "code": "HDL",
+            "name": "HDL Cholesterol (Good)",
+            "arabicName": "الكوليسترول عالي الكثافة (النافع)",
+            "category": "دهون الدم وصحة القلب",
+            "price": 8000,
+            "unit": "mg/dL",
+            "refRangeLow": 40,
+            "refRangeHigh": 65,
+            "refRangeText": "> 40 (M) / > 50 (F); low HDL is risk factor"
+          },
+          "resultValue": "71111111111",
+          "value": "71111111111",
+          "notes": null,
+          "isAbnormal": true,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 8000,
+          "costAtTime": 1500,
+          "refRangeLow": 40,
+          "refRangeHigh": 65,
+          "refRangeText": "> 40 (M) / > 50 (F); low HDL is risk factor",
+          "normalRange": "> 40 (M) / > 50 (F); low HDL is risk factor",
+          "unit": "mg/dL",
+          "createdAt": "2026-10-01T07:12:19.358Z"
+        },
+        {
+          "id": "s-2016_t-tsb",
+          "sampleId": "s-2016",
+          "testId": "t-tsb",
+          "test": {
+            "id": "t-tsb",
+            "code": "TSB",
+            "name": "Total Bilirubin (TSB)",
+            "arabicName": "البيليروبين الكلي (اليرقان / أبو صفار)",
+            "category": "وظائف الكبد والمرارة",
+            "price": 7000,
+            "unit": "mg/dL",
+            "refRangeLow": 0.2,
+            "refRangeHigh": 1.2,
+            "refRangeText": "0.2 - 1.2"
+          },
+          "resultValue": "345",
+          "value": "345",
+          "notes": null,
+          "isAbnormal": true,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 7000,
+          "costAtTime": 1200,
+          "refRangeLow": 0.2,
+          "refRangeHigh": 1.2,
+          "refRangeText": "0.2 - 1.2",
+          "normalRange": "0.2 - 1.2",
+          "unit": "mg/dL",
+          "createdAt": "2026-10-01T07:12:19.374Z"
+        },
+        {
+          "id": "s-2016_cmt8fowsm0011ijmdf13h2j70",
+          "sampleId": "s-2016",
+          "testId": "cmt8fowsm0011ijmdf13h2j70",
+          "test": {
+            "id": "cmt8fowsm0011ijmdf13h2j70",
+            "code": "INDIR-BIL",
+            "name": "Indirect Bilirubin",
+            "arabicName": "البيليروبين غير المباشر",
+            "category": "وظائف الكبد والمرارة",
+            "price": 5000,
+            "unit": "mg/dL",
+            "refRangeLow": 0.2,
+            "refRangeHigh": 0.8,
+            "refRangeText": "0.2 - 0.8"
+          },
+          "resultValue": "314.00",
+          "value": "314.00",
+          "notes": null,
+          "isAbnormal": true,
+          "isCritical": false,
+          "interpretation": "تنبيه: Direct Bilirubin أعلى من Total Bilirubin (يلزم إعادة التحقق)",
+          "priceAtTime": 5000,
+          "costAtTime": 0,
+          "refRangeLow": 0.2,
+          "refRangeHigh": 0.8,
+          "refRangeText": "0.2 - 0.8",
+          "normalRange": "0.2 - 0.8",
+          "unit": "mg/dL",
+          "createdAt": "2026-10-01T07:12:19.387Z"
+        },
+        {
+          "id": "s-2016_t-dirbil",
+          "sampleId": "s-2016",
+          "testId": "t-dirbil",
+          "test": {
+            "id": "t-dirbil",
+            "code": "DIR-BIL",
+            "name": "Direct Bilirubin",
+            "arabicName": "البيليروبين المباشر (المقترن)",
+            "category": "وظائف الكبد والمرارة",
+            "price": 7000,
+            "unit": "mg/dL",
+            "refRangeLow": 0,
+            "refRangeHigh": 0.3,
+            "refRangeText": "0.0 - 0.3"
+          },
+          "resultValue": "45562",
+          "value": "45562",
+          "notes": null,
+          "isAbnormal": true,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 7000,
+          "costAtTime": 1200,
+          "refRangeLow": 0,
+          "refRangeHigh": 0.3,
+          "refRangeText": "0.0 - 0.3",
+          "normalRange": "0.0 - 0.3",
+          "unit": "mg/dL",
+          "createdAt": "2026-10-01T07:12:19.396Z"
+        }
+      ]
+    },
+    {
+      "id": "s-2015",
+      "sampleNumber": 2015,
+      "patientId": "pat-1790828697885",
+      "patient": {
+        "id": "pat-1790828697885",
+        "name": "Test Patient Ref",
+        "phone": "",
+        "age": 35,
+        "gender": "MALE"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "status": "RECEIVED",
+      "isUrgent": false,
+      "priceTotal": 0,
+      "totalPrice": 0,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 0,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": null,
+      "createdById": "single_operator",
+      "collectionTime": "2026-10-01T04:40:05.979Z",
+      "createdAt": "2026-10-01T04:40:05.699Z",
+      "tests": [
+        {
+          "id": "s-2015_test_1790829605686_p4j7e",
+          "sampleId": "s-2015",
+          "testId": "test_1790829605686_p4j7e",
+          "test": {
+            "id": "test_1790829605686_p4j7e",
+            "code": null,
+            "name": "Serum Magnesium Test",
+            "arabicName": null,
+            "category": "عام",
+            "price": 8000,
+            "unit": "mg/dL",
+            "refRangeLow": 1.7,
+            "refRangeHigh": 2.2,
+            "refRangeText": "1.7 - 2.2"
+          },
+          "resultValue": null,
+          "value": null,
+          "notes": null,
+          "isAbnormal": false,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 8000,
+          "costAtTime": 0,
+          "refRangeLow": null,
+          "refRangeHigh": null,
+          "refRangeText": null,
+          "normalRange": null,
+          "unit": "mg/dL",
+          "createdAt": "2026-10-01T04:40:06.150Z"
+        },
+        {
+          "id": "s-2015_test_1790835687268_62rni",
+          "sampleId": "s-2015",
+          "testId": "test_1790835687268_62rni",
+          "test": {
+            "id": "test_1790835687268_62rni",
+            "code": null,
+            "name": "Serum Magnesium Test",
+            "arabicName": null,
+            "category": "عام",
+            "price": 8000,
+            "unit": "mg/dL",
+            "refRangeLow": 1.7,
+            "refRangeHigh": 2.2,
+            "refRangeText": "1.7 - 2.2"
+          },
+          "resultValue": null,
+          "value": null,
+          "notes": null,
+          "isAbnormal": false,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 8000,
+          "costAtTime": 0,
+          "refRangeLow": null,
+          "refRangeHigh": null,
+          "refRangeText": null,
+          "normalRange": null,
+          "unit": "mg/dL",
+          "createdAt": "2026-10-01T06:21:27.468Z"
+        }
+      ]
+    },
+    {
+      "id": "s-2014",
+      "sampleNumber": 2014,
+      "patientId": "pat-1790828697885",
+      "patient": {
+        "id": "pat-1790828697885",
+        "name": "Test Patient Ref",
+        "phone": "",
+        "age": 35,
+        "gender": "MALE"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "status": "RECEIVED",
+      "isUrgent": false,
+      "priceTotal": 0,
+      "totalPrice": 0,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 0,
+      "remainingAmount": 0,
+      "paymentMethod": "CASH",
+      "notes": null,
+      "createdById": "single_operator",
+      "collectionTime": "2026-10-01T04:24:58.405Z",
+      "createdAt": "2026-10-01T04:24:57.887Z",
+      "tests": [
+        {
+          "id": "s-2014_test_1790828697869_kkwr6",
+          "sampleId": "s-2014",
+          "testId": "test_1790828697869_kkwr6",
+          "test": {
+            "id": "test_1790828697869_kkwr6",
+            "code": null,
+            "name": "Serum Magnesium Test",
+            "arabicName": null,
+            "category": "عام",
+            "price": 8000,
+            "unit": "mg/dL",
+            "refRangeLow": 1.7,
+            "refRangeHigh": 2.2,
+            "refRangeText": "1.7 - 2.2"
+          },
+          "resultValue": null,
+          "value": null,
+          "notes": null,
+          "isAbnormal": false,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 8000,
+          "costAtTime": 0,
+          "refRangeLow": null,
+          "refRangeHigh": null,
+          "refRangeText": null,
+          "normalRange": null,
+          "unit": "mg/dL",
+          "createdAt": "2026-10-01T04:24:58.424Z"
+        },
+        {
+          "id": "s-2014_test_1790828764556_h7w3m",
+          "sampleId": "s-2014",
+          "testId": "test_1790828764556_h7w3m",
+          "test": {
+            "id": "test_1790828764556_h7w3m",
+            "code": null,
+            "name": "Serum Magnesium Test",
+            "arabicName": null,
+            "category": "عام",
+            "price": 8000,
+            "unit": "mg/dL",
+            "refRangeLow": 1.7,
+            "refRangeHigh": 2.2,
+            "refRangeText": "1.7 - 2.2"
+          },
+          "resultValue": null,
+          "value": null,
+          "notes": null,
+          "isAbnormal": false,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 8000,
+          "costAtTime": 0,
+          "refRangeLow": null,
+          "refRangeHigh": null,
+          "refRangeText": null,
+          "normalRange": null,
+          "unit": "mg/dL",
+          "createdAt": "2026-10-01T04:26:05.043Z"
+        }
+      ]
+    },
+    {
+      "id": "s-2013",
+      "sampleNumber": 2013,
+      "patientId": "pat-1790809709116",
+      "patient": {
+        "id": "pat-1790809709116",
+        "name": "ifd",
+        "phone": "",
+        "age": null,
+        "gender": "MALE"
+      },
+      "doctorId": null,
+      "doctor": null,
+      "status": "RECEIVED",
+      "isUrgent": false,
+      "priceTotal": 5000,
+      "totalPrice": 5000,
+      "discount": 0,
+      "discountPercent": 0,
+      "paidAmount": 5000,
+      "remainingAmount": 5000,
+      "paymentMethod": "CASH",
+      "notes": null,
+      "createdById": "single_operator",
+      "collectionTime": "2026-09-30T23:08:29.128Z",
+      "createdAt": "2026-09-30T23:08:29.117Z",
+      "tests": [
+        {
+          "id": "s-2013_t-gse",
+          "sampleId": "s-2013",
+          "testId": "t-gse",
+          "test": {
+            "id": "t-gse",
+            "code": "GSE",
+            "name": "General Stool Examination (GSE)",
+            "arabicName": "فحص الخروج العام الشامل",
+            "category": "الفحص المجهري العام",
+            "price": 5000,
+            "unit": null,
+            "refRangeLow": null,
+            "refRangeHigh": null,
+            "refRangeText": "Normal (No Parasites / FOBT: Negative)"
+          },
+          "resultValue": null,
+          "value": null,
+          "notes": null,
+          "isAbnormal": false,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 0,
+          "costAtTime": 0,
+          "refRangeLow": null,
+          "refRangeHigh": null,
+          "refRangeText": null,
+          "normalRange": null,
+          "unit": null,
+          "createdAt": "2026-09-30T23:08:29.141Z"
+        },
+        {
+          "id": "s-2013_t-gue",
+          "sampleId": "s-2013",
+          "testId": "t-gue",
+          "test": {
+            "id": "t-gue",
+            "code": "GUE",
+            "name": "General Urine Examination (GUE)",
+            "arabicName": "فحص الإدرار العام الشامل",
+            "category": "الفحص المجهري العام",
+            "price": 5000,
+            "unit": null,
+            "refRangeLow": null,
+            "refRangeHigh": null,
+            "refRangeText": "Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)"
+          },
+          "resultValue": null,
+          "value": null,
+          "notes": null,
+          "isAbnormal": false,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 0,
+          "costAtTime": 0,
+          "refRangeLow": null,
+          "refRangeHigh": null,
+          "refRangeText": null,
+          "normalRange": null,
+          "unit": null,
+          "createdAt": "2026-09-30T23:09:42.022Z"
+        }
+      ]
+    },
+    {
       "id": "s-2012",
       "sampleNumber": 2012,
       "patientId": "pat-1790714669609",
@@ -3891,14 +5028,14 @@
       },
       "doctorId": null,
       "doctor": null,
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "isUrgent": false,
-      "priceTotal": 0,
-      "totalPrice": 0,
+      "priceTotal": 5000,
+      "totalPrice": 5000,
       "discount": 0,
       "discountPercent": 0,
       "paidAmount": 0,
-      "remainingAmount": 0,
+      "remainingAmount": 5000,
       "paymentMethod": "CASH",
       "notes": null,
       "createdById": "single_operator",
@@ -3935,6 +5072,37 @@
           "normalRange": null,
           "unit": null,
           "createdAt": "2026-09-29T20:44:29.626Z"
+        },
+        {
+          "id": "s-2012_t-gue",
+          "sampleId": "s-2012",
+          "testId": "t-gue",
+          "test": {
+            "id": "t-gue",
+            "code": "GUE",
+            "name": "General Urine Examination (GUE)",
+            "arabicName": "فحص الإدرار العام الشامل",
+            "category": "الفحص المجهري العام",
+            "price": 5000,
+            "unit": null,
+            "refRangeLow": null,
+            "refRangeHigh": null,
+            "refRangeText": "Normal (Pus: 0-4 / RBCs: 0-2 / Prot: Nil)"
+          },
+          "resultValue": null,
+          "value": null,
+          "notes": null,
+          "isAbnormal": false,
+          "isCritical": false,
+          "interpretation": null,
+          "priceAtTime": 0,
+          "costAtTime": 0,
+          "refRangeLow": null,
+          "refRangeHigh": null,
+          "refRangeText": null,
+          "normalRange": null,
+          "unit": null,
+          "createdAt": "2026-09-30T23:04:20.311Z"
         }
       ]
     },
@@ -4384,9 +5552,9 @@
             "category": "أمراض الدم والتخثر",
             "price": 3000,
             "unit": "10*6/uL",
-            "refRangeLow": 3.8,
-            "refRangeHigh": 5.8,
-            "refRangeText": null
+            "refRangeLow": 4,
+            "refRangeHigh": 5.9,
+            "refRangeText": "M: 4.5 - 5.9 / F: 4.0 - 5.2 (Adult)"
           },
           "resultValue": "4.80",
           "value": "4.80",
@@ -4415,9 +5583,9 @@
             "category": "أمراض الدم والتخثر",
             "price": 3000,
             "unit": "g/dL",
-            "refRangeLow": 11.5,
+            "refRangeLow": 12,
             "refRangeHigh": 17.5,
-            "refRangeText": null
+            "refRangeText": "M: 13.5 - 17.5 / F: 12.0 - 15.5 (Adult)"
           },
           "resultValue": "14.2",
           "value": "14.2",
@@ -4478,8 +5646,8 @@
             "price": 3000,
             "unit": "%",
             "refRangeLow": 36,
-            "refRangeHigh": 50,
-            "refRangeText": null
+            "refRangeHigh": 52,
+            "refRangeText": "M: 40 - 52 / F: 36 - 48 (Adult)"
           },
           "resultValue": "42.0",
           "value": "42.0",
@@ -4539,9 +5707,9 @@
             "category": "أمراض الدم والتخثر",
             "price": 3000,
             "unit": "10*6/uL",
-            "refRangeLow": 3.8,
-            "refRangeHigh": 5.8,
-            "refRangeText": null
+            "refRangeLow": 4,
+            "refRangeHigh": 5.9,
+            "refRangeText": "M: 4.5 - 5.9 / F: 4.0 - 5.2 (Adult)"
           },
           "resultValue": "4.80",
           "value": "4.80",
@@ -4570,9 +5738,9 @@
             "category": "أمراض الدم والتخثر",
             "price": 3000,
             "unit": "g/dL",
-            "refRangeLow": 11.5,
+            "refRangeLow": 12,
             "refRangeHigh": 17.5,
-            "refRangeText": null
+            "refRangeText": "M: 13.5 - 17.5 / F: 12.0 - 15.5 (Adult)"
           },
           "resultValue": "14.2",
           "value": "14.2",
@@ -4633,8 +5801,8 @@
             "price": 3000,
             "unit": "%",
             "refRangeLow": 36,
-            "refRangeHigh": 50,
-            "refRangeText": null
+            "refRangeHigh": 52,
+            "refRangeText": "M: 40 - 52 / F: 36 - 48 (Adult)"
           },
           "resultValue": "42.0",
           "value": "42.0",
@@ -5170,7 +6338,7 @@
             "unit": "mg/dL",
             "refRangeLow": 120,
             "refRangeHigh": 200,
-            "refRangeText": "< 200 (Desirable)"
+            "refRangeText": "< 200 Desirable (< 5.2 mmol/L)"
           },
           "resultValue": "44",
           "value": "44",
@@ -5201,7 +6369,7 @@
             "unit": "mg/dL",
             "refRangeLow": 50,
             "refRangeHigh": 150,
-            "refRangeText": "< 150 (Normal)"
+            "refRangeText": "< 150 Normal (< 1.7 mmol/L); Friedewald invalid >= 400 (>= 4.5 mmol/L)"
           },
           "resultValue": "44",
           "value": "44",
@@ -5232,7 +6400,7 @@
             "unit": "mg/dL",
             "refRangeLow": 40,
             "refRangeHigh": 65,
-            "refRangeText": "> 40 (Male) / > 50 (Female)"
+            "refRangeText": "> 40 (M) / > 50 (F); low HDL is risk factor"
           },
           "resultValue": "2",
           "value": "2",
@@ -5263,7 +6431,7 @@
             "unit": "mg/dL",
             "refRangeLow": 0,
             "refRangeHigh": 100,
-            "refRangeText": "< 100 (Optimal)"
+            "refRangeText": "< 100 Optimal (< 2.6 mmol/L); calc invalid if TG >= 400"
           },
           "resultValue": "33",
           "value": "33",
@@ -5290,11 +6458,11 @@
             "name": "VLDL Cholesterol",
             "arabicName": "الكوليسترول شديد انخفاض الكثافة",
             "category": "دهون الدم وصحة القلب",
-            "price": 5000,
+            "price": 0,
             "unit": "mg/dL",
             "refRangeLow": 5,
             "refRangeHigh": 30,
-            "refRangeText": "5 - 30"
+            "refRangeText": "5 - 30 (calculated TG/5; not valid if TG >= 400)"
           },
           "resultValue": "8.8",
           "value": "8.8",
@@ -5846,7 +7014,7 @@
             "unit": "mg/dL",
             "refRangeLow": 120,
             "refRangeHigh": 200,
-            "refRangeText": "< 200 (Desirable)"
+            "refRangeText": "< 200 Desirable (< 5.2 mmol/L)"
           },
           "resultValue": "350",
           "value": "350",
@@ -5877,7 +7045,7 @@
             "unit": "mg/dL",
             "refRangeLow": 40,
             "refRangeHigh": 65,
-            "refRangeText": "> 40 (Male) / > 50 (Female)"
+            "refRangeText": "> 40 (M) / > 50 (F); low HDL is risk factor"
           },
           "resultValue": "44",
           "value": "44",
@@ -5908,7 +7076,7 @@
             "unit": "mg/dL",
             "refRangeLow": 0,
             "refRangeHigh": 100,
-            "refRangeText": "< 100 (Optimal)"
+            "refRangeText": "< 100 Optimal (< 2.6 mmol/L); calc invalid if TG >= 400"
           },
           "resultValue": "200",
           "value": "200",
@@ -5935,11 +7103,11 @@
             "name": "VLDL Cholesterol",
             "arabicName": "الكوليسترول شديد انخفاض الكثافة",
             "category": "دهون الدم وصحة القلب",
-            "price": 5000,
+            "price": 0,
             "unit": "mg/dL",
             "refRangeLow": 5,
             "refRangeHigh": 30,
-            "refRangeText": "5 - 30"
+            "refRangeText": "5 - 30 (calculated TG/5; not valid if TG >= 400)"
           },
           "resultValue": "4",
           "value": "4",
@@ -6214,7 +7382,7 @@
             "unit": "mg/dL",
             "refRangeLow": 50,
             "refRangeHigh": 150,
-            "refRangeText": "< 150 (Normal)"
+            "refRangeText": "< 150 Normal (< 1.7 mmol/L); Friedewald invalid >= 400 (>= 4.5 mmol/L)"
           },
           "resultValue": "80",
           "value": "80",
@@ -6457,8 +7625,8 @@
             "price": 18000,
             "unit": "ng/mL",
             "refRangeLow": 15,
-            "refRangeHigh": 200,
-            "refRangeText": "15 - 200"
+            "refRangeHigh": 400,
+            "refRangeText": "M: 30 - 400 / F: 15 - 150 (Adult)"
           },
           "resultValue": "",
           "value": "",
@@ -6735,7 +7903,7 @@
             "unit": "mg/dL",
             "refRangeLow": 0.6,
             "refRangeHigh": 1.2,
-            "refRangeText": "0.6 - 1.2"
+            "refRangeText": "M: 0.7 - 1.3 / F: 0.5 - 1.1 (Adult); child 0.3-0.7"
           },
           "resultValue": "",
           "value": "",
@@ -6828,7 +7996,7 @@
             "unit": "mg/dL",
             "refRangeLow": 120,
             "refRangeHigh": 200,
-            "refRangeText": "< 200 (Desirable)"
+            "refRangeText": "< 200 Desirable (< 5.2 mmol/L)"
           },
           "resultValue": "7",
           "value": "7",
@@ -6859,7 +8027,7 @@
             "unit": "mg/dL",
             "refRangeLow": 50,
             "refRangeHigh": 150,
-            "refRangeText": "< 150 (Normal)"
+            "refRangeText": "< 150 Normal (< 1.7 mmol/L); Friedewald invalid >= 400 (>= 4.5 mmol/L)"
           },
           "resultValue": "",
           "value": "",
@@ -7043,7 +8211,7 @@
             "unit": "mg/dL",
             "refRangeLow": 0.6,
             "refRangeHigh": 1.2,
-            "refRangeText": "0.6 - 1.2"
+            "refRangeText": "M: 0.7 - 1.3 / F: 0.5 - 1.1 (Adult); child 0.3-0.7"
           },
           "resultValue": "9",
           "value": "9",
@@ -7103,9 +8271,9 @@
             "category": "وظائف الكلى والأملاح",
             "price": 7000,
             "unit": "mg/dL",
-            "refRangeLow": 3.5,
+            "refRangeLow": 2.6,
             "refRangeHigh": 7.2,
-            "refRangeText": "3.5 - 7.2"
+            "refRangeText": "M: 3.5 - 7.2 / F: 2.6 - 6.0 (Adult)"
           },
           "resultValue": "5",
           "value": "5",
@@ -7198,7 +8366,7 @@
             "unit": "mg/dL",
             "refRangeLow": 120,
             "refRangeHigh": 200,
-            "refRangeText": "< 200 (Desirable)"
+            "refRangeText": "< 200 Desirable (< 5.2 mmol/L)"
           },
           "resultValue": "55311w4",
           "value": "55311w4",
@@ -7229,7 +8397,7 @@
             "unit": "mg/dL",
             "refRangeLow": 50,
             "refRangeHigh": 150,
-            "refRangeText": "< 150 (Normal)"
+            "refRangeText": "< 150 Normal (< 1.7 mmol/L); Friedewald invalid >= 400 (>= 4.5 mmol/L)"
           },
           "resultValue": "44",
           "value": "44",
@@ -7260,7 +8428,7 @@
             "unit": "mg/dL",
             "refRangeLow": 40,
             "refRangeHigh": 65,
-            "refRangeText": "> 40 (Male) / > 50 (Female)"
+            "refRangeText": "> 40 (M) / > 50 (F); low HDL is risk factor"
           },
           "resultValue": "44",
           "value": "44",
@@ -7291,7 +8459,7 @@
             "unit": "mg/dL",
             "refRangeLow": 0,
             "refRangeHigh": 100,
-            "refRangeText": "< 100 (Optimal)"
+            "refRangeText": "< 100 Optimal (< 2.6 mmol/L); calc invalid if TG >= 400"
           },
           "resultValue": "44",
           "value": "44",
@@ -7845,7 +9013,7 @@
             "unit": "mg/dL",
             "refRangeLow": 0.6,
             "refRangeHigh": 1.2,
-            "refRangeText": "0.6 - 1.2"
+            "refRangeText": "M: 0.7 - 1.3 / F: 0.5 - 1.1 (Adult); child 0.3-0.7"
           },
           "resultValue": null,
           "value": null,
@@ -7876,7 +9044,7 @@
             "unit": "mm/1st hr",
             "refRangeLow": 0,
             "refRangeHigh": 20,
-            "refRangeText": "0 - 20"
+            "refRangeText": "M <50y: 0-15 / F <50y: 0-20; M >=50y: 0-20 / F >=50y: 0-30 (Westergren)"
           },
           "resultValue": "12",
           "value": "12",
@@ -8152,8 +9320,8 @@
             "price": 5000,
             "unit": "g/dL",
             "refRangeLow": 12,
-            "refRangeHigh": 16.5,
-            "refRangeText": "12.0 - 16.5"
+            "refRangeHigh": 17.5,
+            "refRangeText": "M: 13.5 - 17.5 / F: 12.0 - 15.5 (Adult)"
           },
           "resultValue": "",
           "value": "",
@@ -8368,7 +9536,7 @@
             "unit": "mg/dL",
             "refRangeLow": 0.6,
             "refRangeHigh": 1.2,
-            "refRangeText": "0.6 - 1.2"
+            "refRangeText": "M: 0.7 - 1.3 / F: 0.5 - 1.1 (Adult); child 0.3-0.7"
           },
           "resultValue": "0.9",
           "value": "0.9",
@@ -8459,9 +9627,9 @@
             "category": "أمراض الدم والتخثر",
             "price": 3000,
             "unit": "10*6/uL",
-            "refRangeLow": 3.8,
-            "refRangeHigh": 5.8,
-            "refRangeText": null
+            "refRangeLow": 4,
+            "refRangeHigh": 5.9,
+            "refRangeText": "M: 4.5 - 5.9 / F: 4.0 - 5.2 (Adult)"
           },
           "resultValue": "4.82",
           "value": "4.82",
@@ -8490,9 +9658,9 @@
             "category": "أمراض الدم والتخثر",
             "price": 3000,
             "unit": "g/dL",
-            "refRangeLow": 11.5,
+            "refRangeLow": 12,
             "refRangeHigh": 17.5,
-            "refRangeText": null
+            "refRangeText": "M: 13.5 - 17.5 / F: 12.0 - 15.5 (Adult)"
           },
           "resultValue": "14.2",
           "value": "14.2",
@@ -8585,7 +9753,7 @@
             "unit": "mg/dL",
             "refRangeLow": 0.6,
             "refRangeHigh": 1.2,
-            "refRangeText": "0.6 - 1.2"
+            "refRangeText": "M: 0.7 - 1.3 / F: 0.5 - 1.1 (Adult); child 0.3-0.7"
           },
           "resultValue": "0.9",
           "value": "0.9",
@@ -9208,5 +10376,8 @@
       "paymentMethod": "نقداً",
       "date": "2026-08-25T08:59:44.025Z"
     }
-  ]
+  ],
+  "incomingResults": [],
+  "deviceRawLogs": [],
+  "debtTransactions": []
 }
