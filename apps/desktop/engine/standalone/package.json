@@ -28,7 +28,12 @@
     "deploy:rollback": "node tools/deploy/rollback.js",
     "deploy:publish": "node tools/deploy/index.js --publish",
     "test": "npx tsx tests/e2e/run_all.ts",
-    "test:devices": "python tests/integration/test_astm_analyzer.py"
+    "test:golden": "npx tsx tests/golden/run_golden.ts",
+    "test:devices": "python tests/integration/test_astm_analyzer.py",
+    "check:scope": "node tools/check_scope.js",
+    "lint:boundaries": "node tools/lint_boundaries.js",
+    "verify": "npm run typecheck && npm run lint:boundaries && npm run test:golden && npm run build",
+    "typecheck": "tsc --noEmit -p apps/server/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json"
   },
   "dependencies": {
     "@prisma/client": "^5.12.1",

@@ -1,7 +1,17 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import path from 'path';
 
-const prisma = new PrismaClient();
+const defaultDbPath = path.resolve(__dirname, 'lab.db').replace(/\\/g, '/');
+process.env.DATABASE_URL = process.env.DATABASE_URL || `file:${defaultDbPath}?connection_limit=1`;
+
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
+});
 
 async function main() {
   console.log('🌱 Starting comprehensive medical laboratory database seeding...');
@@ -206,17 +216,37 @@ async function main() {
 
   const createdTestsMap: Record<string, any> = {};
   for (const t of testsData) {
+    const stableId = `t-${(t.code || t.name).toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
     let existing = await prisma.testCatalog.findFirst({
       where: {
         OR: [
           ...(t.code ? [{ code: t.code }] : []),
           { name: t.name },
+          { id: stableId }
         ],
       },
     });
-    if (!existing) {
+    if (existing) {
+      existing = await prisma.testCatalog.update({
+        where: { id: existing.id },
+        data: {
+          code: t.code || existing.code,
+          name: t.name,
+          arabicName: t.arabicName || existing.arabicName,
+          category: t.category || existing.category,
+          price: existing.price > 0 ? existing.price : t.price,
+          unit: t.unit || existing.unit,
+          sampleType: t.sampleType || existing.sampleType,
+          active: true
+        }
+      });
+    } else {
       existing = await prisma.testCatalog.create({
-        data: t,
+        data: {
+          id: stableId,
+          ...t,
+          active: true
+        }
       });
     }
     createdTestsMap[t.code] = existing;
