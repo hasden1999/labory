@@ -47,7 +47,9 @@ import {
   HelpCircle,
   CheckCircle
 } from 'lucide-react';
-import { toEnglishDigits, formatEnglishDate, formatEnglishTime, formatEnglishDateTime } from '../../lib/formatters';
+import { toEnglishDigits, formatEnglishDate, formatEnglishTime, formatEnglishDateTime, formatClinicalAge } from '../../lib/formatters';
+import { ClinicalAgeInput, ClinicalAgeValue } from '../../components/common/ClinicalAgeInput';
+import { computeAgeBreakdown } from '@lab-manager/domain';
 
 // Helper to determine collection tubes used in a sample
 function getSampleTubes(tests: SampleTest[] = []) {
@@ -124,6 +126,10 @@ function PatientsContent() {
   const [patientName, setPatientName] = useState('');
   const [patientPhone, setPatientPhone] = useState('');
   const [patientAge, setPatientAge] = useState('');
+  const [patientAgeMonths, setPatientAgeMonths] = useState('');
+  const [patientAgeDays, setPatientAgeDays] = useState('');
+  const [patientBirthDate, setPatientBirthDate] = useState<string | null>(null);
+  const [patientBirthDateEstimated, setPatientBirthDateEstimated] = useState<boolean>(true);
   const [patientGender, setPatientGender] = useState<'MALE' | 'FEMALE'>('MALE');
 
   const loadPatients = async (silent = false) => {
@@ -213,7 +219,7 @@ function PatientsContent() {
 
   const handleStartNewTest = (patient: Patient) => {
     router.push(
-      `/?patientId=${patient.id}&patientName=${encodeURIComponent(patient.name)}&patientPhone=${patient.phone || ''}&patientAge=${patient.age || ''}&patientGender=${patient.gender === 'FEMALE' || (patient.gender as string) === 'أنثى' ? 'FEMALE' : 'MALE'}`
+      `/?patientId=${patient.id}&patientName=${encodeURIComponent(patient.name)}&patientPhone=${patient.phone || ''}&patientAge=${patient.age || ''}&patientBirthDate=${patient.birthDate || ''}&patientGender=${patient.gender === 'FEMALE' || (patient.gender as string) === 'أنثى' ? 'FEMALE' : 'MALE'}`
     );
   };
 
@@ -226,18 +232,24 @@ function PatientsContent() {
 
     try {
       const cleanPhone = patientPhone.trim() ? toEnglishDigits(patientPhone.trim()) : undefined;
-      const cleanAge = patientAge ? Number(toEnglishDigits(patientAge)) : undefined;
+      const cleanAge = patientAge ? Number(toEnglishDigits(patientAge)) : (patientBirthDate ? computeAgeBreakdown(patientBirthDate).years : undefined);
       const newP = await apiRequest('/patients', 'POST', {
         name: patientName.trim(),
         phone: cleanPhone,
         age: cleanAge,
         gender: patientGender,
+        birthDate: patientBirthDate || undefined,
+        birthDateEstimated: patientBirthDateEstimated,
       });
 
       setShowAddPatientModal(false);
       setPatientName('');
       setPatientPhone('');
       setPatientAge('');
+      setPatientAgeMonths('');
+      setPatientAgeDays('');
+      setPatientBirthDate(null);
+      setPatientBirthDateEstimated(true);
       setPatientGender('MALE');
       toast.success('تمت إضافة المريض الجديد بنجاح!', 'تم الحفظ');
       await loadPatients();
@@ -255,7 +267,20 @@ function PatientsContent() {
     setEditingPatient(p);
     setPatientName(p.name);
     setPatientPhone(p.phone || '');
-    setPatientAge(p.age ? String(p.age) : '');
+    if (p.birthDate) {
+      setPatientBirthDate(p.birthDate);
+      setPatientBirthDateEstimated(p.birthDateEstimated ?? false);
+      const b = computeAgeBreakdown(p.birthDate);
+      setPatientAge(b.years > 0 ? String(b.years) : '');
+      setPatientAgeMonths(b.months > 0 ? String(b.months) : '');
+      setPatientAgeDays(b.days > 0 ? String(b.days) : '');
+    } else {
+      setPatientBirthDate(null);
+      setPatientBirthDateEstimated(true);
+      setPatientAge(p.age ? String(p.age) : '');
+      setPatientAgeMonths('');
+      setPatientAgeDays('');
+    }
     setPatientGender(p.gender === 'FEMALE' || (p.gender as string) === 'أنثى' ? 'FEMALE' : 'MALE');
     setShowEditPatientModal(true);
   };
@@ -266,12 +291,14 @@ function PatientsContent() {
 
     try {
       const cleanPhone = patientPhone.trim() ? toEnglishDigits(patientPhone.trim()) : undefined;
-      const cleanAge = patientAge ? Number(toEnglishDigits(patientAge)) : undefined;
+      const cleanAge = patientAge ? Number(toEnglishDigits(patientAge)) : (patientBirthDate ? computeAgeBreakdown(patientBirthDate).years : undefined);
       await apiRequest(`/patients/${editingPatient.id}`, 'PATCH', {
         name: patientName.trim(),
         phone: cleanPhone,
         age: cleanAge,
         gender: patientGender,
+        birthDate: patientBirthDate || undefined,
+        birthDateEstimated: patientBirthDateEstimated,
       });
 
       setShowEditPatientModal(false);
@@ -852,7 +879,7 @@ function PatientsContent() {
                             }}
                           >
                             {isFemale ? 'أنثى' : 'ذكر'}
-                            {patient.age ? ` • ${patient.age} سنة` : ''}
+                            {formatClinicalAge(patient) !== '-' ? ` • ${formatClinicalAge(patient)}` : ''}
                           </span>
 
                           {/* Total Visits Badge */}
@@ -1568,14 +1595,20 @@ function PatientsContent() {
                 </div>
 
                 <div>
-                  <label className="input-label">العمر (سنوات)</label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="مثال: 35"
-                    className="input-control"
-                    value={patientAge}
-                    onChange={(e) => setPatientAge(toEnglishDigits(e.target.value).replace(/[^0-9]/g, ''))}
+                  <ClinicalAgeInput
+                    idPrefix="add-patient-age"
+                    years={patientAge}
+                    months={patientAgeMonths}
+                    days={patientAgeDays}
+                    birthDate={patientBirthDate}
+                    birthDateEstimated={patientBirthDateEstimated}
+                    onChange={(val) => {
+                      setPatientAge(val.years);
+                      setPatientAgeMonths(val.months);
+                      setPatientAgeDays(val.days);
+                      setPatientBirthDate(val.birthDate);
+                      setPatientBirthDateEstimated(val.birthDateEstimated);
+                    }}
                   />
                 </div>
               </div>
@@ -1657,13 +1690,20 @@ function PatientsContent() {
                 </div>
 
                 <div>
-                  <label className="input-label">العمر</label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    className="input-control"
-                    value={patientAge}
-                    onChange={(e) => setPatientAge(toEnglishDigits(e.target.value).replace(/[^0-9]/g, ''))}
+                  <ClinicalAgeInput
+                    idPrefix="edit-patient-age"
+                    years={patientAge}
+                    months={patientAgeMonths}
+                    days={patientAgeDays}
+                    birthDate={patientBirthDate}
+                    birthDateEstimated={patientBirthDateEstimated}
+                    onChange={(val) => {
+                      setPatientAge(val.years);
+                      setPatientAgeMonths(val.months);
+                      setPatientAgeDays(val.days);
+                      setPatientBirthDate(val.birthDate);
+                      setPatientBirthDateEstimated(val.birthDateEstimated);
+                    }}
                   />
                 </div>
               </div>

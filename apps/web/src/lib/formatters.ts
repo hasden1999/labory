@@ -9,6 +9,8 @@
  * - Blood Group validation & options
  */
 
+export { formatClinicalAge } from '@lab-manager/domain';
+
 /**
  * Converts Eastern Arabic numerals (٠-٩) and Persian numerals (۰-۹) to standard English numerals (0-9)
  */

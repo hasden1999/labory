@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../Toast';
 import { useLab } from '../LabContext';
-import { toEnglishDigits, formatEnglishDate, formatEnglishTime } from '../../lib/formatters';
+import { toEnglishDigits, formatEnglishDate, formatEnglishTime, formatClinicalAge } from '../../lib/formatters';
 import { INITIAL_TESTS_CATALOG } from '../../lib/catalogData';
 import {
   Search,
@@ -721,7 +721,7 @@ export default function TechnicianCommandCenter({
                     >
                       <span>
                         {s.patient?.gender === 'MALE' ? 'ذكر' : 'أنثى'}
-                        {s.patient?.age ? ` (${s.patient.age} سنة)` : ''}
+                        {formatClinicalAge(s.patient, s.createdAt) !== '-' ? ` (${formatClinicalAge(s.patient, s.createdAt)})` : ''}
                       </span>
                       <span>{s.tests?.length || 0} فحوصات</span>
                     </div>
@@ -775,7 +775,7 @@ export default function TechnicianCommandCenter({
                       </h2>
                       <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                         {selectedSample.patient?.gender === 'MALE' ? 'ذكر' : 'أنثى'} •{' '}
-                        {selectedSample.patient?.age ? `${selectedSample.patient.age} سنة` : 'العمر غير مسجل'}
+                        {formatClinicalAge(selectedSample.patient, selectedSample.createdAt) !== '-' ? formatClinicalAge(selectedSample.patient, selectedSample.createdAt) : 'العمر غير مسجل'}
                       </span>
                     </div>
                     <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '2px' }}>

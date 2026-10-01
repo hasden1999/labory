@@ -25,7 +25,8 @@ import {
   isBloodGroupTest,
   BLOOD_GROUP_OPTIONS,
   evaluateQualitativeAbnormality,
-  evaluateClinicalResult
+  evaluateClinicalResult,
+  formatClinicalAge
 } from '../../lib/formatters';
 import {
   normalizeIraqiPhone,
@@ -1445,7 +1446,7 @@ function ResultsContent() {
                 </span>
               </div>
               <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                {selectedSample.patient?.gender === 'FEMALE' ? 'Female' : 'Male'}, {selectedSample.patient?.age || '-'} yrs • {new Date(selectedSample.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                {selectedSample.patient?.gender === 'FEMALE' ? 'Female' : 'Male'}, {formatClinicalAge(selectedSample.patient, selectedSample.createdAt)} • {new Date(selectedSample.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
           )}
@@ -2424,7 +2425,15 @@ function ResultsContent() {
                           <td style={{ padding: '12px 14px', color: 'var(--text-muted)' }}>
                             <span dir="ltr" style={{ display: 'inline-block', direction: 'ltr', unicodeBidi: 'isolate' }}>
                               {(() => {
-                                const resolved = resolveReferenceRange(st.test || st, selectedSample?.patient?.gender, selectedSample?.patient?.age);
+                                const resolved = resolveReferenceRange(
+                                  st.test || st,
+                                  selectedSample?.patient?.gender,
+                                  selectedSample?.patient?.age,
+                                  {
+                                    birthDate: selectedSample?.patient?.birthDate,
+                                    targetDate: selectedSample?.createdAt,
+                                  }
+                                );
                                 return resolved.rangeText;
                               })()}
                             </span>

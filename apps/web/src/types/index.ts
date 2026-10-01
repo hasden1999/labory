@@ -4,6 +4,9 @@ export interface Patient {
   phone?: string;
   age?: number | string | null;
   gender: 'MALE' | 'FEMALE';
+  birthDate?: string | null;
+  birthDateEstimated?: boolean | null;
+  referringDoctorId?: string | null;
   visitCount?: number;
   visitsCount?: number;
   outstandingDebt?: number;

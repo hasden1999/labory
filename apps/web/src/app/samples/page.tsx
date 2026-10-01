@@ -10,7 +10,7 @@ import { useToast } from '../../components/Toast';
 import { useLab } from '../../components/LabContext';
 import { getShareableUrl } from '../../lib/urlHelper';
 import { Activity, Search, Plus, FileText, Printer, Share2, CheckCircle2, Clock, FlaskConical, AlertCircle, X, ChevronLeft, Send, RefreshCw, Eye, Calendar, Filter, User, History, Check, AlertOctagon, Zap, CreditCard, DollarSign } from 'lucide-react';
-import { toEnglishDigits, formatEnglishDate, formatEnglishTime, formatEnglishDateTime } from '../../lib/formatters';
+import { toEnglishDigits, formatEnglishDate, formatEnglishTime, formatEnglishDateTime, formatClinicalAge } from '../../lib/formatters';
 import nextDynamic from 'next/dynamic';
 
 const WhatsAppFormsModal = nextDynamic(() => import('../../components/WhatsAppFormsModal'), { ssr: false });
@@ -509,7 +509,7 @@ function SamplesContent() {
                           <History size={12} color="var(--accent-cyan)" />
                         </button>
                         <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', display: 'block' }}>
-                          {s.patient?.phone || 'بدون هاتف'} • {s.patient?.age ? `${s.patient.age} سنة` : ''} ({s.patient?.gender || 'ذكر'})
+                          {s.patient?.phone || 'بدون هاتف'} • {formatClinicalAge(s.patient, s.createdAt) !== '-' ? formatClinicalAge(s.patient, s.createdAt) : ''} ({s.patient?.gender || 'ذكر'})
                         </span>
                       </div>
                     </td>

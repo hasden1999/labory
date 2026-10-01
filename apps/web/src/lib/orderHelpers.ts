@@ -1,4 +1,5 @@
 import { LIPID_CATALOG_IDS, LIPID_CATALOG_CODES } from './clinicalIntelligence';
+import { isAgeWithinRange, formatClinicalAge } from '@lab-manager/domain';
 
 /** Normalize Iraqi phone to wa.me format: 07xxxxxxxxx -> 9647xxxxxxxxx */
 export function normalizeIraqiPhone(raw?: string | null): string {
@@ -187,7 +188,8 @@ export interface MatchedRefRangeResult {
 export function resolveReferenceRange(
   test: any,
   patientGender?: string | null,
-  patientAge?: number | string | null
+  patientAge?: number | string | null,
+  options?: { birthDate?: string | Date | null; targetDate?: string | Date | null }
 ): MatchedRefRangeResult {
   const fallback = test?.refRangeText || 
     (test?.refRangeLow != null && test?.refRangeHigh != null 
@@ -207,13 +209,6 @@ export function resolveReferenceRange(
     else if (g === 'FEMALE' || g === 'F' || g === 'أنثى') pSex = 'F';
   }
 
-  // Normalize patient age in years
-  let pAgeYears: number | null = null;
-  if (patientAge !== undefined && patientAge !== null && patientAge !== '') {
-    const parsed = parseFloat(String(patientAge));
-    if (!isNaN(parsed) && parsed >= 0) pAgeYears = parsed;
-  }
-
   // Filter matching ranges
   const matching = ranges.filter((r) => {
     // Check Sex
@@ -221,20 +216,16 @@ export function resolveReferenceRange(
       if (!pSex || r.sex.toUpperCase() !== pSex) return false;
     }
 
-    // Check Age if patient age is known and range has age limits
-    if (pAgeYears !== null) {
-      const unit = r.ageUnit || 'years';
-      const toYears = (val: number | null | undefined) => {
-        if (val == null) return null;
-        if (unit === 'days') return val / 365.25;
-        if (unit === 'months') return val / 12;
-        return val;
-      };
-      const minYears = toYears(r.ageMin);
-      const maxYears = toYears(r.ageMax);
-
-      if (minYears !== null && pAgeYears < minYears) return false;
-      if (maxYears !== null && pAgeYears > maxYears) return false;
+    // Check Age with day-level precision if birthDate or legacy age is available
+    const hasBirthDate = options?.birthDate != null;
+    const hasLegacyAge = patientAge !== undefined && patientAge !== null && patientAge !== '';
+    if (hasBirthDate || hasLegacyAge) {
+      const match = isAgeWithinRange(
+        r,
+        { birthDate: options?.birthDate, age: patientAge },
+        options?.targetDate ? new Date(options.targetDate) : undefined
+      );
+      if (!match) return false;
     }
     return true;
   });

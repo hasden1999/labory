@@ -172,6 +172,9 @@ export interface PatientRecord {
   phone?: string;
   age?: number | null;
   gender: 'MALE' | 'FEMALE';
+  birthDate?: string | null;
+  birthDateEstimated?: boolean | null;
+  referringDoctorId?: string | null;
   address?: string;
   notes?: string;
   createdAt: string;
@@ -1059,6 +1062,9 @@ export function addPatient(data: Partial<PatientRecord> & { name: string; gender
     phone: data.phone?.trim() || '',
     age: data.age !== undefined && data.age !== null ? Number(data.age) : null,
     gender: data.gender || 'MALE',
+    birthDate: data.birthDate ? String(data.birthDate) : null,
+    birthDateEstimated: data.birthDateEstimated != null ? Boolean(data.birthDateEstimated) : null,
+    referringDoctorId: data.referringDoctorId ? String(data.referringDoctorId) : null,
     address: data.address || '',
     notes: data.notes || '',
     createdAt: new Date().toISOString(),
@@ -1559,6 +1565,15 @@ export function addSample(data: any): SampleRecord {
         ? Number(data.patient.age) 
         : (data.patientAge !== undefined && data.patientAge !== null ? Number(data.patientAge) : (data.age !== undefined && data.age !== null ? Number(data.age) : null)),
       gender: data.patient?.gender || data.patientGender || data.gender || 'MALE',
+      birthDate: data.patient?.birthDate || data.birthDate || null,
+      birthDateEstimated: data.patient?.birthDateEstimated ?? data.birthDateEstimated ?? null,
+      referringDoctorId: data.patient?.referringDoctorId || data.doctorId || null,
+    });
+  } else if (data.birthDate && !patient.birthDate) {
+    updatePatient(patient.id, {
+      birthDate: data.birthDate,
+      birthDateEstimated: data.birthDateEstimated ?? true,
+      ...(data.doctorId ? { referringDoctorId: data.doctorId } : {}),
     });
   }
 

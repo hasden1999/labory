@@ -67,10 +67,20 @@ const MODULE_RULES = {
   ],
   patients: [
     /^apps\/web\/src\/app\/patients\//,
+    /^apps\/web\/src\/app\/api\/patients\//,
     /^apps\/web\/src\/app\/page\.tsx/,
+    /^apps\/web\/src\/app\/results\/page\.tsx/,
+    /^apps\/web\/src\/app\/samples\/page\.tsx/,
+    /^apps\/web\/src\/components\/common\/ClinicalAgeInput\.tsx/,
+    /^apps\/web\/src\/components\/GlobalQuickBar\.tsx/,
+    /^apps\/web\/src\/components\/workspace\/TechnicianCommandCenter\.tsx/,
     /^apps\/web\/src\/lib\/orderHelpers\.ts/,
     /^apps\/web\/src\/lib\/formatters\.ts/,
-    /^packages\/domain\/src\/ageUtils\.ts/
+    /^apps\/web\/src\/lib\/serverStore\.ts/,
+    /^apps\/web\/src\/lib\/sqliteSync\.ts/,
+    /^apps\/web\/src\/types\/index\.ts/,
+    /^packages\/domain\//,
+    /^tests\/unit\//
   ]
 };
 

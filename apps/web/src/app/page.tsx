@@ -10,10 +10,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Test, Patient, Doctor, Sample } from '../types';
 import { FlaskConical, User, Phone, Calendar, Search, CheckCircle2, DollarSign, Printer, Sparkles, FileText, X, Check, Zap, Activity, Droplets, Heart, Shield, TestTube, GripVertical, Mail, ArrowRight, Stethoscope, Microscope, Dna, Layers, AlertTriangle, RotateCcw, Percent, Keyboard, CreditCard, Banknote, Plus, AlertOctagon, CircleAlert, Barcode, ClipboardList } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
-import { toEnglishDigits, formatEnglishDate } from '../lib/formatters';
+import { toEnglishDigits, formatEnglishDate, formatClinicalAge } from '../lib/formatters';
 import { catalogCache } from '../lib/catalogCache';
 import { INITIAL_DOCTORS } from '../lib/catalogData';
 import { useLab } from '../components/LabContext';
+import { ClinicalAgeInput, ClinicalAgeValue } from '../components/common/ClinicalAgeInput';
+import ReferringDoctorSelect from '../components/common/ReferringDoctorSelect';
+import { computeAgeBreakdown } from '@lab-manager/domain';
 
 // English Clinical Category Mapping
 const CLINICAL_CATEGORIES = [
@@ -69,6 +72,10 @@ function IntakeContent() {
   const [patientName, setPatientName] = useState('');
   const [patientPhone, setPatientPhone] = useState('');
   const [patientAge, setPatientAge] = useState('');
+  const [patientAgeMonths, setPatientAgeMonths] = useState('');
+  const [patientAgeDays, setPatientAgeDays] = useState('');
+  const [patientBirthDate, setPatientBirthDate] = useState<string | null>(null);
+  const [patientBirthDateEstimated, setPatientBirthDateEstimated] = useState<boolean>(true);
   const [patientGender, setPatientGender] = useState<'MALE' | 'FEMALE'>('MALE');
   const [patientNotes, setPatientNotes] = useState('');
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
@@ -317,8 +324,24 @@ function IntakeContent() {
     setPatientId(p.id);
     setPatientName(p.name);
     setPatientPhone(p.phone || '');
-    setPatientAge(p.age ? String(p.age) : '');
+    if (p.birthDate) {
+      setPatientBirthDate(p.birthDate);
+      setPatientBirthDateEstimated(p.birthDateEstimated ?? false);
+      const b = computeAgeBreakdown(p.birthDate);
+      setPatientAge(b.years > 0 ? String(b.years) : '');
+      setPatientAgeMonths(b.months > 0 ? String(b.months) : '');
+      setPatientAgeDays(b.days > 0 ? String(b.days) : '');
+    } else {
+      setPatientBirthDate(null);
+      setPatientBirthDateEstimated(true);
+      setPatientAge(p.age ? String(p.age) : '');
+      setPatientAgeMonths('');
+      setPatientAgeDays('');
+    }
     setPatientGender((p.gender as 'MALE' | 'FEMALE') || 'MALE');
+    if (p.referringDoctorId) {
+      setSelectedDoctorId(p.referringDoctorId);
+    }
     setSelectedPatientHistory(p);
     setPatientSearchQuery('');
     setShowSuggestions(false);
@@ -434,6 +457,10 @@ function IntakeContent() {
     setPatientName('');
     setPatientPhone('');
     setPatientAge('');
+    setPatientAgeMonths('');
+    setPatientAgeDays('');
+    setPatientBirthDate(null);
+    setPatientBirthDateEstimated(true);
     setPatientGender('MALE');
     setPatientNotes('');
     setSelectedDoctorId('');
@@ -900,7 +927,7 @@ function IntakeContent() {
       isSubmittingRef.current = true;
       setSubmitting(true);
       const sanitizedPhone = patientPhone.trim().replace(/[^0-9+\-\s]/g, '') || undefined;
-      const parsedAge = patientAge.trim() ? parseInt(patientAge, 10) : undefined;
+      const parsedAge = patientAge.trim() ? parseInt(patientAge, 10) : (patientBirthDate ? computeAgeBreakdown(patientBirthDate).years : undefined);
       const payload = {
         patientId: patientId || undefined,
         name: patientName.trim(),
@@ -909,6 +936,8 @@ function IntakeContent() {
         patientPhone: sanitizedPhone,
         age: parsedAge,
         patientAge: parsedAge,
+        birthDate: patientBirthDate || undefined,
+        birthDateEstimated: patientBirthDateEstimated,
         gender: patientGender,
         patientGender,
         doctorId: selectedDoctorId || undefined,
@@ -1505,7 +1534,7 @@ function IntakeContent() {
                           {p.name}
                         </strong>
                         <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginRight: '6px' }}>
-                          {p.phone || 'بلا هاتف'} • {p.age ? `${p.age} سنة` : ''}
+                          {p.phone || 'بلا هاتف'} • {formatClinicalAge(p) !== '-' ? formatClinicalAge(p) : ''}
                         </span>
                       </div>
                     );
@@ -1514,33 +1543,27 @@ function IntakeContent() {
               )}
             </div>
 
-            {/* 2. Age Input */}
-            <div>
-              <label htmlFor="patient-age-input" className="input-label" style={{ fontSize: '11px', fontWeight: 800, marginBottom: '4px' }}>
-                العمر (سنة)
-              </label>
-              <input
-                id="patient-age-input"
-                ref={(el) => {
-                  patientAgeInputRef.current = el;
-                  inputRefs.current[1] = el;
-                }}
-                onKeyDown={(e) => handleInputKeyDown(e, 1)}
-                type="text"
-                inputMode="numeric"
-                maxLength={3}
-                placeholder="العمر"
-                className="input-control"
-                style={{ height: '38px', fontSize: '13px', borderRadius: '8px' }}
-                value={patientAge}
-                onChange={(e) => {
-                  const val = toEnglishDigits(e.target.value).replace(/[^0-9]/g, '');
-                  if (val.length <= 3) {
-                    setPatientAge(val);
-                  }
-                }}
-              />
-            </div>
+            {/* 2. Compact 3-field Age Control with DOB Picker */}
+            <ClinicalAgeInput
+              idPrefix="patient-age"
+              years={patientAge}
+              months={patientAgeMonths}
+              days={patientAgeDays}
+              birthDate={patientBirthDate}
+              birthDateEstimated={patientBirthDateEstimated}
+              firstInputRef={(el) => {
+                patientAgeInputRef.current = el;
+                inputRefs.current[1] = el;
+              }}
+              onKeyDownFirst={(e) => handleInputKeyDown(e, 1)}
+              onChange={(val: ClinicalAgeValue) => {
+                setPatientAge(val.years);
+                setPatientAgeMonths(val.months);
+                setPatientAgeDays(val.days);
+                setPatientBirthDate(val.birthDate);
+                setPatientBirthDateEstimated(val.birthDateEstimated);
+              }}
+            />
 
             {/* 3. Gender Segmented Toggle */}
             <div>
@@ -1618,26 +1641,13 @@ function IntakeContent() {
 
             {/* 5. Referring Doctor Select */}
             <div>
-              <label htmlFor="patient-doctor-select" className="input-label" style={{ fontSize: '11px', fontWeight: 800, marginBottom: '4px' }}>
+              <label className="input-label" style={{ fontSize: '11px', fontWeight: 800, marginBottom: '4px' }}>
                 الطبيب المحيل
               </label>
-              <select
-                id="patient-doctor-select"
-                suppressHydrationWarning
-                ref={(el) => { inputRefs.current[4] = el; }}
-                onKeyDown={(e) => handleInputKeyDown(e, 4)}
-                className="select-control"
-                style={{ height: '38px', fontSize: '12px', borderRadius: '8px' }}
+              <ReferringDoctorSelect
                 value={selectedDoctorId}
-                onChange={(e) => setSelectedDoctorId(e.target.value)}
-              >
-                <option value="">مباشر (بدون تحويل)</option>
-                {doctors.map((d) => (
-                  <option key={d.id} value={d.id} suppressHydrationWarning>
-                    د. {d.name} ({d.commissionPercent || 0}%)
-                  </option>
-                ))}
-              </select>
+                onChange={(doctorId) => setSelectedDoctorId(doctorId || '')}
+              />
             </div>
 
             {/* 6. Urgency Setting */}
@@ -1986,7 +1996,7 @@ function IntakeContent() {
             {patientName.trim() && (
               <div style={{ background: 'var(--bg-input-deep)', borderRadius: '8px', padding: '6px 10px', marginBottom: '10px', fontSize: '11.5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>
-                  {patientName} {patientAge ? `(${patientAge} سنة)` : ''}
+                  {patientName} {formatClinicalAge({ birthDate: patientBirthDate, age: patientAge }) !== '-' ? `(${formatClinicalAge({ birthDate: patientBirthDate, age: patientAge })})` : ''}
                 </span>
                 <span style={{ color: 'var(--text-muted)' }}>
                   {patientGender === 'FEMALE' ? 'أنثى' : 'ذكر'} {isUrgent ? '• مستعجل' : ''}

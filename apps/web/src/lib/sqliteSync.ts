@@ -96,6 +96,9 @@ export async function loadStoreFromSqlite(): Promise<any | null> {
       phone: p.phone || '',
       age: p.age,
       gender: (p.gender === 'FEMALE' || p.gender === 'أنثى') ? 'FEMALE' : 'MALE',
+      birthDate: p.birthDate ? p.birthDate.toISOString() : null,
+      birthDateEstimated: p.birthDateEstimated ?? null,
+      referringDoctorId: p.referringDoctorId || null,
       address: '',
       notes: '',
       createdAt: p.createdAt.toISOString(),
@@ -260,6 +263,9 @@ export async function syncPatientToSqlite(pat: any): Promise<void> {
         phone: pat.phone || null,
         age: pat.age != null ? Number(pat.age) : null,
         gender,
+        birthDate: pat.birthDate ? new Date(pat.birthDate) : null,
+        birthDateEstimated: pat.birthDateEstimated != null ? Boolean(pat.birthDateEstimated) : null,
+        referringDoctorId: pat.referringDoctorId || null,
         isDeleted: false,
       },
       create: {
@@ -268,6 +274,9 @@ export async function syncPatientToSqlite(pat: any): Promise<void> {
         phone: pat.phone || null,
         age: pat.age != null ? Number(pat.age) : null,
         gender,
+        birthDate: pat.birthDate ? new Date(pat.birthDate) : null,
+        birthDateEstimated: pat.birthDateEstimated != null ? Boolean(pat.birthDateEstimated) : null,
+        referringDoctorId: pat.referringDoctorId || null,
         createdAt: pat.createdAt ? new Date(pat.createdAt) : new Date(),
       }
     });

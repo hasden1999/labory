@@ -16,6 +16,7 @@ import {
   Barcode,
   Clock
 } from 'lucide-react';
+import { formatClinicalAge } from '../lib/formatters';
 
 export default function GlobalQuickBar() {
   const router = useRouter();
@@ -257,7 +258,7 @@ export default function GlobalQuickBar() {
                           <div>
                             <strong style={{ fontSize: '11.5px', color: 'var(--text-main)', display: 'block' }}>{p.name}</strong>
                             <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                              {p.phone || 'بدون هاتف'} • {p.age ? `${p.age} سنة` : ''}
+                              {p.phone || 'بدون هاتف'} • {formatClinicalAge(p) !== '-' ? formatClinicalAge(p) : ''}
                             </span>
                           </div>
                         </div>
