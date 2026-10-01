@@ -1,4 +1,28 @@
 import QRCode from 'qrcode';
+import fs from 'fs';
+import path from 'path';
+
+function getSystemBrowserPath(): string | undefined {
+  const localAppData = process.env.LOCALAPPDATA || '';
+  const progFiles = process.env.ProgramFiles || 'C:\\Program Files';
+  const progFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+
+  const candidatePaths: string[] = [
+    localAppData ? path.join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe') : '',
+    localAppData ? path.join(localAppData, 'Microsoft', 'Edge', 'Application', 'msedge.exe') : '',
+    path.join(progFiles, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    path.join(progFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    path.join(progFilesX86, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+    path.join(progFiles, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+  ];
+
+  for (const p of candidatePaths) {
+    if (p && fs.existsSync(p)) {
+      return p;
+    }
+  }
+  return undefined;
+}
 
 export interface ReportData {
   labName: string;
@@ -221,7 +245,8 @@ export async function generateSampleReportPDF(data: ReportData): Promise<Buffer>
   `;
 
   const puppeteer = (await import('puppeteer')).default;
-  const browser = await puppeteer.launch({
+  const execPath = getSystemBrowserPath();
+  const launchOptions: any = {
     headless: true,
     args: [
       '--no-sandbox',
@@ -229,7 +254,11 @@ export async function generateSampleReportPDF(data: ReportData): Promise<Buffer>
       '--disable-dev-shm-usage',
       '--disable-gpu',
     ],
-  });
+  };
+  if (execPath) {
+    launchOptions.executablePath = execPath;
+  }
+  const browser = await puppeteer.launch(launchOptions);
 
   try {
     const page = await browser.newPage();
