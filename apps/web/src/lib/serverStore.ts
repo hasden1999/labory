@@ -17,6 +17,11 @@ import {
   deleteTestFromSqlite,
   syncPanelToSqlite,
   deletePanelFromSqlite,
+  syncSpecialtyToSqlite,
+  deleteSpecialtyFromSqlite,
+  syncTestGroupToSqlite,
+  deleteTestGroupFromSqlite,
+  syncTestSpecialtyAssignmentToSqlite,
 } from './sqliteSync';
 import { prisma } from './prisma';
 import fs from 'fs';
@@ -379,6 +384,7 @@ export interface SpecialtyRecord {
   sortOrder: number;
   isActive?: boolean;
   createdAt?: string;
+  updatedAt?: string;
   groups?: TestGroupRecord[];
 }
 
@@ -390,6 +396,7 @@ export interface TestGroupRecord {
   sortOrder: number;
   isActive?: boolean;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ServerStore {
@@ -1170,6 +1177,9 @@ export function createTestInStore(data: any): any {
     referenceSource: data.referenceSource || null,
     isCalculated: data.isCalculated !== undefined ? Boolean(data.isCalculated) : false,
     referenceRanges: data.referenceRanges || [],
+    specialtyId: data.specialtyId || null,
+    groupId: data.groupId || null,
+    sortOrder: data.sortOrder !== undefined && data.sortOrder !== null ? Number(data.sortOrder) : null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -1218,6 +1228,9 @@ export function updateTestInStore(id: string, data: any): any | null {
     ...(data.referenceSource !== undefined ? { referenceSource: data.referenceSource || null } : {}),
     ...(data.isCalculated !== undefined ? { isCalculated: Boolean(data.isCalculated) } : {}),
     ...(data.referenceRanges !== undefined ? { referenceRanges: data.referenceRanges } : {}),
+    ...(data.specialtyId !== undefined ? { specialtyId: data.specialtyId || null } : {}),
+    ...(data.groupId !== undefined ? { groupId: data.groupId || null } : {}),
+    ...(data.sortOrder !== undefined ? { sortOrder: data.sortOrder !== null && data.sortOrder !== undefined ? Number(data.sortOrder) : null } : {}),
     updatedAt: new Date().toISOString(),
   };
 
@@ -3073,6 +3086,140 @@ export function paySampleRemaining(
     paidAmount: amount,
     newRemaining,
   };
+}
+
+export function getSpecialties() {
+  const store = getStore();
+  return store.specialties || [];
+}
+
+export function getTestGroups() {
+  const store = getStore();
+  return store.testGroups || [];
+}
+
+export function addSpecialty(data: { nameEn: string; nameAr?: string; sortOrder?: number; isActive?: boolean }) {
+  const store = getStore();
+  if (!store.specialties) store.specialties = [];
+  const id = `spec-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const now = new Date().toISOString();
+  const spec: SpecialtyRecord = {
+    id,
+    nameEn: data.nameEn.trim(),
+    nameAr: data.nameAr ? data.nameAr.trim() : null,
+    sortOrder: data.sortOrder ?? store.specialties.length + 1,
+    isActive: data.isActive !== false,
+    createdAt: now,
+    updatedAt: now,
+  };
+  store.specialties.push(spec);
+  saveStoreToFile();
+  syncSpecialtyToSqlite(spec).catch(e => console.warn('[SqliteSync] addSpecialty error:', e?.message));
+  return spec;
+}
+
+export function updateSpecialty(id: string, data: Partial<{ nameEn: string; nameAr?: string; sortOrder?: number; isActive?: boolean }>) {
+  const store = getStore();
+  const spec = (store.specialties || []).find(s => s.id === id);
+  if (!spec) throw new Error('الاختصاص غير موجود');
+  if (data.nameEn !== undefined) spec.nameEn = data.nameEn.trim();
+  if (data.nameAr !== undefined) spec.nameAr = data.nameAr ? data.nameAr.trim() : null;
+  if (data.sortOrder !== undefined) spec.sortOrder = Number(data.sortOrder);
+  if (data.isActive !== undefined) spec.isActive = Boolean(data.isActive);
+  spec.updatedAt = new Date().toISOString();
+  saveStoreToFile();
+  syncSpecialtyToSqlite(spec).catch(e => console.warn('[SqliteSync] updateSpecialty error:', e?.message));
+  return spec;
+}
+
+export function deleteSpecialty(id: string) {
+  const store = getStore();
+  const idx = (store.specialties || []).findIndex(s => s.id === id);
+  if (idx === -1) throw new Error('الاختصاص غير موجود');
+  if (store.specialties) store.specialties.splice(idx, 1);
+  (store.tests || []).forEach(t => {
+    if (t.specialtyId === id) {
+      t.specialtyId = null;
+      t.groupId = null;
+      t.sortOrder = null;
+      syncTestSpecialtyAssignmentToSqlite(t.id, null, null, null).catch(() => {});
+    }
+  });
+  if (store.testGroups) {
+    store.testGroups = store.testGroups.filter(g => g.specialtyId !== id);
+  }
+  saveStoreToFile();
+  deleteSpecialtyFromSqlite(id).catch(e => console.warn('[SqliteSync] deleteSpecialty error:', e?.message));
+  return { success: true };
+}
+
+export function addTestGroup(data: { specialtyId: string; nameEn: string; nameAr?: string; sortOrder?: number; isActive?: boolean }) {
+  const store = getStore();
+  if (!store.testGroups) store.testGroups = [];
+  const id = `grp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const now = new Date().toISOString();
+  const grp: TestGroupRecord = {
+    id,
+    specialtyId: data.specialtyId,
+    nameEn: data.nameEn.trim(),
+    nameAr: data.nameAr ? data.nameAr.trim() : null,
+    sortOrder: data.sortOrder ?? store.testGroups.filter(g => g.specialtyId === data.specialtyId).length + 1,
+    isActive: data.isActive !== false,
+    createdAt: now,
+    updatedAt: now,
+  };
+  store.testGroups.push(grp);
+  saveStoreToFile();
+  syncTestGroupToSqlite(grp).catch(e => console.warn('[SqliteSync] addTestGroup error:', e?.message));
+  return grp;
+}
+
+export function updateTestGroup(id: string, data: Partial<{ nameEn: string; nameAr?: string; sortOrder?: number; isActive?: boolean }>) {
+  const store = getStore();
+  const grp = (store.testGroups || []).find(g => g.id === id);
+  if (!grp) throw new Error('المجموعة غير موجودة');
+  if (data.nameEn !== undefined) grp.nameEn = data.nameEn.trim();
+  if (data.nameAr !== undefined) grp.nameAr = data.nameAr ? data.nameAr.trim() : null;
+  if (data.sortOrder !== undefined) grp.sortOrder = Number(data.sortOrder);
+  if (data.isActive !== undefined) grp.isActive = Boolean(data.isActive);
+  grp.updatedAt = new Date().toISOString();
+  saveStoreToFile();
+  syncTestGroupToSqlite(grp).catch(e => console.warn('[SqliteSync] updateTestGroup error:', e?.message));
+  return grp;
+}
+
+export function deleteTestGroup(id: string) {
+  const store = getStore();
+  const idx = (store.testGroups || []).findIndex(g => g.id === id);
+  if (idx === -1) throw new Error('المجموعة غير موجودة');
+  if (store.testGroups) store.testGroups.splice(idx, 1);
+  (store.tests || []).forEach(t => {
+    if (t.groupId === id) {
+      t.groupId = null;
+      t.sortOrder = null;
+      syncTestSpecialtyAssignmentToSqlite(t.id, t.specialtyId || null, null, null).catch(() => {});
+    }
+  });
+  saveStoreToFile();
+  deleteTestGroupFromSqlite(id).catch(e => console.warn('[SqliteSync] deleteTestGroup error:', e?.message));
+  return { success: true };
+}
+
+export function updateTestSpecialty(
+  testId: string,
+  data: { specialtyId: string | null; groupId: string | null; sortOrder?: number | null }
+) {
+  const store = getStore();
+  const test = (store.tests || []).find(t => t.id === testId);
+  if (!test) throw new Error('الفحص غير موجود');
+  test.specialtyId = data.specialtyId || null;
+  test.groupId = data.groupId || null;
+  test.sortOrder = data.sortOrder !== undefined ? data.sortOrder : null;
+  saveStoreToFile();
+  syncTestSpecialtyAssignmentToSqlite(test.id, test.specialtyId, test.groupId, test.sortOrder).catch(e =>
+    console.warn('[SqliteSync] updateTestSpecialty error:', e?.message)
+  );
+  return test;
 }
 
 

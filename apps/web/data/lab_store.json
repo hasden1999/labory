@@ -157,9 +157,9 @@
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2doq0008jtobwofwhfl3",
+      "sortOrder": 3,
       "referenceRanges": []
     },
     {
@@ -184,9 +184,9 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
+      "specialtyId": "cmupz2do70002jtobb5dt2ilx",
       "groupId": null,
-      "sortOrder": null,
+      "sortOrder": 1,
       "referenceRanges": []
     },
     {
@@ -778,9 +778,9 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
+      "specialtyId": "cmupz2do70002jtobb5dt2ilx",
       "groupId": null,
-      "sortOrder": null,
+      "sortOrder": 2,
       "referenceRanges": []
     },
     {
@@ -1156,9 +1156,9 @@
       "unit": "mm/1st hr",
       "sampleType": "دم كامل (Citrate)",
       "active": true,
-      "specialtyId": null,
+      "specialtyId": "cmupz2do30001jtobslzhsylt",
       "groupId": null,
-      "sortOrder": null,
+      "sortOrder": 3,
       "referenceRanges": []
     },
     {
@@ -1183,9 +1183,9 @@
       "unit": "mL/min/1.73m2",
       "sampleType": "محسوب",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dok0006jtob1fsc2ra1",
+      "sortOrder": 3,
       "referenceRanges": []
     },
     {
@@ -1237,9 +1237,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dod0004jtob8sck5j9u",
+      "sortOrder": 3,
       "referenceRanges": []
     },
     {
@@ -1507,9 +1507,9 @@
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2doq0008jtobwofwhfl3",
+      "sortOrder": 5,
       "referenceRanges": []
     },
     {
@@ -1588,9 +1588,9 @@
       "unit": "%",
       "sampleType": "دم كامل (EDTA)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dod0004jtob8sck5j9u",
+      "sortOrder": 1,
       "referenceRanges": []
     },
     {
@@ -1642,9 +1642,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dov000ajtob1jt5zqdp",
+      "sortOrder": 3,
       "referenceRanges": []
     },
     {
@@ -1696,9 +1696,9 @@
       "unit": "%",
       "sampleType": "دم كامل (EDTA)",
       "active": true,
-      "specialtyId": null,
+      "specialtyId": "cmupz2do30001jtobslzhsylt",
       "groupId": null,
-      "sortOrder": null,
+      "sortOrder": 2,
       "referenceRanges": []
     },
     {
@@ -1723,9 +1723,9 @@
       "unit": "g/dL",
       "sampleType": "دم كامل (EDTA)",
       "active": true,
-      "specialtyId": null,
+      "specialtyId": "cmupz2do30001jtobslzhsylt",
       "groupId": null,
-      "sortOrder": null,
+      "sortOrder": 1,
       "referenceRanges": []
     },
     {
@@ -2020,9 +2020,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dov000ajtob1jt5zqdp",
+      "sortOrder": 4,
       "referenceRanges": []
     },
     {
@@ -2236,9 +2236,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dod0004jtob8sck5j9u",
+      "sortOrder": 4,
       "referenceRanges": []
     },
     {
@@ -2479,9 +2479,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dod0004jtob8sck5j9u",
+      "sortOrder": 2,
       "referenceRanges": []
     },
     {
@@ -2641,9 +2641,9 @@
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2doq0008jtobwofwhfl3",
+      "sortOrder": 2,
       "referenceRanges": []
     },
     {
@@ -2668,9 +2668,9 @@
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2doq0008jtobwofwhfl3",
+      "sortOrder": 1,
       "referenceRanges": []
     },
     {
@@ -2722,9 +2722,9 @@
       "unit": "g/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2doq0008jtobwofwhfl3",
+      "sortOrder": 7,
       "referenceRanges": []
     },
     {
@@ -2911,9 +2911,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dok0006jtob1fsc2ra1",
+      "sortOrder": 1,
       "referenceRanges": []
     },
     {
@@ -3208,9 +3208,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dok0006jtob1fsc2ra1",
+      "sortOrder": 2,
       "referenceRanges": []
     },
     {
@@ -3343,9 +3343,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2doq0008jtobwofwhfl3",
+      "sortOrder": 4,
       "referenceRanges": []
     },
     {
@@ -3370,9 +3370,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dov000ajtob1jt5zqdp",
+      "sortOrder": 1,
       "referenceRanges": []
     },
     {
@@ -3505,9 +3505,9 @@
       "unit": "g/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2doq0008jtobwofwhfl3",
+      "sortOrder": 6,
       "referenceRanges": []
     },
     {
@@ -3640,9 +3640,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dov000ajtob1jt5zqdp",
+      "sortOrder": 2,
       "referenceRanges": []
     },
     {
@@ -3775,9 +3775,9 @@
       "unit": "mg/dL",
       "sampleType": "محسوب",
       "active": true,
-      "specialtyId": null,
-      "groupId": null,
-      "sortOrder": null,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dov000ajtob1jt5zqdp",
+      "sortOrder": 5,
       "referenceRanges": []
     },
     {
@@ -3856,9 +3856,9 @@
       "unit": "10*3/uL",
       "sampleType": "Serum",
       "active": true,
-      "specialtyId": null,
+      "specialtyId": "cmupz2do30001jtobslzhsylt",
       "groupId": null,
-      "sortOrder": null,
+      "sortOrder": 4,
       "referenceRanges": []
     },
     {
@@ -10619,6 +10619,108 @@
       "date": "2026-08-25T08:59:44.025Z"
     }
   ],
-  "specialties": [],
-  "testGroups": []
+  "specialties": [
+    {
+      "id": "cmupz2dnq0000jtobc6gvzmn9",
+      "nameEn": "Biochemistry",
+      "nameAr": "الكيمياء الحيوية",
+      "sortOrder": 1,
+      "isActive": true,
+      "createdAt": "2026-10-01T20:13:52.166Z",
+      "groups": [
+        {
+          "id": "cmupz2dod0004jtob8sck5j9u",
+          "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+          "nameEn": "Diabetes profile",
+          "nameAr": "فحوصات السكري",
+          "sortOrder": 1,
+          "isActive": true,
+          "createdAt": "2026-10-01T20:13:52.189Z"
+        },
+        {
+          "id": "cmupz2dok0006jtob1fsc2ra1",
+          "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+          "nameEn": "Renal function test (RFT)",
+          "nameAr": "وظائف الكلى",
+          "sortOrder": 2,
+          "isActive": true,
+          "createdAt": "2026-10-01T20:13:52.197Z"
+        },
+        {
+          "id": "cmupz2doq0008jtobwofwhfl3",
+          "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+          "nameEn": "Liver function test (LFT)",
+          "nameAr": "وظائف الكبد",
+          "sortOrder": 3,
+          "isActive": true,
+          "createdAt": "2026-10-01T20:13:52.202Z"
+        },
+        {
+          "id": "cmupz2dov000ajtob1jt5zqdp",
+          "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+          "nameEn": "Lipid profile",
+          "nameAr": "دهون الدم",
+          "sortOrder": 4,
+          "isActive": true,
+          "createdAt": "2026-10-01T20:13:52.207Z"
+        }
+      ]
+    },
+    {
+      "id": "cmupz2do30001jtobslzhsylt",
+      "nameEn": "Hematology",
+      "nameAr": "أمراض الدم",
+      "sortOrder": 2,
+      "isActive": true,
+      "createdAt": "2026-10-01T20:13:52.180Z",
+      "groups": []
+    },
+    {
+      "id": "cmupz2do70002jtobb5dt2ilx",
+      "nameEn": "Tumor markers",
+      "nameAr": "دلالات الأورام",
+      "sortOrder": 3,
+      "isActive": true,
+      "createdAt": "2026-10-01T20:13:52.184Z",
+      "groups": []
+    }
+  ],
+  "testGroups": [
+    {
+      "id": "cmupz2dod0004jtob8sck5j9u",
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "nameEn": "Diabetes profile",
+      "nameAr": "فحوصات السكري",
+      "sortOrder": 1,
+      "isActive": true,
+      "createdAt": "2026-10-01T20:13:52.189Z"
+    },
+    {
+      "id": "cmupz2dok0006jtob1fsc2ra1",
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "nameEn": "Renal function test (RFT)",
+      "nameAr": "وظائف الكلى",
+      "sortOrder": 2,
+      "isActive": true,
+      "createdAt": "2026-10-01T20:13:52.197Z"
+    },
+    {
+      "id": "cmupz2doq0008jtobwofwhfl3",
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "nameEn": "Liver function test (LFT)",
+      "nameAr": "وظائف الكبد",
+      "sortOrder": 3,
+      "isActive": true,
+      "createdAt": "2026-10-01T20:13:52.202Z"
+    },
+    {
+      "id": "cmupz2dov000ajtob1jt5zqdp",
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "nameEn": "Lipid profile",
+      "nameAr": "دهون الدم",
+      "sortOrder": 4,
+      "isActive": true,
+      "createdAt": "2026-10-01T20:13:52.207Z"
+    }
+  ]
 }

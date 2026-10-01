@@ -785,4 +785,98 @@ export async function deletePanelFromSqlite(id: string): Promise<void> {
   }
 }
 
+export async function syncSpecialtyToSqlite(spec: any): Promise<void> {
+  if (!spec || !spec.id) return;
+  try {
+    await initDbWAL();
+    await prisma.specialty.upsert({
+      where: { id: spec.id },
+      update: {
+        nameEn: spec.nameEn,
+        nameAr: spec.nameAr || null,
+        sortOrder: spec.sortOrder ?? 0,
+        isActive: spec.isActive !== false,
+      },
+      create: {
+        id: spec.id,
+        nameEn: spec.nameEn,
+        nameAr: spec.nameAr || null,
+        sortOrder: spec.sortOrder ?? 0,
+        isActive: spec.isActive !== false,
+      },
+    });
+  } catch (e: any) {
+    console.error('[SQLite Sync] Failed to sync specialty:', e?.message);
+  }
+}
+
+export async function deleteSpecialtyFromSqlite(id: string): Promise<void> {
+  if (!id) return;
+  try {
+    await initDbWAL();
+    await prisma.specialty.delete({ where: { id } });
+  } catch (e: any) {
+    console.error('[SQLite Sync] Failed to delete specialty:', e?.message);
+  }
+}
+
+export async function syncTestGroupToSqlite(grp: any): Promise<void> {
+  if (!grp || !grp.id) return;
+  try {
+    await initDbWAL();
+    await prisma.testGroup.upsert({
+      where: { id: grp.id },
+      update: {
+        specialtyId: grp.specialtyId,
+        nameEn: grp.nameEn,
+        nameAr: grp.nameAr || null,
+        sortOrder: grp.sortOrder ?? 0,
+        isActive: grp.isActive !== false,
+      },
+      create: {
+        id: grp.id,
+        specialtyId: grp.specialtyId,
+        nameEn: grp.nameEn,
+        nameAr: grp.nameAr || null,
+        sortOrder: grp.sortOrder ?? 0,
+        isActive: grp.isActive !== false,
+      },
+    });
+  } catch (e: any) {
+    console.error('[SQLite Sync] Failed to sync test group:', e?.message);
+  }
+}
+
+export async function deleteTestGroupFromSqlite(id: string): Promise<void> {
+  if (!id) return;
+  try {
+    await initDbWAL();
+    await prisma.testGroup.delete({ where: { id } });
+  } catch (e: any) {
+    console.error('[SQLite Sync] Failed to delete test group:', e?.message);
+  }
+}
+
+export async function syncTestSpecialtyAssignmentToSqlite(
+  testId: string,
+  specialtyId: string | null,
+  groupId: string | null,
+  sortOrder: number | null
+): Promise<void> {
+  if (!testId) return;
+  try {
+    await initDbWAL();
+    await prisma.testCatalog.update({
+      where: { id: testId },
+      data: {
+        specialtyId,
+        groupId,
+        sortOrder,
+      },
+    });
+  } catch (e: any) {
+    console.error('[SQLite Sync] Failed to sync test specialty assignment:', e?.message);
+  }
+}
+
 

@@ -28,6 +28,8 @@ import {
 } from 'lucide-react';
 import { useLab } from '../../components/LabContext';
 import { catalogCache } from '../../lib/catalogCache';
+import SpecialtySelector from '../../components/specialties/SpecialtySelector';
+import SpecialtiesManagerModal from '../../components/specialties/SpecialtiesManagerModal';
 
 const cleanArabic = (text: string) => {
   if (!text) return '';
@@ -79,6 +81,10 @@ export default function CatalogPage() {
   const [refRangeText, setRefRangeText] = useState('');
   const [unit, setUnit] = useState('');
   const [sampleType, setSampleType] = useState('مصل الدم (Serum)');
+  const [specialtyId, setSpecialtyId] = useState<string | null>(null);
+  const [groupId, setGroupId] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<number | null>(null);
+  const [showSpecialtiesModal, setShowSpecialtiesModal] = useState(false);
 
   // Panel Form States
   const [editingPanelId, setEditingPanelId] = useState<string | null>(null);
@@ -320,6 +326,9 @@ export default function CatalogPage() {
     setRefRangeText('');
     setUnit('');
     setSampleType('مصل الدم (Serum)');
+    setSpecialtyId(null);
+    setGroupId(null);
+    setSortOrder(null);
     setReferenceRanges([]);
     resetRangeForm();
     setIsFormDirty(false);
@@ -345,6 +354,9 @@ export default function CatalogPage() {
     setRefRangeText(test.refRangeText || '');
     setUnit(test.unit || '');
     setSampleType(test.sampleType || 'مصل الدم (Serum)');
+    setSpecialtyId(test.specialtyId || null);
+    setGroupId(test.groupId || null);
+    setSortOrder(test.sortOrder !== undefined && test.sortOrder !== null ? Number(test.sortOrder) : null);
     setReferenceRanges(test.referenceRanges && Array.isArray(test.referenceRanges) ? JSON.parse(JSON.stringify(test.referenceRanges)) : []);
     resetRangeForm();
     setIsFormDirty(false);
@@ -414,6 +426,9 @@ export default function CatalogPage() {
         name: name.trim(),
         arabicName: arabicName.trim() || undefined,
         category,
+        specialtyId: specialtyId || null,
+        groupId: groupId || null,
+        sortOrder: sortOrder !== undefined && sortOrder !== null ? Number(sortOrder) : null,
         price: Number(price),
         costEstimate: costEstimate !== '' ? Number(costEstimate) : null,
         refRangeLow: refRangeLow !== '' ? Number(refRangeLow) : null,
@@ -586,6 +601,16 @@ export default function CatalogPage() {
             <DollarSign size={14} />
             <span>العملة المعتمدة: <strong>{currency}</strong></span>
           </a>
+
+          <button
+            onClick={() => setShowSpecialtiesModal(true)}
+            className="btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            title="إدارة الهيكل السريري وتصنيفات الاختصاصات"
+          >
+            <Layers size={16} />
+            <span>إدارة الاختصاصات</span>
+          </button>
 
           {activeTab === 'tests' ? (
             <button onClick={handleOpenAddTest} className="btn-primary">
@@ -896,6 +921,18 @@ export default function CatalogPage() {
                   </select>
                 </div>
               </div>
+
+              <SpecialtySelector
+                specialtyId={specialtyId}
+                groupId={groupId}
+                sortOrder={sortOrder}
+                onChange={(val) => {
+                  setSpecialtyId(val.specialtyId);
+                  setGroupId(val.groupId);
+                  setSortOrder(val.sortOrder !== undefined ? val.sortOrder : null);
+                  setIsFormDirty(true);
+                }}
+              />
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                 <div>
@@ -1498,6 +1535,13 @@ export default function CatalogPage() {
           setIsFormDirty(false);
         }}
         onCancel={() => setShowDirtyConfirm(false)}
+      />
+
+      {/* Specialties & Groups Management Modal */}
+      <SpecialtiesManagerModal
+        isOpen={showSpecialtiesModal}
+        onClose={() => setShowSpecialtiesModal(false)}
+        onChanged={loadCatalog}
       />
     </AppShell>
   );
