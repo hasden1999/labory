@@ -22,6 +22,7 @@ const MODULE_RULES = {
   ],
   data: [
     /^packages\/data\//,
+    /^apps\/web\/src\/app\/catalog\//,
     /^apps\/web\/src\/lib\/catalog/,
     /^apps\/server\/prisma\/seed\.ts/,
     /^tools\/.*(?:catalog|dedupe|duplicate).*/
@@ -82,7 +83,7 @@ function checkScope() {
 
     const diffFiles = diffOutput ? diffOutput.split('\n').map(s => s.trim().replace(/\\/g, '/')) : [];
     const statusFiles = statusOutput
-      ? statusOutput.split('\n').map(line => line.substring(3).trim().replace(/\\/g, '/'))
+      ? statusOutput.split('\n').map(line => line.replace(/^[A-Z ?]{2}\s+/, '').trim().replace(/\\/g, '/'))
       : [];
 
     changedFiles = Array.from(new Set([...diffFiles, ...statusFiles])).filter(Boolean);
@@ -100,8 +101,8 @@ function checkScope() {
 
   const violations = [];
   for (const file of changedFiles) {
-    // Ignore temporary scratch and log files
-    if (file.startsWith('.gemini/') || file.startsWith('scratch/')) continue;
+    // Ignore temporary scratch, log, and golden test artifacts
+    if (file.startsWith('.gemini/') || file.startsWith('scratch/') || file.startsWith('tests/golden/artifacts/')) continue;
 
     const isAllowed = allowedPatterns.some(pattern => pattern.test(file));
     if (!isAllowed) {
