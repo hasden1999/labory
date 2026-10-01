@@ -121,6 +121,28 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
 
   const labNameAlignStyle = labNameAlignment === 'CENTER' ? 'text-align: center;' : labNameAlignment === 'LEFT' ? 'text-align: left;' : 'text-align: right;';
 
+  const hasCustomLogo = Boolean(
+    settings.logoUrl && (
+      (settings.logoWidthMm !== null && settings.logoWidthMm !== undefined) ||
+      (settings.logoAlign !== null && settings.logoAlign !== undefined) ||
+      (settings.logoOffsetXMm !== null && settings.logoOffsetXMm !== undefined) ||
+      (settings.logoOffsetYMm !== null && settings.logoOffsetYMm !== undefined)
+    )
+  );
+
+  const customWidthMm = Math.max(10, Math.min(80, Number(settings.logoWidthMm) || 25));
+  const customAlign = (settings.logoAlign === 'left' || settings.logoAlign === 'center' || settings.logoAlign === 'right')
+    ? settings.logoAlign
+    : 'right';
+  const customOffX = Math.max(-20, Math.min(20, Number(settings.logoOffsetXMm) || 0));
+  const customOffY = Math.max(-20, Math.min(20, Number(settings.logoOffsetYMm) || 0));
+
+  const renderCustomLogoBlock = () => `
+    <div class="custom-logo-wrapper" style="display: inline-flex; justify-content: ${customAlign === 'center' ? 'center' : customAlign === 'left' ? 'flex-start' : 'flex-end'}; max-width: 100%; overflow: hidden; vertical-align: middle;">
+      <img src="${escapeHtml(settings.logoUrl)}" alt="Logo" style="width: ${customWidthMm}mm; max-width: 100%; height: auto; object-fit: contain; transform: translate(${customOffX}mm, ${customOffY}mm); -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;" />
+    </div>
+  `;
+
   // Modern Colored Gradient Header (Identical to settings preview)
   if (template === 'MODERN') {
     let modernBadgeStyle = '';
@@ -130,7 +152,8 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
       modernBadgeStyle = 'border: 1.5px solid rgba(255,255,255,0.85); padding: 2px 10px; border-radius: 6px; display: inline-block;';
     }
 
-    return `
+    if (!hasCustomLogo) {
+      return `
       <div class="modern-header-banner" style="background: linear-gradient(135deg, ${primaryCol} 0%, #06b6d4 100%) !important; color: #ffffff !important; padding: 14px 18px; border-radius: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important;">
         <div style="flex: 1; ${labNameAlignStyle}">
           ${showLabName && safeLabName ? `
@@ -165,6 +188,46 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
           ` : ''}
         </div>
       </div>`;
+    }
+
+    // Custom Logo in Modern Template
+    return `
+      <div class="modern-header-banner" style="background: linear-gradient(135deg, ${primaryCol} 0%, #06b6d4 100%) !important; color: #ffffff !important; padding: 14px 18px; border-radius: 8px; margin-bottom: 16px; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; overflow: hidden;">
+        ${customAlign === 'center' ? `<div style="text-align: center; margin-bottom: 8px;">${renderCustomLogoBlock()}</div>` : ''}
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          ${customAlign === 'left' ? `<div style="margin-right: 14px; flex-shrink: 0;">${renderCustomLogoBlock()}</div>` : ''}
+          <div style="flex: 1; ${labNameAlignStyle}">
+            ${showLabName && safeLabName ? `
+              <div style="font-size: ${labNameFontSize}px; font-weight: 900; color: #ffffff !important; margin-bottom: 2px; ${modernBadgeStyle}">
+                <span style="vertical-align: middle;">${safeLabName}</span>
+              </div>
+            ` : ''}
+            ${showLabSubtitle && safeLabSubtitle ? `
+              <p style="margin: 2px 0 0 0; font-size: 11px; color: rgba(255, 255, 255, 0.95) !important; font-weight: 600;">${safeLabSubtitle}</p>
+            ` : ''}
+            ${showContactInfo ? `
+              <p style="margin: 4px 0 0 0; font-size: 10px; color: rgba(255, 255, 255, 0.85) !important;">Address: ${safeAddress} | Tel: ${safePhone} ${safeLicense ? ` | License: ${safeLicense}` : ''}</p>
+            ` : ''}
+          </div>
+
+          <div style="display: flex; gap: 10px; align-items: center; margin-right: 14px;">
+            ${qrEnabled && qrPosition === 'HEADER' ? `
+              <div style="background: #ffffff; padding: 4px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.15); -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                ${generateQrSvg(verifyUrl, 44)}
+                <div style="font-size: 8px; font-weight: 800; color: #0f172a; margin-top: 2px; letter-spacing: 0.5px;">VERIFY</div>
+              </div>
+            ` : ''}
+            ${showDoctorInfo ? `
+              <div style="background: rgba(255, 255, 255, 0.18) !important; border: 1px solid rgba(255, 255, 255, 0.3); padding: 8px 12px; border-radius: 6px; text-align: left; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;" dir="ltr">
+                <h4 style="font-size: 12px; font-weight: 900; color: #ffffff !important; margin: 0;">${safeDocName || 'Dr. Laboratory Director'}</h4>
+                <p style="font-size: 10px; color: rgba(255, 255, 255, 0.92) !important; margin: 2px 0 0 0; font-weight: 600;">${safeDocTitle || 'Consultant Clinical Pathologist'}</p>
+                ${safeLicense ? `<p style="font-size: 9px; color: rgba(255, 255, 255, 0.78) !important; margin: 2px 0 0 0;">Lic: ${safeLicense}</p>` : ''}
+              </div>
+            ` : ''}
+          </div>
+          ${customAlign === 'right' ? `<div style="margin-left: 14px; flex-shrink: 0;">${renderCustomLogoBlock()}</div>` : ''}
+        </div>
+      </div>`;
   }
 
   let labNameStyleCss = '';
@@ -176,7 +239,8 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
     labNameStyleCss = `border: 1.5px solid ${labNameColor}; padding: 2px 10px; border-radius: 4px; display: inline-block;`;
   }
 
-  return `
+  if (!hasCustomLogo) {
+    return `
     <div class="header-border" style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 14px; margin-bottom: 16px; position: relative; z-index: 1;">
       <div style="flex: 1; ${labNameAlignStyle}">
         ${showLabName && safeLabName ? `
@@ -211,6 +275,49 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
           ` : ''}
         </div>
       ` : ''}
+    </div>`;
+  }
+
+  // Custom Logo in Classic / Other Templates
+  return `
+    <div class="header-border" style="padding-bottom: 14px; margin-bottom: 16px; position: relative; z-index: 1;">
+      ${customAlign === 'center' ? `<div style="text-align: center; margin-bottom: 10px;">${renderCustomLogoBlock()}</div>` : ''}
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        ${customAlign === 'left' ? `<div style="margin-right: 16px; flex-shrink: 0;">${renderCustomLogoBlock()}</div>` : ''}
+        <div style="flex: 1; ${labNameAlignStyle}">
+          ${showLabName && safeLabName ? `
+            <h1 style="margin: 0; font-size: ${labNameFontSize}px; color: ${labNameColor}; font-weight: 800; ${labNameStyleCss}">
+              <span style="vertical-align: middle;">${safeLabName}</span>
+            </h1>
+          ` : ''}
+          ${showLabSubtitle && safeLabSubtitle ? `
+            <p style="margin: 3px 0 0 0; font-size: 11.5px; color: #64748b; font-weight: 600;">${safeLabSubtitle}</p>
+          ` : ''}
+          ${showContactInfo ? `
+            <p style="margin: 4px 0 0 0; font-size: 11px; color: #475569;">Address: ${safeAddress} | Tel: ${safePhone}</p>
+          ` : ''}
+        </div>
+
+        ${(showDoctorInfo || (qrEnabled && qrPosition === 'HEADER')) ? `
+          <div style="display: flex; align-items: center; gap: 14px; margin-right: 16px;">
+            ${qrEnabled && qrPosition === 'HEADER' ? `
+              <div style="text-align: center;">
+                ${generateQrSvg(verifyUrl, 44)}
+                <div style="font-size: 9px; color: #64748b; margin-top: 2px;">Scan to Verify</div>
+              </div>
+            ` : ''}
+
+            ${showDoctorInfo ? `
+              <div style="text-align: left;" dir="ltr">
+                <div style="font-size: 13px; font-weight: 800; color: #0f172a;">${safeDocName || 'Laboratory Director'}</div>
+                <div style="font-size: 11px; color: #64748b;">${safeDocTitle || 'Consultant Clinical Pathologist'}</div>
+                <div style="font-size: 10px; color: #94a3b8;">License: ${safeLicense || 'MOH-2026'}</div>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+        ${customAlign === 'right' ? `<div style="margin-left: 16px; flex-shrink: 0;">${renderCustomLogoBlock()}</div>` : ''}
+      </div>
     </div>`;
 }
 

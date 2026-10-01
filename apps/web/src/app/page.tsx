@@ -16,7 +16,7 @@ import { INITIAL_DOCTORS } from '../lib/catalogData';
 import { useLab } from '../components/LabContext';
 import { ClinicalAgeInput, ClinicalAgeValue } from '../components/common/ClinicalAgeInput';
 import ReferringDoctorSelect from '../components/common/ReferringDoctorSelect';
-import { computeAgeBreakdown } from '@lab-manager/domain';
+import { computeAgeBreakdown, groupTests } from '@lab-manager/domain';
 
 // English Clinical Category Mapping
 const CLINICAL_CATEGORIES = [
@@ -66,6 +66,10 @@ function IntakeContent() {
   const [panels, setPanels] = useState<any[]>(() => catalogCache.getPanels() || []);
   const [doctors, setDoctors] = useState<Doctor[]>(() => (INITIAL_DOCTORS as unknown as Doctor[]) || []);
   const [loading, setLoading] = useState(false);
+  const [specialtiesContext, setSpecialtiesContext] = useState<{ specialties: any[]; groups: any[] }>({
+    specialties: [],
+    groups: [],
+  });
 
   // Form States - Patient
   const [patientId, setPatientId] = useState<string | null>(null);
@@ -209,6 +213,22 @@ function IntakeContent() {
           if (refreshed.tests.length > 0) setTests(refreshed.tests as unknown as Test[]);
           if (refreshed.panels.length > 0) setPanels(refreshed.panels);
           if (refreshed.doctors.length > 0) setDoctors(refreshed.doctors as unknown as Doctor[]);
+        }
+
+        try {
+          const specRes: any = await apiRequest('/specialties');
+          if (!unmounted && specRes && specRes.specialties) {
+            const allGroups: any[] = [];
+            specRes.specialties.forEach((s: any) => {
+              if (s.groups) allGroups.push(...s.groups);
+            });
+            setSpecialtiesContext({
+              specialties: specRes.specialties,
+              groups: allGroups,
+            });
+          }
+        } catch {
+          // ignore
         }
 
         const pid = searchParams.get('patientId');
@@ -823,6 +843,18 @@ function IntakeContent() {
       return matchCat && matchSearch;
     });
   }, [tests, activeCategory, testSearch]);
+
+  // Group tests by specialty if setting is enabled
+  const isSpecialtyGroupingActive = Boolean(labProfile?.groupByCategory && labProfile?.groupingStyle === 'specialty');
+  const groupedSpecialties = useMemo(() => {
+    if (!isSpecialtyGroupingActive) {
+      return null;
+    }
+    return groupTests(filteredTests, 'specialty', {
+      specialties: specialtiesContext.specialties,
+      groups: specialtiesContext.groups,
+    });
+  }, [isSpecialtyGroupingActive, filteredTests, specialtiesContext]);
 
   // Count selected tests per clinical category
   const categorySelectedCounts = useMemo(() => {
@@ -1861,10 +1893,10 @@ function IntakeContent() {
                 <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                   لا توجد فحوصات مطابقة للبحث
                 </div>
-              ) : (
-                filteredTests.map((t, idx) => {
+              ) : (() => {
+                const renderTestCard = (t: Test, idx?: number) => {
                   const isSelected = selectedTests.some((st) => st.id === t.id);
-                  const isHighlighted = highlightedTestIndex === idx;
+                  const isHighlighted = idx !== undefined && highlightedTestIndex === idx;
                   const englishCat = getEnglishCategoryTag(t.category);
                   const code = t.code || t.name.split(' ')[0] || 'TEST';
 
@@ -1969,8 +2001,31 @@ function IntakeContent() {
                       </div>
                     </div>
                   );
-                })
-              )}
+                };
+
+                if (groupedSpecialties) {
+                  return groupedSpecialties.sections.map((sec) => (
+                    <React.Fragment key={sec.id || 'other'}>
+                      <div style={{ gridColumn: '1 / -1', padding: '8px 12px', background: 'rgba(2, 132, 199, 0.12)', borderRight: '4px solid var(--accent-cyan)', borderRadius: '6px', margin: '8px 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 900, color: 'var(--accent-cyan)' }}>🏥 {sec.nameEn} {sec.nameAr ? `(${sec.nameAr})` : ''}</span>
+                      </div>
+
+                      {sec.groups.map((grp) => (
+                        <React.Fragment key={grp.id}>
+                          <div style={{ gridColumn: '1 / -1', padding: '4px 10px', background: 'var(--bg-input-deep)', borderRadius: '4px', margin: '4px 0 2px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-main)' }}>📁 {grp.nameEn} {grp.nameAr ? `(${grp.nameAr})` : ''}</span>
+                          </div>
+                          {grp.tests.map((t) => renderTestCard(t as unknown as Test))}
+                        </React.Fragment>
+                      ))}
+
+                      {sec.directTests.map((t) => renderTestCard(t as unknown as Test))}
+                    </React.Fragment>
+                  ));
+                }
+
+                return filteredTests.map((t, idx) => renderTestCard(t, idx));
+              })()}
             </div>
           </div>
 

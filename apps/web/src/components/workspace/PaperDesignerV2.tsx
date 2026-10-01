@@ -49,6 +49,7 @@ import {
 } from '../../lib/currencies';
 import { catalogCache } from '../../lib/catalogCache';
 import { toEnglishDigits, formatEnglishDate } from '../../lib/formatters';
+import LogoSettingsControl from '../logo/LogoSettingsControl';
 
 export default function PaperDesignerV2() {
   const toast = useToast();
@@ -84,6 +85,10 @@ export default function PaperDesignerV2() {
   const [headerMode, setHeaderMode] = useState<'DIGITAL' | 'PREPRINTED'>((labProfile.headerMode as any) || 'DIGITAL');
   const [primaryColor, setPrimaryColor] = useState<string>(labProfile.primaryColor || '#0284c7');
   const [logoUrl, setLogoUrl] = useState<string>(labProfile.logoUrl || '');
+  const [logoWidthMm, setLogoWidthMm] = useState<number | null>(labProfile.logoWidthMm ?? null);
+  const [logoAlign, setLogoAlign] = useState<'left' | 'center' | 'right' | null>(labProfile.logoAlign ?? null);
+  const [logoOffsetXMm, setLogoOffsetXMm] = useState<number | null>(labProfile.logoOffsetXMm ?? null);
+  const [logoOffsetYMm, setLogoOffsetYMm] = useState<number | null>(labProfile.logoOffsetYMm ?? null);
 
   // Millimeter Margins Calibration
   const [topMarginMm, setTopMarginMm] = useState<number>(labProfile.topMarginMm ?? 15);
@@ -155,6 +160,7 @@ export default function PaperDesignerV2() {
   });
 
   const [groupByCategory, setGroupByCategory] = useState<boolean>(labProfile.groupByCategory ?? false);
+  const [groupingStyle, setGroupingStyle] = useState<'category' | 'specialty'>(labProfile.groupingStyle || 'category');
   const [tableRowBorders, setTableRowBorders] = useState<boolean>(labProfile.tableRowBorders ?? true);
   const [tableZebraStriping, setTableZebraStriping] = useState<boolean>(labProfile.tableZebraStriping ?? false);
   const [tableRowSpacing, setTableRowSpacing] = useState<'COMPACT' | 'COMFORTABLE' | 'RELAXED'>(
@@ -202,6 +208,10 @@ export default function PaperDesignerV2() {
       if (labProfile.headerMode) setHeaderMode(labProfile.headerMode as any);
       if (labProfile.primaryColor) setPrimaryColor(labProfile.primaryColor);
       if (labProfile.logoUrl) setLogoUrl(labProfile.logoUrl);
+      setLogoWidthMm(labProfile.logoWidthMm ?? null);
+      setLogoAlign(labProfile.logoAlign ?? null);
+      setLogoOffsetXMm(labProfile.logoOffsetXMm ?? null);
+      setLogoOffsetYMm(labProfile.logoOffsetYMm ?? null);
 
       setTopMarginMm(labProfile.topMarginMm ?? 15);
       setBottomMarginMm(labProfile.bottomMarginMm ?? 15);
@@ -254,6 +264,7 @@ export default function PaperDesignerV2() {
         setTableColumns(labProfile.tableColumns);
       }
       setGroupByCategory(labProfile.groupByCategory ?? false);
+      setGroupingStyle(labProfile.groupingStyle || 'category');
       setTableRowBorders(labProfile.tableRowBorders ?? true);
       setTableZebraStriping(labProfile.tableZebraStriping ?? false);
       if (labProfile.tableRowSpacing) setTableRowSpacing(labProfile.tableRowSpacing);
@@ -488,6 +499,10 @@ export default function PaperDesignerV2() {
         rightMarginMm: Number(rightMarginMm),
         primaryColor,
         logoUrl: logoUrl || '',
+        logoWidthMm,
+        logoAlign,
+        logoOffsetXMm,
+        logoOffsetYMm,
 
         // 8 Element Switches
         showLabName,
@@ -536,6 +551,7 @@ export default function PaperDesignerV2() {
         // Tab 2: Results & Columns Layout
         tableColumns,
         groupByCategory,
+        groupingStyle,
         tableRowBorders,
         tableZebraStriping,
         tableRowSpacing,
@@ -1271,6 +1287,47 @@ export default function PaperDesignerV2() {
                 </label>
               </div>
 
+              {/* Sub-option: Grouping Style when groupByCategory is checked */}
+              {groupByCategory && (
+                <div style={{ marginBottom: '14px', padding: '12px 14px', background: 'var(--bg-input-deep)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Layers size={14} color="var(--accent-cyan)" />
+                    <span>نمط التجميع المعتمد في التقارير وشاشات العمل (Grouping Style):</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px' }}>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '8px 10px', borderRadius: '6px', border: `1.5px solid ${groupingStyle === 'category' ? 'var(--accent-teal)' : 'var(--border-color)'}`, background: groupingStyle === 'category' ? 'rgba(20, 184, 166, 0.1)' : 'var(--bg-card)', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="groupingStyle"
+                        value="category"
+                        checked={groupingStyle === 'category'}
+                        onChange={() => setGroupingStyle('category')}
+                        style={{ marginTop: '2px' }}
+                      />
+                      <div>
+                        <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--text-main)' }}>حسب التصنيف المخبري التقليدي (Category)</div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>التجميع الافتراضي الحالي حسب الأقسام المخبرية القياسية</div>
+                      </div>
+                    </label>
+
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '8px 10px', borderRadius: '6px', border: `1.5px solid ${groupingStyle === 'specialty' ? 'var(--accent-cyan)' : 'var(--border-color)'}`, background: groupingStyle === 'specialty' ? 'rgba(6, 182, 212, 0.1)' : 'var(--bg-card)', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="groupingStyle"
+                        value="specialty"
+                        checked={groupingStyle === 'specialty'}
+                        onChange={() => setGroupingStyle('specialty')}
+                        style={{ marginTop: '2px' }}
+                      />
+                      <div>
+                        <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--accent-cyan)' }}>هرمي حسب الاختصاص والمجموعات (Specialty)</div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>تجميع سريري احترافي (الاختصاص ➔ المجموعة ➔ الفحوصات)</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
+
               {/* Row Spacing Density */}
               <div>
                 <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>
@@ -1885,6 +1942,27 @@ export default function PaperDesignerV2() {
                   </div>
                 </div>
               )}
+
+              {/* Advanced Logo Size & Position Controls */}
+              <LogoSettingsControl
+                logoUrl={logoUrl}
+                logoWidthMm={logoWidthMm}
+                logoAlign={logoAlign}
+                logoOffsetXMm={logoOffsetXMm}
+                logoOffsetYMm={logoOffsetYMm}
+                onChange={(updates) => {
+                  if (updates.logoWidthMm !== undefined) setLogoWidthMm(updates.logoWidthMm);
+                  if (updates.logoAlign !== undefined) setLogoAlign(updates.logoAlign);
+                  if (updates.logoOffsetXMm !== undefined) setLogoOffsetXMm(updates.logoOffsetXMm);
+                  if (updates.logoOffsetYMm !== undefined) setLogoOffsetYMm(updates.logoOffsetYMm);
+                }}
+                onReset={() => {
+                  setLogoWidthMm(null);
+                  setLogoAlign(null);
+                  setLogoOffsetXMm(null);
+                  setLogoOffsetYMm(null);
+                }}
+              />
             </div>
 
             {/* Currency and Pricing Engine */}
@@ -2062,8 +2140,37 @@ export default function PaperDesignerV2() {
               >
                 📄 Pre-Printed Lab Stationery Reserved Space ({topMarginMm}mm)
               </div>
-            ) : (showLabName || showLabSubtitle || showContactInfo || showDoctorInfo || (enableQrCode && qrCodePosition === 'HEADER')) ? (
-              reportTemplate === 'MODERN' ? (
+            ) : (showLabName || showLabSubtitle || showContactInfo || showDoctorInfo || (enableQrCode && qrCodePosition === 'HEADER')) ? (() => {
+              const hasCustomPreviewLogo = Boolean(
+                logoUrl && (
+                  logoWidthMm !== null ||
+                  logoAlign !== null ||
+                  logoOffsetXMm !== null ||
+                  logoOffsetYMm !== null
+                )
+              );
+              const previewWidthPx = Math.round((logoWidthMm ?? 25) * 2.2);
+              const previewAlign = logoAlign ?? 'right';
+              const previewOffsetXPx = Math.round((logoOffsetXMm ?? 0) * 2.2);
+              const previewOffsetYPx = Math.round((logoOffsetYMm ?? 0) * 2.2);
+
+              const renderCustomPreviewLogo = () => (
+                <div style={{ display: 'inline-flex', justifyContent: previewAlign === 'center' ? 'center' : previewAlign === 'left' ? 'flex-start' : 'flex-end', overflow: 'hidden', verticalAlign: 'middle' }}>
+                  <img
+                    src={logoUrl}
+                    alt="Logo"
+                    style={{
+                      width: `${previewWidthPx}px`,
+                      maxWidth: '100%',
+                      height: 'auto',
+                      objectFit: 'contain',
+                      transform: `translate(${previewOffsetXPx}px, ${previewOffsetYPx}px)`,
+                    }}
+                  />
+                </div>
+              );
+
+              return reportTemplate === 'MODERN' ? (
                 <div
                   style={{
                     background: `linear-gradient(135deg, ${headerBgColor} 0%, #06b6d4 100%)`,
@@ -2071,90 +2178,111 @@ export default function PaperDesignerV2() {
                     padding: '10px 12px',
                     borderRadius: '8px',
                     marginBottom: '10px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}
                 >
-                  <div style={{ textAlign: labNameAlignment.toLowerCase() as any, flex: 1 }}>
-                    {showLabName && (
-                      <div
-                        style={{
-                          fontSize: `${labNameFontSize}px`,
-                          fontWeight: 900,
-                          color: headerTextColor,
-                          display: labNameStyle === 'MODERN_BADGE' || labNameStyle === 'ELEGANT_BORDER' ? 'inline-block' : 'block',
-                          background: labNameStyle === 'MODERN_BADGE' ? 'rgba(255,255,255,0.2)' : 'transparent',
-                          border: labNameStyle === 'ELEGANT_BORDER' ? '1.5px solid #fff' : 'none',
-                          padding: labNameStyle === 'MODERN_BADGE' || labNameStyle === 'ELEGANT_BORDER' ? '2px 8px' : '0',
-                          borderRadius: '6px',
-                          marginBottom: '2px',
-                        }}
-                      >
-                        {logoUrl && <img src={logoUrl} alt="Logo" style={{ height: '24px', marginRight: '6px', verticalAlign: 'middle' }} />}
-                        <span>{labName || 'اسم المختبر'}</span>
-                      </div>
+                  {hasCustomPreviewLogo && previewAlign === 'center' && (
+                    <div style={{ textAlign: 'center', marginBottom: '6px' }}>{renderCustomPreviewLogo()}</div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    {hasCustomPreviewLogo && previewAlign === 'left' && (
+                      <div style={{ marginRight: '10px', flexShrink: 0 }}>{renderCustomPreviewLogo()}</div>
                     )}
-                    {showLabSubtitle && <p style={{ fontSize: '9.5px', opacity: 0.9, margin: 0 }}>{labSubtitle}</p>}
-                    {showContactInfo && <p style={{ fontSize: '8.5px', opacity: 0.8, margin: '2px 0 0 0' }}>العنوان: {address} | هاتف: {phone}</p>}
-                  </div>
+                    <div style={{ textAlign: labNameAlignment.toLowerCase() as any, flex: 1 }}>
+                      {showLabName && (
+                        <div
+                          style={{
+                            fontSize: `${labNameFontSize}px`,
+                            fontWeight: 900,
+                            color: headerTextColor,
+                            display: labNameStyle === 'MODERN_BADGE' || labNameStyle === 'ELEGANT_BORDER' ? 'inline-block' : 'block',
+                            background: labNameStyle === 'MODERN_BADGE' ? 'rgba(255,255,255,0.2)' : 'transparent',
+                            border: labNameStyle === 'ELEGANT_BORDER' ? '1.5px solid #fff' : 'none',
+                            padding: labNameStyle === 'MODERN_BADGE' || labNameStyle === 'ELEGANT_BORDER' ? '2px 8px' : '0',
+                            borderRadius: '6px',
+                            marginBottom: '2px',
+                          }}
+                        >
+                          {!hasCustomPreviewLogo && logoUrl && <img src={logoUrl} alt="Logo" style={{ height: '24px', marginRight: '6px', verticalAlign: 'middle' }} />}
+                          <span>{labName || 'اسم المختبر'}</span>
+                        </div>
+                      )}
+                      {showLabSubtitle && <p style={{ fontSize: '9.5px', opacity: 0.9, margin: 0 }}>{labSubtitle}</p>}
+                      {showContactInfo && <p style={{ fontSize: '8.5px', opacity: 0.8, margin: '2px 0 0 0' }}>العنوان: {address} | هاتف: {phone}</p>}
+                    </div>
 
-                  <div style={{ textAlign: 'right', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {enableQrCode && qrCodePosition === 'HEADER' && (
-                      <div style={{ width: '36px', height: '36px', background: '#fff', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000' }}>
-                        <QrCode size={26} color={headerBgColor} />
-                      </div>
-                    )}
-                    {showDoctorInfo && (
-                      <div style={{ background: 'rgba(255,255,255,0.15)', padding: '4px 8px', borderRadius: '6px', textAlign: 'right' }}>
-                        <h4 style={{ fontSize: '10.5px', fontWeight: 800, color: headerTextColor, margin: 0 }}>{doctorName}</h4>
-                        <p style={{ fontSize: '8.5px', opacity: 0.9, margin: 0 }}>{doctorTitle}</p>
-                      </div>
+                    <div style={{ textAlign: 'right', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {enableQrCode && qrCodePosition === 'HEADER' && (
+                        <div style={{ width: '36px', height: '36px', background: '#fff', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000' }}>
+                          <QrCode size={26} color={headerBgColor} />
+                        </div>
+                      )}
+                      {showDoctorInfo && (
+                        <div style={{ background: 'rgba(255,255,255,0.15)', padding: '4px 8px', borderRadius: '6px', textAlign: 'right' }}>
+                          <h4 style={{ fontSize: '10.5px', fontWeight: 800, color: headerTextColor, margin: 0 }}>{doctorName}</h4>
+                          <p style={{ fontSize: '8.5px', opacity: 0.9, margin: 0 }}>{doctorTitle}</p>
+                        </div>
+                      )}
+                    </div>
+                    {hasCustomPreviewLogo && previewAlign === 'right' && (
+                      <div style={{ marginLeft: '10px', flexShrink: 0 }}>{renderCustomPreviewLogo()}</div>
                     )}
                   </div>
                 </div>
               ) : (
-                <div style={{ borderBottom: `2px solid ${borderColor}`, paddingBottom: '6px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ textAlign: labNameAlignment.toLowerCase() as any, flex: 1 }}>
-                    {showLabName && (
-                      <div
-                        style={{
-                          fontSize: `${labNameFontSize}px`,
-                          fontWeight: labNameStyle === 'BOLD' ? 900 : 800,
-                          color: labNameColor,
-                          display: labNameStyle === 'MODERN_BADGE' || labNameStyle === 'ELEGANT_BORDER' ? 'inline-block' : 'block',
-                          background: labNameStyle === 'MODERN_BADGE' ? `${labNameColor}18` : 'transparent',
-                          border: labNameStyle === 'ELEGANT_BORDER' ? `1.5px solid ${labNameColor}` : 'none',
-                          padding: labNameStyle === 'MODERN_BADGE' || labNameStyle === 'ELEGANT_BORDER' ? '2px 8px' : '0',
-                          borderRadius: '6px',
-                          marginBottom: '2px',
-                        }}
-                      >
-                        {logoUrl && <img src={logoUrl} alt="Logo" style={{ height: '24px', marginRight: '6px', verticalAlign: 'middle' }} />}
-                        <span>{labName || 'اسم المختبر'}</span>
-                      </div>
+                <div style={{ borderBottom: `2px solid ${borderColor}`, paddingBottom: '6px', marginBottom: '10px', position: 'relative' }}>
+                  {hasCustomPreviewLogo && previewAlign === 'center' && (
+                    <div style={{ textAlign: 'center', marginBottom: '8px' }}>{renderCustomPreviewLogo()}</div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    {hasCustomPreviewLogo && previewAlign === 'left' && (
+                      <div style={{ marginRight: '12px', flexShrink: 0 }}>{renderCustomPreviewLogo()}</div>
                     )}
-                    {showLabSubtitle && <p style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 600, margin: 0 }}>{labSubtitle}</p>}
-                    {showContactInfo && <p style={{ fontSize: '8.5px', color: '#475569', margin: '2px 0 0 0' }}>العنوان: {address} | هاتف: {phone}</p>}
-                  </div>
+                    <div style={{ textAlign: labNameAlignment.toLowerCase() as any, flex: 1 }}>
+                      {showLabName && (
+                        <div
+                          style={{
+                            fontSize: `${labNameFontSize}px`,
+                            fontWeight: labNameStyle === 'BOLD' ? 900 : 800,
+                            color: labNameColor,
+                            display: labNameStyle === 'MODERN_BADGE' || labNameStyle === 'ELEGANT_BORDER' ? 'inline-block' : 'block',
+                            background: labNameStyle === 'MODERN_BADGE' ? `${labNameColor}18` : 'transparent',
+                            border: labNameStyle === 'ELEGANT_BORDER' ? `1.5px solid ${labNameColor}` : 'none',
+                            padding: labNameStyle === 'MODERN_BADGE' || labNameStyle === 'ELEGANT_BORDER' ? '2px 8px' : '0',
+                            borderRadius: '6px',
+                            marginBottom: '2px',
+                          }}
+                        >
+                          {!hasCustomPreviewLogo && logoUrl && <img src={logoUrl} alt="Logo" style={{ height: '24px', marginRight: '6px', verticalAlign: 'middle' }} />}
+                          <span>{labName || 'اسم المختبر'}</span>
+                        </div>
+                      )}
+                      {showLabSubtitle && <p style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 600, margin: 0 }}>{labSubtitle}</p>}
+                      {showContactInfo && <p style={{ fontSize: '8.5px', color: '#475569', margin: '2px 0 0 0' }}>العنوان: {address} | هاتف: {phone}</p>}
+                    </div>
 
-                  <div style={{ textAlign: 'right', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {enableQrCode && qrCodePosition === 'HEADER' && (
-                      <div style={{ width: '34px', height: '34px', border: '1px solid #cbd5e1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <QrCode size={24} color={headerBgColor} />
-                      </div>
-                    )}
-                    {showDoctorInfo && (
-                      <div style={{ textAlign: 'right' }}>
-                        <h4 style={{ fontSize: '10.5px', fontWeight: 800, color: textColor, margin: 0 }}>{doctorName}</h4>
-                        <p style={{ fontSize: '8.5px', color: '#64748b', margin: 0 }}>{doctorTitle}</p>
-                        {labLicense && <p style={{ fontSize: '8px', color: headerBgColor, margin: 0 }}>License: {labLicense}</p>}
-                      </div>
+                    <div style={{ textAlign: 'right', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {enableQrCode && qrCodePosition === 'HEADER' && (
+                        <div style={{ width: '34px', height: '34px', border: '1px solid #cbd5e1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <QrCode size={24} color={headerBgColor} />
+                        </div>
+                      )}
+                      {showDoctorInfo && (
+                        <div style={{ textAlign: 'right' }}>
+                          <h4 style={{ fontSize: '10.5px', fontWeight: 800, color: textColor, margin: 0 }}>{doctorName}</h4>
+                          <p style={{ fontSize: '8.5px', color: '#64748b', margin: 0 }}>{doctorTitle}</p>
+                          {labLicense && <p style={{ fontSize: '8px', color: headerBgColor, margin: 0 }}>License: {labLicense}</p>}
+                        </div>
+                      )}
+                    </div>
+                    {hasCustomPreviewLogo && previewAlign === 'right' && (
+                      <div style={{ marginLeft: '12px', flexShrink: 0 }}>{renderCustomPreviewLogo()}</div>
                     )}
                   </div>
                 </div>
-              )
-            ) : null}
+              );
+            })() : null}
 
             {/* Patient Meta Ribbon */}
             {showPatientBox && (

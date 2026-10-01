@@ -11,6 +11,7 @@ import { FileText, Search, Printer, Save, AlertTriangle, Check, User, Clock, Che
 import Link from 'next/link';
 import { useLab } from '../../components/LabContext';
 import { getShareableUrl } from '../../lib/urlHelper';
+import { groupTests } from '@lab-manager/domain';
 import nextDynamic from 'next/dynamic';
 import type { UrineAnalysisData } from '../../components/UrineFormModal';
 import { compareSampleWithHistory, DeltaCheckResult } from '../../lib/deltaCheck';
@@ -102,6 +103,26 @@ function ResultsContent() {
     tests: any[];
     sampleNumber?: string | number;
   }>({ open: false, tests: [] });
+
+  const [specialtiesContext, setSpecialtiesContext] = useState<{ specialties: any[]; groups: any[] }>({
+    specialties: [],
+    groups: [],
+  });
+
+  useEffect(() => {
+    apiRequest('/specialties').then((res: any) => {
+      if (res && res.specialties) {
+        const allGroups: any[] = [];
+        res.specialties.forEach((s: any) => {
+          if (s.groups) allGroups.push(...s.groups);
+        });
+        setSpecialtiesContext({
+          specialties: res.specialties,
+          groups: allGroups,
+        });
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     apiRequest('/inventory/alerts')
@@ -1823,7 +1844,8 @@ function ResultsContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedSample.tests?.map((st: any, index: number) => {
+                  {(() => {
+                    const renderSampleTestRow = (st: any, index: number) => {
                     const currentVal = testResults[st.id]?.resultValue || '';
                     const isCalcRow = !!calculatedFlags[st.id];
                     const patientContext = {
@@ -2546,7 +2568,39 @@ function ResultsContent() {
                         )}
                       </React.Fragment>
                     );
-                  })}
+                  };
+
+                    const isSpecialtyGrouping = Boolean(labProfile?.groupByCategory && labProfile?.groupingStyle === 'specialty');
+                    if (isSpecialtyGrouping) {
+                      const grouped = groupTests(selectedSample.tests || [], 'specialty', {
+                        specialties: specialtiesContext.specialties,
+                        groups: specialtiesContext.groups,
+                      });
+                      let globalRowIdx = 0;
+                      return grouped.sections.map((sec) => (
+                        <React.Fragment key={sec.id || 'other'}>
+                          <tr style={{ background: 'rgba(2, 132, 199, 0.16)', borderTop: '2px solid var(--accent-cyan)' }}>
+                            <td colSpan={6} style={{ padding: '8px 14px', fontWeight: 900, color: 'var(--accent-cyan)', fontSize: '13px' }}>
+                              🏥 {sec.nameEn} {sec.nameAr ? `(${sec.nameAr})` : ''}
+                            </td>
+                          </tr>
+                          {sec.groups.map((grp) => (
+                            <React.Fragment key={grp.id}>
+                              <tr style={{ background: 'rgba(255, 255, 255, 0.04)', borderTop: '1px solid #1e293b' }}>
+                                <td colSpan={6} style={{ padding: '6px 20px', fontWeight: 800, color: 'var(--text-main)', fontSize: '12px' }}>
+                                  📁 {grp.nameEn} {grp.nameAr ? `(${grp.nameAr})` : ''}
+                                </td>
+                              </tr>
+                              {grp.tests.map((st) => renderSampleTestRow(st, globalRowIdx++))}
+                            </React.Fragment>
+                          ))}
+                          {sec.directTests.map((st) => renderSampleTestRow(st, globalRowIdx++))}
+                        </React.Fragment>
+                      ));
+                    }
+
+                    return selectedSample.tests?.map((st: any, index: number) => renderSampleTestRow(st, index));
+                  })()}
                 </tbody>
               </table>
             </div>

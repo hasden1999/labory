@@ -73,6 +73,11 @@ export interface LabProfile {
   resultValueFontWeight?: 'normal' | 'bold';
   tableColumns?: FormTableColumn[];
   groupByCategory?: boolean;
+  groupingStyle?: 'category' | 'specialty';
+  logoWidthMm?: number | null;
+  logoAlign?: 'left' | 'center' | 'right' | null;
+  logoOffsetXMm?: number | null;
+  logoOffsetYMm?: number | null;
   tableRowBorders?: boolean;
   tableZebraStriping?: boolean;
   tableRowSpacing?: 'COMPACT' | 'COMFORTABLE' | 'RELAXED';

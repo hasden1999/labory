@@ -10,6 +10,7 @@ import {
   normalizeLipidUnit,
   classifyResultRange,
   formatClinicalAge,
+  groupTests,
 } from '@lab-manager/domain';
 import { resolveReferenceRange } from '../../../../../lib/orderHelpers';
 import {
@@ -606,26 +607,64 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
 
     let generalRowsHtml = '';
     if (groupByCategory) {
-      const categories: { [key: string]: any[] } = {};
-      generalWithLipid.forEach((t: any) => {
-        const cat = getReportEnglishCategory(t.test?.category || 'General Laboratory Tests');
-        if (!categories[cat]) categories[cat] = [];
-        categories[cat].push(t);
-      });
+      const groupingStyle = settings?.groupingStyle || 'category';
+      if (groupingStyle === 'specialty') {
+        const specialties = store.specialties || [];
+        const groups = store.testGroups || [];
+        const grouped = groupTests(generalWithLipid, 'specialty', { specialties, groups });
+        let globalRowIdx = 0;
 
-      let globalRowIdx = 0;
-      Object.keys(categories).forEach((catName) => {
-        generalRowsHtml += `
-          <tr style="background: rgba(0,0,0,0.04); page-break-inside: avoid;">
-            <td colspan="${effectiveColumns.length}" style="padding: 6px 12px; font-weight: 800; font-size: ${testNameFontSize}px; color: ${headerBgColor}; border-bottom: 2px solid ${borderColor};">
-              📂 ${escapeHtml(catName)}
-            </td>
-          </tr>
-        `;
-        categories[catName].forEach((t) => {
-          generalRowsHtml += renderGeneralTestRow(t, globalRowIdx++);
+        grouped.sections.forEach((sec) => {
+          // Specialty Header Banner
+          generalRowsHtml += `
+            <tr style="background: ${headerBgColor}15; page-break-inside: avoid; break-inside: avoid; page-break-after: avoid; break-after: avoid;">
+              <td colspan="${effectiveColumns.length}" style="padding: 7px 12px; font-weight: 900; font-size: ${testNameFontSize + 1}px; color: ${headerBgColor}; border-top: 2px solid ${headerBgColor}; border-bottom: 1.5px solid ${borderColor}; text-transform: uppercase; letter-spacing: 0.5px;">
+                🏥 ${escapeHtml(sec.nameEn)} ${sec.nameAr ? `<span style="font-size: 11px; font-weight: 600; color: #64748b; margin-left: 6px;">(${escapeHtml(sec.nameAr)})</span>` : ''}
+              </td>
+            </tr>
+          `;
+
+          // Subgroups under specialty
+          sec.groups.forEach((grp) => {
+            generalRowsHtml += `
+              <tr style="background: rgba(0,0,0,0.03); page-break-inside: avoid; break-inside: avoid; page-break-after: avoid; break-after: avoid;">
+                <td colspan="${effectiveColumns.length}" style="padding: 5px 16px; font-weight: 800; font-size: ${testNameFontSize}px; color: #334155; border-bottom: 1px solid ${borderColor};">
+                  📁 ${escapeHtml(grp.nameEn)} ${grp.nameAr ? `<span style="font-size: 10.5px; font-weight: 500; color: #64748b; margin-left: 4px;">(${escapeHtml(grp.nameAr)})</span>` : ''}
+                </td>
+              </tr>
+            `;
+            grp.tests.forEach((t) => {
+              generalRowsHtml += renderGeneralTestRow(t, globalRowIdx++);
+            });
+          });
+
+          // Direct tests under specialty
+          sec.directTests.forEach((t) => {
+            generalRowsHtml += renderGeneralTestRow(t, globalRowIdx++);
+          });
         });
-      });
+      } else {
+        const categories: { [key: string]: any[] } = {};
+        generalWithLipid.forEach((t: any) => {
+          const cat = getReportEnglishCategory(t.test?.category || 'General Laboratory Tests');
+          if (!categories[cat]) categories[cat] = [];
+          categories[cat].push(t);
+        });
+
+        let globalRowIdx = 0;
+        Object.keys(categories).forEach((catName) => {
+          generalRowsHtml += `
+            <tr style="background: rgba(0,0,0,0.04); page-break-inside: avoid; break-inside: avoid; page-break-after: avoid; break-after: avoid;">
+              <td colspan="${effectiveColumns.length}" style="padding: 6px 12px; font-weight: 800; font-size: ${testNameFontSize}px; color: ${headerBgColor}; border-bottom: 2px solid ${borderColor};">
+                📂 ${escapeHtml(catName)}
+              </td>
+            </tr>
+          `;
+          categories[catName].forEach((t) => {
+            generalRowsHtml += renderGeneralTestRow(t, globalRowIdx++);
+          });
+        });
+      }
     } else {
       generalRowsHtml = generalWithLipid.map((t: any, idx: number) => renderGeneralTestRow(t, idx)).join('');
     }
