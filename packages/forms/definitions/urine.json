@@ -1,0 +1,216 @@
+{
+  "id": "urine-form",
+  "name": "General Urine Examination (G.U.E)",
+  "arabicName": "فحص الإدرار العام",
+  "category": "urinalysis",
+  "sections": [
+    {
+      "id": "physical",
+      "title": "Physical Examination",
+      "arabicTitle": "الفحص الفيزيائي",
+      "fields": [
+        {
+          "key": "color",
+          "label": "Color",
+          "arabicLabel": "اللون",
+          "type": "select",
+          "defaultValue": "Yellow",
+          "options": ["Yellow", "Pale Yellow", "Dark Yellow", "Amber", "Reddish", "Brownish", "Clear"]
+        },
+        {
+          "key": "appearance",
+          "label": "Appearance",
+          "arabicLabel": "المظهر",
+          "type": "select",
+          "defaultValue": "Clear",
+          "options": ["Clear", "Slightly Turbid", "Turbid", "Cloudy"]
+        },
+        {
+          "key": "spGravity",
+          "label": "Specific Gravity",
+          "arabicLabel": "الكثافة النوعية",
+          "type": "text",
+          "defaultValue": "1.020",
+          "options": ["1.005", "1.010", "1.015", "1.020", "1.025", "1.030"]
+        },
+        {
+          "key": "reactionPh",
+          "label": "Reaction (pH)",
+          "arabicLabel": "التفاعل (pH)",
+          "type": "select",
+          "defaultValue": "Acidic",
+          "options": ["Acidic", "Neutral", "Alkaline", "5.0", "5.5", "6.0", "6.5", "7.0", "7.5", "8.0"]
+        },
+        {
+          "key": "volume",
+          "label": "Volume",
+          "arabicLabel": "الحجم",
+          "type": "text",
+          "defaultValue": ""
+        },
+        {
+          "key": "odor",
+          "label": "Odor",
+          "arabicLabel": "الرائحة",
+          "type": "select",
+          "defaultValue": "Normal",
+          "options": ["Normal", "Aromatic", "Ammoniacal", "Offensive"]
+        }
+      ]
+    },
+    {
+      "id": "chemical",
+      "title": "Chemical Examination",
+      "arabicTitle": "الفحص الكيميائي",
+      "fields": [
+        {
+          "key": "protein",
+          "label": "Protein / Albumin",
+          "arabicLabel": "الزلال / البروتين",
+          "type": "chips",
+          "defaultValue": "Nil",
+          "options": ["Nil", "Trace", "+", "++", "+++", "++++"]
+        },
+        {
+          "key": "glucose",
+          "label": "Glucose / Sugar",
+          "arabicLabel": "السكر",
+          "type": "chips",
+          "defaultValue": "Nil",
+          "options": ["Nil", "Trace", "+", "++", "+++", "++++"]
+        },
+        {
+          "key": "ketones",
+          "label": "Ketone Bodies",
+          "arabicLabel": "الأجسام الكيتونية",
+          "type": "chips",
+          "defaultValue": "Negative",
+          "options": ["Negative", "Trace", "+", "++", "+++"]
+        },
+        {
+          "key": "bilirubin",
+          "label": "Bilirubin",
+          "arabicLabel": "البيليروبين",
+          "type": "chips",
+          "defaultValue": "Negative",
+          "options": ["Negative", "+", "++", "+++"]
+        },
+        {
+          "key": "urobilinogen",
+          "label": "Urobilinogen",
+          "arabicLabel": "اليوروبيلينوجين",
+          "type": "chips",
+          "defaultValue": "Normal",
+          "options": ["Normal", "Increased"]
+        },
+        {
+          "key": "nitrite",
+          "label": "Nitrite",
+          "arabicLabel": "النتريت",
+          "type": "chips",
+          "defaultValue": "Negative",
+          "options": ["Negative", "Positive"]
+        },
+        {
+          "key": "blood",
+          "label": "Blood",
+          "arabicLabel": "الدم",
+          "type": "chips",
+          "defaultValue": "Negative",
+          "options": ["Negative", "Trace", "+", "++", "+++"]
+        },
+        {
+          "key": "leukocytes",
+          "label": "Leukocyte Esterase",
+          "arabicLabel": "إنزيم كريات الدم البيضاء",
+          "type": "chips",
+          "defaultValue": "Negative",
+          "options": ["Negative", "Trace", "+", "++", "+++"]
+        }
+      ]
+    },
+    {
+      "id": "microscopic",
+      "title": "Microscopic Examination",
+      "arabicTitle": "الفحص المجهري",
+      "fields": [
+        {
+          "key": "pusCells",
+          "label": "Pus Cells",
+          "arabicLabel": "خلايا القيح / الصديد",
+          "type": "text",
+          "unit": "/HPF",
+          "defaultValue": "1-2",
+          "normalRange": "0-4 /HPF",
+          "options": ["0-1", "1-2", "2-4", "4-6", "6-8", "8-10", "10-15", "15-20", "20-25", "25-30", "30-40", "40-50", "Over 50", "Full Field"]
+        },
+        {
+          "key": "rbc",
+          "label": "R.B.Cs",
+          "arabicLabel": "خلايا الدم الحمراء",
+          "type": "text",
+          "unit": "/HPF",
+          "defaultValue": "0-1",
+          "normalRange": "0-2 /HPF",
+          "options": ["0-1", "1-2", "2-4", "4-6", "6-8", "8-10", "10-15", "15-20", "20-25", "25-30", "30-40", "40-50", "Over 50", "Full Field"]
+        },
+        {
+          "key": "epithelialCells",
+          "label": "Epithelial Cells",
+          "arabicLabel": "الخلايا الظهارية",
+          "type": "select",
+          "defaultValue": "Few",
+          "options": ["Nil", "Few", "Moderate", "Many"]
+        },
+        {
+          "key": "amorphousUrates",
+          "label": "Amorphous Urates",
+          "arabicLabel": "يورات غير متبلورة",
+          "type": "select",
+          "defaultValue": "Nil",
+          "options": ["Nil", "Few", "+", "++", "+++"]
+        },
+        {
+          "key": "amorphousPhosphates",
+          "label": "Amorphous Phosphates",
+          "arabicLabel": "فوسفات غير متبلورة",
+          "type": "select",
+          "defaultValue": "Nil",
+          "options": ["Nil", "Few", "+", "++", "+++"]
+        },
+        {
+          "key": "bacteria",
+          "label": "Bacteria",
+          "arabicLabel": "البكتيريا",
+          "type": "select",
+          "defaultValue": "Nil",
+          "options": ["Nil", "Few", "+", "++", "+++", "Many"]
+        },
+        {
+          "key": "trichomonasVaginalis",
+          "label": "Trichomonas Vaginalis",
+          "arabicLabel": "ترايكوموناس",
+          "type": "select",
+          "defaultValue": "Not Seen",
+          "options": ["Not Seen", "Seen"]
+        },
+        {
+          "key": "yeastCells",
+          "label": "Yeast Cells",
+          "arabicLabel": "خلايا الخمائر",
+          "type": "select",
+          "defaultValue": "Nil",
+          "options": ["Nil", "Few", "+", "++", "Seen"]
+        },
+        {
+          "key": "mucus",
+          "label": "Mucus",
+          "arabicLabel": "المخاط",
+          "type": "select",
+          "defaultValue": "Nil",
+          "options": ["Nil", "Few", "+", "++", "+++"]
+        }
+      ]
+    }
+  ]
+}

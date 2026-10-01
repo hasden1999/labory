@@ -1,0 +1,136 @@
+{
+  "id": "stool-form",
+  "name": "General Stool Examination (G.S.E)",
+  "arabicName": "فحص الخروج العام",
+  "category": "parasitology",
+  "sections": [
+    {
+      "id": "macroscopic",
+      "title": "Macroscopic Examination",
+      "arabicTitle": "الفحص العياني",
+      "fields": [
+        {
+          "key": "consistency",
+          "label": "Consistency",
+          "arabicLabel": "القوام",
+          "type": "select",
+          "defaultValue": "Formed",
+          "options": ["Formed", "Semi-formed", "Soft", "Loose", "Watery"]
+        },
+        {
+          "key": "color",
+          "label": "Color",
+          "arabicLabel": "اللون",
+          "type": "select",
+          "defaultValue": "Brown",
+          "options": ["Brown", "Dark Brown", "Light Brown", "Yellow", "Green", "Black", "Reddish"]
+        },
+        {
+          "key": "blood",
+          "label": "Gross Blood",
+          "arabicLabel": "الدم العياني",
+          "type": "chips",
+          "defaultValue": "Nil",
+          "options": ["Nil", "Trace", "Present"]
+        },
+        {
+          "key": "mucus",
+          "label": "Mucus",
+          "arabicLabel": "المخاط",
+          "type": "chips",
+          "defaultValue": "Nil",
+          "options": ["Nil", "Trace", "+", "++", "+++"]
+        }
+      ]
+    },
+    {
+      "id": "microscopic",
+      "title": "Microscopic Examination",
+      "arabicTitle": "الفحص المجهري",
+      "fields": [
+        {
+          "key": "pusCells",
+          "label": "Pus Cells",
+          "arabicLabel": "خلايا القيح",
+          "type": "text",
+          "unit": "/HPF",
+          "defaultValue": "0-2",
+          "options": ["0-2", "2-4", "4-6", "6-8", "8-10", "10-15", "15-20", "20-25", "Many"]
+        },
+        {
+          "key": "rbc",
+          "label": "R.B.Cs",
+          "arabicLabel": "خلايا الدم الحمراء",
+          "type": "text",
+          "unit": "/HPF",
+          "defaultValue": "0-1",
+          "options": ["0-1", "1-2", "2-4", "4-6", "6-8", "8-10", "10-15", "Many"]
+        },
+        {
+          "key": "amoebaTrophozoite",
+          "label": "E. histolytica (Trophozoite)",
+          "arabicLabel": "أميبا نشطة (E. histolytica)",
+          "type": "select",
+          "defaultValue": "Not Seen",
+          "options": ["Not Seen", "Seen", "+", "++"]
+        },
+        {
+          "key": "amoebaCyst",
+          "label": "E. histolytica (Cyst)",
+          "arabicLabel": "أكياس أميبا (E. histolytica)",
+          "type": "select",
+          "defaultValue": "Not Seen",
+          "options": ["Not Seen", "Seen", "+", "++"]
+        },
+        {
+          "key": "giardiaTrophozoite",
+          "label": "G. lamblia (Trophozoite)",
+          "arabicLabel": "طفيلي جيارديا نشط",
+          "type": "select",
+          "defaultValue": "Not Seen",
+          "options": ["Not Seen", "Seen", "+", "++"]
+        },
+        {
+          "key": "giardiaCyst",
+          "label": "G. lamblia (Cyst)",
+          "arabicLabel": "أكياس جيارديا",
+          "type": "select",
+          "defaultValue": "Not Seen",
+          "options": ["Not Seen", "Seen", "+", "++"]
+        },
+        {
+          "key": "worms",
+          "label": "Helminths / Ova",
+          "arabicLabel": "ديدان / بيوض",
+          "type": "select",
+          "defaultValue": "Not Seen",
+          "options": ["Not Seen", "Ascaris lumbricoides", "Enterobius vermicularis", "H. nana", "Ancylostoma", "Taenia sp."]
+        },
+        {
+          "key": "undigestedFood",
+          "label": "Undigested Food Particles",
+          "arabicLabel": "بقايا طعام غير مهضوم",
+          "type": "select",
+          "defaultValue": "Nil",
+          "options": ["Nil", "Few", "Moderate", "Many"]
+        },
+        {
+          "key": "fatGlobules",
+          "label": "Fat Globules",
+          "arabicLabel": "حبيبات دهنية",
+          "type": "select",
+          "defaultValue": "Nil",
+          "options": ["Nil", "Present"]
+        },
+        {
+          "key": "occultBlood",
+          "label": "Occult Blood (FOBT)",
+          "arabicLabel": "الدم الخفي",
+          "type": "chips",
+          "defaultValue": "Negative",
+          "options": ["Negative", "Positive"]
+        }
+      ]
+    }
+  ]
+}

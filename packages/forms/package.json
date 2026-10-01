@@ -1,0 +1,8 @@
+{
+  "name": "@lab-manager/forms",
+  "version": "1.0.0",
+  "description": "Data-driven form definitions and generic renderer",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {}
+}
