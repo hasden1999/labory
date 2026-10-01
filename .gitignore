@@ -60,3 +60,4 @@ backups/
 storage/
 
 *.lnk
+*.tsbuildinfo

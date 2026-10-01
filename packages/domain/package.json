@@ -1,0 +1,8 @@
+{
+  "name": "@lab-manager/domain",
+  "version": "1.0.0",
+  "description": "Pure clinical domain logic, lipid calculations, reference ranges",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {}
+}
