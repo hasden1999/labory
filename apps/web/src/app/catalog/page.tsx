@@ -379,6 +379,16 @@ export default function CatalogPage() {
         await apiRequest(`/tests/${editingTestId}`, 'PATCH', payload);
         toast.success('تم تعديل بيانات الفحص المخبري بنجاح!', 'تم التحديث');
       } else {
+        const normName = name.trim().toLowerCase();
+        const normCode = code.trim().toUpperCase();
+        const duplicate = tests.find(
+          (t: any) => t.name?.trim().toLowerCase() === normName ||
+               (normCode && t.code && t.code.trim().toUpperCase() === normCode)
+        );
+        if (duplicate) {
+          toast.warning(`فحص بهذا الاسم أو الرمز موجود مسبقاً (${duplicate.name})`, 'تنبيه التكرار');
+          return;
+        }
         await apiRequest('/tests', 'POST', payload);
         toast.success('تمت إضافة الفحص الجديد للكتالوج بنجاح!', 'تم الحفظ');
       }

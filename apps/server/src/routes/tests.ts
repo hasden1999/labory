@@ -35,6 +35,24 @@ export async function testCatalogRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ message: 'اسم الفحص والسعر مطلوبان' });
     }
 
+    const trimmedName = data.name.trim();
+    const existing = await prisma.testCatalog.findFirst({
+      where: {
+        OR: [
+          ...(data.code && data.code.trim() ? [{ code: data.code.trim() }] : []),
+          { name: { equals: trimmedName } },
+        ],
+        active: true
+      },
+    });
+
+    if (existing) {
+      return reply.status(409).send({
+        message: `فحص بهذا الاسم أو الرمز موجود مسبقاً (${existing.name} - ${existing.code || ''})`,
+        existingId: existing.id
+      });
+    }
+
     const test = await prisma.testCatalog.create({
       data: {
         code: data.code || null,

@@ -90,6 +90,31 @@ async function bootstrap() {
   // Initialize DB WAL mode
   await initDbWAL();
 
+  // Startup Test Catalog Invariance & Duplicate Guard
+  (async () => {
+    try {
+      const activeTests = await prisma.testCatalog.findMany({
+        where: { active: true },
+        select: { id: true, name: true, code: true }
+      });
+      const seenNames = new Set<string>();
+      let duplicateCount = 0;
+      for (const t of activeTests) {
+        const norm = t.name.trim().toLowerCase();
+        if (seenNames.has(norm)) {
+          duplicateCount++;
+        } else {
+          seenNames.add(norm);
+        }
+      }
+      if (duplicateCount > 0) {
+        console.warn(`⚠️ [Catalog Startup Guard] Warning: ${duplicateCount} duplicate tests detected in catalog.`);
+      } else {
+        console.log(`💎 [Catalog Startup Guard] Test catalog healthy (${activeTests.length} active tests, 0 duplicates).`);
+      }
+    } catch (e) {}
+  })();
+
   // Initialize Cron Jobs
   initBackupCron();
 

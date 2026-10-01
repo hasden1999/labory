@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@lab-manager/*": ["packages/*/src", "packages/*"],
+      "@lab/*": ["packages/*/src", "packages/*"],
+      "@/*": ["apps/web/src/*"]
+    }
+  },
+  "include": ["packages/**/*", "apps/**/*", "tests/**/*"]
+}
