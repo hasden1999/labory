@@ -1,0 +1,8 @@
+{
+  "name": "@lab-manager/reports",
+  "version": "1.0.0",
+  "description": "Print & PDF report templates and engine",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {}
+}
