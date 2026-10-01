@@ -1,0 +1,8 @@
+{
+  "name": "@lab-manager/design",
+  "version": "1.0.0",
+  "description": "Design tokens, theme, UI kit, RTL rules",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {}
+}
