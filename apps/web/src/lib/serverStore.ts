@@ -143,6 +143,11 @@ export interface LabSettings {
     align: 'left' | 'center' | 'right';
   }[];
   groupByCategory?: boolean;
+  groupingStyle?: 'category' | 'specialty';
+  logoWidthMm?: number | null;
+  logoAlign?: 'left' | 'center' | 'right' | null;
+  logoOffsetXMm?: number | null;
+  logoOffsetYMm?: number | null;
   tableRowBorders?: boolean;
   tableZebraStriping?: boolean;
   tableRowSpacing?: 'COMPACT' | 'COMFORTABLE' | 'RELAXED';
@@ -367,6 +372,26 @@ export interface CashShiftRecord {
   createdAt: string;
 }
 
+export interface SpecialtyRecord {
+  id: string;
+  nameEn: string;
+  nameAr?: string | null;
+  sortOrder: number;
+  isActive?: boolean;
+  createdAt?: string;
+  groups?: TestGroupRecord[];
+}
+
+export interface TestGroupRecord {
+  id: string;
+  specialtyId: string;
+  nameEn: string;
+  nameAr?: string | null;
+  sortOrder: number;
+  isActive?: boolean;
+  createdAt?: string;
+}
+
 export interface ServerStore {
   tests: any[];
   panels: any[];
@@ -383,6 +408,8 @@ export interface ServerStore {
   debtors?: DebtorRecord[];
   debtTransactions?: DebtTransactionRecord[];
   shifts?: CashShiftRecord[];
+  specialties?: SpecialtyRecord[];
+  testGroups?: TestGroupRecord[];
 }
 
 export function getInitialDevices(): DeviceRecord[] {
@@ -580,6 +607,12 @@ function initStore(): ServerStore {
       watermarkColor: '#0f172a',
       fontFamily: 'Tajawal',
       fontSize: 'MEDIUM',
+      groupByCategory: false,
+      groupingStyle: 'category',
+      logoWidthMm: null,
+      logoAlign: null,
+      logoOffsetXMm: null,
+      logoOffsetYMm: null,
     },
     license: undefined,
     devices: getInitialDevices(),
@@ -587,6 +620,8 @@ function initStore(): ServerStore {
     deviceRawLogs: [],
     debtors: [],
     debtTransactions: [],
+    specialties: [],
+    testGroups: [],
   };
 }
 

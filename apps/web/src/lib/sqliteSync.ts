@@ -19,7 +19,9 @@ export async function loadStoreFromSqlite(): Promise<any | null> {
       dbSettings,
       dbDevices,
       dbDebtors,
-      dbExpenses
+      dbExpenses,
+      dbSpecialties,
+      dbGroups
     ] = await Promise.all([
       prisma.testCatalog.findMany({ where: { active: true }, include: { referenceRanges: { orderBy: { sortOrder: 'asc' } } }, orderBy: { name: 'asc' } }),
       prisma.testPanel.findMany({ include: { items: true }, orderBy: { name: 'asc' } }),
@@ -40,6 +42,8 @@ export async function loadStoreFromSqlite(): Promise<any | null> {
       prisma.labDevice.findMany({ include: { mappings: true } }),
       prisma.debtor.findMany({ include: { transactions: true } }),
       prisma.expense.findMany({ orderBy: { date: 'desc' } }),
+      prisma.specialty.findMany({ include: { groups: true }, orderBy: { sortOrder: 'asc' } }),
+      prisma.testGroup.findMany({ orderBy: { sortOrder: 'asc' } }),
     ]);
 
     // Format tests
@@ -65,6 +69,9 @@ export async function loadStoreFromSqlite(): Promise<any | null> {
       unit: t.unit,
       sampleType: t.sampleType || 'Serum',
       active: t.active,
+      specialtyId: t.specialtyId || null,
+      groupId: t.groupId || null,
+      sortOrder: t.sortOrder ?? null,
       referenceRanges: t.referenceRanges || [],
     }));
 
@@ -197,6 +204,11 @@ export async function loadStoreFromSqlite(): Promise<any | null> {
       fontSize: (dbSettings.fontSize as any) || 'MEDIUM',
       installedVersion: dbSettings.installedVersion || 'v1.0.9',
       isConfigured: !!(dbSettings.labName && dbSettings.labName.trim().length > 0),
+      groupingStyle: (dbSettings as any).groupingStyle || 'category',
+      logoWidthMm: (dbSettings as any).logoWidthMm ?? null,
+      logoAlign: (dbSettings as any).logoAlign ?? null,
+      logoOffsetXMm: (dbSettings as any).logoOffsetXMm ?? null,
+      logoOffsetYMm: (dbSettings as any).logoOffsetYMm ?? null,
     } : null;
 
     // Format devices
@@ -227,6 +239,35 @@ export async function loadStoreFromSqlite(): Promise<any | null> {
       })),
     }));
 
+    // Format specialties and test groups
+    const specialties = (dbSpecialties || []).map((s: any) => ({
+      id: s.id,
+      nameEn: s.nameEn,
+      nameAr: s.nameAr || null,
+      sortOrder: s.sortOrder,
+      isActive: s.isActive !== false,
+      createdAt: s.createdAt ? s.createdAt.toISOString() : undefined,
+      groups: (s.groups || []).map((g: any) => ({
+        id: g.id,
+        specialtyId: g.specialtyId,
+        nameEn: g.nameEn,
+        nameAr: g.nameAr || null,
+        sortOrder: g.sortOrder,
+        isActive: g.isActive !== false,
+        createdAt: g.createdAt ? g.createdAt.toISOString() : undefined,
+      })),
+    }));
+
+    const testGroups = (dbGroups || []).map((g: any) => ({
+      id: g.id,
+      specialtyId: g.specialtyId,
+      nameEn: g.nameEn,
+      nameAr: g.nameAr || null,
+      sortOrder: g.sortOrder,
+      isActive: g.isActive !== false,
+      createdAt: g.createdAt ? g.createdAt.toISOString() : undefined,
+    }));
+
     console.log('⚡ [SQLite Store] Successfully loaded and cached state from lab.db');
     console.log(`   Patients: ${patients.length}, Samples: ${samples.length}, Tests: ${tests.length}, Panels: ${panels.length}`);
 
@@ -240,6 +281,8 @@ export async function loadStoreFromSqlite(): Promise<any | null> {
       devices,
       debtors: dbDebtors,
       expenses: dbExpenses,
+      specialties,
+      testGroups,
     };
   } catch (err: any) {
     console.error('[SQLite Store] Failed to load store from SQLite:', err?.message);
@@ -460,6 +503,11 @@ export async function syncSettingsToSqlite(s: any): Promise<void> {
         fontSize: s.fontSize || 'MEDIUM',
         installedVersion: s.installedVersion || 'v1.0.9',
         printRangeScope: s.printRangeScope || 'ALL',
+        groupingStyle: s.groupingStyle || 'category',
+        logoWidthMm: s.logoWidthMm != null ? Number(s.logoWidthMm) : null,
+        logoAlign: s.logoAlign || null,
+        logoOffsetXMm: s.logoOffsetXMm != null ? Number(s.logoOffsetXMm) : null,
+        logoOffsetYMm: s.logoOffsetYMm != null ? Number(s.logoOffsetYMm) : null,
       },
       create: {
         id: 'singleton',
@@ -483,6 +531,11 @@ export async function syncSettingsToSqlite(s: any): Promise<void> {
         fontSize: s.fontSize || 'MEDIUM',
         installedVersion: s.installedVersion || 'v1.0.9',
         printRangeScope: s.printRangeScope || 'ALL',
+        groupingStyle: s.groupingStyle || 'category',
+        logoWidthMm: s.logoWidthMm != null ? Number(s.logoWidthMm) : null,
+        logoAlign: s.logoAlign || null,
+        logoOffsetXMm: s.logoOffsetXMm != null ? Number(s.logoOffsetXMm) : null,
+        logoOffsetYMm: s.logoOffsetYMm != null ? Number(s.logoOffsetYMm) : null,
       }
     });
   } catch (e: any) {
@@ -592,6 +645,9 @@ export async function syncTestToSqlite(t: any): Promise<void> {
         unit: t.unit || null,
         sampleType: t.sampleType || 'مصل الدم (Serum)',
         active: t.active !== undefined ? Boolean(t.active) : true,
+        specialtyId: t.specialtyId || null,
+        groupId: t.groupId || null,
+        sortOrder: t.sortOrder !== undefined && t.sortOrder !== null ? Number(t.sortOrder) : null,
       },
       create: {
         id: t.id,
@@ -613,6 +669,9 @@ export async function syncTestToSqlite(t: any): Promise<void> {
         unit: t.unit || null,
         sampleType: t.sampleType || 'مصل الدم (Serum)',
         active: t.active !== undefined ? Boolean(t.active) : true,
+        specialtyId: t.specialtyId || null,
+        groupId: t.groupId || null,
+        sortOrder: t.sortOrder !== undefined && t.sortOrder !== null ? Number(t.sortOrder) : null,
       },
     });
 
