@@ -26,6 +26,7 @@ import {
   BLOOD_GROUP_OPTIONS,
   evaluateQualitativeAbnormality,
   evaluateClinicalResult,
+  classifyResultRange,
   formatClinicalAge
 } from '../../lib/formatters';
 import {
@@ -1825,12 +1826,17 @@ function ResultsContent() {
                   {selectedSample.tests?.map((st: any, index: number) => {
                     const currentVal = testResults[st.id]?.resultValue || '';
                     const isCalcRow = !!calculatedFlags[st.id];
-                    const clinicalEval = isCalcRow ? { status: 'NORMAL' as const } : evaluateClinicalResult(currentVal, st.test);
+                    const patientContext = {
+                      gender: selectedSample?.patient?.gender,
+                      age: selectedSample?.patient?.age,
+                      birthDate: selectedSample?.patient?.birthDate,
+                    };
+                    const clinicalEval = classifyResultRange(currentVal, st.test, patientContext);
                     const isHigh = (clinicalEval as any).status === 'HIGH';
                     const isLow = (clinicalEval as any).status === 'LOW';
-                    const isAbnormal = isCalcRow ? false : (isHigh || isLow || testResults[st.id]?.isAbnormal || false);
+                    const isAbnormal = isHigh || isLow || testResults[st.id]?.isAbnormal || false;
                     const numVal = parseFloat(currentVal);
-                    const isPanic = !isCalcRow && !isNaN(numVal) && ((st.test?.panicLow && numVal < st.test.panicLow) || (st.test?.panicHigh && numVal > st.test.panicHigh));
+                    const isPanic = !isNaN(numVal) && ((st.test?.panicLow && numVal < st.test.panicLow) || (st.test?.panicHigh && numVal > st.test.panicHigh));
 
                     return (
                       <React.Fragment key={st.id}>

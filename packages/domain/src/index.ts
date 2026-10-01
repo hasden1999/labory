@@ -7,3 +7,4 @@ export const MODULE_NAME = 'domain';
 
 export * from './clinicalIntelligence';
 export * from './ageUtils';
+export * from './rangeClassification';

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getStore, clampMargin, getLocalIpAddress } from '../../../../../lib/serverStore';
 import { toEnglishDigits, formatEnglishDate, formatEnglishDateTime, isBloodGroupTest, evaluateClinicalResult } from '../../../../../lib/formatters';
-import { calculateLipidPanel, LIPID_REFERENCE_SOURCES, LIPID_CATALOG_IDS, normalizeLipidUnit } from '../../../../../lib/clinicalIntelligence';
+import { calculateLipidPanel, LIPID_REFERENCE_SOURCES, LIPID_CATALOG_IDS, normalizeLipidUnit, classifyResultRange, formatClinicalAge } from '@lab-manager/domain';
 import { resolveReferenceRange } from '../../../../../lib/orderHelpers';
 
 function escapeHtml(str: any): string {
@@ -12,6 +12,175 @@ function escapeHtml(str: any): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+export function getReportEnglishTestName(test: any): string {
+  if (!test) return 'Unknown Test';
+  const rawName = String(test.name || '').trim();
+  const rawCode = String(test.code || test.testCode || '').trim();
+
+  // If no Arabic characters, use name
+  if (rawName && !/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(rawName)) {
+    return rawName;
+  }
+
+  // If name has English in parentheses e.g. "باقة دهون الدم (Lipid Panel)"
+  const parenMatch = rawName.match(/\(([A-Za-z0-9\s&,.'\/\-+]+)\)/);
+  if (parenMatch && parenMatch[1].trim().length > 1) {
+    return parenMatch[1].trim();
+  }
+
+  // Fallback to code if name contains Arabic
+  if (rawCode) {
+    return rawCode;
+  }
+
+  return rawName || 'Test';
+}
+
+export function getReportEnglishCategory(cat: string): string {
+  if (!cat) return 'General Laboratory Tests';
+  const trimmed = String(cat).trim();
+
+  const parenMatch = trimmed.match(/\(([A-Za-z0-9\s&,.'\/\-+]+)\)/);
+  if (parenMatch && parenMatch[1].trim().length > 1) {
+    return parenMatch[1].trim();
+  }
+
+  const map: Record<string, string> = {
+    'وظائف الكبد والمرارة': 'Liver & Biliary Function',
+    'وظائف الكبد': 'Liver Function Tests',
+    'أمراض الدم والتخثر': 'Hematology & Coagulation',
+    'الكيمياء السريرية والسكري': 'Clinical Chemistry & Diabetes',
+    'الكيمياء السريرية': 'Clinical Chemistry',
+    'وظائف الكلى والأملاح': 'Renal Function & Electrolytes',
+    'وظائف الكلى': 'Renal Function Tests',
+    'دهون الدم وصحة القلب': 'Lipid Profile & Cardiac Markers',
+    'دهون الدم': 'Lipid Profile',
+    'الغدة الدرقية والهرمونات': 'Thyroid & Hormones',
+    'الغدة الدرقية': 'Thyroid Profile',
+    'المعادن والفيتامينات': 'Minerals & Vitamins',
+    'المناعة والأمصال': 'Immunology & Serology',
+    'الفحص المجهري العام': 'General Microscopy',
+    'دلالات الأورام': 'Tumor Markers',
+    'أمراض المناعة الذاتية والروماتيزم': 'Autoimmune & Rheumatology',
+    'السموم والمخدرات': 'Toxicology & Drug Screening',
+    'تحاليل عامة': 'General Laboratory Tests',
+    'عام': 'General',
+    'CHEMISTRY': 'Clinical Chemistry',
+  };
+
+  if (map[trimmed]) return map[trimmed];
+  for (const [k, v] of Object.entries(map)) {
+    if (trimmed.includes(k)) return v;
+  }
+  if (!/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(trimmed)) {
+    return trimmed;
+  }
+  return 'General Laboratory Tests';
+}
+
+export function getReportEnglishSampleType(sampleType: string): string {
+  if (!sampleType) return 'Serum';
+  const trimmed = String(sampleType).trim();
+
+  const map: Record<string, string> = {
+    'محسوب': 'Calculated',
+    'دم كامل (EDTA)': 'Whole Blood (EDTA)',
+    'دم كامل (Citrate)': 'Whole Blood (Citrate)',
+    'بلازما (Sodium Citrate)': 'Plasma (Sodium Citrate)',
+    'بلازما': 'Plasma',
+    'مصل الدم (Serum)': 'Serum',
+    'إدرار عشوائي': 'Random Urine',
+    'عينة خروج': 'Stool Sample',
+    'إدرار صباحي': 'Morning Urine',
+    'سائل منوي (Semen)': 'Seminal Fluid',
+    'دم شعيري (Capillary)': 'Capillary Blood',
+    'دم كامل (أنابيب زجاجية)': 'Whole Blood (Glass Tubes)',
+    'بلازما (EDTA مفصولة فوراً)': 'Plasma (EDTA Immediate)',
+    'إدرار 24 ساعة': '24-Hour Urine',
+    'بلازما (EDTA مبردة)': 'Chilled Plasma (EDTA)',
+    'إدرار طازج': 'Fresh Urine',
+    'دم كامل': 'Whole Blood',
+    'مصل': 'Serum',
+    'إدرار': 'Urine',
+    'خروج': 'Stool',
+    'مسحة': 'Swab',
+  };
+
+  if (map[trimmed]) return map[trimmed];
+  for (const [k, v] of Object.entries(map)) {
+    if (trimmed.includes(k)) return v;
+  }
+  if (!/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(trimmed)) {
+    return trimmed;
+  }
+  return 'Specimen';
+}
+
+export function translateQualitativeResult(val: string): string {
+  if (!val) return val;
+  const str = String(val).trim();
+
+  const map: Record<string, string> = {
+    'موجب': 'Positive',
+    'إيجابي': 'Positive',
+    'سلبي': 'Negative',
+    'سالب': 'Negative',
+    'طبيعي': 'Normal',
+    'غير طبيعي': 'Abnormal',
+    'أثر': 'Trace',
+    'اثر': 'Trace',
+    'نادر': 'Rare',
+    'قليل': 'Few',
+    'معتدل': 'Moderate',
+    'متوسط': 'Moderate',
+    'كثير': 'Many',
+    'عديد': 'Many',
+    'صافي': 'Clear',
+    'رائق': 'Clear',
+    'عكر': 'Turbid',
+    'أصفر': 'Yellow',
+    'اصفر': 'Yellow',
+    'أصفر شاحب': 'Pale Yellow',
+    'اصفر شاحب': 'Pale Yellow',
+    'أحمر': 'Red',
+    'احمر': 'Red',
+    'بني': 'Brown',
+    'أخضر': 'Green',
+    'حامضي': 'Acidic',
+    'قاعدي': 'Alkaline',
+    'قلوي': 'Alkaline',
+    'غير موجود': 'Nil',
+    'لا يوجد': 'Nil',
+    'معدوم': 'Nil',
+    'ممتلئ': 'Full Field',
+    'مليء': 'Full Field',
+    'شديد العكورة': 'Very Turbid',
+    'متماسك': 'Formed',
+    'شبه متماسك': 'Semi-Formed',
+    'مائي': 'Watery',
+    'مخاطي': 'Mucoid',
+    'دموي': 'Bloody',
+    'راسب': 'Precipitate',
+    'أكثر من': 'More than',
+    'أقل من': 'Less than',
+    'موجب ضعيف': 'Weakly Positive',
+    'موجب قوي': 'Strongly Positive',
+    'تفاعل إيجابي': 'Positive Reaction',
+    'تفاعل سلبي': 'Negative Reaction',
+    'ملاحظة': 'Note',
+    'معتمد نهائي': 'Verified (Final)',
+    'قيد الانتظار': 'Pending',
+  };
+
+  if (map[str]) return map[str];
+
+  let res = str;
+  for (const [ar, en] of Object.entries(map)) {
+    res = res.replace(new RegExp(`\\b${ar}\\b`, 'g'), en);
+  }
+  return res;
 }
 
 function generateQrSvg(url: string, size = 64): string {
@@ -100,7 +269,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const sample = store.samples.find(s => s.id === params.id || String(s.sampleNumber) === params.id);
   
   if (!sample) {
-    return new Response('<h2>Sample Not Found (العينة غير موجودة)</h2>', {
+    return new Response('<h2>Sample Not Found</h2>', {
       status: 404,
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
     });
@@ -299,7 +468,25 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const settings = store.settings;
   const patient = sample.patient || { name: 'Patient', age: '-', gender: 'MALE' };
-  const doctor = sample.doctor || { name: 'Direct / بدون تحويل' };
+  let referringDocName = '';
+  const pRefDocId = sample.patient?.referringDoctorId;
+  if (pRefDocId) {
+    const rd = (store.doctors || []).find((d: any) => d.id === pRefDocId);
+    if (rd) referringDocName = rd.name;
+  }
+  if (!referringDocName && (sample as any).referringDoctor?.name) {
+    referringDocName = (sample as any).referringDoctor.name;
+  } else if (!referringDocName && sample.doctor?.name && !sample.doctor.name.includes('بدون تحويل')) {
+    referringDocName = sample.doctor.name;
+  } else if (!referringDocName && sample.doctorId) {
+    const d = (store.doctors || []).find((doc: any) => doc.id === sample.doctorId);
+    if (d && !d.name.includes('بدون تحويل')) referringDocName = d.name;
+  }
+  const doctor = { name: referringDocName || 'Self / Direct' };
+  const clinicalAge = formatClinicalAge(
+    patient.birthDate ? { birthDate: patient.birthDate } : { age: patient.age },
+    sample.createdAt
+  );
 
   const isPreprinted = settings.headerMode === 'PREPRINTED';
   const rawTop = settings.topMarginMm ?? (isPreprinted ? 45 : 12);
@@ -548,7 +735,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
               <p style="margin: 2px 0 0 0; font-size: 11px; color: rgba(255, 255, 255, 0.95) !important; font-weight: 600;">${safeLabSubtitle}</p>
             ` : ''}
             ${showContactInfo ? `
-              <p style="margin: 4px 0 0 0; font-size: 10px; color: rgba(255, 255, 255, 0.85) !important;">العنوان: ${safeAddress} | هاتف: ${safePhone} ${safeLicense ? ` | ترخيص: ${safeLicense}` : ''}</p>
+              <p style="margin: 4px 0 0 0; font-size: 10px; color: rgba(255, 255, 255, 0.85) !important;">Address: ${safeAddress} | Tel: ${safePhone} ${safeLicense ? ` | License: ${safeLicense}` : ''}</p>
             ` : ''}
           </div>
 
@@ -592,7 +779,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
             <p style="margin: 3px 0 0 0; font-size: 11.5px; color: #64748b; font-weight: 600;">${safeLabSubtitle}</p>
           ` : ''}
           ${showContactInfo ? `
-            <p style="margin: 4px 0 0 0; font-size: 11px; color: #475569;">العنوان: ${safeAddress} | هاتف: ${safePhone}</p>
+            <p style="margin: 4px 0 0 0; font-size: 11px; color: #475569;">Address: ${safeAddress} | Tel: ${safePhone}</p>
           ` : ''}
         </div>
 
@@ -601,7 +788,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
             ${qrEnabled && qrPosition === 'HEADER' ? `
               <div style="text-align: center;">
                 ${qrSvg}
-                <div style="font-size: 9px; color: #64748b; margin-top: 2px;">تحقق إلكتروني</div>
+                <div style="font-size: 9px; color: #64748b; margin-top: 2px;">Scan to Verify</div>
               </div>
             ` : ''}
 
@@ -621,13 +808,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const renderPatientMetaBox = (safePatientName: string, safeDoctorName: string) => {
     if (!showPatientBox) return '';
     return `
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 12px; position: relative; z-index: 1;">
-        <div><span style="color: #64748b;">اسم المريض:</span> <strong>${safePatientName}</strong></div>
-        <div><span style="color: #64748b;">العمر / الجنس:</span> <strong>${toEnglishDigits(patient.age) || '-'} سنة / ${patient.gender === 'FEMALE' ? 'Female' : 'Male'}</strong></div>
-        <div><span style="color: #64748b;">رقم العينة:</span> <strong style="color: ${primaryCol};">#${toEnglishDigits(sample.sampleNumber)}</strong></div>
-        <div><span style="color: #64748b;">الطبيب المعالج:</span> <strong>${safeDoctorName}</strong></div>
-        <div><span style="color: #64748b;">تاريخ الفحص:</span> <strong>${formatEnglishDate(sample.createdAt)}</strong></div>
-        <div><span style="color: #64748b;">حالة التقرير:</span> <strong style="color: #16a34a;">معتمد نهائي (Verified)</strong></div>
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 12px; position: relative; z-index: 1;" dir="ltr">
+        <div><span style="color: #64748b;">Patient Name:</span> <strong>${safePatientName}</strong></div>
+        <div><span style="color: #64748b;">Age / Sex:</span> <strong>${clinicalAge} / ${patient.gender === 'FEMALE' ? 'Female' : 'Male'}</strong></div>
+        <div><span style="color: #64748b;">Sample ID:</span> <strong style="color: ${primaryCol};">#${toEnglishDigits(sample.sampleNumber)}</strong></div>
+        <div><span style="color: #64748b;">Referred By:</span> <strong>${safeDoctorName}</strong></div>
+        <div><span style="color: #64748b;">Date:</span> <strong>${formatEnglishDate(sample.createdAt)}</strong></div>
+        <div><span style="color: #64748b;">Status:</span> <strong style="color: #16a34a;">Verified (Final)</strong></div>
       </div>`;
   };
 
@@ -635,17 +822,17 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const renderFooter = (safeFooter: string, safeLabName: string) => {
     if (!showFooter) return '';
     return `
-      <div style="margin-top: 24px; border-top: 1px dashed #cbd5e1; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; color: #64748b; position: relative; z-index: 1;">
+      <div style="margin-top: 24px; border-top: 1px dashed #cbd5e1; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; color: #64748b; position: relative; z-index: 1;" dir="ltr">
         <div>
-          <div>${safeFooter || 'تم فحص وتدقيق التقرير إلكترونياً وهو معتمد رسمياً.'}</div>
-          ${isPreprinted || !showLabName ? '' : `<div style="margin-top: 2px; color: #94a3b8;">${safeLabName} • تشخيص مخبري معتمد</div>`}
+          <div>${safeFooter || 'This report has been electronically verified and clinically validated.'}</div>
+          ${isPreprinted || !showLabName ? '' : `<div style="margin-top: 2px; color: #94a3b8;">${safeLabName} • Accredited Clinical Diagnostics</div>`}
         </div>
 
         <div style="display: flex; align-items: center; gap: 14px;">
           ${qrEnabled && qrPosition === 'FOOTER' ? `
             <div style="text-align: center;">
               ${qrSvg}
-              <div style="font-size: 9px; color: #64748b; margin-top: 2px;">تحقق إلكتروني</div>
+              <div style="font-size: 9px; color: #64748b; margin-top: 2px;">Scan to Verify</div>
             </div>
           ` : ''}
           ${showFooterSignature ? `
@@ -765,14 +952,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
         if (generalWithLipid.some((st: any) => (st.testId === id || st.test?.id === id))) return;
         generalWithLipid.push({
           id: `calc-${id}`, testId: id, resultValue: invalidReason, isCalculated: true, isVirtualCalculated: true,
-          test: { id, code, name, unit, refRangeText: refDisplay, price: 0, isCalculated: true, sampleType: 'محسوب' },
+          test: { id, code, name, unit, refRangeText: refDisplay, price: 0, isCalculated: true, sampleType: 'Calculated' },
         });
         return;
       }
       if (hasLipidCode([code] as unknown as readonly string[], id)) return;
       generalWithLipid.push({
         id: `calc-${id}`, testId: id, resultValue: String(value), isCalculated: true, isVirtualCalculated: true,
-        test: { id, code, name, unit, refRangeText: refDisplay, price: 0, isCalculated: true, sampleType: 'محسوب' },
+        test: { id, code, name, unit, refRangeText: refDisplay, price: 0, isCalculated: true, sampleType: 'Calculated' },
       });
     };
     if (lipidPanel) {
@@ -802,7 +989,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
       if ([LIPID_CATALOG_IDS.NON_HDL, LIPID_CATALOG_IDS.TC_HDL_RATIO, LIPID_CATALOG_IDS.LDL_HDL_RATIO].includes(id as any)) return true;
       if (['NON-HDL', 'NONHDL', 'NON_HDL', 'TC/HDL', 'CHOL/HDL', 'LDL/HDL'].includes(code)) return true;
       if ((id === LIPID_CATALOG_IDS.LDL || code === 'LDL' || code === 'LDL-C' || id === LIPID_CATALOG_IDS.VLDL || code === 'VLDL') && (t.isCalculated || t.test?.isCalculated)) return true;
-      // Existing LDL/VLDL rows displaying a calculated value (stored empty) are also flag-free
       if ((id === LIPID_CATALOG_IDS.LDL || code === 'LDL') && (!t.resultValue || String(t.resultValue).trim() === '') && lipidEffectiveLdl && lipidEffectiveLdl.value !== null) return true;
       if ((id === LIPID_CATALOG_IDS.VLDL || code === 'VLDL') && (!t.resultValue || String(t.resultValue).trim() === '') && lipidPanel && lipidPanel.vldl.value !== null) return true;
       return false;
@@ -826,14 +1012,31 @@ export async function GET(request: Request, { params }: { params: { id: string }
       } else if (t.isVirtualCalculated || t.isCalculated) {
         calcLabel = ' <span style="font-size:9px;color:#0d9488;border:1px solid #99f6e4;background:#f0fdfa;padding:0 4px;border-radius:4px;">calculated</span>';
       }
-      let displayValue = effectiveValue ? escapeHtml(toEnglishDigits(effectiveValue)) + calcLabel : '<span style="color:#94a3b8;">Pending</span>';
-      const baseName = t.test?.name || (t as any).testCode || 'Test';
+
+      const patientContext = {
+        gender: sample.patient?.gender,
+        age: sample.patient?.age,
+        birthDate: sample.patient?.birthDate,
+        targetDate: sample.createdAt,
+      };
+
+      const evalResult = classifyResultRange(effectiveValue, t.test || t, patientContext);
+      const isAbnormal = evalResult.isAbnormal;
+      const resColor = isAbnormal ? evalResult.color : textColor;
+      const arrowHtml = isAbnormal
+        ? ` <strong style="color: ${evalResult.color}; font-weight: 900; margin-left: 4px; font-family: Arial, sans-serif;">${evalResult.arrow}</strong>`
+        : '';
+
+      const baseName = getReportEnglishTestName(t.test || t);
       const testName = escapeHtml(baseName) + (t.isVirtualCalculated ? ' <span style="font-size:9px;color:#0d9488;">(calculated)</span>' : '');
       const testUnit = escapeHtml(t.test?.unit || t.unit || '-');
       let rawRef: string;
       const printScope = (settings as any).printRangeScope || 'ALL';
       if (printScope === 'APPLICABLE_ONLY') {
-        const resolved = resolveReferenceRange(t.test || t, sample.patient?.gender, sample.patient?.age);
+        const resolved = resolveReferenceRange(t.test || t, sample.patient?.gender, sample.patient?.age, {
+          birthDate: sample.patient?.birthDate,
+          targetDate: sample.createdAt,
+        });
         rawRef = resolved.rangeText;
       } else {
         const rRanges = t.test?.referenceRanges || [];
@@ -847,6 +1050,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
         }
       }
       const testRef = `<span dir="ltr" style="display:inline-block;direction:ltr;unicode-bidi:isolate;">${escapeHtml(rawRef)}</span>`;
+
+      let displayValue = effectiveValue
+        ? `<span style="font-weight:${isAbnormal ? 900 : (resultValueFontWeight === 'bold' ? 800 : 500)};color:${resColor};">${escapeHtml(toEnglishDigits(effectiveValue))}${calcLabel}${arrowHtml}</span>`
+        : '<span style="color:#94a3b8;">Pending</span>';
 
       if (typeof t.resultValue === 'string' && (t.resultValue.includes('MICROBIOLOGY') || t.resultValue.includes('ANTIBIOGRAM:'))) {
         const clean = t.resultValue.replace(/\[.*?MICROBIOLOGY.*?\]/gi, '').trim();
@@ -884,12 +1091,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
       const rowBg = tableZebraStriping && rowIdx % 2 === 1 ? 'rgba(0,0,0,0.025)' : 'transparent';
       const borderStyle = tableRowBorders ? `border-bottom: 1px solid ${borderColor};` : '';
 
-      // No H/L flags anywhere per spec (removed on purpose)
-      const resColor = textColor;
       const prior = findPriorForTest(t);
-      const priorHtml = prior
-        ? `${escapeHtml(toEnglishDigits(prior.value))}<div style="font-size:9.5px;color:#64748b;">${escapeHtml(prior.date)}</div>`
-        : '-';
+      let priorHtml = '-';
+      if (prior) {
+        const priorEval = classifyResultRange(prior.value, t.test || t, patientContext);
+        const priorArrow = priorEval.isAbnormal
+          ? ` <strong style="color: ${priorEval.color}; font-weight: 900; margin-left: 2px; font-family: Arial, sans-serif;">${priorEval.arrow}</strong>`
+          : '';
+        const priorColor = priorEval.isAbnormal ? priorEval.color : '#475569';
+        priorHtml = `<span style="color: ${priorColor}; font-weight: ${priorEval.isAbnormal ? 800 : 600};">${escapeHtml(toEnglishDigits(prior.value))}${priorArrow}</span><div style="font-size: 9.5px; color: #64748b;">${escapeHtml(prior.date)}</div>`;
+      }
 
       return `
         <tr style="${borderStyle} background-color: ${rowBg}; page-break-inside: avoid;">
@@ -901,7 +1112,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
             if (col.id === 'result') {
               const isComplexHtml = typeof effectiveValue === 'string' && (effectiveValue.includes('MICROBIOLOGY') || effectiveValue.includes('ANTIBIOGRAM:'));
               const finalValHtml = isComplexHtml ? displayValue : `${displayValue}`;
-              return `<td style="padding: ${customCellPadding}; font-weight: ${resultValueFontWeight === 'bold' ? 800 : 500}; font-size: ${resultValueFontSize}px; color: ${resColor}; ${alignStyle}">${finalValHtml}</td>`;
+              return `<td style="padding: ${customCellPadding}; font-weight: ${isAbnormal ? 900 : (resultValueFontWeight === 'bold' ? 800 : 500)}; font-size: ${resultValueFontSize}px; color: ${resColor}; ${alignStyle}">${finalValHtml}</td>`;
             }
             if (col.id === 'previous') {
               return `<td style="padding: ${customCellPadding}; font-size: ${refRangeFontSize}px; color: #475569; ${alignStyle}">${priorHtml}</td>`;
@@ -924,7 +1135,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     if (groupByCategory) {
       const categories: { [key: string]: any[] } = {};
       generalWithLipid.forEach((t: any) => {
-        const cat = (t.test?.category || 'تحاليل عامة (General)').trim();
+        const cat = getReportEnglishCategory(t.test?.category || 'General Laboratory Tests');
         if (!categories[cat]) categories[cat] = [];
         categories[cat].push(t);
       });
@@ -1134,16 +1345,32 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const renderCbcRow = (name: string, val: string, unit: string, ref: string, _low: number, _high: number, priorVal?: string) => {
     const hasVal = val && val !== '-';
     const hasPrior = priorVal && priorVal !== '-';
-    const rowColor = textColor;
+    const evalResult = hasVal ? classifyResultRange(val, { low: _low, high: _high }) : null;
+    const isAbnormal = evalResult?.isAbnormal || false;
+    const rowColor = isAbnormal ? evalResult!.color : textColor;
+    const arrowHtml = isAbnormal
+      ? ` <strong style="color: ${evalResult!.color}; font-weight: 900; margin-left: 4px; font-family: Arial, sans-serif;">${evalResult!.arrow}</strong>`
+      : '';
+
+    let priorHtml = '-';
+    if (hasPrior) {
+      const priorEval = classifyResultRange(priorVal!, { low: _low, high: _high });
+      const priorColor = priorEval.isAbnormal ? priorEval.color : '#475569';
+      const priorArrow = priorEval.isAbnormal
+        ? ` <strong style="color: ${priorEval.color}; font-weight: 900; margin-left: 2px; font-family: Arial, sans-serif;">${priorEval.arrow}</strong>`
+        : '';
+      priorHtml = `<span style="color: ${priorColor}; font-weight: ${priorEval.isAbnormal ? 800 : 600};">${escapeHtml(priorVal!)}${priorArrow}</span>`;
+    }
+
     return `
       <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
         <td style="padding: ${customCellPadding}; font-weight: 700; color: #1e293b; text-align: left;">${name}</td>
-        <td style="padding: ${customCellPadding}; font-weight: 800; color: ${rowColor}; text-align: left;">
-          ${hasVal ? `${escapeHtml(val)}` : '<span style="color:#94a3b8;">Pending</span>'}
+        <td style="padding: ${customCellPadding}; font-weight: ${isAbnormal ? 900 : 800}; color: ${rowColor}; text-align: left;">
+          ${hasVal ? `${escapeHtml(val)}${arrowHtml}` : '<span style="color:#94a3b8;">Pending</span>'}
         </td>
         ${priorCbcParsed ? `
           <td style="padding: ${customCellPadding}; font-weight: 700; color: #475569; text-align: left;">
-            ${hasPrior ? escapeHtml(priorVal!) : '-'}
+            ${priorHtml}
           </td>
         ` : ''}
         <td style="padding: ${customCellPadding}; color: #64748b; font-weight: 600; text-align: left;">${unit}</td>
@@ -1154,18 +1381,34 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const renderDiffRow = (name: string, pctStr: string, refPct: string, _low: number, _high: number, wbcVal: number, priorPct?: string) => {
     const num = parseFloat(pctStr);
     const hasVal = pctStr && pctStr !== '-';
+    const evalResult = hasVal ? classifyResultRange(pctStr, { low: _low, high: _high }) : null;
+    const isAbnormal = evalResult?.isAbnormal || false;
+    const diffColor = isAbnormal ? evalResult!.color : textColor;
+    const arrowHtml = isAbnormal
+      ? ` <strong style="color: ${evalResult!.color}; font-weight: 900; margin-left: 4px; font-family: Arial, sans-serif;">${evalResult!.arrow}</strong>`
+      : '';
+
     const absVal = hasVal && !isNaN(num) && wbcVal > 0 ? ((wbcVal * num) / 100).toFixed(2) : '-';
     const hasPrior = priorPct && priorPct !== '-';
-    const diffColor = textColor;
+    let priorHtml = '-';
+    if (hasPrior) {
+      const priorEval = classifyResultRange(priorPct!, { low: _low, high: _high });
+      const priorColor = priorEval.isAbnormal ? priorEval.color : '#475569';
+      const priorArrow = priorEval.isAbnormal
+        ? ` <strong style="color: ${priorEval.color}; font-weight: 900; margin-left: 2px; font-family: Arial, sans-serif;">${priorEval.arrow}</strong>`
+        : '';
+      priorHtml = `<span style="color: ${priorColor}; font-weight: ${priorEval.isAbnormal ? 800 : 600};">${escapeHtml(priorPct!)} %${priorArrow}</span>`;
+    }
+
     return `
       <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid;">
         <td style="padding: ${customCellPadding}; font-weight: 700; color: #1e293b; text-align: left;">${name}</td>
-        <td style="padding: ${customCellPadding}; font-weight: 800; color: ${diffColor}; text-align: left;">
-          ${hasVal ? `${escapeHtml(pctStr)} %` : '<span style="color:#94a3b8;">Pending</span>'}
+        <td style="padding: ${customCellPadding}; font-weight: ${isAbnormal ? 900 : 800}; color: ${diffColor}; text-align: left;">
+          ${hasVal ? `${escapeHtml(pctStr)} %${arrowHtml}` : '<span style="color:#94a3b8;">Pending</span>'}
         </td>
         ${priorCbcParsed ? `
           <td style="padding: ${customCellPadding}; font-weight: 700; color: #475569; text-align: left;">
-            ${hasPrior ? `${escapeHtml(priorPct!)} %` : '-'}
+            ${priorHtml}
           </td>
         ` : ''}
         <td style="padding: ${customCellPadding}; font-weight: 700; color: ${headerBgColor}; text-align: left;">
@@ -1761,7 +2004,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
           ${renderHeader(safeLabName, safeLabSubtitle, safeAddress, safePhone, safeDocName, safeDocTitle, safeLicense)}
           ${renderPatientMetaBox(safePatientName, safeDoctorName)}
           <div style="padding: 30px; text-align: center; color: #64748b; font-size: 13px;">
-            لا توجد فحوصات مسجلة لهذه العينة.
+            No tests recorded for this sample.
           </div>
         </div>
         <div class="report-footer-pinned">
@@ -1772,13 +2015,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 
   const html = `<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
   <title>Medical Report #${sample.sampleNumber} - ${safePatientName}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Cairo:wght@400;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Cairo:wght@400;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Tajawal:wght@400;500;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     /* Offline Local Fonts (Tajawal & Cairo) with local() and /fonts/ fallback */
     @font-face {
@@ -1823,6 +2066,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
     body {
       font-family: ${fontFamilyCss};
       font-size: ${bodyFontSize};
+      direction: ltr;
+      text-align: left;
       margin: 0;
       padding: 0;
       color: #0f172a;
@@ -1993,7 +2238,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 <body>
   ${!isSingleMode ? `
     <div class="print-btn-bar">
-      <button class="btn-print" onclick="window.print()">طباعة التقرير (Print A4)</button>
+      <button class="btn-print" onclick="window.print()">Print Report (A4)</button>
     </div>
   ` : ''}
 

@@ -188,6 +188,16 @@ export function evaluateQualitativeAbnormality(val: string, test: any): boolean 
   return false;
 }
 
+export type {
+  RangeClassificationResult,
+  PatientRangeContext,
+} from '@lab-manager/domain';
+export {
+  classifyResultRange,
+  formatFlaggedResultHtml,
+} from '@lab-manager/domain';
+import { classifyResultRange, type PatientRangeContext } from '@lab-manager/domain';
+
 export interface ClinicalRangeEvaluation {
   status: 'HIGH' | 'LOW' | 'NORMAL';
   arrow: '▲' | '▼' | '';
@@ -200,8 +210,10 @@ export interface ClinicalRangeEvaluation {
  * - High: Red (#dc2626) with up arrow (▲)
  * - Low: Blue (#2563eb) with down arrow (▼)
  * - Normal: No color, no arrow
+ *
+ * Backed by the central pure domain function classifyResultRange.
  */
-export function evaluateClinicalResult(val: any, test: any): ClinicalRangeEvaluation {
+export function evaluateClinicalResult(val: any, test: any, patientContext?: PatientRangeContext): ClinicalRangeEvaluation {
   if (val === null || val === undefined || isBloodGroupTest(test)) {
     return { status: 'NORMAL', arrow: '', color: '', isAbnormal: false };
   }
@@ -210,55 +222,17 @@ export function evaluateClinicalResult(val: any, test: any): ClinicalRangeEvalua
     return { status: 'NORMAL', arrow: '', color: '', isAbnormal: false };
   }
 
-  // 1. Numeric evaluation
-  const num = parseFloat(cleanVal);
-  let low: number | null = (test?.refRangeLow !== null && test?.refRangeLow !== undefined && !isNaN(Number(test.refRangeLow)))
-    ? Number(test.refRangeLow)
-    : null;
-  let high: number | null = (test?.refRangeHigh !== null && test?.refRangeHigh !== undefined && !isNaN(Number(test.refRangeHigh)))
-    ? Number(test.refRangeHigh)
-    : null;
-
-  // Try parsing refRangeText if numbers not explicitly defined
-  if ((low === null || high === null) && test?.refRangeText) {
-    const text = toEnglishDigits(String(test.refRangeText)).trim();
-    const mRange = text.match(/([0-9]+(?:\.[0-9]+)?)\s*(?:-|–|to)\s*([0-9]+(?:\.[0-9]+)?)/i);
-    if (mRange) {
-      if (low === null) low = parseFloat(mRange[1]);
-      if (high === null) high = parseFloat(mRange[2]);
-    } else {
-      const mLess = text.match(/<\s*([0-9]+(?:\.[0-9]+)?)/);
-      if (mLess && high === null) high = parseFloat(mLess[1]);
-      const mGreater = text.match(/>\s*([0-9]+(?:\.[0-9]+)?)/);
-      if (mGreater && low === null) low = parseFloat(mGreater[1]);
-    }
+  const domainRes = classifyResultRange(val, test, patientContext);
+  if (domainRes.isAbnormal) {
+    return {
+      status: domainRes.status,
+      arrow: domainRes.arrow === '↑' ? '▲' : domainRes.arrow === '↓' ? '▼' : '',
+      color: domainRes.color,
+      isAbnormal: true,
+    };
   }
 
-  if (!isNaN(num)) {
-    if (high !== null && !isNaN(high) && num > high) {
-      return { status: 'HIGH', arrow: '▲', color: '#dc2626', isAbnormal: true };
-    }
-    if (low !== null && !isNaN(low) && num < low) {
-      return { status: 'LOW', arrow: '▼', color: '#2563eb', isAbnormal: true };
-    }
-    return { status: 'NORMAL', arrow: '', color: '', isAbnormal: false };
-  }
-
-  // 2. Qualitative / Operator evaluation (e.g. "> 200", "< 50")
-  const lower = cleanVal.toLowerCase();
-  if (lower.startsWith('>') && high !== null && !isNaN(high)) {
-    const th = parseFloat(lower.replace('>', '').trim());
-    if (!isNaN(th) && th >= high) {
-      return { status: 'HIGH', arrow: '▲', color: '#dc2626', isAbnormal: true };
-    }
-  }
-  if (lower.startsWith('<') && low !== null && !isNaN(low)) {
-    const th = parseFloat(lower.replace('<', '').trim());
-    if (!isNaN(th) && th <= low) {
-      return { status: 'LOW', arrow: '▼', color: '#2563eb', isAbnormal: true };
-    }
-  }
-
+  // Fallback check for qualitative abnormality (e.g. positive culture or pathological qualitative text)
   if (evaluateQualitativeAbnormality(cleanVal, test)) {
     return { status: 'HIGH', arrow: '▲', color: '#dc2626', isAbnormal: true };
   }

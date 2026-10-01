@@ -10,6 +10,7 @@ async function runAllGoldenTests() {
     'tests/golden/catalog_count.test.ts',
     'tests/golden/api_snapshots.test.ts',
     'tests/golden/pdf_render.test.ts',
+    'tests/golden/pdf_arabic_and_flags.test.ts',
     'tests/golden/updater.test.ts',
     'tests/golden/smoke_inventory.test.ts'
   ];
