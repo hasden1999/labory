@@ -26,25 +26,32 @@ model ReferringDoctor {
   clinic            String?
   specialty         String?
   commissionPercent Float    @default(0)
+  isActive          Boolean  @default(true)
   createdAt         DateTime @default(now())
   samples           Sample[]
+  patients          Patient[]
   financialTransactions FinancialTransaction[]
 }
 
 model Patient {
-  id        String    @id @default(cuid())
-  name      String
-  phone     String?
-  age       Int?
-  gender    String?  // ذكر / أنثى
-  isDeleted Boolean   @default(false)
-  deletedAt DateTime?
-  createdAt DateTime  @default(now())
-  samples   Sample[]
+  id                  String           @id @default(cuid())
+  name                String
+  phone               String?
+  age                 Int?
+  birthDate           DateTime?
+  birthDateEstimated  Boolean?         @default(false)
+  gender              String?  // ذكر / أنثى
+  referringDoctorId   String?
+  referringDoctor     ReferringDoctor? @relation(fields: [referringDoctorId], references: [id], onDelete: SetNull)
+  isDeleted           Boolean          @default(false)
+  deletedAt           DateTime?
+  createdAt           DateTime         @default(now())
+  samples             Sample[]
   financialTransactions FinancialTransaction[]
 
   @@index([name])
   @@index([phone])
+  @@index([referringDoctorId])
 }
 
 model Sample {
