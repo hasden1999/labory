@@ -32,7 +32,8 @@
     "test:devices": "python tests/integration/test_astm_analyzer.py",
     "check:scope": "node tools/check_scope.js",
     "lint:boundaries": "node tools/lint_boundaries.js",
-    "verify": "npm run lint:boundaries && npm run test:golden && npm run build"
+    "verify": "npm run typecheck && npm run lint:boundaries && npm run test:golden && npm run build",
+    "typecheck": "tsc --noEmit -p apps/server/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json"
   },
   "dependencies": {
     "@prisma/client": "^5.12.1",
