@@ -25,6 +25,14 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@lab-manager/*": [
+        "../../packages/*/src",
+        "../../packages/*"
+      ],
+      "@lab/*": [
+        "../../packages/*/src",
+        "../../packages/*"
       ]
     },
     "strictNullChecks": true

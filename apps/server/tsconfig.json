@@ -9,7 +9,12 @@
     "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@lab-manager/*": ["../../packages/*/src", "../../packages/*"],
+      "@lab/*": ["../../packages/*/src", "../../packages/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

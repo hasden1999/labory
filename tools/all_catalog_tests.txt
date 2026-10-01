@@ -1,0 +1,156 @@
+Total tests: 154
+
+CHEMISTRY                 | TEST_E2E_1790788415074 | E2E Automated Serum Biomarker            | E2E Automated Serum Biomarker       | price: 35000 | (samples:0, panels:0, dev:0) | ID: test_1790788415091_im6y5
+CHEMISTRY                 | TEST_E2E_1790788540237 | E2E Automated Serum Biomarker            | E2E Automated Serum Biomarker       | price: 35000 | (samples:0, panels:0, dev:0) | ID: test_1790788540254_0p64a
+CHEMISTRY                 | TEST_E2E_1790804509302 | E2E Automated Serum Biomarker (Updated)  | -                                   | price: 40000 | (samples:0, panels:0, dev:0) | ID: test_1790804509333_jgfbv
+أمراض الدم والتخثر        | AT-III     | Antithrombin III Activity (AT-III)       | مضاد الثرومبين الثالث (AT-III)      | price: 35000 | (samples:0, panels:0, dev:0) | ID: t-at3
+أمراض الدم والتخثر        | BT         | Bleeding Time (BT - Ivy)                 | زمن النزف (BT)                      | price: 6000 | (samples:0, panels:0, dev:0) | ID: t-bt
+أمراض الدم والتخثر        | BG         | Blood Group & Rh Factor                  | فصيلة الدم والعامل الريسي           | price: 5000 | (samples:5, panels:0, dev:0) | ID: t-bg
+أمراض الدم والتخثر        | CT         | Clotting Time (CT - Lee-White)           | زمن التخثر (CT)                     | price: 6000 | (samples:0, panels:0, dev:0) | ID: t-ct
+أمراض الدم والتخثر        | CBC        | Complete Blood Count (CBC)               | صورة الدم الكاملة                   | price: 15000 | (samples:7, panels:0, dev:12) | ID: t-cbc
+أمراض الدم والتخثر        | DDIMER     | D-Dimer (Quantitative)                   | فحص دي دايمر للتخثر والجلطات        | price: 25000 | (samples:3, panels:0, dev:0) | ID: t-ddimer
+أمراض الدم والتخثر        | ESR        | Erythrocyte Sedimentation Rate (ESR)     | سرعة ترسب كريات الدم الحمر          | price: 5000 | (samples:1, panels:0, dev:0) | ID: t-esr
+أمراض الدم والتخثر        | FIB        | Fibrinogen (Factor I - Clauss)           | الفيبرينوجين (عامل التخثر الأول)    | price: 20000 | (samples:0, panels:0, dev:0) | ID: t-fib
+أمراض الدم والتخثر        | HCT        | Hematocrit (PCV)                         | مكداس الدم (PCV)                    | price: 3000 | (samples:3, panels:0, dev:1) | ID: cmu8t1io60003ggs4wegn8m0a
+أمراض الدم والتخثر        | HGB        | Hemoglobin                               | خضاب الدم (الهيموغلوبين)            | price: 3000 | (samples:3, panels:0, dev:1) | ID: cmu8t1int0002ggs4qmmcozcv
+أمراض الدم والتخثر        | HB         | Hemoglobin (Hb)                          | خضاب الدم (الهيموغلوبين)            | price: 5000 | (samples:1, panels:0, dev:1) | ID: t-hb
+أمراض الدم والتخثر        | PTT        | Partial Thromboplastin Time (PTT/APTT)   | زمن الترومبوبلاستين الجزئي          | price: 15000 | (samples:1, panels:0, dev:0) | ID: t-ptt
+أمراض الدم والتخثر        | PLT        | Platelets Count                          | تعداد الصفائح الدموية               | price: 6000 | (samples:3, panels:0, dev:1) | ID: t-plt
+أمراض الدم والتخثر        | PROT-C     | Protein C Activity                       | نشاط بروتين سي (مانع التخثر الطبيعي) | price: 35000 | (samples:0, panels:0, dev:0) | ID: t-prot-c
+أمراض الدم والتخثر        | PROT-S     | Protein S Free Antigen                   | بروتين إس الحر (مانع التخثر الطبيعي) | price: 35000 | (samples:0, panels:0, dev:0) | ID: t-prot-s
+أمراض الدم والتخثر        | PT-INR     | Prothrombin Time (PT / INR)              | زمن البروثرومبين ومعدل التخثر الدولي | price: 15000 | (samples:0, panels:0, dev:0) | ID: t-pt
+أمراض الدم والتخثر        | RBC        | Red Blood Cells                          | تعداد كريات الدم الحمراء            | price: 3000 | (samples:3, panels:0, dev:1) | ID: cmu8t1inj0001ggs4iqj7la41
+أمراض الدم والتخثر        | FER        | Serum Ferritin                           | مخزون الحديد (الفيريتين)            | price: 18000 | (samples:1, panels:0, dev:0) | ID: t-fer
+أمراض الدم والتخثر        | IRON       | Serum Iron                               | الحديد في مصل الدم                  | price: 10000 | (samples:1, panels:0, dev:0) | ID: t-iron
+أمراض الدم والتخثر        | TT         | Thrombin Time (TT)                       | زمن الثرومبين (TT)                  | price: 18000 | (samples:0, panels:0, dev:0) | ID: t-tt
+أمراض الدم والتخثر        | TIBC       | Total Iron Binding Capacity (TIBC)       | السعة الكلية الرابطة للحديد         | price: 12000 | (samples:2, panels:0, dev:0) | ID: t-tibc
+أمراض الدم والتخثر        | WBC        | White Blood Cells                        | تعداد كريات الدم البيضاء            | price: 3000 | (samples:3, panels:0, dev:1) | ID: cmu8t1im70000ggs4ngieis4e
+أمراض الدم والتخثر        | TEST_1790801986417_PYD4B | ههههه                                    | ههههه                               | price: 7 | (samples:0, panels:0, dev:0) | ID: test_1790801986417_pyd4b
+أمراض المناعة الذاتية والروماتيزم | CCP        | Anti-Cyclic Citrullinated Peptide (Anti-CCP) | الأجسام المضادة لسيترولين المفاصل المبكر (Anti-CCP) | price: 35000 | (samples:0, panels:0, dev:0) | ID: t-ccp
+أمراض المناعة الذاتية والروماتيزم | DSDNA      | Anti-Double Stranded DNA (Anti-dsDNA)    | الأجسام المضادة للحمض النووي المزدوج (Anti-dsDNA) | price: 30000 | (samples:0, panels:0, dev:0) | ID: t-dsdna
+أمراض المناعة الذاتية والروماتيزم | ANA        | Antinuclear Antibodies Screen (ANA / FANA) | فحص الأجسام المضادة للنواة لمناعة الجسم (ANA) | price: 30000 | (samples:0, panels:0, dev:0) | ID: t-ana
+أمراض المناعة الذاتية والروماتيزم | C3         | Complement Component C3                  | المتممة المناعية C3 في مصل الدم     | price: 20000 | (samples:0, panels:0, dev:0) | ID: t-c3
+أمراض المناعة الذاتية والروماتيزم | C4         | Complement Component C4                  | المتممة المناعية C4 في مصل الدم     | price: 20000 | (samples:0, panels:0, dev:0) | ID: t-c4
+السموم والمخدرات          | DOA        | Drugs of Abuse 10-Panel Rapid Screen (DOA) | فحص كشف المخدرات والسموم السريع (10 مواد) | price: 35000 | (samples:0, panels:0, dev:0) | ID: t-doa
+الغدة الدرقية والهرمونات  | 17-OHP     | 17-Hydroxyprogesterone (17-OHP)          | هرمون 17-هيدروكسي بروجستيرون (17-OHP) | price: 35000 | (samples:0, panels:0, dev:0) | ID: t-17-ohp
+الغدة الدرقية والهرمونات  | ACTH       | Adrenocorticotropic Hormone (ACTH)       | الهرمون الموجه لقشرة الكظر (ACTH)   | price: 35000 | (samples:0, panels:0, dev:0) | ID: t-acth
+الغدة الدرقية والهرمونات  | AMH        | Anti-Mullerian Hormone (AMH)             | هرمون مخزون المبيض (AMH)            | price: 45000 | (samples:0, panels:0, dev:0) | ID: t-amh
+الغدة الدرقية والهرمونات  | ANTI-TG    | Anti-Thyroglobulin Antibodies (Anti-TG)  | الأجسام المضادة للثيروغلوبولين (Anti-TG) | price: 25000 | (samples:0, panels:0, dev:0) | ID: t-anti-tg
+الغدة الدرقية والهرمونات  | ANTI-TPO   | Anti-Thyroid Peroxidase Antibodies (Anti-TPO) | الأجسام المضادة لبيروكسيداز الدرقية (Anti-TPO) | price: 25000 | (samples:0, panels:0, dev:0) | ID: t-anti-tpo
+الغدة الدرقية والهرمونات  | BHCG       | Beta-hCG (Quantitative Pregnancy)        | هرمون الحمل الرقمي التراكمي         | price: 20000 | (samples:0, panels:0, dev:0) | ID: t-bhcg
+الغدة الدرقية والهرمونات  | DHEA-S     | Dehydroepiandrosterone Sulfate (DHEA-S)  | هرمون ديهيدرو إيبي آندروستيرون سلفات (DHEA-S) | price: 30000 | (samples:0, panels:0, dev:0) | ID: t-dhea-s
+الغدة الدرقية والهرمونات  | E2         | Estradiol (E2)                           | هرمون الإستراديول (هرمون الأنوثة الرئيسي E2) | price: 25000 | (samples:2, panels:0, dev:0) | ID: t-e2
+الغدة الدرقية والهرمونات  | FSH        | Follicle Stimulating Hormone (FSH)       | الهرمون المنبه للجريب (FSH)         | price: 20000 | (samples:2, panels:0, dev:0) | ID: t-fsh
+الغدة الدرقية والهرمونات  | FREE-TESTO | Free Testosterone                        | هرمون التستوستيرون الحر (الذكورة الفعال) | price: 30000 | (samples:0, panels:0, dev:0) | ID: t-free-testo
+الغدة الدرقية والهرمونات  | FT4        | Free Thyroxine (Free T4)                 | هرمون الثايروكسين الحر (FT4)        | price: 20000 | (samples:0, panels:0, dev:0) | ID: t-ft4
+الغدة الدرقية والهرمونات  | FT3        | Free Triiodothyronine (Free T3)          | هرمون ثلاثي اليود الثايرونين الحر (FT3) | price: 20000 | (samples:0, panels:0, dev:0) | ID: t-ft3
+الغدة الدرقية والهرمونات  | GH         | Human Growth Hormone (hGH)               | هرمون النمو البشري (GH)             | price: 30000 | (samples:0, panels:0, dev:0) | ID: t-gh
+الغدة الدرقية والهرمونات  | IGF-1      | Insulin-like Growth Factor 1 (IGF-1 / Somatomedin C) | عامل النمو شبيه الأنسولين (IGF-1)   | price: 40000 | (samples:0, panels:0, dev:0) | ID: t-igf1
+الغدة الدرقية والهرمونات  | PTH        | Intact Parathyroid Hormone (iPTH)        | هرمون الغدة جار الدرقية السليم (iPTH) | price: 30000 | (samples:0, panels:0, dev:0) | ID: t-pth
+الغدة الدرقية والهرمونات  | LH         | Luteinizing Hormone (LH)                 | الهرمون الملوتن (LH)                | price: 20000 | (samples:2, panels:0, dev:0) | ID: t-lh
+الغدة الدرقية والهرمونات  | PROG       | Progesterone (Day 21)                    | هرمون البروجسترون (اليوم 21 للتبويض) | price: 20000 | (samples:0, panels:0, dev:0) | ID: cmt8fowuf001jijmd4sy80buo
+الغدة الدرقية والهرمونات  | PRG        | Progesterone (PRG)                       | هرمون البروجسترون (هرمون التبويض والحمل) | price: 25000 | (samples:0, panels:0, dev:0) | ID: t-prg
+الغدة الدرقية والهرمونات  | PRL        | Prolactin (Milk Hormone)                 | هرمون الحليب (البرولاكتين)          | price: 20000 | (samples:3, panels:0, dev:0) | ID: t-prl
+الغدة الدرقية والهرمونات  | CORT-PM    | Serum Cortisol (Evening 4 PM)            | هرمون الكورتيزول المسائي (4 عصراً)  | price: 25000 | (samples:0, panels:0, dev:0) | ID: t-cort-pm
+الغدة الدرقية والهرمونات  | CORT-AM    | Serum Cortisol (Morning 8 AM)            | هرمون الكورتيزول الصباحي (8 صباحاً) | price: 25000 | (samples:0, panels:0, dev:0) | ID: t-cort-am
+الغدة الدرقية والهرمونات  | TSH        | Thyroid Stimulating Hormone (TSH)        | هرمون الغدة الدرقية المحفز (TSH)    | price: 20000 | (samples:2, panels:0, dev:0) | ID: t-tsh
+الغدة الدرقية والهرمونات  | TESTO      | Total Testosterone                       | هرمون الذكورة الكلي (التستوستيرون)  | price: 25000 | (samples:2, panels:0, dev:0) | ID: t-testo
+الفحص المجهري العام       | FOBT       | Fecal Occult Blood Test (FOBT)           | فحص الدم الخفي في الخروج            | price: 10000 | (samples:0, panels:0, dev:0) | ID: t-fobt
+الفحص المجهري العام       | GSE        | General Stool Examination (GSE)          | فحص الخروج العام الشامل             | price: 5000 | (samples:3, panels:0, dev:0) | ID: t-gse
+الفحص المجهري العام       | GUE        | General Urine Examination (GUE)          | فحص الإدرار العام الشامل            | price: 5000 | (samples:15, panels:0, dev:0) | ID: t-gue
+الفحص المجهري العام       | SFA        | Seminal Fluid Analysis (SFA)             | تحليل السائل المنوي الشامل (النطاف) | price: 15000 | (samples:0, panels:0, dev:0) | ID: t-sfa
+الكيمياء السريرية والسكري | CPEPTIDE   | C-Peptide Fasting                        | فحص سي ببتيد لكفاءة البنكرياس       | price: 25000 | (samples:0, panels:0, dev:0) | ID: t-cpep
+الكيمياء السريرية والسكري | CK         | Creatine Kinase Total (CK / CPK)         | إنزيم كرياتين كيناز الكلي (CPK)     | price: 12000 | (samples:0, panels:0, dev:0) | ID: t-ck
+الكيمياء السريرية والسكري | FBS        | Fasting Blood Sugar (FBS)                | سكر الدم الصائم                     | price: 5000 | (samples:4, panels:0, dev:1) | ID: t-fbs
+الكيمياء السريرية والسكري | INSULIN    | Fasting Insulin                          | هرمون الأنسولين الصائم              | price: 25000 | (samples:0, panels:0, dev:0) | ID: t-insulin
+الكيمياء السريرية والسكري | HBA1C      | Glycated Hemoglobin (HbA1c)              | السكر التراكمي                      | price: 15000 | (samples:9, panels:0, dev:0) | ID: t-hba1c
+الكيمياء السريرية والسكري | LDH        | Lactate Dehydrogenase (LDH)              | إنزيم نازعة هيدروجين اللاكتات (LDH) | price: 10000 | (samples:0, panels:0, dev:0) | ID: t-ldh
+الكيمياء السريرية والسكري | OGTT       | Oral Glucose Tolerance Test (2hr)        | اختبار تحمل السكر الفموي            | price: 15000 | (samples:1, panels:0, dev:0) | ID: t-ogtt
+الكيمياء السريرية والسكري | RBS        | Random Blood Sugar (RBS)                 | سكر الدم العشوائي                   | price: 5000 | (samples:1, panels:0, dev:0) | ID: t-rbs
+الكيمياء السريرية والسكري | AMY        | Serum Amylase                            | إنزيم الأميليز في مصل الدم          | price: 12000 | (samples:0, panels:0, dev:0) | ID: t-amy
+الكيمياء السريرية والسكري | LIP        | Serum Lipase                             | إنزيم الليباز في مصل الدم           | price: 15000 | (samples:0, panels:0, dev:0) | ID: t-lip
+المعادن والفيتامينات      | COPPER     | Serum Copper (Cu)                        | النحاس في مصل الدم (مؤشر داء ويلسون) | price: 30000 | (samples:0, panels:0, dev:0) | ID: t-copper
+المعادن والفيتامينات      | FOLATE     | Serum Folate (Vitamin B9)                | حمض الفوليك في الدم (فيتامين ب9)    | price: 25000 | (samples:0, panels:0, dev:0) | ID: t-folate
+المعادن والفيتامينات      | MG         | Serum Magnesium                          | المغنيسيوم في الدم                  | price: 8000 | (samples:0, panels:0, dev:0) | ID: t-mg
+المعادن والفيتامينات      | PHOS       | Serum Phosphorus / Phosphate             | الفوسفور غير العضوي في الدم         | price: 8000 | (samples:0, panels:0, dev:0) | ID: t-phos
+المعادن والفيتامينات      | ZINC       | Serum Zinc                               | الزنك في الدم                       | price: 20000 | (samples:2, panels:0, dev:0) | ID: t-zinc
+المعادن والفيتامينات      | CALC       | Total Serum Calcium                      | الكالسيوم الكلي في الدم             | price: 8000 | (samples:0, panels:0, dev:0) | ID: t-calc
+المعادن والفيتامينات      | VITB12     | Vitamin B12 (Cobalamin)                  | فيتامين ب12 (فيتامين الأعصاب)       | price: 25000 | (samples:1, panels:0, dev:0) | ID: t-vitb12
+المعادن والفيتامينات      | VITD       | Vitamin D3 (25-OH Total)                 | فيتامين د3 الكلي (فحص المناعة والعظام) | price: 25000 | (samples:4, panels:0, dev:0) | ID: t-vitd
+المناعة والأمصال          | ASO        | Anti-Streptolysin O (ASOT)               | فحص بكتيريا البلعوم واللوزتين (ASOT) | price: 10000 | (samples:0, panels:0, dev:0) | ID: t-aso
+المناعة والأمصال          | BRUC-STA   | Brucella Standard Tube Agglutination (Wright Test) | فحص أنبوبة الرايت القياسي للبروسيلا (Wright STA) | price: 15000 | (samples:0, panels:0, dev:0) | ID: t-bruc-sta
+المناعة والأمصال          | CRP        | C-Reactive Protein (CRP Quantitative)    | بروتين سي التفاعلي الكمي (الالتهاب) | price: 12000 | (samples:0, panels:0, dev:0) | ID: t-crp
+المناعة والأمصال          | CMV-G      | Cytomegalovirus (CMV) IgG                | الفيروس المضخم للخلايا لمناعة الجسم (CMV IgG) | price: 18000 | (samples:0, panels:0, dev:0) | ID: t-cmv-g
+المناعة والأمصال          | CMV-M      | Cytomegalovirus (CMV) IgM (Acute)        | الفيروس المضخم للخلايا للعدوى الحادة (CMV IgM) | price: 18000 | (samples:0, panels:0, dev:0) | ID: t-cmv-m
+المناعة والأمصال          | DENGUE     | Dengue Duo Rapid (NS1 Ag & IgG/IgM Ab)   | فحص حمى الضنك السريع المزدوج (Dengue NS1/Ab) | price: 20000 | (samples:0, panels:0, dev:0) | ID: t-dengue
+المناعة والأمصال          | EBV-VCA    | Epstein-Barr Virus VCA IgG               | فيروس إبشتاين-بار المحفظي (EBV VCA IgG) | price: 25000 | (samples:0, panels:0, dev:0) | ID: t-ebv-vca
+المناعة والأمصال          | HP-AG      | H. Pylori Antigen in Stool               | جرثومة المعدة (أنتيجين الخروج)      | price: 15000 | (samples:0, panels:0, dev:0) | ID: t-hp
+المناعة والأمصال          | HIV        | HIV 1 & 2 Ab/Ag Combo                    | فحص الإيدز وفيروس نقص المناعة       | price: 20000 | (samples:1, panels:0, dev:0) | ID: t-hiv
+المناعة والأمصال          | HBSAG      | Hepatitis B Surface Antigen (HBsAg)      | التهاب الكبد الفيروسي نوع B         | price: 15000 | (samples:1, panels:0, dev:0) | ID: t-hbsag
+المناعة والأمصال          | HCV        | Hepatitis C Virus Antibody (HCV Ab)      | التهاب الكبد الفيروسي نوع C         | price: 15000 | (samples:0, panels:0, dev:0) | ID: t-hcv
+المناعة والأمصال          | HSV-G      | Herpes Simplex Virus 1 & 2 IgG           | فيروس الهربس البسيط النوع 1 و 2 (HSV 1+2 IgG) | price: 20000 | (samples:0, panels:0, dev:0) | ID: t-hsv-g
+المناعة والأمصال          | HSV-M      | Herpes Simplex Virus 1 & 2 IgM           | فيروس الهربس البسيط للعدوى الحادة (HSV 1+2 IgM) | price: 20000 | (samples:0, panels:0, dev:0) | ID: t-hsv-m
+المناعة والأمصال          | MALARIA    | Malaria Antigen Rapid (P.f / Pan)        | فحص الملاريا السريع المستضدي (Malaria Ag) | price: 10000 | (samples:0, panels:0, dev:0) | ID: t-malaria
+المناعة والأمصال          | RF         | Rheumatoid Factor (RF)                   | عامل الروماتويد (الروماتيزم)        | price: 10000 | (samples:0, panels:0, dev:0) | ID: t-rf
+المناعة والأمصال          | ROSE       | Rose Bengal (Brucella Screen)            | فحص حمى مالطا (البروسيلا)           | price: 8000 | (samples:0, panels:0, dev:0) | ID: t-rose
+المناعة والأمصال          | RUB-G      | Rubella Virus IgG (Immunity)             | الأجسام المضادة لمناعة الحصبة الألمانية (Rubella IgG) | price: 18000 | (samples:0, panels:0, dev:0) | ID: t-rub-g
+المناعة والأمصال          | RUB-M      | Rubella Virus IgM (Acute)                | الأجسام المضادة لعدوى الحصبة الألمانية الحادة (Rubella IgM) | price: 18000 | (samples:0, panels:0, dev:0) | ID: t-rub-m
+المناعة والأمصال          | TOXO-G     | Toxoplasma gondii IgG (Quantitative)     | الأجسام المضادة لداء المقوسات القطط (Toxoplasma IgG) | price: 18000 | (samples:0, panels:0, dev:0) | ID: t-toxo-g
+المناعة والأمصال          | TOXO-M     | Toxoplasma gondii IgM (Acute)            | الأجسام المضادة لداء القطط الحاد (Toxoplasma IgM) | price: 18000 | (samples:0, panels:0, dev:0) | ID: t-toxo-m
+المناعة والأمصال          | TPHA       | Treponema Pallidum Hemagglutination (TPHA) | فحص التلزن الدموي التأكيدي للزهري (TPHA) | price: 15000 | (samples:0, panels:0, dev:0) | ID: t-tpha
+المناعة والأمصال          | TYPH-RAPID | Typhoid Rapid Card (S. typhi IgG/IgM)    | فحص التيفوئيد السريع للأجسام المضادة (IgG/IgM) | price: 10000 | (samples:0, panels:0, dev:0) | ID: t-typh-rapid
+المناعة والأمصال          | VDRL       | VDRL / RPR (Syphilis Screen)             | فحص مرض الزهري المصلي (VDRL / RPR)  | price: 10000 | (samples:0, panels:0, dev:0) | ID: t-vdrl
+المناعة والأمصال          | WIDAL      | Widal Test (Typhoid Fever)               | فحص حمى التيفوئيد (الفيدال)         | price: 8000 | (samples:0, panels:0, dev:0) | ID: t-widal
+دلالات الأورام            | AFP        | Alpha-Fetoprotein (AFP)                  | دلالات أورام الكبد والجنين (AFP)    | price: 25000 | (samples:0, panels:0, dev:0) | ID: t-afp
+دلالات الأورام            | B2M        | Beta-2 Microglobulin (B2M)               | بيتا-2 ميكروغلوبولين (دلالات أورام الدم B2M) | price: 30000 | (samples:0, panels:0, dev:0) | ID: t-b2m
+دلالات الأورام            | CA125      | Cancer Antigen 125 (CA-125)              | دلالات أورام المبيض والرحم (CA-125) | price: 30000 | (samples:0, panels:0, dev:0) | ID: t-ca125
+دلالات الأورام            | CA15-3     | Cancer Antigen 15-3 (CA 15-3)            | دلالات أورام الثدي (CA 15-3)        | price: 30000 | (samples:0, panels:0, dev:0) | ID: t-ca153
+دلالات الأورام            | CA19-9     | Cancer Antigen 19-9 (CA 19-9)            | دلالات أورام البنكرياس والمرارة (CA 19-9) | price: 30000 | (samples:0, panels:0, dev:0) | ID: t-ca199
+دلالات الأورام            | CEA        | Carcinoembryonic Antigen (CEA)           | دلالات أورام القولون والجهاز الهضمي (CEA) | price: 25000 | (samples:0, panels:0, dev:0) | ID: t-cea
+دلالات الأورام            | PSA-FREE   | Free PSA                                 | دلالات البروستات الحرة (Free PSA)   | price: 25000 | (samples:0, panels:0, dev:0) | ID: cmt8fowwt0029ijmdb0ib3hd5
+دلالات الأورام            | FPSA       | Free PSA (Prostate Specific Antigen Free) | دلالات البروستات النوعية الحرة (Free PSA) | price: 30000 | (samples:0, panels:0, dev:0) | ID: t-fpsa
+دلالات الأورام            | CALCITONIN | Serum Calcitonin (Thyroid Medullary Marker) | هرمون الكالسيتونين (دلالات أورام الغدة الدرقية) | price: 40000 | (samples:0, panels:0, dev:0) | ID: t-calcitonin
+دلالات الأورام            | PSA-TOT    | Total PSA (Prostate Specific Antigen)    | دلالات البروستات الكلية (PSA)       | price: 25000 | (samples:1, panels:0, dev:0) | ID: t-psa
+دهون الدم وصحة القلب      | CKMB       | CK-MB (Creatine Kinase-MB)               | إنزيم عضلة القلب سي كيه إم بي       | price: 20000 | (samples:0, panels:0, dev:0) | ID: cmuoj16fr003pq8spqzyyssic
+دهون الدم وصحة القلب      | CK-MB      | Creatine Kinase-MB (CK-MB)               | إنزيم كرياتين كيناز القلبي (CK-MB)  | price: 18000 | (samples:0, panels:0, dev:0) | ID: t-ckmb
+دهون الدم وصحة القلب      | HDL        | HDL Cholesterol (Good)                   | الكوليسترول عالي الكثافة (النافع)   | price: 8000 | (samples:4, panels:0, dev:0) | ID: t-hdl
+دهون الدم وصحة القلب      | HS-CRP     | High-Sensitivity C-Reactive Protein (hs-CRP) | بروتين سي التفاعلي عالي الحساسية (hs-CRP) | price: 20000 | (samples:0, panels:0, dev:0) | ID: t-hscrp
+دهون الدم وصحة القلب      | LDL        | LDL Cholesterol (Bad)                    | الكوليسترول منخفض الكثافة (الضار)   | price: 8000 | (samples:4, panels:0, dev:0) | ID: t-ldl
+دهون الدم وصحة القلب      | LDL/HDL    | LDL/HDL Ratio (calculated)               | نسبة الضار إلى النافع (محسوبة)      | price: 0 | (samples:0, panels:0, dev:0) | ID: t-ldl-hdl-ratio
+دهون الدم وصحة القلب      | NT-PROBNP  | N-Terminal Pro-B-Type Natriuretic Peptide (NT-proBNP) | ببتيد ناتريوريتك القلبي (NT-proBNP لقصور القلب) | price: 45000 | (samples:0, panels:0, dev:0) | ID: t-nt-probnp
+دهون الدم وصحة القلب      | NON-HDL    | Non-HDL Cholesterol (calculated)         | الكوليسترول غير عالي الكثافة (محسوب) | price: 0 | (samples:1, panels:0, dev:0) | ID: t-nonhdl
+دهون الدم وصحة القلب      | MYO        | Serum Myoglobin                          | الميوغلوبين في مصل الدم (إجهاد العضلات والقلب) | price: 25000 | (samples:0, panels:0, dev:0) | ID: t-myo
+دهون الدم وصحة القلب      | TC/HDL     | TC/HDL Ratio (calculated)                | نسبة الكوليسترول الكلي إلى النافع (محسوبة) | price: 0 | (samples:0, panels:0, dev:0) | ID: t-tc-hdl-ratio
+دهون الدم وصحة القلب      | CHOL       | Total Cholesterol                        | الكوليسترول الكلي                   | price: 7000 | (samples:5, panels:0, dev:1) | ID: t-chol
+دهون الدم وصحة القلب      | HCY        | Total Homocysteine                       | الهوموسيستين الكلي (تصلب الشرايين والتجلط) | price: 35000 | (samples:0, panels:0, dev:0) | ID: t-hcy
+دهون الدم وصحة القلب      | TG         | Triglycerides (TG)                       | الدهون الثلاثية                     | price: 7000 | (samples:4, panels:0, dev:1) | ID: t-tg
+دهون الدم وصحة القلب      | TROP-I     | Troponin I (High Sensitive)              | إنزيم تروبونين القلبي السريع للجلطة | price: 30000 | (samples:1, panels:0, dev:0) | ID: t-trop
+دهون الدم وصحة القلب      | VLDL       | VLDL Cholesterol                         | الكوليسترول شديد انخفاض الكثافة     | price: 0 | (samples:3, panels:0, dev:0) | ID: t-vldl
+عام                       | -          | Serum Magnesium Test                     | -                                   | price: 8000 | (samples:1, panels:0, dev:0) | ID: test_1790828697869_kkwr6
+عام                       | -          | Serum Magnesium Test                     | -                                   | price: 8000 | (samples:1, panels:0, dev:0) | ID: test_1790828764556_h7w3m
+عام                       | -          | Serum Magnesium Test                     | -                                   | price: 8000 | (samples:1, panels:0, dev:0) | ID: test_1790829605686_p4j7e
+عام                       | -          | Serum Magnesium Test                     | -                                   | price: 8000 | (samples:1, panels:0, dev:0) | ID: test_1790835687268_62rni
+وظائف الكبد والمرارة      | AG-RATIO   | Albumin / Globulin Ratio (A/G Ratio)     | نسبة الألبومين إلى الجلوبيولين (A/G Ratio) | price: 5000 | (samples:0, panels:0, dev:0) | ID: t-ag-ratio
+وظائف الكبد والمرارة      | ALP        | Alkaline Phosphatase (ALP)               | إنزيم الفوسفاتاز القلوي             | price: 8000 | (samples:0, panels:0, dev:0) | ID: t-alp
+وظائف الكبد والمرارة      | DIR-BIL    | Direct Bilirubin                         | البيليروبين المباشر (المقترن)       | price: 7000 | (samples:1, panels:0, dev:0) | ID: t-dirbil
+وظائف الكبد والمرارة      | GGT        | Gamma-Glutamyl Transferase (GGT)         | إنزيم غاما جلوتاميل ترانسفيريز (GGT) | price: 10000 | (samples:0, panels:0, dev:0) | ID: t-ggt
+وظائف الكبد والمرارة      | INDIR-BIL  | Indirect Bilirubin                       | البيليروبين غير المباشر             | price: 5000 | (samples:2, panels:0, dev:0) | ID: cmt8fowsm0011ijmdf13h2j70
+وظائف الكبد والمرارة      | GOT        | SGOT / AST (Aspartate Aminotransferase)  | إنزيم الكبد والقلب (AST/GOT)        | price: 7000 | (samples:1, panels:0, dev:1) | ID: t-got
+وظائف الكبد والمرارة      | GPT        | SGPT / ALT (Alanine Aminotransferase)    | إنزيم الكبد المتخصص (ALT/GPT)       | price: 7000 | (samples:1, panels:0, dev:1) | ID: t-gpt
+وظائف الكبد والمرارة      | ALB        | Serum Albumin                            | الألبومين في مصل الدم               | price: 7000 | (samples:0, panels:0, dev:1) | ID: t-alb
+وظائف الكبد والمرارة      | TSB        | Total Bilirubin (TSB)                    | البيليروبين الكلي (اليرقان / أبو صفار) | price: 7000 | (samples:1, panels:0, dev:0) | ID: t-tsb
+وظائف الكبد والمرارة      | TP         | Total Serum Protein                      | البروتين الكلي في مصل الدم          | price: 7000 | (samples:0, panels:0, dev:0) | ID: t-tp
+وظائف الكلى والأملاح      | U-PHOS-24H | 24-Hour Urine Phosphorus (Phosphate)     | الفوسفور في إدرار 24 ساعة           | price: 12000 | (samples:0, panels:0, dev:0) | ID: t-u-phos-24h
+وظائف الكلى والأملاح      | U-PROT-24H | 24-Hour Urine Total Protein              | البروتين الكلي في إدرار 24 ساعة     | price: 15000 | (samples:0, panels:0, dev:0) | ID: t-u-prot-24h
+وظائف الكلى والأملاح      | UREA       | Blood Urea                               | اليوريا في الدم                     | price: 7000 | (samples:3, panels:0, dev:1) | ID: t-urea
+وظائف الكلى والأملاح      | BUN        | Blood Urea Nitrogen (BUN)                | نتروجين يوريا الدم                  | price: 7000 | (samples:0, panels:0, dev:0) | ID: t-bun
+وظائف الكلى والأملاح      | EGFR       | Estimated Glomerular Filtration Rate (eGFR - CKD-EPI) | معدل الترشيح الكبيبي المقدر (eGFR)  | price: 5000 | (samples:0, panels:0, dev:0) | ID: t-egfr
+وظائف الكلى والأملاح      | CA-ION     | Ionized Calcium (Free Ca++)              | الكالسيوم المتأين الحر (الكالسيوم الفعال) | price: 15000 | (samples:0, panels:0, dev:0) | ID: t-ca-ion
+وظائف الكلى والأملاح      | MALB       | Microalbumin in Urine                    | الزلال الدقيق في الإدرار            | price: 15000 | (samples:1, panels:0, dev:0) | ID: t-malb
+وظائف الكلى والأملاح      | CL         | Serum Chloride (Cl-)                     | الكلوريد في الدم                    | price: 8000 | (samples:0, panels:0, dev:1) | ID: t-cl
+وظائف الكلى والأملاح      | CREAT      | Serum Creatinine                         | الكرياتينين في مصل الدم             | price: 7000 | (samples:5, panels:0, dev:1) | ID: t-creat
+وظائف الكلى والأملاح      | OSM        | Serum Osmolality                         | الأسمولية في مصل الدم               | price: 15000 | (samples:0, panels:0, dev:0) | ID: t-osm
+وظائف الكلى والأملاح      | K          | Serum Potassium (K+)                     | البوتاسيوم في الدم                  | price: 8000 | (samples:0, panels:0, dev:1) | ID: t-k
+وظائف الكلى والأملاح      | NA         | Serum Sodium (Na+)                       | الصوديوم في الدم                    | price: 8000 | (samples:0, panels:0, dev:1) | ID: t-na
+وظائف الكلى والأملاح      | URIC       | Serum Uric Acid                          | حمض اليوريك (داء النقرس)            | price: 7000 | (samples:1, panels:0, dev:0) | ID: t-uric
+وظائف الكلى والأملاح      | UPCR       | Urine Protein / Creatinine Ratio (UPCR)  | نسبة البروتين إلى الكرياتينين في الإدرار (UPCR) | price: 15000 | (samples:0, panels:0, dev:0) | ID: t-upcr
