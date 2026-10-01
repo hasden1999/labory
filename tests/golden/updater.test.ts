@@ -1,13 +1,15 @@
 import assert from 'node:assert';
 import Module from 'node:module';
 
+const rootPkg = require('../../package.json');
+
 // Mock electron runtime
 const originalRequire = (Module.prototype as any).require;
 (Module.prototype as any).require = function (id: string, ...args: any[]) {
   if (id === 'electron') {
     return {
       app: {
-        getVersion: () => '1.2.3',
+        getVersion: () => rootPkg.version,
         getPath: () => process.cwd(),
         isPackaged: false,
         on: () => {},
@@ -30,9 +32,9 @@ async function runUpdaterGoldenTest() {
   const { UpdateService } = require('../../apps/desktop/services/updateService.js');
   const service = new UpdateService();
 
-  // Test 1: When installed version matches target version (1.2.3), isUpdateAvailable is false
+  // Test 1: When installed version matches target version, isUpdateAvailable is false
   const state = service.getState();
-  assert.strictEqual(state.currentVersion, '1.2.3', 'Current version must match 1.2.3');
+  assert.strictEqual(state.currentVersion, rootPkg.version, `Current version must match ${rootPkg.version}`);
   console.log(`  ✓ Current version registered: ${state.currentVersion}`);
 
   // Test 2: Check update state transition
