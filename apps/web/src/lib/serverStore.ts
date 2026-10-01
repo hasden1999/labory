@@ -820,12 +820,11 @@ export function triggerSqliteSync(): void {
   sqliteSyncTriggered = true;
   loadStoreFromSqlite().then((fromSqlite) => {
     if (fromSqlite && fromSqlite.tests && fromSqlite.tests.length > 0) {
-      if (global.__labStore && Array.isArray(global.__labStore.tests) && global.__labStore.tests.length > fromSqlite.tests.length) {
-        console.warn(`[ServerStore] Preserving ${global.__labStore.tests.length} in-memory tests over SQLite (${fromSqlite.tests.length} tests)`);
-        fromSqlite.tests = global.__labStore.tests;
-      }
       global.__labStore = fromSqlite;
-      console.log('💎 [ServerStore] Authoritative state active from SQLite lab.db');
+      console.log(`💎 [ServerStore] Authoritative state active from SQLite lab.db (${fromSqlite.tests.length} tests)`);
+      try {
+        saveStoreToFile();
+      } catch {}
     }
   }).catch((e) => console.warn('[ServerStore] SQLite load warning:', e?.message));
 }
