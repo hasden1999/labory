@@ -470,6 +470,25 @@ export async function syncSampleToSqlite(smp: any): Promise<void> {
           }
         });
       }
+
+      // Clean up any tests removed from this sample
+      try {
+        const remainingTestIds = smp.tests.map((t: any) => t.testId || t.id).filter(Boolean);
+        const remainingStIds = smp.tests.map((t: any) => t.sampleTestId || t.id).filter(Boolean);
+        await prisma.sampleTest.deleteMany({
+          where: {
+            sampleId: sampleRecord.id,
+            NOT: {
+              OR: [
+                { id: { in: remainingStIds } },
+                { testId: { in: remainingTestIds } },
+              ],
+            },
+          },
+        });
+      } catch (cleanErr: any) {
+        console.warn('[SQLite Sync] Sample tests cleanup notice:', cleanErr?.message);
+      }
     }
   } catch (e: any) {
     console.error('[SQLite Sync] Failed to sync sample:', e?.message);
@@ -878,5 +897,25 @@ export async function syncTestSpecialtyAssignmentToSqlite(
     console.error('[SQLite Sync] Failed to sync test specialty assignment:', e?.message);
   }
 }
+
+export async function deleteSampleTestFromSqlite(sampleId: string, testIdOrSampleTestId: string): Promise<void> {
+  if (!sampleId || !testIdOrSampleTestId) return;
+  try {
+    await initDbWAL();
+    await prisma.sampleTest.deleteMany({
+      where: {
+        OR: [
+          { id: testIdOrSampleTestId },
+          { sampleId: sampleId, testId: testIdOrSampleTestId },
+          { sample: { id: sampleId }, testId: testIdOrSampleTestId },
+          { sample: { sampleNumber: Number(sampleId) || -1 }, testId: testIdOrSampleTestId },
+        ],
+      },
+    });
+  } catch (err: any) {
+    console.warn('[SQLite Sync] deleteSampleTestFromSqlite warning:', err?.message);
+  }
+}
+
 
 

@@ -122,6 +122,89 @@ export async function initDbWAL() {
   }
   globalForPrisma.walInitialized = true;
   console.log('⚡ [Prisma SQLite] WAL mode & high-performance Pragmas initialized successfully.');
+
+  // Safe additive self-healing schema migration for existing SQLite databases
+  try {
+    const catalogCols: any = await rawPrisma.$queryRawUnsafe('PRAGMA table_info(TestCatalog);');
+    const colNames = Array.isArray(catalogCols) ? catalogCols.map((c: any) => c.name) : [];
+    if (!colNames.includes('specialtyId')) {
+      await rawPrisma.$queryRawUnsafe('ALTER TABLE "TestCatalog" ADD COLUMN "specialtyId" TEXT;');
+    }
+    if (!colNames.includes('groupId')) {
+      await rawPrisma.$queryRawUnsafe('ALTER TABLE "TestCatalog" ADD COLUMN "groupId" TEXT;');
+    }
+    if (!colNames.includes('sortOrder')) {
+      await rawPrisma.$queryRawUnsafe('ALTER TABLE "TestCatalog" ADD COLUMN "sortOrder" INTEGER;');
+    }
+
+    const settingsCols: any = await rawPrisma.$queryRawUnsafe('PRAGMA table_info(Settings);');
+    const setColNames = Array.isArray(settingsCols) ? settingsCols.map((c: any) => c.name) : [];
+    if (!setColNames.includes('groupingStyle')) {
+      await rawPrisma.$queryRawUnsafe("ALTER TABLE \"Settings\" ADD COLUMN \"groupingStyle\" TEXT DEFAULT 'category';");
+    }
+    if (!setColNames.includes('logoWidthMm')) {
+      await rawPrisma.$queryRawUnsafe('ALTER TABLE "Settings" ADD COLUMN "logoWidthMm" REAL;');
+    }
+    if (!setColNames.includes('logoAlign')) {
+      await rawPrisma.$queryRawUnsafe('ALTER TABLE "Settings" ADD COLUMN "logoAlign" TEXT;');
+    }
+    if (!setColNames.includes('logoOffsetXMm')) {
+      await rawPrisma.$queryRawUnsafe('ALTER TABLE "Settings" ADD COLUMN "logoOffsetXMm" REAL;');
+    }
+    if (!setColNames.includes('logoOffsetYMm')) {
+      await rawPrisma.$queryRawUnsafe('ALTER TABLE "Settings" ADD COLUMN "logoOffsetYMm" REAL;');
+    }
+
+    await rawPrisma.$queryRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Specialty" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "nameEn" TEXT NOT NULL,
+        "nameAr" TEXT,
+        "sortOrder" INTEGER NOT NULL DEFAULT 0,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await rawPrisma.$queryRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "TestGroup" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "specialtyId" TEXT NOT NULL,
+        "nameEn" TEXT NOT NULL,
+        "nameAr" TEXT,
+        "sortOrder" INTEGER NOT NULL DEFAULT 0,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await rawPrisma.$queryRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ReferenceRange" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "testId" TEXT NOT NULL,
+        "label" TEXT NOT NULL,
+        "sex" TEXT NOT NULL DEFAULT 'any',
+        "ageMin" REAL,
+        "ageMax" REAL,
+        "ageUnit" TEXT NOT NULL DEFAULT 'years',
+        "low" REAL,
+        "high" REAL,
+        "text" TEXT,
+        "unit" TEXT,
+        "note" TEXT,
+        "source" TEXT,
+        "sourceUrl" TEXT,
+        "isUserEdited" BOOLEAN NOT NULL DEFAULT false,
+        "sortOrder" INTEGER NOT NULL DEFAULT 0,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+  } catch (migErr: any) {
+    console.warn('[Prisma SQLite] Safe auto-migration notice:', migErr?.message);
+  }
 }
 
 export async function checkpointDbWAL() {

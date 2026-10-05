@@ -40,37 +40,28 @@ export const ClinicalAgeInput: React.FC<ClinicalAgeInputProps> = ({
   const [showDobPicker, setShowDobPicker] = useState(false);
   const [dobValue, setDobValue] = useState<string>('');
 
-  const monthsRef = useRef<HTMLInputElement | null>(null);
-  const daysRef = useRef<HTMLInputElement | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<'years' | 'months' | 'days'>('years');
 
-  // Sync internal dob string from birthDate prop
+  // Keep selectedUnit in sync with props when loaded from existing record
   useEffect(() => {
-    if (birthDate) {
-      try {
-        const d = new Date(birthDate);
-        if (!isNaN(d.getTime())) {
-          setDobValue(d.toISOString().split('T')[0]);
-        }
-      } catch {}
-    } else {
-      setDobValue('');
+    if (days && !years && !months) {
+      setSelectedUnit('days');
+    } else if (months && !years && !days) {
+      setSelectedUnit('months');
+    } else if (years) {
+      setSelectedUnit('years');
     }
-  }, [birthDate]);
+  }, [years, months, days]);
 
-  const handleNumericChange = (
-    field: 'years' | 'months' | 'days',
-    rawVal: string
-  ) => {
-    const clean = toEnglishDigits(rawVal).replace(/[^0-9]/g, '');
-    const newYears = field === 'years' ? clean : years;
-    const newMonths = field === 'months' ? clean : months;
-    const newDays = field === 'days' ? clean : days;
+  // Derive current numeric value based on active unit
+  const currentValue = selectedUnit === 'years' ? years : selectedUnit === 'months' ? months : days;
 
-    const yNum = parseInt(newYears || '0', 10) || 0;
-    const mNum = parseInt(newMonths || '0', 10) || 0;
-    const dNum = parseInt(newDays || '0', 10) || 0;
+  const emitAgeChange = (unit: 'years' | 'months' | 'days', cleanVal: string) => {
+    const newYears = unit === 'years' ? cleanVal : '';
+    const newMonths = unit === 'months' ? cleanVal : '';
+    const newDays = unit === 'days' ? cleanVal : '';
 
-    if (!newYears && !newMonths && !newDays) {
+    if (!cleanVal) {
       onChange({
         years: '',
         months: '',
@@ -82,6 +73,10 @@ export const ClinicalAgeInput: React.FC<ClinicalAgeInputProps> = ({
       setDobValue('');
       return;
     }
+
+    const yNum = unit === 'years' ? (parseInt(cleanVal, 10) || 0) : 0;
+    const mNum = unit === 'months' ? (parseInt(cleanVal, 10) || 0) : 0;
+    const dNum = unit === 'days' ? (parseInt(cleanVal, 10) || 0) : 0;
 
     const norm = normalizeAgeToBirthDate({ years: yNum, months: mNum, days: dNum });
     const iso = norm.birthDate.toISOString();
@@ -95,6 +90,18 @@ export const ClinicalAgeInput: React.FC<ClinicalAgeInputProps> = ({
       birthDateEstimated: true,
       legacyAgeYears: norm.legacyAgeYears,
     });
+  };
+
+  const handleValueChange = (rawVal: string) => {
+    const clean = toEnglishDigits(rawVal).replace(/[^0-9]/g, '');
+    emitAgeChange(selectedUnit, clean);
+  };
+
+  const handleUnitChange = (newUnit: 'years' | 'months' | 'days') => {
+    setSelectedUnit(newUnit);
+    if (currentValue) {
+      emitAgeChange(newUnit, currentValue);
+    }
   };
 
   const handleDobChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,18 +122,37 @@ export const ClinicalAgeInput: React.FC<ClinicalAgeInputProps> = ({
     const d = new Date(val);
     if (!isNaN(d.getTime())) {
       const breakdown = computeAgeBreakdown(d);
-      const yStr = breakdown.years > 0 ? String(breakdown.years) : '';
-      const mStr = breakdown.months > 0 ? String(breakdown.months) : '';
-      const dStr = breakdown.days > 0 ? String(breakdown.days) : '';
-
-      onChange({
-        years: yStr,
-        months: mStr,
-        days: dStr,
-        birthDate: d.toISOString(),
-        birthDateEstimated: false,
-        legacyAgeYears: breakdown.years,
-      });
+      if (breakdown.years > 0) {
+        setSelectedUnit('years');
+        onChange({
+          years: String(breakdown.years),
+          months: breakdown.months > 0 ? String(breakdown.months) : '',
+          days: breakdown.days > 0 ? String(breakdown.days) : '',
+          birthDate: d.toISOString(),
+          birthDateEstimated: false,
+          legacyAgeYears: breakdown.years,
+        });
+      } else if (breakdown.months > 0) {
+        setSelectedUnit('months');
+        onChange({
+          years: '',
+          months: String(breakdown.months),
+          days: breakdown.days > 0 ? String(breakdown.days) : '',
+          birthDate: d.toISOString(),
+          birthDateEstimated: false,
+          legacyAgeYears: 0,
+        });
+      } else {
+        setSelectedUnit('days');
+        onChange({
+          years: '',
+          months: '',
+          days: String(breakdown.days || 1),
+          birthDate: d.toISOString(),
+          birthDateEstimated: false,
+          legacyAgeYears: 0,
+        });
+      }
     }
   };
 
@@ -134,11 +160,11 @@ export const ClinicalAgeInput: React.FC<ClinicalAgeInputProps> = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <label
-          htmlFor={`${idPrefix}-years`}
+          htmlFor={`${idPrefix}-value`}
           className="input-label"
           style={{ fontSize: '11px', fontWeight: 800, margin: 0 }}
         >
-          العمر (س | ش | ي)
+          العمر
         </label>
         <button
           type="button"
@@ -158,112 +184,48 @@ export const ClinicalAgeInput: React.FC<ClinicalAgeInputProps> = ({
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px' }}>
-        {/* Years input */}
-        <div style={{ position: 'relative' }}>
-          <input
-            id={`${idPrefix}-years`}
-            ref={firstInputRef}
-            onKeyDown={onKeyDownFirst}
-            type="text"
-            inputMode="numeric"
-            maxLength={3}
-            placeholder="سنة"
-            className="input-control"
-            style={{
-              height: '38px',
-              fontSize: '12.5px',
-              borderRadius: '8px',
-              paddingLeft: '22px',
-              textAlign: 'center',
-            }}
-            value={years}
-            onChange={(e) => handleNumericChange('years', e.target.value)}
-          />
-          <span
-            style={{
-              position: 'absolute',
-              left: '6px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              fontSize: '10px',
-              color: 'var(--text-muted)',
-              pointerEvents: 'none',
-            }}
-          >
-            سنة
-          </span>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 95px', gap: '6px' }}>
+        {/* Age numeric input */}
+        <input
+          id={`${idPrefix}-value`}
+          ref={firstInputRef}
+          onKeyDown={onKeyDownFirst}
+          type="text"
+          inputMode="numeric"
+          maxLength={3}
+          placeholder="العمر..."
+          className="input-control"
+          style={{
+            height: '38px',
+            fontSize: '13.5px',
+            fontWeight: 700,
+            borderRadius: '8px',
+            textAlign: 'center',
+          }}
+          value={currentValue}
+          onChange={(e) => handleValueChange(e.target.value)}
+        />
 
-        {/* Months input */}
-        <div style={{ position: 'relative' }}>
-          <input
-            id={`${idPrefix}-months`}
-            ref={monthsRef}
-            type="text"
-            inputMode="numeric"
-            maxLength={3}
-            placeholder="شهر"
-            className="input-control"
-            style={{
-              height: '38px',
-              fontSize: '12.5px',
-              borderRadius: '8px',
-              paddingLeft: '22px',
-              textAlign: 'center',
-            }}
-            value={months}
-            onChange={(e) => handleNumericChange('months', e.target.value)}
-          />
-          <span
-            style={{
-              position: 'absolute',
-              left: '6px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              fontSize: '10px',
-              color: 'var(--text-muted)',
-              pointerEvents: 'none',
-            }}
-          >
-            شهر
-          </span>
-        </div>
-
-        {/* Days input */}
-        <div style={{ position: 'relative' }}>
-          <input
-            id={`${idPrefix}-days`}
-            ref={daysRef}
-            type="text"
-            inputMode="numeric"
-            maxLength={3}
-            placeholder="يوم"
-            className="input-control"
-            style={{
-              height: '38px',
-              fontSize: '12.5px',
-              borderRadius: '8px',
-              paddingLeft: '22px',
-              textAlign: 'center',
-            }}
-            value={days}
-            onChange={(e) => handleNumericChange('days', e.target.value)}
-          />
-          <span
-            style={{
-              position: 'absolute',
-              left: '6px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              fontSize: '10px',
-              color: 'var(--text-muted)',
-              pointerEvents: 'none',
-            }}
-          >
-            يوم
-          </span>
-        </div>
+        {/* Age unit select (default: years) */}
+        <select
+          id={`${idPrefix}-unit`}
+          className="input-control"
+          style={{
+            height: '38px',
+            fontSize: '12px',
+            fontWeight: 700,
+            borderRadius: '8px',
+            padding: '0 8px',
+            cursor: 'pointer',
+            backgroundColor: 'var(--bg-card, #ffffff)',
+          }}
+          value={selectedUnit}
+          onChange={(e) => handleUnitChange(e.target.value as 'years' | 'months' | 'days')}
+        >
+          <option value="years">سنة</option>
+          <option value="months">شهر</option>
+          <option value="days">يوم</option>
+        </select>
       </div>
 
       {/* Optional DOB Datepicker */}

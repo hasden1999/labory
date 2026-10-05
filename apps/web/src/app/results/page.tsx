@@ -1252,8 +1252,10 @@ function ResultsContent() {
   const handleConfirmDeleteTest = async () => {
     if (!selectedSample || !testToDelete) return;
     try {
-      setDeletingTest(true);
-      await apiRequest(`/samples/${selectedSample.id}/tests?sampleTestId=${testToDelete.id}`, 'DELETE');
+      await apiRequest(`/samples/${selectedSample.id}/tests?sampleTestId=${testToDelete.id}`, 'DELETE', {
+        sampleTestId: testToDelete.id,
+        testId: testToDelete.testId || testToDelete.test?.id,
+      });
       toast.success(`تم حذف فحص ${testToDelete.test?.name || ''} من العينة بنجاح`);
 
       setTestResults(prev => {

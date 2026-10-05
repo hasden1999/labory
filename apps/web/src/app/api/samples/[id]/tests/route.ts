@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStore, saveStoreToFile } from '../../../../../lib/serverStore';
-import { syncSampleToSqlite } from '../../../../../lib/sqliteSync';
+import { syncSampleToSqlite, deleteSampleTestFromSqlite } from '../../../../../lib/sqliteSync';
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -73,7 +73,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = new URL(request.url, 'http://localhost');
     let sampleTestId = searchParams.get('sampleTestId') || searchParams.get('testId');
 
     if (!sampleTestId) {
@@ -111,6 +111,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     sample.remainingAmount = Math.max(0, netTotal - (sample.paidAmount || 0));
 
     saveStoreToFile();
+    await deleteSampleTestFromSqlite(sample.id, sampleTestId).catch(err => console.warn('[SqliteSync] Delete sample test sqlite error:', err?.message));
     syncSampleToSqlite(sample).catch(err => console.warn('[SqliteSync] Delete sample test sync error:', err?.message));
 
     return NextResponse.json({

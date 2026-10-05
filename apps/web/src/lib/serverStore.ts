@@ -1202,7 +1202,7 @@ export function createTestInStore(data: any): any {
 
 export function updateTestInStore(id: string, data: any): any | null {
   const store = getStore();
-  const index = store.tests.findIndex(t => t.id === id);
+  const index = store.tests.findIndex(t => t.id === id || (t.code && String(t.code).trim().toUpperCase() === String(id).trim().toUpperCase()));
   if (index === -1) return null;
   const existing = store.tests[index];
   const updated = {
@@ -1561,7 +1561,8 @@ export function addSample(data: any): SampleRecord {
 
   const candidateName = (data.patient?.name || data.patientName || data.name || '').trim();
   const normCandidateName = normalizeArabic(candidateName);
-  const testIds: string[] = data.testIds || (data.tests ? data.tests.map((t: any) => t.id || t.testId) : []);
+  const rawTestIds: string[] = data.testIds || (data.tests ? data.tests.map((t: any) => t.id || t.testId) : []);
+  const testIds: string[] = Array.from(new Set(rawTestIds.filter(Boolean)));
   const sortedTestIds = [...testIds].sort().join(',');
 
   // Duplicate Prevention Check (Protection Window: 3 minutes = 180,000 ms)

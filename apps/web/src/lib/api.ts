@@ -148,7 +148,7 @@ export async function apiRequest<T = any>(
       let errJson: any = null;
       try {
         errJson = await response.json();
-        errMessage = errJson.message || errMessage;
+        errMessage = errJson.message || errJson.error || errMessage;
       } catch {}
       const errObj: any = new Error(errMessage);
       if (errJson && typeof errJson === 'object') {

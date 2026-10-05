@@ -758,21 +758,47 @@ function IntakeContent() {
     }
   }, [tests, recentDoneTests, toast]);
 
-  const handleToggleTest = (test: Test) => {
-    if (selectedTests.some((t) => t.id === test.id)) {
-      setSelectedTests(selectedTests.filter((t) => t.id !== test.id));
-    } else {
-      const recentMatch = recentDoneTests.find(
-        (r) => r.testId === test.id || (test.code && r.testCode === test.code.toUpperCase())
-      );
-      if (recentMatch) {
-        toast.warning(
-          `⚠️ تنبيه فحص مكرر: أجرى المريض فحص (${test.name}) قبل ${recentMatch.hoursAgo} ساعة (عينة #${recentMatch.sampleNumber})`,
-          'فحص مكرر خلال 48 ساعة'
-        );
+  const isTestAlreadySelected = (test: Test, currentList: Test[] = selectedTests) => {
+    const testCode = test.code ? String(test.code).trim().toUpperCase() : null;
+    const normName = String(test.name || '').trim().toLowerCase().replace(/[^a-z0-9\u0600-\u06FF]/g, '');
+    const normArabic = test.arabicName ? String(test.arabicName).trim().toLowerCase().replace(/[^a-z0-9\u0600-\u06FF]/g, '') : null;
+
+    return currentList.some((t) => {
+      if (t.id === test.id) return true;
+      if (testCode && t.code && String(t.code).trim().toUpperCase() === testCode) return true;
+      if (normName) {
+        const existingNorm = String(t.name || '').trim().toLowerCase().replace(/[^a-z0-9\u0600-\u06FF]/g, '');
+        if (existingNorm && existingNorm === normName) return true;
       }
-      setSelectedTests([...selectedTests, test]);
+      if (normArabic && t.arabicName) {
+        const existingNormAr = String(t.arabicName).trim().toLowerCase().replace(/[^a-z0-9\u0600-\u06FF]/g, '');
+        if (existingNormAr && existingNormAr === normArabic) return true;
+      }
+      return false;
+    });
+  };
+
+  const handleToggleTest = (test: Test) => {
+    if (isTestAlreadySelected(test)) {
+      toast.warning(`⚠️ التحليل "${test.name || test.arabicName}" تم اختياره مسبقاً لهذا المريض!`, 'تحليل مكرر');
+      return;
     }
+    const recentMatch = recentDoneTests.find(
+      (r) => r.testId === test.id || (test.code && r.testCode === test.code.toUpperCase())
+    );
+    if (recentMatch) {
+      toast.warning(
+        `⚠️ تنبيه فحص مكرر: أجرى المريض فحص (${test.name}) قبل ${recentMatch.hoursAgo} ساعة (عينة #${recentMatch.sampleNumber})`,
+        'فحص مكرر خلال 48 ساعة'
+      );
+    }
+    setSelectedTests((prev) => [...prev, test]);
+    toast.success(`تمت إضافة: ${test.name || test.arabicName}`);
+  };
+
+  const handleRemoveSelectedTest = (test: Test) => {
+    setSelectedTests((prev) => prev.filter((t) => t.id !== test.id));
+    toast.info(`تم حذف الفحص: ${test.name || test.arabicName}`);
   };
 
   // Financial Calculations
@@ -1181,8 +1207,11 @@ function IntakeContent() {
       if (testSearch.trim() && filteredTests.length > 0) {
         const currentTest = filteredTests[highlightedTestIndex] || filteredTests[0];
         if (currentTest) {
-          handleToggleTest(currentTest);
-          toast.info(`${selectedTests.some(t => t.id === currentTest.id) ? 'إزالة' : 'إضافة'}: ${currentTest.name}`);
+          if (isTestAlreadySelected(currentTest)) {
+            toast.warning(`⚠️ التحليل "${currentTest.name || currentTest.arabicName}" تم اختياره مسبقاً لهذا المريض!`, 'تحليل مكرر');
+          } else {
+            handleToggleTest(currentTest);
+          }
         }
       } else {
         // Seamless Enter chain to custom discount input (index 7)
@@ -2162,7 +2191,7 @@ function IntakeContent() {
                       <strong style={{ color: 'var(--text-main)', fontWeight: 800 }}>{t.price?.toLocaleString()} {currency}</strong>
                       <button
                         type="button"
-                        onClick={() => handleToggleTest(t)}
+                        onClick={() => handleRemoveSelectedTest(t)}
                         style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', padding: '2px' }}
                         title="إزالة الفحص"
                         aria-label="إزالة الفحص"
