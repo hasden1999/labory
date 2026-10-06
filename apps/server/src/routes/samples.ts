@@ -182,9 +182,14 @@ export async function sampleRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ message: 'يجب اختيار فحص واحد على الأقل' });
     }
 
+    const uniqueTestIds: string[] = Array.from(new Set<string>(testIds as string[]));
+    if (uniqueTestIds.length !== testIds.length) {
+      return reply.status(409).send({ message: '⚠️ تنبيه: تم تكرار اختيار نفس الفحص في نفس الطلب!' });
+    }
+
     // Fetch catalog tests for price & ref ranges
     const catalogTests = await prisma.testCatalog.findMany({
-      where: { id: { in: testIds } },
+      where: { id: { in: uniqueTestIds } },
     });
 
     const subtotal = catalogTests.reduce((sum, t) => sum + t.price, 0);
@@ -462,7 +467,13 @@ export async function sampleRoutes(fastify: FastifyInstance) {
     const newTestIds = testIds.filter((tid: string) => !existingTestIds.has(tid));
 
     if (newTestIds.length === 0) {
-      return reply.status(400).send({ message: 'جميع الفحوصات المختارة مضافة بالفعل لهذه العينة' });
+      const duplicateTestNames = sample.tests
+        .filter((st: any) => testIds.includes(st.testId))
+        .map((st: any) => st.test?.name || 'فحص')
+        .join('، ');
+      return reply.status(409).send({
+        message: `⚠️ تنبيه: الفحص (${duplicateTestNames}) تم اختياره مسبقاً لهذا المريض في نفس الزيارة!`
+      });
     }
 
     // Fetch details for the new tests
@@ -517,6 +528,72 @@ export async function sampleRoutes(fastify: FastifyInstance) {
       message: `تمت إضافة ${newTestIds.length} فحص بنجاح إلى العينة الحالية`,
       sample: updated,
     });
+  });
+
+  // Delete a Test from an Existing Patient Sample
+  fastify.delete('/samples/:id/tests', async (request: any, reply: any) => {
+    try {
+      const { id } = request.params as any;
+      const { sampleTestId, testId } = { ...(request.query || {}), ...(request.body || {}) } as any;
+      const targetId = sampleTestId || testId;
+
+      if (!targetId) {
+        return reply.status(400).send({ message: 'يرجى تحديد الفحص المراد حذفه' });
+      }
+
+      const sample = await prisma.sample.findUnique({
+        where: { id },
+        include: { tests: { include: { test: true } } },
+      });
+
+      if (!sample) {
+        return reply.status(404).send({ message: 'العينة غير موجودة' });
+      }
+
+      const sampleTest = sample.tests.find(
+        (st) => st.id === targetId || st.testId === targetId || st.test?.id === targetId
+      );
+
+      if (!sampleTest) {
+        return reply.status(404).send({ message: 'الفحص غير موجود ضمن هذه العينة' });
+      }
+
+      const testPrice = sampleTest.priceAtTime || sampleTest.test?.price || 0;
+
+      const updatedSample = await prisma.$transaction(async (tx) => {
+        // Delete the sample test record cleanly
+        await tx.sampleTest.delete({
+          where: { id: sampleTest.id },
+        });
+
+        // Recalculate totals
+        const newPriceTotal = Math.max(0, sample.priceTotal - testPrice);
+        const netTotal = Math.max(0, newPriceTotal - (sample.discount || 0));
+        const newRemaining = Math.max(0, netTotal - sample.paidAmount);
+
+        return await tx.sample.update({
+          where: { id: sample.id },
+          data: {
+            priceTotal: newPriceTotal,
+            remainingAmount: newRemaining,
+          },
+          include: {
+            patient: true,
+            doctor: true,
+            tests: { include: { test: true } },
+          },
+        });
+      });
+
+      return reply.send({
+        success: true,
+        message: 'تم حذف التحليل بنجاح',
+        sample: updatedSample,
+      });
+    } catch (err: any) {
+      console.error('[Server Samples] Delete sample test error:', err);
+      return reply.status(500).send({ message: err?.message || 'فشل حذف التحليل من العينة' });
+    }
   });
 
   // Soft Delete Sample with Audit Trail

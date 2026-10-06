@@ -22,7 +22,13 @@ export async function POST(request: Request, { params }: { params: { id: string 
     const newTestIds = testIds.filter((tid: string) => !existingTestIds.has(tid));
 
     if (newTestIds.length === 0) {
-      return NextResponse.json({ message: 'جميع الفحوصات المختارة مضافة بالفعل لهذه العينة' }, { status: 400 });
+      const duplicateTestNames = sample.tests
+        .filter(st => testIds.includes(st.testId) || (st.test?.id && testIds.includes(st.test.id)))
+        .map(st => st.test?.name || 'فحص')
+        .join('، ');
+      return NextResponse.json({
+        message: `⚠️ تنبيه: الفحص (${duplicateTestNames}) تم اختياره مسبقاً لهذا المريض في نفس الزيارة!`
+      }, { status: 409 });
     }
 
     const catalogTests = store.tests.filter(t => newTestIds.includes(t.id));
@@ -116,7 +122,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
     return NextResponse.json({
       success: true,
-      message: `تم حذف الفحص ${removedTest.test?.name || ''} بنجاح`,
+      message: 'تم حذف التحليل بنجاح',
       sample,
     });
   } catch (err: any) {

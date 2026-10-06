@@ -41,9 +41,42 @@ export const ClinicalAgeInput: React.FC<ClinicalAgeInputProps> = ({
   const [dobValue, setDobValue] = useState<string>('');
 
   const [selectedUnit, setSelectedUnit] = useState<'years' | 'months' | 'days'>('years');
+  const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Keep selectedUnit in sync with props when loaded from existing record
+  // Validate logical bounds (years: 0-120, months: 1-11, days: 1-30)
+  const validateAgeRange = (unit: 'years' | 'months' | 'days', val: string): string | null => {
+    if (!val) return null;
+    const num = parseInt(val, 10);
+    if (isNaN(num)) return null;
+    if (unit === 'years') {
+      if (num < 0 || num > 120) return 'يجب أن يكون العمر بين 0 و 120 سنة';
+    } else if (unit === 'months') {
+      if (num < 1 || num > 11) return 'يجب أن يكون عدد الأشهر بين 1 و 11 شهراً';
+    } else if (unit === 'days') {
+      if (num < 1 || num > 30) return 'يجب أن يكون عدد الأيام بين 1 و 30 يوماً';
+    }
+    return null;
+  };
+
+  // Keep selectedUnit and localValue in sync with props when loaded from existing record
   useEffect(() => {
+    if (birthDate && !years && !months && !days) {
+      const parsed = new Date(birthDate);
+      if (!isNaN(parsed.getTime())) {
+        const breakdown = computeAgeBreakdown(parsed);
+        if (breakdown.years > 0) {
+          setSelectedUnit('years');
+          setLocalValue(String(breakdown.years));
+        } else if (breakdown.months > 0) {
+          setSelectedUnit('months');
+          setLocalValue(String(breakdown.months));
+        } else {
+          setSelectedUnit('days');
+          setLocalValue(String(breakdown.days || 1));
+        }
+        return;
+      }
+    }
     if (days && !years && !months) {
       setSelectedUnit('days');
     } else if (months && !years && !days) {
@@ -51,12 +84,25 @@ export const ClinicalAgeInput: React.FC<ClinicalAgeInputProps> = ({
     } else if (years) {
       setSelectedUnit('years');
     }
-  }, [years, months, days]);
+  }, [years, months, days, birthDate]);
 
   // Derive current numeric value based on active unit
   const currentValue = selectedUnit === 'years' ? years : selectedUnit === 'months' ? months : days;
 
+  // Local immediate state for ultra-fast, zero-delay typing responsiveness
+  const [localValue, setLocalValue] = useState<string>(currentValue || '');
+
+  // Keep localValue in sync whenever parent props change
+  useEffect(() => {
+    const val = currentValue || '';
+    setLocalValue(val);
+    setValidationError(validateAgeRange(selectedUnit, val));
+  }, [currentValue, selectedUnit]);
+
   const emitAgeChange = (unit: 'years' | 'months' | 'days', cleanVal: string) => {
+    const error = validateAgeRange(unit, cleanVal);
+    setValidationError(error);
+
     const newYears = unit === 'years' ? cleanVal : '';
     const newMonths = unit === 'months' ? cleanVal : '';
     const newDays = unit === 'days' ? cleanVal : '';
@@ -94,13 +140,15 @@ export const ClinicalAgeInput: React.FC<ClinicalAgeInputProps> = ({
 
   const handleValueChange = (rawVal: string) => {
     const clean = toEnglishDigits(rawVal).replace(/[^0-9]/g, '');
+    setLocalValue(clean);
     emitAgeChange(selectedUnit, clean);
   };
 
   const handleUnitChange = (newUnit: 'years' | 'months' | 'days') => {
     setSelectedUnit(newUnit);
-    if (currentValue) {
-      emitAgeChange(newUnit, currentValue);
+    const activeVal = localValue || currentValue || '';
+    if (activeVal) {
+      emitAgeChange(newUnit, activeVal);
     }
   };
 
@@ -202,7 +250,7 @@ export const ClinicalAgeInput: React.FC<ClinicalAgeInputProps> = ({
             borderRadius: '8px',
             textAlign: 'center',
           }}
-          value={currentValue}
+          value={localValue}
           onChange={(e) => handleValueChange(e.target.value)}
         />
 
@@ -227,6 +275,21 @@ export const ClinicalAgeInput: React.FC<ClinicalAgeInputProps> = ({
           <option value="days">يوم</option>
         </select>
       </div>
+
+      {validationError && (
+        <span
+          id={`${idPrefix}-error`}
+          style={{
+            fontSize: '11px',
+            color: '#ef4444',
+            fontWeight: 700,
+            marginTop: '2px',
+            display: 'block',
+          }}
+        >
+          ⚠️ {validationError}
+        </span>
+      )}
 
       {/* Optional DOB Datepicker */}
       {showDobPicker && (

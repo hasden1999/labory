@@ -26,25 +26,32 @@ model ReferringDoctor {
   clinic            String?
   specialty         String?
   commissionPercent Float    @default(0)
+  isActive          Boolean  @default(true)
   createdAt         DateTime @default(now())
   samples           Sample[]
+  patients          Patient[]
   financialTransactions FinancialTransaction[]
 }
 
 model Patient {
-  id        String    @id @default(cuid())
-  name      String
-  phone     String?
-  age       Int?
-  gender    String?  // ذكر / أنثى
-  isDeleted Boolean   @default(false)
-  deletedAt DateTime?
-  createdAt DateTime  @default(now())
-  samples   Sample[]
+  id                  String           @id @default(cuid())
+  name                String
+  phone               String?
+  age                 Int?
+  birthDate           DateTime?
+  birthDateEstimated  Boolean?         @default(false)
+  gender              String?  // ذكر / أنثى
+  referringDoctorId   String?
+  referringDoctor     ReferringDoctor? @relation(fields: [referringDoctorId], references: [id], onDelete: SetNull)
+  isDeleted           Boolean          @default(false)
+  deletedAt           DateTime?
+  createdAt           DateTime         @default(now())
+  samples             Sample[]
   financialTransactions FinancialTransaction[]
 
   @@index([name])
   @@index([phone])
+  @@index([referringDoctorId])
 }
 
 model Sample {
@@ -98,6 +105,11 @@ model TestCatalog {
   unit             String?
   sampleType       String?         @default("Serum") // دم كامل / مصل / بلازما / إدرار / مسحة
   active           Boolean         @default(true)
+  specialtyId      String?
+  specialty        Specialty?      @relation(fields: [specialtyId], references: [id], onDelete: SetNull)
+  groupId          String?
+  group            TestGroup?      @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  sortOrder        Int?
   sampleTests      SampleTest[]
   panelItems       TestPanelItem[]
   deviceMappings   DeviceTestMapping[]
@@ -106,6 +118,8 @@ model TestCatalog {
   @@index([code])
   @@index([name])
   @@index([category, active])
+  @@index([specialtyId])
+  @@index([groupId])
 }
 
 model TestPanel {
@@ -393,6 +407,13 @@ model Settings {
   fontSize             String? @default("MEDIUM")
   installedVersion     String  @default("v1.0.3")
   printRangeScope      String? @default("ALL") // APPLICABLE_ONLY, ALL
+  groupingStyle        String? @default("category") // 'category' | 'specialty'
+  logoWidthMm          Float?
+  logoAlign            String? // 'left' | 'center' | 'right'
+  logoOffsetXMm        Float?
+  logoOffsetYMm        Float?
+  logoUrl              String? // شعار المختبر المخزن محلياً كـ Data URI أو مسار ملف
+  enableWatermark      Boolean? @default(false)
 }
 
 model AuditLog {
@@ -432,5 +453,30 @@ model ReferenceRange {
   updatedAt    DateTime    @default(now()) @updatedAt
 
   @@index([testId])
+}
+
+model Specialty {
+  id        String        @id @default(cuid())
+  nameEn    String
+  nameAr    String?
+  sortOrder Int           @default(0)
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  groups    TestGroup[]
+  tests     TestCatalog[]
+}
+
+model TestGroup {
+  id          String        @id @default(cuid())
+  specialtyId String
+  specialty   Specialty     @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+  nameEn      String
+  nameAr      String?
+  sortOrder   Int           @default(0)
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  tests       TestCatalog[]
+
+  @@index([specialtyId])
 }
 

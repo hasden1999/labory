@@ -174,6 +174,69 @@ export function formatClinicalAge(
 }
 
 /**
+ * Formats patient age in Arabic with proper units (سنة، أشهر، أيام)
+ * Examples: "5 أشهر"، "10 أيام"، "40 سنة"
+ */
+export function formatClinicalAgeArabic(
+  patient?: {
+    birthDate?: string | Date | null;
+    age?: number | string | null;
+    birthDateEstimated?: boolean | null;
+  } | null,
+  atDate: string | Date = new Date()
+): string {
+  if (!patient) return '-';
+
+  if (!patient.birthDate) {
+    if (patient.age !== undefined && patient.age !== null && String(patient.age).trim() !== '') {
+      const clean = String(patient.age).replace(/[^0-9]/g, '');
+      const num = parseInt(clean, 10);
+      if (isNaN(num)) return '-';
+      if (num === 1) return 'سنة واحدة';
+      if (num === 2) return 'سنتان';
+      if (num >= 3 && num <= 10) return `${num} سنوات`;
+      return `${num} سنة`;
+    }
+    return '-';
+  }
+
+  const breakdown = computeAgeBreakdown(patient.birthDate, atDate);
+
+  // < 1 month: show in days
+  if (breakdown.totalMonths < 1) {
+    const d = breakdown.days || breakdown.totalDays || 1;
+    if (d === 1) return 'يوم واحد';
+    if (d === 2) return 'يومان';
+    if (d >= 3 && d <= 10) return `${d} أيام`;
+    return `${d} يوماً`;
+  }
+
+  // < 2 years (1 to 23 months): show in months
+  if (breakdown.years < 2) {
+    const m = breakdown.totalMonths;
+    if (m === 1) return 'شهر واحد';
+    if (m === 2) return 'شهران';
+    if (m >= 3 && m <= 10) return `${m} أشهر`;
+    return `${m} شهراً`;
+  }
+
+  // < 18 years
+  if (breakdown.years < 18) {
+    const yStr = breakdown.years === 1 ? 'سنة واحدة' : breakdown.years === 2 ? 'سنتان' : (breakdown.years <= 10 ? `${breakdown.years} سنوات` : `${breakdown.years} سنة`);
+    if (breakdown.months > 0) {
+      const mStr = breakdown.months === 1 ? 'شهر واحد' : breakdown.months === 2 ? 'شهران' : (breakdown.months <= 10 ? `${breakdown.months} أشهر` : `${breakdown.months} شهراً`);
+      return `${yStr} و ${mStr}`;
+    }
+    return yStr;
+  }
+
+  // Adults: show years
+  const y = breakdown.years;
+  if (y >= 3 && y <= 10) return `${y} سنوات`;
+  return `${y} سنة`;
+}
+
+/**
  * Checks whether a patient matches a reference range age boundary
  * with day-level precision for newborns/infants.
  */

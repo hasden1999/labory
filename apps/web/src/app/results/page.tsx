@@ -1256,7 +1256,7 @@ function ResultsContent() {
         sampleTestId: testToDelete.id,
         testId: testToDelete.testId || testToDelete.test?.id,
       });
-      toast.success(`تم حذف فحص ${testToDelete.test?.name || ''} من العينة بنجاح`);
+      toast.success('تم حذف التحليل بنجاح');
 
       setTestResults(prev => {
         const next = { ...prev };
@@ -2892,18 +2892,26 @@ function ResultsContent() {
       />
 
       {/* DELETE TEST CONFIRMATION MODAL */}
-      {testToDelete && (
-        <ConfirmModal
-          isOpen={!!testToDelete}
-          title="تأكيد حذف / استبعاد الفحص"
-          message={`هل أنت متأكد من حذف فحص "${formatTestDisplayName(testToDelete.test?.name) || ''}" من هذه العينة؟ سيتم استبعاد الفحص فوراً وتعديل ملخص الحسابات.`}
-          type="danger"
-          confirmText={deletingTest ? 'جاري الحذف...' : 'نعم، حذف الفحص'}
-          cancelText="إلغاء"
-          onConfirm={handleConfirmDeleteTest}
-          onCancel={() => setTestToDelete(null)}
-        />
-      )}
+      {testToDelete && (() => {
+        const existingVal = testToDelete.resultValue || testResults[testToDelete.id]?.resultValue;
+        const hasResult = existingVal !== null && existingVal !== undefined && String(existingVal).trim() !== '';
+        return (
+          <ConfirmModal
+            isOpen={!!testToDelete}
+            title={hasResult ? 'تنبيه: حذف تحليل يحتوي على نتيجة' : 'تأكيد حذف التحليل'}
+            message={
+              hasResult
+                ? `⚠️ تنبيه: تحليل "${formatTestDisplayName(testToDelete.test?.name) || ''}" يحتوي على نتيجة مُدخلة ("${existingVal}"). هل أنت متأكد من حذفه؟ سيتم حذف النتيجة نهائياً مع التحليل وتحديث إجمالي الفاتورة تلقائياً.`
+                : `هل أنت متأكد من حذف هذا التحليل ("${formatTestDisplayName(testToDelete.test?.name) || ''}")؟ سيتم استبعاده وتحديث إجمالي الفاتورة.`
+            }
+            type="danger"
+            confirmText={deletingTest ? 'جاري الحذف...' : (hasResult ? 'نعم، احذف التحليل مع النتيجة' : 'نعم، احذف التحليل')}
+            cancelText="إلغاء"
+            onConfirm={handleConfirmDeleteTest}
+            onCancel={() => setTestToDelete(null)}
+          />
+        );
+      })()}
 
       {/* ISO 15189 SAMPLE REJECTION MODAL */}
       <SampleRejectionModal

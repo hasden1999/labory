@@ -22,8 +22,10 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "1667-5"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-u-phos-24h",
@@ -47,8 +49,10 @@
       "unit": "g/24h",
       "sampleType": "إدرار 24 ساعة",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2779-7"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-u-prot-24h",
@@ -72,8 +76,10 @@
       "unit": "mg/24h",
       "sampleType": "إدرار 24 ساعة",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2888-6"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-acth",
@@ -97,8 +103,10 @@
       "unit": "pg/mL",
       "sampleType": "بلازما (EDTA مبردة)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2141-0"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-ag-ratio",
@@ -122,8 +130,10 @@
       "unit": "Ratio",
       "sampleType": "محسوب",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "1759-0"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-alp",
@@ -147,8 +157,10 @@
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "referenceSource": "Mayo Clinic Laboratories — Test ID ALP, Alkaline Phosphatase, Serum (adult: M 40-129 U/L, F 35-104 U/L); IFCC reference method"
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2doq0008jtobwofwhfl3",
+      "sortOrder": 3,
+      "referenceRanges": []
     },
     {
       "id": "t-afp",
@@ -172,6 +184,9 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": "cmupz2do70002jtobb5dt2ilx",
+      "groupId": null,
+      "sortOrder": 1,
       "referenceRanges": []
     },
     {
@@ -196,8 +211,10 @@
       "unit": "U/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "33935-8"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-dsdna",
@@ -221,8 +238,10 @@
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "5130-0"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-amh",
@@ -246,6 +265,9 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -270,6 +292,9 @@
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -294,8 +319,10 @@
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "8098-6"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-anti-tpo",
@@ -319,15 +346,17 @@
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "8099-4"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-ana",
       "code": "ANA",
-      "name": "Antinuclear Antibodies Screen (ANA / FANA)",
-      "arabicName": "فحص الأجسام المضادة للنواة لمناعة الجسم (ANA)",
-      "category": "أمراض المناعة الذاتية والروماتيزم",
+      "name": "Antinuclear Antibodies (ANA Screen)",
+      "arabicName": "الأجسام المضادة للنواة (المناعة الذاتية)",
+      "category": "المناعة والأمصال",
       "price": 30000,
       "cost": 7000,
       "costEstimate": 7000,
@@ -344,6 +373,9 @@
       "unit": "Titer",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -368,8 +400,10 @@
       "unit": "%",
       "sampleType": "بلازما (Sodium Citrate)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "3174-0"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-b2m",
@@ -393,8 +427,10 @@
       "unit": "mg/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "1952-1"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-bhcg",
@@ -418,6 +454,9 @@
       "unit": "mIU/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -442,8 +481,10 @@
       "unit": "min",
       "sampleType": "دم شعيري (Capillary)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "34555-3"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-bg",
@@ -467,6 +508,9 @@
       "unit": null,
       "sampleType": "دم كامل (EDTA)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -491,6 +535,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -515,6 +562,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -539,8 +589,10 @@
       "unit": "Titer",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "5070-2"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-cpep",
@@ -564,6 +616,9 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -588,17 +643,20 @@
       "unit": "mg/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
-      "id": "cmuoj16fr003pq8spqzyyssic",
+      "id": "t-ckmb",
       "code": "CKMB",
       "name": "CK-MB (Creatine Kinase-MB)",
       "arabicName": "إنزيم عضلة القلب سي كيه إم بي",
       "category": "دهون الدم وصحة القلب",
       "price": 20000,
-      "cost": 4500,
-      "costEstimate": 4500,
+      "cost": 4000,
+      "costEstimate": 4000,
       "refRangeLow": 0,
       "refRangeHigh": 25,
       "normalMaleLow": null,
@@ -607,11 +665,14 @@
       "normalFemaleHigh": null,
       "criticalLow": null,
       "criticalHigh": 50,
-      "refRangeText": "< 25",
-      "normalRange": "< 25",
+      "refRangeText": "0 - 25",
+      "normalRange": "0 - 25",
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -636,6 +697,9 @@
       "unit": "U/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -660,6 +724,9 @@
       "unit": "U/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -684,6 +751,9 @@
       "unit": "U/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -708,6 +778,9 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": "cmupz2do70002jtobb5dt2ilx",
+      "groupId": null,
+      "sortOrder": 2,
       "referenceRanges": []
     },
     {
@@ -732,8 +805,10 @@
       "unit": "min",
       "sampleType": "دم كامل (أنابيب زجاجية)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "3187-2"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-c3",
@@ -757,8 +832,10 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "4485-9"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-c4",
@@ -782,8 +859,10 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "4498-2"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-cbc",
@@ -807,6 +886,9 @@
       "unit": "g/dL",
       "sampleType": "دم كامل (EDTA)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -831,33 +913,10 @@
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2157-6"
-    },
-    {
-      "id": "t-ckmb",
-      "code": "CK-MB",
-      "name": "Creatine Kinase-MB (CK-MB)",
-      "arabicName": "إنزيم كرياتين كيناز القلبي (CK-MB)",
-      "category": "دهون الدم وصحة القلب",
-      "price": 18000,
-      "cost": 3500,
-      "costEstimate": 3500,
-      "refRangeLow": 0,
-      "refRangeHigh": 25,
-      "normalMaleLow": null,
-      "normalMaleHigh": null,
-      "normalFemaleLow": null,
-      "normalFemaleHigh": null,
-      "criticalLow": null,
-      "criticalHigh": 50,
-      "refRangeText": "0 - 25",
-      "normalRange": "0 - 25",
-      "unit": "U/L",
-      "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "referenceRanges": [],
-      "loincCode": "2154-3"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-cmv-g",
@@ -881,8 +940,10 @@
       "unit": "U/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "25416-9"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-cmv-m",
@@ -906,8 +967,10 @@
       "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "25418-5"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-ddimer",
@@ -931,6 +994,9 @@
       "unit": "ug/mL",
       "sampleType": "بلازما",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -955,8 +1021,10 @@
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2198-0"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-dengue",
@@ -980,8 +1048,10 @@
       "unit": "Qualitative",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "75378-0"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-dirbil",
@@ -1005,6 +1075,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -1029,55 +1102,9 @@
       "unit": "Qualitative",
       "sampleType": "إدرار طازج",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "69739-1"
-    },
-    {
-      "id": "test_1790788415091_im6y5",
-      "code": "TEST_E2E_1790788415074",
-      "name": "E2E Automated Serum Biomarker",
-      "arabicName": "E2E Automated Serum Biomarker",
-      "category": "CHEMISTRY",
-      "price": 35000,
-      "cost": 0,
-      "costEstimate": 0,
-      "refRangeLow": null,
-      "refRangeHigh": null,
-      "normalMaleLow": null,
-      "normalMaleHigh": null,
-      "normalFemaleLow": null,
-      "normalFemaleHigh": null,
-      "criticalLow": null,
-      "criticalHigh": null,
-      "refRangeText": null,
-      "normalRange": null,
-      "unit": "ng/mL",
-      "sampleType": "Serum",
-      "active": true,
-      "referenceRanges": []
-    },
-    {
-      "id": "test_1790788540254_0p64a",
-      "code": "TEST_E2E_1790788540237",
-      "name": "E2E Automated Serum Biomarker",
-      "arabicName": "E2E Automated Serum Biomarker",
-      "category": "CHEMISTRY",
-      "price": 35000,
-      "cost": 0,
-      "costEstimate": 0,
-      "refRangeLow": null,
-      "refRangeHigh": null,
-      "normalMaleLow": null,
-      "normalMaleHigh": null,
-      "normalFemaleLow": null,
-      "normalFemaleHigh": null,
-      "criticalLow": null,
-      "criticalHigh": null,
-      "refRangeText": null,
-      "normalRange": null,
-      "unit": "ng/mL",
-      "sampleType": "Serum",
-      "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -1102,8 +1129,10 @@
       "unit": "U/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "22297-6"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-esr",
@@ -1127,14 +1156,16 @@
       "unit": "mm/1st hr",
       "sampleType": "دم كامل (Citrate)",
       "active": true,
-      "referenceRanges": [],
-      "referenceSource": "Westergren method; CLSI H02-A5; Mayo Clinic Laboratories ESR (M 0-22/F 0-29 method-specific; age formula M age/2, F (age+10)/2)"
+      "specialtyId": "cmupz2do30001jtobslzhsylt",
+      "groupId": null,
+      "sortOrder": 3,
+      "referenceRanges": []
     },
     {
       "id": "t-egfr",
       "code": "EGFR",
-      "name": "Estimated Glomerular Filtration Rate (eGFR - CKD-EPI)",
-      "arabicName": "معدل الترشيح الكبيبي المقدر (eGFR)",
+      "name": "Estimated GFR (eGFR)",
+      "arabicName": "معدل الترشيح الكبيبي المقدر",
       "category": "وظائف الكلى والأملاح",
       "price": 5000,
       "cost": 0,
@@ -1152,13 +1183,16 @@
       "unit": "mL/min/1.73m2",
       "sampleType": "محسوب",
       "active": true,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dok0006jtob1fsc2ra1",
+      "sortOrder": 3,
       "referenceRanges": []
     },
     {
       "id": "t-e2",
       "code": "E2",
       "name": "Estradiol (E2)",
-      "arabicName": "هرمون الإستراديول (هرمون الأنوثة الرئيسي E2)",
+      "arabicName": "هرمون الاستراديول (الإستروجين)",
       "category": "الغدة الدرقية والهرمونات",
       "price": 25000,
       "cost": 5000,
@@ -1176,6 +1210,9 @@
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -1200,6 +1237,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dod0004jtob8sck5j9u",
+      "sortOrder": 3,
       "referenceRanges": []
     },
     {
@@ -1224,6 +1264,9 @@
       "unit": "uIU/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -1248,6 +1291,9 @@
       "unit": null,
       "sampleType": "عينة خروج",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -1272,8 +1318,10 @@
       "unit": "mg/dL",
       "sampleType": "بلازما (Sodium Citrate)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "3255-7"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-fsh",
@@ -1297,10 +1345,13 @@
       "unit": "mIU/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
-      "id": "cmt8fowwt0029ijmdb0ib3hd5",
+      "id": "t-psa-free",
       "code": "PSA-FREE",
       "name": "Free PSA",
       "arabicName": "دلالات البروستات الحرة (Free PSA)",
@@ -1321,6 +1372,9 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -1330,8 +1384,8 @@
       "arabicName": "دلالات البروستات النوعية الحرة (Free PSA)",
       "category": "دلالات الأورام",
       "price": 30000,
-      "cost": 6500,
-      "costEstimate": 6500,
+      "cost": 6000,
+      "costEstimate": 6000,
       "refRangeLow": 0,
       "refRangeHigh": 0.9,
       "normalMaleLow": null,
@@ -1345,8 +1399,10 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "10886-0"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-free-testo",
@@ -1370,8 +1426,10 @@
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2991-8"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-ft4",
@@ -1395,6 +1453,9 @@
       "unit": "ng/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -1419,13 +1480,16 @@
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
       "id": "t-ggt",
       "code": "GGT",
-      "name": "Gamma-Glutamyl Transferase (GGT)",
-      "arabicName": "إنزيم غاما جلوتاميل ترانسفيريز (GGT)",
+      "name": "Gamma GT (GGT)",
+      "arabicName": "إنزيم جاما جي تي للكبد والمرارة",
       "category": "وظائف الكبد والمرارة",
       "price": 10000,
       "cost": 2000,
@@ -1443,6 +1507,9 @@
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2doq0008jtobwofwhfl3",
+      "sortOrder": 5,
       "referenceRanges": []
     },
     {
@@ -1467,6 +1534,9 @@
       "unit": null,
       "sampleType": "عينة خروج",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -1491,6 +1561,9 @@
       "unit": null,
       "sampleType": "إدرار صباحي",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -1515,6 +1588,9 @@
       "unit": "%",
       "sampleType": "دم كامل (EDTA)",
       "active": true,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dod0004jtob8sck5j9u",
+      "sortOrder": 1,
       "referenceRanges": []
     },
     {
@@ -1539,6 +1615,9 @@
       "unit": null,
       "sampleType": "عينة خروج",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -1563,8 +1642,10 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "referenceSource": "ACC/AHA 2018 Cholesterol Guideline; ESC/EAS 2019 Dyslipidaemias"
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dov000ajtob1jt5zqdp",
+      "sortOrder": 3,
+      "referenceRanges": []
     },
     {
       "id": "t-hiv",
@@ -1588,6 +1669,9 @@
       "unit": null,
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -1612,33 +1696,10 @@
       "unit": "%",
       "sampleType": "دم كامل (EDTA)",
       "active": true,
-      "referenceRanges": [],
-      "referenceSource": "Dacie and Lewis Practical Haematology 12th ed.; Mayo Clinic Laboratories HCT (M 38.3-48.6, F 35.5-44.9 as method-specific); WHO anaemia companion ranges"
-    },
-    {
-      "id": "cmu8t1int0002ggs4qmmcozcv",
-      "code": "HGB",
-      "name": "Hemoglobin",
-      "arabicName": "خضاب الدم (الهيموغلوبين)",
-      "category": "أمراض الدم والتخثر",
-      "price": 3000,
-      "cost": 0,
-      "costEstimate": 0,
-      "refRangeLow": 12,
-      "refRangeHigh": 17.5,
-      "normalMaleLow": 13.5,
-      "normalMaleHigh": 17.5,
-      "normalFemaleLow": 12,
-      "normalFemaleHigh": 15.5,
-      "criticalLow": null,
-      "criticalHigh": null,
-      "refRangeText": "M: 13.5 - 17.5 / F: 12.0 - 15.5 (Adult)",
-      "normalRange": "M: 13.5 - 17.5 / F: 12.0 - 15.5 (Adult)",
-      "unit": "g/dL",
-      "sampleType": "دم كامل (EDTA)",
-      "active": true,
-      "referenceRanges": [],
-      "referenceSource": "Dacie and Lewis Practical Haematology 12th ed.; WHO Guideline on haemoglobin concentrations for anaemia diagnosis (2023) lower limits M 13.0/F 12.0; Mayo Clinic Laboratories"
+      "specialtyId": "cmupz2do30001jtobslzhsylt",
+      "groupId": null,
+      "sortOrder": 2,
+      "referenceRanges": []
     },
     {
       "id": "t-hb",
@@ -1662,8 +1723,10 @@
       "unit": "g/dL",
       "sampleType": "دم كامل (EDTA)",
       "active": true,
-      "referenceRanges": [],
-      "referenceSource": "Dacie and Lewis Practical Haematology 12th ed.; WHO haemoglobin anaemia cutoffs 2023 (M <13.0/F <12.0); Mayo Clinic Laboratories"
+      "specialtyId": "cmupz2do30001jtobslzhsylt",
+      "groupId": null,
+      "sortOrder": 1,
+      "referenceRanges": []
     },
     {
       "id": "t-hbsag",
@@ -1687,6 +1750,9 @@
       "unit": null,
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -1711,6 +1777,9 @@
       "unit": null,
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -1735,8 +1804,10 @@
       "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "26927-4"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-hsv-m",
@@ -1760,8 +1831,10 @@
       "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "26928-2"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-hscrp",
@@ -1785,8 +1858,10 @@
       "unit": "mg/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "30522-7"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-gh",
@@ -1810,8 +1885,10 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2965-2"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "cmt8fowsm0011ijmdf13h2j70",
@@ -1835,6 +1912,9 @@
       "unit": "mg/dL",
       "sampleType": "محسوب",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -1859,8 +1939,10 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2483-6"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-pth",
@@ -1884,8 +1966,10 @@
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2731-8"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-ca-ion",
@@ -1909,8 +1993,10 @@
       "unit": "mmol/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "1994-3"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-ldl",
@@ -1934,8 +2020,10 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "referenceSource": "ACC/AHA 2018 Cholesterol Guideline; ESC/EAS 2019; Friedewald Clin Chem 1972 (TG>=400 invalid); CLSI C56-A"
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dov000ajtob1jt5zqdp",
+      "sortOrder": 4,
+      "referenceRanges": []
     },
     {
       "id": "t-ldl-hdl-ratio",
@@ -1959,9 +2047,10 @@
       "unit": "Ratio",
       "sampleType": "محسوب",
       "active": true,
-      "referenceRanges": [],
-      "referenceSource": "Framingham; preventive cardiology literature (descriptive, not a guideline target)",
-      "isCalculated": true
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-ldh",
@@ -1985,8 +2074,10 @@
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2532-0"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-lh",
@@ -2010,6 +2101,9 @@
       "unit": "mIU/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -2034,8 +2128,10 @@
       "unit": "Qualitative",
       "sampleType": "دم كامل (EDTA)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "44558-5"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-malb",
@@ -2059,6 +2155,9 @@
       "unit": "mg/L",
       "sampleType": "إدرار عشوائي",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -2083,8 +2182,10 @@
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "33762-6"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-nonhdl",
@@ -2108,9 +2209,10 @@
       "unit": "mg/dL",
       "sampleType": "محسوب",
       "active": true,
-      "referenceRanges": [],
-      "referenceSource": "ACC/AHA 2018 Cholesterol Guideline (Non-HDL goal = LDL goal + 30 mg/dL); ESC/EAS 2019",
-      "isCalculated": true
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-ogtt",
@@ -2134,6 +2236,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dod0004jtob8sck5j9u",
+      "sortOrder": 4,
       "referenceRanges": []
     },
     {
@@ -2158,6 +2263,9 @@
       "unit": "sec",
       "sampleType": "بلازما (Sodium Citrate)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -2182,10 +2290,13 @@
       "unit": "/uL",
       "sampleType": "دم كامل (EDTA)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
-      "id": "cmt8fowuf001jijmd4sy80buo",
+      "id": "t-prog",
       "code": "PROG",
       "name": "Progesterone (Day 21)",
       "arabicName": "هرمون البروجسترون (اليوم 21 للتبويض)",
@@ -2206,6 +2317,9 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -2230,8 +2344,10 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2839-9"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-prl",
@@ -2255,6 +2371,9 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -2279,8 +2398,10 @@
       "unit": "%",
       "sampleType": "بلازما (Sodium Citrate)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "27817-6"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-prot-s",
@@ -2304,8 +2425,10 @@
       "unit": "%",
       "sampleType": "بلازما (Sodium Citrate)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "27821-8"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-pt",
@@ -2329,6 +2452,9 @@
       "unit": "Ratio",
       "sampleType": "بلازما (Sodium Citrate)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -2353,6 +2479,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dod0004jtob8sck5j9u",
+      "sortOrder": 2,
       "referenceRanges": []
     },
     {
@@ -2377,8 +2506,10 @@
       "unit": "10*6/uL",
       "sampleType": "دم كامل (EDTA)",
       "active": true,
-      "referenceRanges": [],
-      "referenceSource": "Dacie and Lewis Practical Haematology 12th ed.; Mayo Clinic Laboratories RBC (M 4.32-5.72, F 3.92-5.13 method-specific)"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-rf",
@@ -2402,6 +2533,9 @@
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -2426,6 +2560,9 @@
       "unit": null,
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -2450,8 +2587,10 @@
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "25528-1"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-rub-m",
@@ -2475,8 +2614,10 @@
       "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "25530-7"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-got",
@@ -2500,6 +2641,9 @@
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2doq0008jtobwofwhfl3",
+      "sortOrder": 2,
       "referenceRanges": []
     },
     {
@@ -2524,13 +2668,16 @@
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2doq0008jtobwofwhfl3",
+      "sortOrder": 1,
       "referenceRanges": []
     },
     {
       "id": "t-sfa",
       "code": "SFA",
       "name": "Seminal Fluid Analysis (SFA)",
-      "arabicName": "تحليل السائل المنوي الشامل (النطاف)",
+      "arabicName": "فحص السائل المنوي الشامل",
       "category": "الفحص المجهري العام",
       "price": 15000,
       "cost": 2000,
@@ -2546,8 +2693,11 @@
       "refRangeText": "Normal (Conc >= 15 M/mL, PR >= 32%, Normal Forms >= 4%)",
       "normalRange": "Normal (Conc >= 15 M/mL, PR >= 32%, Normal Forms >= 4%)",
       "unit": "M/mL",
-      "sampleType": "سائل منوي",
+      "sampleType": "سائل منوي (Semen)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -2572,6 +2722,9 @@
       "unit": "g/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2doq0008jtobwofwhfl3",
+      "sortOrder": 7,
       "referenceRanges": []
     },
     {
@@ -2596,8 +2749,10 @@
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "1798-8"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-calcitonin",
@@ -2621,8 +2776,10 @@
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "1992-7"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-cl",
@@ -2646,6 +2803,9 @@
       "unit": "mmol/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -2670,8 +2830,10 @@
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2147-7"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-cort-pm",
@@ -2695,14 +2857,16 @@
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2142-8"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-cort-am",
-      "code": "CORT-AM",
+      "code": "CORTISOL",
       "name": "Serum Cortisol (Morning 8 AM)",
-      "arabicName": "هرمون الكورتيزول الصباحي (8 صباحاً)",
+      "arabicName": "هرمون الكورتيزول الصباحي",
       "category": "الغدة الدرقية والهرمونات",
       "price": 25000,
       "cost": 5000,
@@ -2720,8 +2884,10 @@
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2143-6"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-creat",
@@ -2745,8 +2911,10 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "referenceSource": "Mayo Clinic Laboratories Creatinine Serum (M 0.74-1.35/F 0.59-1.04 IDMS-traceable); KDIGO 2024 CKD guideline; 2021 CKD-EPI equation (Inker NEJM 2021)"
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dok0006jtob1fsc2ra1",
+      "sortOrder": 1,
+      "referenceRanges": []
     },
     {
       "id": "t-fer",
@@ -2770,8 +2938,10 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "referenceSource": "WHO Guideline on use of ferritin for iron deficiency (2020); Roche Elecsys Ferritin method ranges (M 30-400/F 15-150); Mayo Clinic Laboratories"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-folate",
@@ -2795,8 +2965,10 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2284-8"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-iron",
@@ -2820,6 +2992,9 @@
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -2844,8 +3019,10 @@
       "unit": "U/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "3040-3"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-mg",
@@ -2854,8 +3031,8 @@
       "arabicName": "المغنيسيوم في الدم",
       "category": "المعادن والفيتامينات",
       "price": 8000,
-      "cost": 1400,
-      "costEstimate": 1400,
+      "cost": 1500,
+      "costEstimate": 1500,
       "refRangeLow": 1.7,
       "refRangeHigh": 2.4,
       "normalMaleLow": null,
@@ -2869,102 +3046,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": []
-    },
-    {
-      "id": "test_1790828697869_kkwr6",
-      "code": "TEST_1790828697869_KKWR6",
-      "name": "Serum Magnesium Test",
-      "arabicName": "Serum Magnesium Test",
-      "category": "عام",
-      "price": 8000,
-      "cost": 0,
-      "costEstimate": 0,
-      "refRangeLow": 1.7,
-      "refRangeHigh": 2.2,
-      "normalMaleLow": null,
-      "normalMaleHigh": null,
-      "normalFemaleLow": null,
-      "normalFemaleHigh": null,
-      "criticalLow": null,
-      "criticalHigh": null,
-      "refRangeText": "1.7 - 2.2",
-      "normalRange": "1.7 - 2.2",
-      "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "referenceRanges": []
-    },
-    {
-      "id": "test_1790828764556_h7w3m",
-      "code": "TEST_1790828764556_H7W3M",
-      "name": "Serum Magnesium Test",
-      "arabicName": "Serum Magnesium Test",
-      "category": "عام",
-      "price": 8000,
-      "cost": 0,
-      "costEstimate": 0,
-      "refRangeLow": 1.7,
-      "refRangeHigh": 2.2,
-      "normalMaleLow": null,
-      "normalMaleHigh": null,
-      "normalFemaleLow": null,
-      "normalFemaleHigh": null,
-      "criticalLow": null,
-      "criticalHigh": null,
-      "refRangeText": "1.7 - 2.2",
-      "normalRange": "1.7 - 2.2",
-      "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "referenceRanges": []
-    },
-    {
-      "id": "test_1790829605686_p4j7e",
-      "code": "TEST_1790829605686_P4J7E",
-      "name": "Serum Magnesium Test",
-      "arabicName": "Serum Magnesium Test",
-      "category": "عام",
-      "price": 8000,
-      "cost": 0,
-      "costEstimate": 0,
-      "refRangeLow": 1.7,
-      "refRangeHigh": 2.2,
-      "normalMaleLow": null,
-      "normalMaleHigh": null,
-      "normalFemaleLow": null,
-      "normalFemaleHigh": null,
-      "criticalLow": null,
-      "criticalHigh": null,
-      "refRangeText": "1.7 - 2.2",
-      "normalRange": "1.7 - 2.2",
-      "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)",
-      "active": true,
-      "referenceRanges": []
-    },
-    {
-      "id": "test_1790835687268_62rni",
-      "code": "TEST_1790835687268_62RNI",
-      "name": "Serum Magnesium Test",
-      "arabicName": "Serum Magnesium Test",
-      "category": "عام",
-      "price": 8000,
-      "cost": 0,
-      "costEstimate": 0,
-      "refRangeLow": 1.7,
-      "refRangeHigh": 2.2,
-      "normalMaleLow": null,
-      "normalMaleHigh": null,
-      "normalFemaleLow": null,
-      "normalFemaleHigh": null,
-      "criticalLow": null,
-      "criticalHigh": null,
-      "refRangeText": "1.7 - 2.2",
-      "normalRange": "1.7 - 2.2",
-      "unit": "mg/dL",
-      "sampleType": "مصل الدم (Serum)",
-      "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -2989,8 +3073,10 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2639-3"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-osm",
@@ -3014,8 +3100,10 @@
       "unit": "mOsm/kg",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2692-2"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-phos",
@@ -3039,6 +3127,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -3063,6 +3154,9 @@
       "unit": "mmol/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -3087,6 +3181,9 @@
       "unit": "mmol/L",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -3111,8 +3208,10 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "referenceSource": "Mayo Clinic Laboratories Uric Acid Serum (M 3.4-7.0/F 2.4-6.0); ACR Gout Guideline 2020 (treat-to-target <6.0 mg/dL)"
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dok0006jtob1fsc2ra1",
+      "sortOrder": 2,
+      "referenceRanges": []
     },
     {
       "id": "t-zinc",
@@ -3136,6 +3235,9 @@
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -3160,9 +3262,10 @@
       "unit": "Ratio",
       "sampleType": "محسوب",
       "active": true,
-      "referenceRanges": [],
-      "referenceSource": "Framingham Heart Study; ACC/AHA risk discussion (ratio is descriptive, not a guideline target)",
-      "isCalculated": true
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-tt",
@@ -3186,8 +3289,10 @@
       "unit": "sec",
       "sampleType": "بلازما (Sodium Citrate)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "3243-3"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-tsh",
@@ -3211,6 +3316,9 @@
       "unit": "uIU/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -3235,6 +3343,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2doq0008jtobwofwhfl3",
+      "sortOrder": 4,
       "referenceRanges": []
     },
     {
@@ -3259,8 +3370,10 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "referenceSource": "ACC/AHA 2018 Cholesterol Guideline; ESC/EAS 2019"
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dov000ajtob1jt5zqdp",
+      "sortOrder": 1,
+      "referenceRanges": []
     },
     {
       "id": "t-hcy",
@@ -3284,8 +3397,10 @@
       "unit": "umol/L",
       "sampleType": "بلازما (EDTA مفصولة فوراً)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "13965-9"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-tibc",
@@ -3309,6 +3424,9 @@
       "unit": "ug/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -3333,6 +3451,9 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -3357,6 +3478,9 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -3381,6 +3505,9 @@
       "unit": "g/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2doq0008jtobwofwhfl3",
+      "sortOrder": 6,
       "referenceRanges": []
     },
     {
@@ -3405,6 +3532,9 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -3429,8 +3559,10 @@
       "unit": "IU/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "22576-3"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-toxo-m",
@@ -3454,8 +3586,10 @@
       "unit": "Index",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "25537-2"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-tpha",
@@ -3479,8 +3613,10 @@
       "unit": "Titer",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "22587-0"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-tg",
@@ -3504,8 +3640,10 @@
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "referenceSource": "ACC/AHA 2018; ESC/EAS 2019; Friedewald Clin Chem 1972 cutoff TG>=400 mg/dL"
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dov000ajtob1jt5zqdp",
+      "sortOrder": 2,
+      "referenceRanges": []
     },
     {
       "id": "t-trop",
@@ -3529,6 +3667,9 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -3553,8 +3694,10 @@
       "unit": "Qualitative",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "49007-8"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-upcr",
@@ -3578,14 +3721,16 @@
       "unit": "mg/g",
       "sampleType": "إدرار عشوائي",
       "active": true,
-      "referenceRanges": [],
-      "loincCode": "2890-2"
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     },
     {
       "id": "t-vdrl",
       "code": "VDRL",
       "name": "VDRL / RPR (Syphilis Screen)",
-      "arabicName": "فحص مرض الزهري المصلي (VDRL / RPR)",
+      "arabicName": "فحص مرض الزهري (VDRL)",
       "category": "المناعة والأمصال",
       "price": 10000,
       "cost": 1800,
@@ -3603,6 +3748,9 @@
       "unit": "Titer",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -3611,7 +3759,7 @@
       "name": "VLDL Cholesterol",
       "arabicName": "الكوليسترول شديد انخفاض الكثافة",
       "category": "دهون الدم وصحة القلب",
-      "price": 0,
+      "price": 5000,
       "cost": 0,
       "costEstimate": 0,
       "refRangeLow": 5,
@@ -3627,9 +3775,10 @@
       "unit": "mg/dL",
       "sampleType": "محسوب",
       "active": true,
-      "referenceRanges": [],
-      "referenceSource": "Friedewald WT et al. Clin Chem 1972 (VLDL = TG/5); CLSI C56-A; ACC/AHA 2018",
-      "isCalculated": true
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "groupId": "cmupz2dov000ajtob1jt5zqdp",
+      "sortOrder": 5,
+      "referenceRanges": []
     },
     {
       "id": "t-vitb12",
@@ -3653,6 +3802,9 @@
       "unit": "pg/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -3677,6 +3829,9 @@
       "unit": "ng/mL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     },
     {
@@ -3701,6 +3856,9 @@
       "unit": "10*3/uL",
       "sampleType": "Serum",
       "active": true,
+      "specialtyId": "cmupz2do30001jtobslzhsylt",
+      "groupId": null,
+      "sortOrder": 4,
       "referenceRanges": []
     },
     {
@@ -3725,30 +3883,9 @@
       "unit": "Titer",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
-      "referenceRanges": []
-    },
-    {
-      "id": "test_1790801986417_pyd4b",
-      "code": "TEST_1790801986417_PYD4B",
-      "name": "ههههه",
-      "arabicName": "ههههه",
-      "category": "أمراض الدم والتخثر",
-      "price": 7,
-      "cost": 0,
-      "costEstimate": 0,
-      "refRangeLow": null,
-      "refRangeHigh": null,
-      "normalMaleLow": null,
-      "normalMaleHigh": null,
-      "normalFemaleLow": null,
-      "normalFemaleHigh": null,
-      "criticalLow": null,
-      "criticalHigh": null,
-      "refRangeText": null,
-      "normalRange": null,
-      "unit": null,
-      "sampleType": "مصل الدم (Serum)",
-      "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
       "referenceRanges": []
     }
   ],
@@ -3973,7 +4110,12 @@
     "fontFamily": "Tajawal",
     "fontSize": "MEDIUM",
     "installedVersion": "v1.0.7",
-    "isConfigured": false
+    "isConfigured": false,
+    "groupingStyle": "category",
+    "logoWidthMm": null,
+    "logoAlign": null,
+    "logoOffsetXMm": null,
+    "logoOffsetYMm": null
   },
   "devices": [
     {
@@ -4024,7 +4166,7 @@
           "deviceId": "cmu8t1ioj0004ggs4v53nzslw",
           "deviceTestCode": "HGB",
           "deviceTestName": "Hemoglobin",
-          "testCatalogId": "cmu8t1int0002ggs4qmmcozcv",
+          "testCatalogId": "t-hb",
           "unit": "g/dL",
           "multiplier": 1,
           "createdAt": "2026-09-19T19:53:09.356Z"
@@ -4502,7 +4644,110 @@
     }
   ],
   "expenses": [],
+  "specialties": [
+    {
+      "id": "cmupz2dnq0000jtobc6gvzmn9",
+      "nameEn": "Biochemistry",
+      "nameAr": "الكيمياء الحيوية",
+      "sortOrder": 1,
+      "isActive": true,
+      "createdAt": "2026-10-01T20:13:52.166Z",
+      "groups": [
+        {
+          "id": "cmupz2dod0004jtob8sck5j9u",
+          "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+          "nameEn": "Diabetes profile",
+          "nameAr": "فحوصات السكري",
+          "sortOrder": 1,
+          "isActive": true,
+          "createdAt": "2026-10-01T20:13:52.189Z"
+        },
+        {
+          "id": "cmupz2dok0006jtob1fsc2ra1",
+          "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+          "nameEn": "Renal function test (RFT)",
+          "nameAr": "وظائف الكلى",
+          "sortOrder": 2,
+          "isActive": true,
+          "createdAt": "2026-10-01T20:13:52.197Z"
+        },
+        {
+          "id": "cmupz2doq0008jtobwofwhfl3",
+          "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+          "nameEn": "Liver function test (LFT)",
+          "nameAr": "وظائف الكبد",
+          "sortOrder": 3,
+          "isActive": true,
+          "createdAt": "2026-10-01T20:13:52.202Z"
+        },
+        {
+          "id": "cmupz2dov000ajtob1jt5zqdp",
+          "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+          "nameEn": "Lipid profile",
+          "nameAr": "دهون الدم",
+          "sortOrder": 4,
+          "isActive": true,
+          "createdAt": "2026-10-01T20:13:52.207Z"
+        }
+      ]
+    },
+    {
+      "id": "cmupz2do30001jtobslzhsylt",
+      "nameEn": "Hematology",
+      "nameAr": "أمراض الدم",
+      "sortOrder": 2,
+      "isActive": true,
+      "createdAt": "2026-10-01T20:13:52.180Z",
+      "groups": []
+    },
+    {
+      "id": "cmupz2do70002jtobb5dt2ilx",
+      "nameEn": "Tumor markers",
+      "nameAr": "دلالات الأورام",
+      "sortOrder": 3,
+      "isActive": true,
+      "createdAt": "2026-10-01T20:13:52.184Z",
+      "groups": []
+    }
+  ],
+  "testGroups": [
+    {
+      "id": "cmupz2dod0004jtob8sck5j9u",
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "nameEn": "Diabetes profile",
+      "nameAr": "فحوصات السكري",
+      "sortOrder": 1,
+      "isActive": true,
+      "createdAt": "2026-10-01T20:13:52.189Z"
+    },
+    {
+      "id": "cmupz2dok0006jtob1fsc2ra1",
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "nameEn": "Renal function test (RFT)",
+      "nameAr": "وظائف الكلى",
+      "sortOrder": 2,
+      "isActive": true,
+      "createdAt": "2026-10-01T20:13:52.197Z"
+    },
+    {
+      "id": "cmupz2doq0008jtobwofwhfl3",
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "nameEn": "Liver function test (LFT)",
+      "nameAr": "وظائف الكبد",
+      "sortOrder": 3,
+      "isActive": true,
+      "createdAt": "2026-10-01T20:13:52.202Z"
+    },
+    {
+      "id": "cmupz2dov000ajtob1jt5zqdp",
+      "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
+      "nameEn": "Lipid profile",
+      "nameAr": "دهون الدم",
+      "sortOrder": 4,
+      "isActive": true,
+      "createdAt": "2026-10-01T20:13:52.207Z"
+    }
+  ],
   "incomingResults": [],
-  "deviceRawLogs": [],
-  "debtTransactions": []
+  "deviceRawLogs": []
 }

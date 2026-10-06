@@ -144,16 +144,45 @@ export async function apiRequest<T = any>(
         if (fallback !== null) return fallback as unknown as T;
       }
 
-      let errMessage = 'حدث خطأ في الاتصال بالسيرفر';
+      let errMessage = '';
       let errJson: any = null;
       try {
-        errJson = await response.json();
-        errMessage = errJson.message || errJson.error || errMessage;
+        const rawText = await response.text();
+        try {
+          errJson = JSON.parse(rawText);
+          errMessage = errJson.message || errJson.error || errJson.details || errJson.detail || '';
+          if (typeof errMessage !== 'string') {
+            errMessage = JSON.stringify(errMessage);
+          }
+        } catch {
+          if (rawText && rawText.length < 500 && !rawText.trim().startsWith('<')) {
+            errMessage = rawText.trim();
+          }
+        }
       } catch {}
+
+      if (!errMessage) {
+        if (response.status === 404) {
+          errMessage = `المسار المطلوب غير موجود على الخادم (${cleanEndpoint})`;
+        } else if (response.status === 409) {
+          errMessage = 'تعارض في البيانات: السجل أو الفحص مسجل مسبقاً لهذا المريض';
+        } else if (response.status === 400) {
+          errMessage = 'البيانات المرسلة غير مكتملة أو غير صالحة';
+        } else if (response.status === 403 || response.status === 401) {
+          errMessage = 'غير مصرح بتنفيذ هذه العملية';
+        } else if (response.status >= 500) {
+          errMessage = `خطأ في معالجة الطلب على الخادم (${response.status})`;
+        } else {
+          errMessage = `فشل الطلب برمز حالة ${response.status}`;
+        }
+      }
+
       const errObj: any = new Error(errMessage);
+      errObj.status = response.status;
       if (errJson && typeof errJson === 'object') {
         Object.assign(errObj, errJson);
       }
+      console.error(`[API Error] ${method} ${cleanEndpoint} -> ${response.status}:`, errMessage);
       throw errObj;
     }
 
@@ -166,11 +195,12 @@ export async function apiRequest<T = any>(
       return jsonRes as T;
     }
     return (await response.text()) as unknown as T;
-  } catch (err) {
+  } catch (err: any) {
     if (method === 'GET') {
       const fallback = handleClientFallback(cleanEndpoint);
       if (fallback !== null) return fallback as unknown as T;
     }
+    console.error(`[API Network Error] ${method} ${cleanEndpoint}:`, err?.message || err);
     throw err;
   }
 }

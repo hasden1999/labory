@@ -61,3 +61,7 @@ storage/
 
 *.lnk
 *.tsbuildinfo
+
+# Project Context Protocol
+PROJECT_CONTEXT.md
+.context/

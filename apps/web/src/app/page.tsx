@@ -740,6 +740,14 @@ function IntakeContent() {
           return prev;
         }
 
+        const alreadySelected = matchingTests.filter((m) => existingIds.has(m.id));
+        if (alreadySelected.length > 0) {
+          toast.warning(
+            `⚠️ تنبيه: باقة ${bundle.name} تحتوي على تحاليل مختارة مسبقاً لهذا المريض (${alreadySelected.map((d) => d.name).join('، ')})، تم منع تكرارها.`,
+            'تحليل مكرر ضمن الباقة'
+          );
+        }
+
         const dups = toAdd.filter((t) =>
           recentDoneTests.some((r) => r.testId === t.id || (t.code && r.testCode === t.code.toUpperCase()))
         );
@@ -780,7 +788,7 @@ function IntakeContent() {
 
   const handleToggleTest = (test: Test) => {
     if (isTestAlreadySelected(test)) {
-      toast.warning(`⚠️ التحليل "${test.name || test.arabicName}" تم اختياره مسبقاً لهذا المريض!`, 'تحليل مكرر');
+      toast.warning(`⚠️ تحليل [${test.name || test.arabicName}] تم اختياره مسبقاً لهذا المريض`, 'تحليل مكرر');
       return;
     }
     const recentMatch = recentDoneTests.find(
@@ -944,8 +952,26 @@ function IntakeContent() {
 
     if (patientAge !== '' && patientAge !== null && patientAge !== undefined) {
       const ageNum = parseInt(patientAge, 10);
-      if (isNaN(ageNum) || ageNum < 0 || ageNum > 150) {
-        toast.error('يرجى إدخال عمر صحيح بين 0 و 150 سنة', 'بيانات غير صحيحة');
+      if (isNaN(ageNum) || ageNum < 0 || ageNum > 120) {
+        toast.error('يرجى إدخال عمر صحيح بين 0 و 120 سنة', 'بيانات غير صحيحة');
+        patientAgeInputRef.current?.focus();
+        return;
+      }
+    }
+
+    if (patientAgeMonths !== '' && patientAgeMonths !== null && patientAgeMonths !== undefined) {
+      const mNum = parseInt(patientAgeMonths, 10);
+      if (isNaN(mNum) || mNum < 1 || mNum > 11) {
+        toast.error('عدد الأشهر يجب أن يكون بين 1 و 11 شهراً', 'بيانات غير صحيحة');
+        patientAgeInputRef.current?.focus();
+        return;
+      }
+    }
+
+    if (patientAgeDays !== '' && patientAgeDays !== null && patientAgeDays !== undefined) {
+      const dNum = parseInt(patientAgeDays, 10);
+      if (isNaN(dNum) || dNum < 1 || dNum > 30) {
+        toast.error('عدد الأيام يجب أن يكون بين 1 و 30 يوماً', 'بيانات غير صحيحة');
         patientAgeInputRef.current?.focus();
         return;
       }
@@ -954,6 +980,12 @@ function IntakeContent() {
     if (selectedTests.length === 0) {
       toast.error('يرجى اختيار فحص مخبري واحد على الأقل', 'تنبيه');
       testSearchInputRef.current?.focus();
+      return;
+    }
+
+    const uniqueSelectedIds = Array.from(new Set(selectedTests.map((t) => t.id)));
+    if (uniqueSelectedIds.length !== selectedTests.length) {
+      toast.error('⚠️ تم رصد تحاليل مكررة لنفس المريض في هذه الزيارة، تم منع الحفظ حتى إزالة التكرار', 'تحليل مكرر');
       return;
     }
 
@@ -1231,7 +1263,11 @@ function IntakeContent() {
         // Final field (Paid Amount) submits and registers sample
         handleRegisterSample();
       } else {
-        const nextIndex = index + 1;
+        // Skip hidden gender select (index 2) so Enter advances directly to phone input
+        let nextIndex = index + 1;
+        if (nextIndex === 2) {
+          nextIndex = 3;
+        }
         if (inputRefs.current[nextIndex]) {
           inputRefs.current[nextIndex]?.focus();
           if ('select' in (inputRefs.current[nextIndex] as any)) {
