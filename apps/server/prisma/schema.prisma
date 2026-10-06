@@ -164,7 +164,7 @@ model SampleTest {
   enteredAt       DateTime?
   createdAt       DateTime    @default(now())
 
-  @@index([sampleId, testId])
+  @@unique([sampleId, testId])
   @@index([testId, resultValue])
   @@index([sampleId])
 }
