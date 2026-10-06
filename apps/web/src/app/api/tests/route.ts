@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getStore, createTestInStore } from '../../../lib/serverStore';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const store = getStore();
   const activeTests = (store.tests || []).filter((t: any) => t.active !== false);

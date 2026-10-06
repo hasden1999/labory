@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getStore, saveStoreToFile } from '../../../../../lib/serverStore';
 import { syncSampleToSqlite, deleteSampleTestFromSqlite } from '../../../../../lib/sqliteSync';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
     const body = await request.json();

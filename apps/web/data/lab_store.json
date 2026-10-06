@@ -3887,6 +3887,33 @@
       "groupId": null,
       "sortOrder": null,
       "referenceRanges": []
+    },
+    {
+      "id": "test_1791291659222_wusy0",
+      "code": "dc",
+      "name": "فحص",
+      "arabicName": "فحص",
+      "category": "أمراض الدم والتخثر",
+      "price": 10000,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": null,
+      "refRangeHigh": null,
+      "normalMaleLow": null,
+      "normalMaleHigh": null,
+      "normalFemaleLow": null,
+      "normalFemaleHigh": null,
+      "criticalLow": null,
+      "criticalHigh": null,
+      "refRangeText": null,
+      "normalRange": null,
+      "unit": null,
+      "sampleType": "مصل الدم (Serum)",
+      "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
     }
   ],
   "panels": [

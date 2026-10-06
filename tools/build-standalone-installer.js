@@ -50,12 +50,8 @@ async function run() {
 
   logStep('2/5', 'بناء وتحديث نسخة الخادم المستقلة (Next.js Standalone)...');
   const standaloneWebDir = path.join(webDir, '.next', 'standalone');
-  if (!fs.existsSync(standaloneWebDir) || process.argv.includes('--rebuild') || process.argv.includes('--publish') || process.argv.includes('--release')) {
-    console.log('جاري تشغيل بناء الويب: npm run build:web ...');
-    execSync('npm run build:web', { cwd: rootDir, stdio: 'inherit' });
-  } else {
-    console.log('نسخة Standalone مبنية وموجودة مسبقاً.');
-  }
+  console.log('جاري تشغيل بناء الويب: npm run build:web ...');
+  execSync('npm run build:web', { cwd: rootDir, stdio: 'inherit' });
 
   logStep('3/5', 'تجهيز وتجميع حزمة المحرك المدمج (apps/desktop/engine)...');
   if (!fs.existsSync(engineDir)) {
