@@ -27,7 +27,8 @@ import {
   Layers,
   Sparkles,
   ChevronDown,
-  CreditCard
+  CreditCard,
+  ClipboardList
 } from 'lucide-react';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -78,6 +79,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMoreMenuOpen(false);
   }, [pathname]);
+
+  // Silently remove old classic view mode key from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('labryo_intake_view_mode');
+      } catch (e) {}
+    }
+  }, []);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', color: 'var(--text-main)', fontFamily: 'var(--font-family)' }}>
