@@ -12,6 +12,7 @@ import { useToast } from '../../../components/Toast';
 
 interface CatalogCartPanelProps {
   workspace: UnifiedWorkspaceReturn;
+  onOpenSpecialModal?: (modalType: 'GUE' | 'GSE' | 'CBC' | 'SFA' | 'CHEMISTRY' | 'MICROBIOLOGY') => void;
 }
 
 const CLINICAL_CATEGORIES = [
@@ -24,7 +25,7 @@ const CLINICAL_CATEGORIES = [
   { id: 'VITAMINS_MARKERS', label: 'Vitamins & Markers' },
 ];
 
-export default function CatalogCartPanel({ workspace }: CatalogCartPanelProps) {
+export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: CatalogCartPanelProps) {
   const toast = useToast();
 
   const {
@@ -72,6 +73,18 @@ export default function CatalogCartPanel({ workspace }: CatalogCartPanelProps) {
       const added = addTestToCart(test);
       if (added) {
         toast.success(`Added ${test.name || test.code}`);
+        // If test has a specialized form, prompt user to open form
+        const code = (test.code || '').toUpperCase().trim();
+        const name = (test.name || '').toLowerCase().trim();
+        let spec: 'GUE' | 'GSE' | 'CBC' | 'SFA' | 'CHEMISTRY' | 'MICROBIOLOGY' | null = null;
+        if (code === 'GUE' || name.includes('urine') || name.includes('إدرار')) spec = 'GUE';
+        else if (code === 'GSE' || name.includes('stool') || name.includes('خروج') || name.includes('براز')) spec = 'GSE';
+        else if (code === 'CBC' || name.includes('cbc') || name.includes('blood count')) spec = 'CBC';
+        else if (code === 'SFA' || code === 'SEMEN' || name.includes('semen') || name.includes('seminal') || name.includes('منوي')) spec = 'SFA';
+
+        if (spec && onOpenSpecialModal) {
+          onOpenSpecialModal(spec);
+        }
       }
     }
   };

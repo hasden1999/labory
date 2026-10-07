@@ -9,11 +9,23 @@ import UnifiedActionBar from './UnifiedActionBar';
 import { UnifiedWorkspaceReturn } from '../model/types';
 import { useUnifiedWorkspace } from '../model/useUnifiedWorkspace';
 import { useShiftNavigation } from '../lib/useShiftNavigation';
+import Link from 'next/link';
 import {
   FlaskConical,
   Bell,
   HelpCircle,
   RotateCcw,
+  Menu,
+  X,
+  FileText,
+  Activity,
+  Users,
+  LayoutDashboard,
+  TrendingUp,
+  Package,
+  Layers,
+  Cpu,
+  Settings as SettingsIcon,
 } from 'lucide-react';
 import { useLab } from '../../../components/LabContext';
 
@@ -49,10 +61,12 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
 
   // Active Specialized Workstation Modal state
   const [activeSpecialModal, setActiveSpecialModal] = useState<SpecialModalType>(null);
+  // Navigation Drawer state for all system sections
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Wire Shift navigation hook (disabled if modal is open)
+  // Wire Shift navigation hook (disabled if modal or drawer is open)
   useShiftNavigation({
-    enabled: activeSpecialModal === null,
+    enabled: activeSpecialModal === null && !isDrawerOpen,
   });
 
   const handleOpenSpecialModal = useCallback((type: 'GUE' | 'GSE' | 'CBC' | 'SFA' | 'CHEMISTRY' | 'MICROBIOLOGY') => {
@@ -100,6 +114,20 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
     };
   }, [workspace.patient, workspace.results]);
 
+  // All 10 Application Modules for Drawer Menu
+  const drawerNavItems = [
+    { href: '/', label: 'Intake & Reception', sub: 'شاشة الاستقبال الموحدة', icon: FlaskConical },
+    { href: '/results', label: 'Results Entry', sub: 'إدخال النتائج والمحطات', icon: FileText },
+    { href: '/samples', label: 'Sample Registry', sub: 'سجل العينات والأرشيف', icon: Activity },
+    { href: '/patients', label: 'Patients Directory', sub: 'دليل وبيانات المرضى', icon: Users },
+    { href: '/dashboard', label: 'Clinical Dashboard', sub: 'المؤشرات والإحصائيات', icon: LayoutDashboard },
+    { href: '/financials', label: 'Financial Center', sub: 'المركز المالي والصندوق', icon: TrendingUp },
+    { href: '/inventory', label: 'Inventory & Reagents', sub: 'المخزون والكواشف', icon: Package },
+    { href: '/catalog', label: 'Test Catalog', sub: 'كتالوج التحاليل والأسعار', icon: Layers },
+    { href: '/devices', label: 'LIS Analyzers', sub: 'أجهزة المختبر والربط', icon: Cpu },
+    { href: '/settings', label: 'System Settings', sub: 'الإعدادات والطباعة والنسخ', icon: SettingsIcon },
+  ];
+
   return (
     <div
       dir="ltr"
@@ -119,24 +147,49 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
         boxSizing: 'border-box',
       }}
     >
-      {/* 1. Sleek Top Header (LTR) */}
+      {/* 1. Sleek Top Header (LTR) with Navigation Menu Drawer */}
       <header
         style={{
           height: '46px',
           flexShrink: 0,
-          padding: '0 24px',
+          padding: '0 20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           borderBottom: '1px solid #e2e8f0',
-          backgroundColor: 'rgba(255, 255, 255, 0.85)',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
           backdropFilter: 'blur(8px)',
           zIndex: 30,
           boxSizing: 'border-box',
         }}
       >
-        {/* Left side: Lab Name & Medical Icon */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Left side: Navigation Drawer Button & Lab Identity */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Menu Drawer Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsDrawerOpen(true)}
+            style={{
+              padding: '6px 10px',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              backgroundColor: '#ffffff',
+              color: '#0f172a',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              fontWeight: 800,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              transition: 'all 0.15s ease',
+            }}
+            title="Open All Lab Modules & Navigation Menu"
+          >
+            <Menu size={16} color="#0284c7" />
+            <span>Modules</span>
+          </button>
+
           <div
             style={{
               width: '32px',
@@ -268,41 +321,232 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
         </div>
       </header>
 
-      {/* 2. Main 3-Column Clinical Workspace (Strictly 100% Fit with ZERO page scroll) */}
+      {/* 2. Main 3-Column Clinical Workspace Reordered (Strictly Right: Patient, Center: Catalog, Left: Results) */}
       <main
         style={{
           flex: 1,
           minHeight: 0,
           padding: '10px 20px 62px 20px',
           display: 'grid',
-          gridTemplateColumns: '28% 36% 36%',
+          gridTemplateColumns: '36% 36% 28%',
           gap: '14px',
           alignItems: 'stretch',
           overflow: 'hidden',
           boxSizing: 'border-box',
         }}
       >
-        {/* Col 1 (Left): Patient Card Panel */}
-        <div style={{ height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <PatientCardPanel workspace={workspace} />
-        </div>
-
-        {/* Col 2 (Center): Test Catalog & Cart Panel */}
-        <div style={{ height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <CatalogCartPanel workspace={workspace} />
-        </div>
-
-        {/* Col 3 (Right): Results Grid Panel */}
+        {/* Left Column (36%): Clinical Results Grid */}
         <div style={{ height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <ResultsGridPanel
             workspace={workspace}
             onOpenSpecialModal={handleOpenSpecialModal}
           />
         </div>
+
+        {/* Center Column (36%): Test Catalog & Cart Panel */}
+        <div style={{ height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <CatalogCartPanel
+            workspace={workspace}
+            onOpenSpecialModal={handleOpenSpecialModal}
+          />
+        </div>
+
+        {/* Right Column (28%): Patient Demographics & Registration */}
+        <div style={{ height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <PatientCardPanel workspace={workspace} />
+        </div>
       </main>
 
       {/* 3. Bottom Centered Floating Action Dock */}
       <UnifiedActionBar workspace={workspace} />
+
+      {/* 4. Slide-Over Navigation Drawer for All System Modules */}
+      {isDrawerOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            display: 'flex',
+          }}
+        >
+          {/* Dark Backdrop Overlay */}
+          <div
+            onClick={() => setIsDrawerOpen(false)}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: 'rgba(15, 23, 42, 0.45)',
+              backdropFilter: 'blur(3px)',
+              transition: 'opacity 0.2s ease',
+            }}
+          />
+
+          {/* Slide-out White Drawer Card */}
+          <div
+            style={{
+              position: 'relative',
+              width: '320px',
+              maxWidth: '85vw',
+              height: '100%',
+              backgroundColor: '#ffffff',
+              boxShadow: '4px 0 24px rgba(0, 0, 0, 0.15)',
+              display: 'flex',
+              flexDirection: 'column',
+              zIndex: 1001,
+              animation: 'drawerSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
+            {/* Drawer Header */}
+            <div
+              style={{
+                padding: '16px 20px',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: '#f8fafc',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                  }}
+                >
+                  <FlaskConical size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 900, color: '#0f172a' }}>
+                    LABRYO LIMS
+                  </h3>
+                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                    All Laboratory Modules
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsDrawerOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: '6px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  color: '#64748b',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Drawer Body: 10 Modules List */}
+            <div
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '12px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+              }}
+            >
+              {drawerNavItems.map((item) => {
+                const isCurrent = item.href === '/';
+                const Icon = item.icon;
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsDrawerOpen(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      textDecoration: 'none',
+                      backgroundColor: isCurrent ? '#f0fdfa' : 'transparent',
+                      color: isCurrent ? '#0f766e' : '#334155',
+                      border: isCurrent ? '1px solid #99f6e4' : '1px solid transparent',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '30px',
+                        height: '30px',
+                        borderRadius: '7px',
+                        backgroundColor: isCurrent ? '#ccfbf1' : '#f1f5f9',
+                        color: isCurrent ? '#0f766e' : '#64748b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon size={16} />
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '13px', fontWeight: isCurrent ? 800 : 700, lineHeight: 1.2 }}>
+                        {item.label}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                        {item.sub}
+                      </div>
+                    </div>
+
+                    {isCurrent && (
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          padding: '2px 6px',
+                          borderRadius: '9999px',
+                          backgroundColor: '#0d9488',
+                          color: '#fff',
+                        }}
+                      >
+                        Active
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Drawer Footer */}
+            <div
+              style={{
+                padding: '14px 20px',
+                borderTop: '1px solid #f1f5f9',
+                backgroundColor: '#f8fafc',
+                fontSize: '11px',
+                color: '#64748b',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <span>Version 1.3.1 Pro</span>
+              <span style={{ fontWeight: 800, color: '#0d9488' }}>Offline LIMS</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 4. Specialized Clinical Workstation Modals */}
       {/* 4.1 URINE ANALYSIS MODAL */}

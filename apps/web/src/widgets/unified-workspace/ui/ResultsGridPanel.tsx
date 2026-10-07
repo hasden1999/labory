@@ -323,41 +323,73 @@ export default function ResultsGridPanel({
                     </div>
 
                     {/* Col 3: Result Value */}
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                      <input
-                        type="text"
-                        placeholder="-"
-                        value={item.value}
-                        dir="auto"
-                        data-shift-nav={item.isCalculated ? undefined : 'result'}
-                        onChange={(e) => workspace.updateResultValue(item.testId, e.target.value, false)}
-                        readOnly={item.isCalculated}
-                        style={{
-                          width: '64px',
-                          height: '30px',
-                          textAlign: 'center',
-                          fontSize: '13px',
-                          fontWeight: 800,
-                          borderRadius: '6px',
-                          border:
-                            item.status === 'PANIC'
-                              ? '2px solid #dc2626'
-                              : item.status === 'HIGH'
-                              ? '1.5px solid #ef4444'
-                              : item.status === 'LOW'
-                              ? '1.5px solid #f59e0b'
-                              : '1px solid #cbd5e1',
-                          backgroundColor: item.isCalculated ? '#f8fafc' : '#ffffff',
-                          color:
-                            item.status === 'HIGH' || item.status === 'PANIC'
-                              ? '#dc2626'
-                              : item.status === 'LOW'
-                              ? '#d97706'
-                              : '#0f172a',
-                          outline: 'none',
-                          cursor: item.isCalculated ? 'not-allowed' : 'text',
-                        }}
-                      />
+                    <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                      {specialType ? (
+                        <button
+                          type="button"
+                          onClick={() => onOpenSpecialModal && onOpenSpecialModal(specialType)}
+                          style={{
+                            width: '100%',
+                            maxWidth: '110px',
+                            height: '30px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px',
+                            backgroundColor: item.value ? '#f0fdf4' : '#f0f9ff',
+                            color: item.value ? '#15803d' : '#0284c7',
+                            border: item.value ? '1.5px solid #86efac' : '1.5px solid #7dd3fc',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            padding: '0 6px',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            transition: 'all 0.15s ease',
+                          }}
+                          title={`Click to open ${specialType} Specialized Form`}
+                        >
+                          <span>{item.value ? '✓ Filled' : `Open ${specialType}`}</span>
+                          <span style={{ fontSize: '9px' }}>↗</span>
+                        </button>
+                      ) : (
+                        <input
+                          type="text"
+                          placeholder="-"
+                          value={item.value}
+                          dir="auto"
+                          data-shift-nav={item.isCalculated ? undefined : 'result'}
+                          onChange={(e) => workspace.updateResultValue(item.testId, e.target.value, false)}
+                          readOnly={item.isCalculated}
+                          style={{
+                            width: '64px',
+                            height: '30px',
+                            textAlign: 'center',
+                            fontSize: '13px',
+                            fontWeight: 800,
+                            borderRadius: '6px',
+                            border:
+                              item.status === 'PANIC'
+                                ? '2px solid #dc2626'
+                                : item.status === 'HIGH'
+                                ? '1.5px solid #ef4444'
+                                : item.status === 'LOW'
+                                ? '1.5px solid #f59e0b'
+                                : '1px solid #cbd5e1',
+                            backgroundColor: item.isCalculated ? '#f8fafc' : '#ffffff',
+                            color:
+                              item.status === 'HIGH' || item.status === 'PANIC'
+                                ? '#dc2626'
+                                : item.status === 'LOW'
+                                ? '#d97706'
+                                : '#0f172a',
+                            outline: 'none',
+                            cursor: item.isCalculated ? 'not-allowed' : 'text',
+                          }}
+                        />
+                      )}
                     </div>
 
                     {/* Col 4: Status Badges */}
