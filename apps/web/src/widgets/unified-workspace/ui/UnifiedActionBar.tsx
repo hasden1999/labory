@@ -72,13 +72,13 @@ export default function UnifiedActionBar({
 
   let whatsAppTooltip = '';
   if (!hasPhone) {
-    whatsAppTooltip = 'Please enter patient phone number to enable WhatsApp dispatch';
+    whatsAppTooltip = 'يرجى إدخال رقم هاتف المريض لتفعيل إرسال الواتساب';
   } else if (!hasTests) {
-    whatsAppTooltip = 'Please select tests and enter results to enable WhatsApp dispatch';
+    whatsAppTooltip = 'يرجى اختيار الفحوصات وإدخال النتائج لتفعيل إرسال الواتساب';
   } else if (!isComplete) {
-    whatsAppTooltip = 'Tests incomplete: enter all results before dispatching report via WhatsApp';
+    whatsAppTooltip = 'الفحوصات غير مكتملة: أدخل جميع النتائج قبل الإرسال عبر الواتساب';
   } else {
-    whatsAppTooltip = 'Send approved clinical report to patient WhatsApp (F10)';
+    whatsAppTooltip = 'إرسال التقرير الطبي المعتمد إلى واتساب المريض (F10)';
   }
 
   // --------------------------------------------------------------------------
@@ -351,10 +351,10 @@ export default function UnifiedActionBar({
           gap: '6px',
           transition: 'all 0.15s ease',
         }}
-        title="F1: Reset console and register new patient"
+        title="F1: مسح النموذج وبدء مريض جديد"
       >
         <RotateCcw size={13} color="#64748b" />
-        <span>New Patient (F1)</span>
+        <span>مريض جديد (F1)</span>
       </button>
 
       {/* 2. Print Barcode (F2) */}
@@ -376,10 +376,10 @@ export default function UnifiedActionBar({
           gap: '6px',
           transition: 'all 0.15s ease',
         }}
-        title="F2: Print 50x25mm thermal barcode sticker"
+        title="F2: طباعة لاصق باركود حراري للأنابيب 50x25mm"
       >
         <Barcode size={14} color="#64748b" />
-        <span>Print Barcode (F2)</span>
+        <span>طباعة باركود (F2)</span>
       </button>
 
       {/* 3. Send WhatsApp (F10) */}
@@ -405,7 +405,7 @@ export default function UnifiedActionBar({
         title={whatsAppTooltip}
       >
         <Send size={13} />
-        <span>Send WhatsApp (F10)</span>
+        <span>إرسال واتساب (F10)</span>
       </button>
 
       {/* 4. Save & Print PDF (F9) */}
@@ -430,14 +430,14 @@ export default function UnifiedActionBar({
           boxShadow: '0 2px 8px rgba(13, 148, 136, 0.35)',
           transition: 'all 0.15s ease',
         }}
-        title="F9: Save sample and generate official clinical PDF report"
+        title="F9: حفظ بيانات العينة والنتائج وإصدار التقرير الطبي للطباعة"
       >
         {isProcessing || workspace.isSaving ? (
           <Loader2 size={14} className="animate-spin" />
         ) : (
           <Printer size={14} />
         )}
-        <span>Save & Print PDF (F9)</span>
+        <span>حفظ وطباعة النتيجة (F9)</span>
       </button>
 
       {/* Sample Number Badge if saved */}

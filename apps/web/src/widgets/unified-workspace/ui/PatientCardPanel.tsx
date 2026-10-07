@@ -262,10 +262,10 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
               color: patient.isUrgent ? '#ffffff' : '#64748b',
               border: patient.isUrgent ? '1px solid #dc2626' : '1px solid #e2e8f0',
             }}
-            title="Toggle STAT Urgent Emergency Status"
+            title="تبديل حالة الطوارئ (STAT)"
           >
             <Flame size={11} />
-            <span>{patient.isUrgent ? 'STAT' : 'Routine'}</span>
+            <span>{patient.isUrgent ? 'طارئ STAT' : 'عادي'}</span>
           </button>
         </div>
 
@@ -279,7 +279,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
             flex: 1,
           }}
         >
-          Patient Registration
+          تسجيل بيانات المريض
         </h2>
 
         <div style={{ width: '65px', display: 'flex', justifyContent: 'flex-end' }}>
@@ -287,7 +287,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
             type="button"
             onClick={() => {
               resetPatient();
-              toast.info('Patient form reset (F1)');
+              toast.info('تمت إعادة تعيين النموذج (F1)');
             }}
             style={{
               background: 'none',
@@ -298,7 +298,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
               display: 'flex',
               alignItems: 'center',
             }}
-            title="Reset Form for New Patient (F1)"
+            title="إعادة تعيين النموذج لمريض جديد (F1)"
           >
             <RotateCcw size={14} />
           </button>
@@ -324,7 +324,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <History size={13} color="#0d9488" />
             <span style={{ fontWeight: 800, color: '#0f172a' }}>
-              Returning Patient: <strong style={{ color: '#0d9488' }}>{patient.visitCount || 1} Visits</strong>
+              مريض مسجل: <strong style={{ color: '#0d9488' }}>{patient.visitCount || 1} زيارات</strong>
             </span>
           </div>
           <button
@@ -345,7 +345,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
             }}
           >
             <Repeat size={10} />
-            <span>Repeat Tests</span>
+            <span>تكرار الفحوصات</span>
           </button>
         </div>
       )}
@@ -370,16 +370,16 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
               color: '#475569',
               display: 'block',
               marginBottom: '3px',
-              textAlign: 'left',
+              textAlign: 'right',
             }}
           >
-            Patient Full Name
+            اسم المريض الثلاثي
           </label>
           <div style={{ position: 'relative' }}>
             <input
               type="text"
               name="patientName"
-              placeholder="e.g. Haider Abdul-Hussein"
+              placeholder="مثال: حيدر عبد الحسين"
               value={patient.name}
               dir="auto"
               data-shift-nav="patient"
@@ -395,7 +395,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
                 width: '100%',
                 height: '34px',
                 padding: '0 10px',
-                textAlign: 'left',
+                textAlign: 'right',
                 fontSize: '13px',
                 fontWeight: 700,
                 borderRadius: '8px',
@@ -416,7 +416,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
                 }}
                 style={{
                   position: 'absolute',
-                  right: '8px',
+                  left: '8px',
                   top: '50%',
                   transform: 'translateY(-50%)',
                   background: 'none',
@@ -468,7 +468,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
                   <div>
                     <div style={{ fontWeight: 800, color: '#0f172a' }} dir="auto">{sug.name}</div>
                     <div style={{ fontSize: '10px', color: '#64748b' }}>
-                      {sug.phone ? `📱 ${sug.phone}` : ''} {sug.age ? `• Age: ${sug.age}` : ''}
+                      {sug.phone ? `📱 ${sug.phone}` : ''} {sug.age ? `• العمر: ${sug.age}` : ''}
                     </div>
                   </div>
                   {sug.outstandingDebt > 0 && (
@@ -482,7 +482,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
                         color: '#dc2626',
                       }}
                     >
-                      Debt: {Number(sug.outstandingDebt).toLocaleString('en-US')} {currency}
+                      دين سابق: {Number(sug.outstandingDebt).toLocaleString('en-US')} {currency}
                     </span>
                   )}
                 </div>
@@ -491,7 +491,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
           )}
         </div>
 
-        {/* Field 2: Clinical Age (Years / Months / Days) */}
+        {/* Field 2: Clinical Age Input */}
         <div>
           <label
             style={{
@@ -500,16 +500,16 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
               color: '#475569',
               display: 'block',
               marginBottom: '3px',
-              textAlign: 'left',
+              textAlign: 'right',
             }}
           >
-            Clinical Age (Y / M / D)
+            العمر السريري (سنة / شهر / يوم)
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
             {/* Years */}
             <input
               type="text"
-              placeholder="Years"
+              placeholder="سنة"
               value={patient.ageYears === '' ? '' : patient.ageYears}
               data-shift-nav="patient"
               onChange={(e) => handleYearsChange(e.target.value)}
@@ -531,7 +531,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
             {/* Months */}
             <input
               type="text"
-              placeholder="Months"
+              placeholder="شهر"
               value={patient.ageMonths === '' ? '' : patient.ageMonths}
               onChange={(e) => handleMonthsChange(e.target.value)}
               style={{
@@ -552,7 +552,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
             {/* Days */}
             <input
               type="text"
-              placeholder="Days"
+              placeholder="يوم"
               value={patient.ageDays === '' ? '' : patient.ageDays}
               onChange={(e) => handleDaysChange(e.target.value)}
               style={{
@@ -581,10 +581,10 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
               color: '#475569',
               display: 'block',
               marginBottom: '3px',
-              textAlign: 'left',
+              textAlign: 'right',
             }}
           >
-            Biological Gender
+            الجنس
           </label>
           <div
             style={{
@@ -596,6 +596,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
               backgroundColor: '#f1f5f9',
               border: '1px solid #e2e8f0',
               maxWidth: '220px',
+              margin: '0 auto',
             }}
           >
             <button
@@ -615,7 +616,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
                 boxShadow: patient.gender === 'MALE' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
               }}
             >
-              Male
+              ذكر
             </button>
             <button
               type="button"
@@ -634,7 +635,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
                 boxShadow: patient.gender === 'FEMALE' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
               }}
             >
-              Female
+              أنثى
             </button>
           </div>
         </div>
@@ -648,14 +649,14 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
               color: '#475569',
               display: 'block',
               marginBottom: '3px',
-              textAlign: 'left',
+              textAlign: 'right',
             }}
           >
-            Phone Number
+            رقم الهاتف
           </label>
           <input
             type="text"
-            placeholder="e.g. 07701234567"
+            placeholder="مثال: 07701234567"
             value={patient.phone}
             data-shift-nav="patient"
             onChange={(e) => updatePatientField('phone', toEnglishDigits(e.target.value))}
@@ -686,16 +687,16 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
               color: '#475569',
               display: 'block',
               marginBottom: '3px',
-              textAlign: 'left',
+              textAlign: 'right',
             }}
           >
-            Referring Doctor
+            الطبيب المحيل
           </label>
           <ReferringDoctorSelect
             value={patient.doctorId}
             onChange={(docId) => updatePatientField('doctorId', docId)}
-            placeholder="Select or enter doctor name"
-            className="text-left text-xs font-bold"
+            placeholder="اختر أو ابحث عن الطبيب المحول..."
+            className="text-right text-xs font-bold"
           />
         </div>
 
@@ -708,14 +709,14 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
               color: '#475569',
               display: 'block',
               marginBottom: '3px',
-              textAlign: 'left',
+              textAlign: 'right',
             }}
           >
-            Clinical Notes / Address
+            ملاحظات سريرية / العنوان
           </label>
           <input
             type="text"
-            placeholder="Patient notes or address..."
+            placeholder="ملاحظات أو عنوان المريض..."
             value={patient.notes}
             dir="auto"
             data-shift-nav="patient"
@@ -724,7 +725,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
               width: '100%',
               height: '34px',
               padding: '0 10px',
-              textAlign: 'left',
+              textAlign: 'right',
               fontSize: '12.5px',
               fontWeight: 600,
               borderRadius: '8px',
@@ -754,10 +755,10 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
             color: '#475569',
             display: 'block',
             marginBottom: '6px',
-            textAlign: 'left',
+            textAlign: 'right',
           }}
         >
-          Sample Specimen Tubes
+          أنابيب السحب المطلوبة
         </label>
         <div
           style={{

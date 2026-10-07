@@ -16,13 +16,13 @@ interface CatalogCartPanelProps {
 }
 
 const CLINICAL_CATEGORIES = [
-  { id: 'ALL', label: 'All Tests' },
-  { id: 'HEMATOLOGY', label: 'Hematology' },
-  { id: 'CHEMISTRY', label: 'Chemistry' },
-  { id: 'HORMONES', label: 'Hormones' },
-  { id: 'IMMUNOLOGY', label: 'Immunology' },
-  { id: 'URINE_STOOL', label: 'GUE & GSE' },
-  { id: 'VITAMINS_MARKERS', label: 'Vitamins & Markers' },
+  { id: 'ALL', label: 'كافة الفحوصات' },
+  { id: 'HEMATOLOGY', label: 'أمراض الدم' },
+  { id: 'CHEMISTRY', label: 'كيمياء سريرية' },
+  { id: 'HORMONES', label: 'هرمونات' },
+  { id: 'IMMUNOLOGY', label: 'مناعة وأمصال' },
+  { id: 'URINE_STOOL', label: 'إدرار وبراز' },
+  { id: 'VITAMINS_MARKERS', label: 'فيتامينات ودلالات' },
 ];
 
 export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: CatalogCartPanelProps) {
@@ -147,7 +147,7 @@ export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: Cata
               color: '#475569',
             }}
           >
-            Selected: {selectedTests.length}
+            المحدد: {selectedTests.length}
           </span>
         </div>
 
@@ -161,7 +161,7 @@ export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: Cata
             flex: 1,
           }}
         >
-          Test Catalog & Cart
+          كتالوج الفحوصات وسلة الطلب
         </h2>
 
         <div style={{ width: '80px', display: 'flex', justifyContent: 'flex-end' }}>
@@ -179,9 +179,9 @@ export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: Cata
                 borderRadius: '6px',
                 cursor: 'pointer',
               }}
-              title="Clear all cart items"
+              title="تفريغ سلة الفحوصات"
             >
-              Clear
+              تفريغ
             </button>
           )}
         </div>
@@ -192,7 +192,7 @@ export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: Cata
         <input
           ref={searchInputRef}
           type="text"
-          placeholder="Search test by name or code..."
+          placeholder="بحث عن فحص بالاسم أو الرمز..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleSearchKeyDown}
@@ -329,9 +329,9 @@ export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: Cata
             >
               ✓
             </span>
-            <span>Test Name</span>
+            <span>اسم الفحص (Test Analyte)</span>
           </div>
-          <div style={{ textAlign: 'right' }}>Price (IQD)</div>
+          <div style={{ textAlign: 'right' }}>السعر (IQD)</div>
         </div>
 
         {/* Table Body: List of tests with inner scroll */}
@@ -345,7 +345,7 @@ export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: Cata
         >
           {filteredCatalog.length === 0 ? (
             <div style={{ padding: '32px', textAlign: 'center', fontSize: '13px', color: '#94a3b8' }}>
-              No tests matching search or category.
+              لا توجد فحوصات مطابقة للبحث أو الفئة.
             </div>
           ) : (
             filteredCatalog.map((test: any, idx: number) => {
@@ -474,16 +474,16 @@ export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: Cata
             }}
           >
             <Lock size={14} color="#0d9488" />
-            <span>Pricing details are hidden for technician role</span>
+            <span>تفاصيل الأسعار مخفية لصلاحية الفني</span>
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <span style={{ fontSize: '13px', fontWeight: 900, color: '#0f172a', display: 'block' }}>
-                Invoice Total
+                إجمالي الفاتورة
               </span>
               <span style={{ fontSize: '11px', color: '#64748b' }}>
-                Tests Count: {selectedTests.length}
+                عدد الفحوصات: {selectedTests.length}
               </span>
             </div>
             <div style={{ textAlign: 'right' }}>
@@ -491,7 +491,7 @@ export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: Cata
                 IQD {invoice.netTotal.toLocaleString('en-US')}
               </span>
               <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#64748b' }}>
-                Net Payable
+                المبلغ الصافي المطلوب
               </span>
             </div>
           </div>

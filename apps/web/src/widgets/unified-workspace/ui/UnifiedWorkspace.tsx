@@ -116,16 +116,16 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
 
   // All 10 Application Modules for Drawer Menu
   const drawerNavItems = [
-    { href: '/', label: 'Intake & Reception', sub: 'شاشة الاستقبال الموحدة', icon: FlaskConical },
-    { href: '/results', label: 'Results Entry', sub: 'إدخال النتائج والمحطات', icon: FileText },
-    { href: '/samples', label: 'Sample Registry', sub: 'سجل العينات والأرشيف', icon: Activity },
-    { href: '/patients', label: 'Patients Directory', sub: 'دليل وبيانات المرضى', icon: Users },
-    { href: '/dashboard', label: 'Clinical Dashboard', sub: 'المؤشرات والإحصائيات', icon: LayoutDashboard },
-    { href: '/financials', label: 'Financial Center', sub: 'المركز المالي والصندوق', icon: TrendingUp },
-    { href: '/inventory', label: 'Inventory & Reagents', sub: 'المخزون والكواشف', icon: Package },
-    { href: '/catalog', label: 'Test Catalog', sub: 'كتالوج التحاليل والأسعار', icon: Layers },
-    { href: '/devices', label: 'LIS Analyzers', sub: 'أجهزة المختبر والربط', icon: Cpu },
-    { href: '/settings', label: 'System Settings', sub: 'الإعدادات والطباعة والنسخ', icon: SettingsIcon },
+    { href: '/', label: 'الاستقبال والكونسول الموحد', sub: 'Intake & Reception', icon: FlaskConical },
+    { href: '/results', label: 'إدخال وتدقيق النتائج', sub: 'Results Entry & Workstations', icon: FileText },
+    { href: '/samples', label: 'سجل العينات والأرشيف', sub: 'Sample Registry', icon: Activity },
+    { href: '/patients', label: 'دليل وأرشيف المرضى', sub: 'Patients Directory', icon: Users },
+    { href: '/dashboard', label: 'المؤشرات والإحصائيات', sub: 'Clinical Dashboard', icon: LayoutDashboard },
+    { href: '/financials', label: 'الصندوق والمركز المالي', sub: 'Financial Center & Safe', icon: TrendingUp },
+    { href: '/inventory', label: 'المخزون والكواشف', sub: 'Inventory & Reagents', icon: Package },
+    { href: '/catalog', label: 'كتالوج التحاليل والأسعار', sub: 'Test Catalog', icon: Layers },
+    { href: '/devices', label: 'أجهزة التحليل والربط', sub: 'LIS Analyzers ASTM/HL7', icon: Cpu },
+    { href: '/settings', label: 'إعدادات النظام والطباعة', sub: 'System Settings', icon: SettingsIcon },
   ];
 
   return (
@@ -184,10 +184,10 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
               boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
               transition: 'all 0.15s ease',
             }}
-            title="Open All Lab Modules & Navigation Menu"
+            title="فتح قائمة أقسام المختبر والتنقل"
           >
             <Menu size={16} color="#0284c7" />
-            <span>Modules</span>
+            <span>الأقسام (Modules)</span>
           </button>
 
           <div
@@ -253,10 +253,10 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
-            title="Reset console and register new patient (F1)"
+            title="إعادة تعيين النموذج وبدء مريض جديد (F1)"
           >
             <RotateCcw size={13} />
-            <span>New Patient (F1)</span>
+            <span>مريض جديد (F1)</span>
           </button>
 
           {/* Status Badges */}
@@ -428,7 +428,7 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
                     LABRYO LIMS
                   </h3>
                   <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                    All Laboratory Modules
+                    أقسام منظومة المختبر
                   </span>
                 </div>
               </div>
@@ -542,7 +542,7 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
               }}
             >
               <span>Version 1.3.1 Pro</span>
-              <span style={{ fontWeight: 800, color: '#0d9488' }}>Offline LIMS</span>
+              <span style={{ fontWeight: 800, color: '#0d9488' }}>منظومة المختبر السريري</span>
             </div>
           </div>
         </div>
