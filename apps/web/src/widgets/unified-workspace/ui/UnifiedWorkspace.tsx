@@ -163,77 +163,7 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
           boxSizing: 'border-box',
         }}
       >
-        {/* Left side: Navigation Drawer Button & Lab Identity */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Menu Drawer Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setIsDrawerOpen(true)}
-            style={{
-              padding: '6px 10px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              color: '#0f172a',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '12px',
-              fontWeight: 800,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-              transition: 'all 0.15s ease',
-            }}
-            title="فتح قائمة أقسام المختبر والتنقل"
-          >
-            <Menu size={16} color="#0284c7" />
-            <span>الأقسام (Modules)</span>
-          </button>
-
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, #0d9488 0%, #0284c7 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-              boxShadow: '0 2px 6px rgba(13, 148, 136, 0.3)',
-            }}
-          >
-            <FlaskConical size={18} />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h1
-              style={{
-                fontSize: '15px',
-                fontWeight: 900,
-                color: '#0f172a',
-                margin: 0,
-                letterSpacing: '-0.2px',
-              }}
-            >
-              {labProfile?.labName || 'Laboratory Information System (LIMS)'}
-            </h1>
-            <span
-              style={{
-                fontSize: '10px',
-                fontWeight: 800,
-                padding: '2px 8px',
-                borderRadius: '9999px',
-                background: '#f0fdfa',
-                color: '#0f766e',
-                border: '1px solid #99f6e4',
-              }}
-            >
-              LIMS PRO
-            </span>
-          </div>
-        </div>
-
-        {/* Right side: Quick F1 Reset & Status Icons */}
+        {/* Left side: Quick F1 Reset & Status Icons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {/* Quick F1 Reset in Header */}
           <button
@@ -319,6 +249,77 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
             </button>
           </div>
         </div>
+
+        {/* Right side: Navigation Drawer Button & Lab Identity */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 800,
+                padding: '2px 8px',
+                borderRadius: '9999px',
+                background: '#f0fdfa',
+                color: '#0f766e',
+                border: '1px solid #99f6e4',
+              }}
+            >
+              LIMS PRO
+            </span>
+            <h1
+              style={{
+                fontSize: '15px',
+                fontWeight: 900,
+                color: '#0f172a',
+                margin: 0,
+                letterSpacing: '-0.2px',
+              }}
+            >
+              {labProfile?.labName || 'Laboratory Information System (LIMS)'}
+            </h1>
+          </div>
+
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #0d9488 0%, #0284c7 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              boxShadow: '0 2px 6px rgba(13, 148, 136, 0.3)',
+            }}
+          >
+            <FlaskConical size={18} />
+          </div>
+
+          {/* Menu Drawer Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsDrawerOpen(true)}
+            style={{
+              padding: '6px 10px',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              backgroundColor: '#ffffff',
+              color: '#0f172a',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              fontWeight: 800,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              transition: 'all 0.15s ease',
+            }}
+            title="فتح قائمة أقسام المختبر والتنقل"
+          >
+            <Menu size={16} color="#0284c7" />
+            <span>الأقسام (Modules)</span>
+          </button>
+        </div>
       </header>
 
       {/* 2. Main 3-Column Clinical Workspace Reordered (Strictly Right: Patient, Center: Catalog, Left: Results) */}
@@ -368,6 +369,7 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
             inset: 0,
             zIndex: 1000,
             display: 'flex',
+            justifyContent: 'flex-end',
           }}
         >
           {/* Dark Backdrop Overlay */}
@@ -390,7 +392,7 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
               maxWidth: '85vw',
               height: '100%',
               backgroundColor: '#ffffff',
-              boxShadow: '4px 0 24px rgba(0, 0, 0, 0.15)',
+              boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.15)',
               display: 'flex',
               flexDirection: 'column',
               zIndex: 1001,
