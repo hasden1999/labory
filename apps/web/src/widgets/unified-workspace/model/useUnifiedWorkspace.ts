@@ -11,6 +11,7 @@ import {
   UnifiedWorkspaceReturn,
 } from './types';
 import { deriveTubeBadges } from '../lib/tubeBadges';
+import { orderCatalogByImportance } from '../lib/catalogOrdering';
 import { catalogCache } from '../../../lib/catalogCache';
 import { INITIAL_DOCTORS } from '../../../lib/catalogData';
 import { apiRequest } from '../../../lib/api';
@@ -310,7 +311,8 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
       });
     }
 
-    return list;
+    // Prioritize top clinical/frequency tests at the head of the list
+    return orderCatalogByImportance(list);
   }, [catalogTests, selectedCategory, searchQuery]);
 
   // Apply Quick Bundles
