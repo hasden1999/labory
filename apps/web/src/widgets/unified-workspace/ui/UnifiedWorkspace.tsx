@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
+import nextDynamic from 'next/dynamic';
 import PatientCardPanel from './PatientCardPanel';
 import CatalogCartPanel from './CatalogCartPanel';
 import ResultsGridPanel from './ResultsGridPanel';
@@ -14,6 +15,16 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { useLab } from '../../../components/LabContext';
+
+// Specialized Workstation Modals (Hoisted at module level with SSR disabled for optimal performance)
+const UrineFormModal = nextDynamic(() => import('../../../components/UrineFormModal'), { ssr: false });
+const GseModal = nextDynamic(() => import('../../../components/workstations/GseModal'), { ssr: false });
+const CbcModal = nextDynamic(() => import('../../../components/workstations/CbcModal'), { ssr: false });
+const SemenFormModal = nextDynamic(() => import('../../../components/workstations/SemenFormModal'), { ssr: false });
+const ChemistryModal = nextDynamic(() => import('../../../components/workstations/ChemistryModal'), { ssr: false });
+const MicrobiologyModal = nextDynamic(() => import('../../../components/workstations/MicrobiologyModal'), { ssr: false });
+
+type SpecialModalType = 'GUE' | 'GSE' | 'CBC' | 'SFA' | 'CHEMISTRY' | 'MICROBIOLOGY' | null;
 
 interface UnifiedWorkspaceProps {
   workspace?: UnifiedWorkspaceReturn;
@@ -34,6 +45,54 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
   const defaultWorkspace = useUnifiedWorkspace();
   const workspace = propWorkspace || defaultWorkspace;
   const { labProfile } = useLab();
+
+  // Active Specialized Workstation Modal state
+  const [activeSpecialModal, setActiveSpecialModal] = useState<SpecialModalType>(null);
+
+  const handleOpenSpecialModal = useCallback((type: 'GUE' | 'GSE' | 'CBC' | 'SFA' | 'CHEMISTRY' | 'MICROBIOLOGY') => {
+    setActiveSpecialModal(type);
+  }, []);
+
+  const handleCloseSpecialModal = useCallback(() => {
+    setActiveSpecialModal(null);
+  }, []);
+
+  // Helper to locate target test item in current results
+  const findTargetResultItem = useCallback((matcher: (code: string, name: string) => boolean) => {
+    const entries = Object.values(workspace.results);
+    return entries.find((e) => {
+      const c = (e.testCode || '').toUpperCase().trim();
+      const n = (e.testName || '').toLowerCase().trim();
+      return matcher(c, n);
+    });
+  }, [workspace.results]);
+
+  // Construct synthetic sample context for modals that expect a Sample object
+  const syntheticSample = useMemo(() => {
+    return {
+      id: workspace.patient.id || 'new-intake',
+      sampleNumber: 'INTAKE',
+      patient: {
+        name: workspace.patient.name || 'Walk-in Patient',
+        gender: workspace.patient.gender,
+        ageYears: workspace.patient.ageYears,
+        ageMonths: workspace.patient.ageMonths,
+        ageDays: workspace.patient.ageDays,
+      },
+      tests: Object.values(workspace.results).map((r) => ({
+        id: r.testId,
+        testId: r.testId,
+        resultValue: r.value,
+        isAbnormal: r.status === 'HIGH' || r.status === 'LOW' || r.status === 'PANIC',
+        test: {
+          id: r.testId,
+          code: r.testCode,
+          name: r.testName,
+          category: r.category,
+        },
+      })),
+    };
+  }, [workspace.patient, workspace.results]);
 
   return (
     <div
@@ -229,12 +288,164 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
 
         {/* Col 3 (Right): Results Grid Panel */}
         <div style={{ height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <ResultsGridPanel workspace={workspace} />
+          <ResultsGridPanel
+            workspace={workspace}
+            onOpenSpecialModal={handleOpenSpecialModal}
+          />
         </div>
       </main>
 
       {/* 3. Bottom Centered Floating Action Dock */}
       <UnifiedActionBar workspace={workspace} />
+
+      {/* 4. Specialized Clinical Workstation Modals */}
+      {/* 4.1 URINE ANALYSIS MODAL */}
+      {activeSpecialModal === 'GUE' && (
+        <UrineFormModal
+          isOpen={activeSpecialModal === 'GUE'}
+          onClose={handleCloseSpecialModal}
+          patientName={workspace.patient.name || 'Walk-in Patient'}
+          sampleNumber="INTAKE"
+          initialData={
+            (() => {
+              const item = findTargetResultItem((c, n) => c === 'GUE' || n.includes('urine') || n.includes('إدرار'));
+              return item?.value || '';
+            })()
+          }
+          onApply={(formattedResult: string) => {
+            handleCloseSpecialModal();
+            const item = findTargetResultItem((c, n) => c === 'GUE' || n.includes('urine') || n.includes('إدرار'));
+            if (item) {
+              workspace.updateResultValue(item.testId, formattedResult);
+            }
+          }}
+        />
+      )}
+
+      {/* 4.2 GSE (STOOL) ANALYSIS MODAL */}
+      {activeSpecialModal === 'GSE' && (
+        <GseModal
+          isOpen={activeSpecialModal === 'GSE'}
+          onClose={handleCloseSpecialModal}
+          sample={syntheticSample}
+          initialValue={
+            (() => {
+              const item = findTargetResultItem((c, n) => c === 'GSE' || n.includes('stool') || n.includes('خروج') || n.includes('براز'));
+              return item?.value || '';
+            })()
+          }
+          onSave={(serialized: string) => {
+            handleCloseSpecialModal();
+            const item = findTargetResultItem((c, n) => c === 'GSE' || n.includes('stool') || n.includes('خروج') || n.includes('براز'));
+            if (item) {
+              workspace.updateResultValue(item.testId, serialized);
+            }
+          }}
+        />
+      )}
+
+      {/* 4.3 CBC ANALYSIS MODAL */}
+      {activeSpecialModal === 'CBC' && (
+        <CbcModal
+          isOpen={activeSpecialModal === 'CBC'}
+          onClose={handleCloseSpecialModal}
+          sample={syntheticSample}
+          initialValue={
+            (() => {
+              const item = findTargetResultItem((c, n) => c === 'CBC' || n.includes('cbc') || n.includes('blood count'));
+              return item?.value || '';
+            })()
+          }
+          onSave={(serialized: string) => {
+            handleCloseSpecialModal();
+            const item = findTargetResultItem((c, n) => c === 'CBC' || n.includes('cbc') || n.includes('blood count'));
+            if (item) {
+              workspace.updateResultValue(item.testId, serialized);
+            }
+          }}
+        />
+      )}
+
+      {/* 4.4 SEMEN FLUID ANALYSIS (SFA) MODAL */}
+      {activeSpecialModal === 'SFA' && (
+        <SemenFormModal
+          isOpen={activeSpecialModal === 'SFA'}
+          onClose={handleCloseSpecialModal}
+          patientName={workspace.patient.name || 'Walk-in Patient'}
+          sampleNumber="INTAKE"
+          initialData={
+            (() => {
+              const item = findTargetResultItem(
+                (c, n) =>
+                  c === 'SFA' ||
+                  c === 'SEMEN' ||
+                  n.includes('semen') ||
+                  n.includes('seminal') ||
+                  n.includes('منوي')
+              );
+              return item?.value || '';
+            })()
+          }
+          onApply={(formattedResult: string) => {
+            handleCloseSpecialModal();
+            const item = findTargetResultItem(
+              (c, n) =>
+                c === 'SFA' ||
+                c === 'SEMEN' ||
+                n.includes('semen') ||
+                n.includes('seminal') ||
+                n.includes('منوي')
+            );
+            if (item) {
+              workspace.updateResultValue(item.testId, formattedResult);
+            }
+          }}
+        />
+      )}
+
+      {/* 4.5 CHEMISTRY WORKSTATION MODAL */}
+      {activeSpecialModal === 'CHEMISTRY' && (
+        <ChemistryModal
+          isOpen={activeSpecialModal === 'CHEMISTRY'}
+          onClose={handleCloseSpecialModal}
+          sample={syntheticSample}
+          initialValue={
+            (() => {
+              const item = findTargetResultItem((c, n) => c.includes('CHOL') || c.includes('CREAT') || c.includes('UREA') || n.includes('chemistry'));
+              return item?.value || '';
+            })()
+          }
+          onSave={async (serialized: string) => {
+            handleCloseSpecialModal();
+            const item = findTargetResultItem((c, n) => c.includes('CHOL') || c.includes('CREAT') || c.includes('UREA') || n.includes('chemistry'));
+            if (item) {
+              workspace.updateResultValue(item.testId, serialized);
+            }
+          }}
+        />
+      )}
+
+      {/* 4.6 MICROBIOLOGY WORKSTATION MODAL */}
+      {activeSpecialModal === 'MICROBIOLOGY' && (
+        <MicrobiologyModal
+          isOpen={activeSpecialModal === 'MICROBIOLOGY'}
+          onClose={handleCloseSpecialModal}
+          sample={syntheticSample}
+          initialValue={
+            (() => {
+              const item = findTargetResultItem((c, n) => c.includes('CULTURE') || n.includes('culture') || n.includes('مزرعة'));
+              return item?.value || '';
+            })()
+          }
+          onSave={async (serialized: string) => {
+            handleCloseSpecialModal();
+            const item = findTargetResultItem((c, n) => c.includes('CULTURE') || n.includes('culture') || n.includes('مزرعة'));
+            if (item) {
+              workspace.updateResultValue(item.testId, serialized);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
