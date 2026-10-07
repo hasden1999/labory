@@ -42,20 +42,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   // Primary Navigation Routes (Direct 1-Click Access on Desktop)
   const primaryNavItems = [
-    { href: '/', label: 'استقبال وفحص (Intake)', icon: FlaskConical },
-    { href: '/results', label: 'إدخال النتائج (Results)', icon: FileText },
-    { href: '/samples', label: 'سجل العينات (Samples)', icon: Activity },
-    { href: '/patients', label: 'المرضى (Patients)', icon: Users },
-    { href: '/dashboard', label: 'المؤشرات (Dashboard)', icon: LayoutDashboard },
+    { href: '/', label: 'Intake & Reception', icon: FlaskConical },
+    { href: '/results', label: 'Results Entry', icon: FileText },
+    { href: '/samples', label: 'Sample Registry', icon: Activity },
+    { href: '/patients', label: 'Patients', icon: Users },
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   ];
 
-  // Secondary Navigation Routes (Grouped under 'المزيد ▾')
+  // Secondary Navigation Routes (Grouped under 'More ▾')
   const secondaryNavItems = [
-    { href: '/financials', label: 'المركز المالي (Financials)', icon: TrendingUp },
-    { href: '/inventory', label: 'المخزون والكواشف (Inventory)', icon: Package },
-    { href: '/catalog', label: 'الكتالوج (Tests)', icon: Layers },
-    { href: '/devices', label: 'الأجهزة (LIS)', icon: Cpu },
-    { href: '/settings', label: 'الإعدادات (Settings)', icon: SettingsIcon },
+    { href: '/financials', label: 'Financial Center', icon: TrendingUp },
+    { href: '/inventory', label: 'Inventory & Reagents', icon: Package },
+    { href: '/catalog', label: 'Test Catalog', icon: Layers },
+    { href: '/devices', label: 'LIS Analyzers', icon: Cpu },
+    { href: '/settings', label: 'Settings', icon: SettingsIcon },
   ];
 
   const allNavItems = [...primaryNavItems, ...secondaryNavItems];
@@ -231,7 +231,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span>المزيد (More)</span>
+                <span>More</span>
                 <ChevronDown size={14} style={{ transform: moreMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
                 {isSecondaryActive && (
                   <div style={{ position: 'absolute', bottom: '-10px', left: '12px', right: '12px', height: '2px', background: 'var(--accent-cyan)', borderRadius: '2px' }}></div>
@@ -299,7 +299,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={toggleTheme}
-            title={theme === 'dark' ? 'التبديل إلى الوضع الفاتح السريري (Light Mode)' : 'التبديل إلى الوضع الداكن (Dark Mode)'}
+            title={theme === 'dark' ? 'Switch to Clinical Light Mode' : 'Switch to Dark Mode'}
             style={{
               width: '34px',
               height: '34px',
@@ -320,7 +320,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {/* User Role Badge */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '20px', padding: '4px 10px', fontSize: '11px', color: 'var(--text-main)', fontWeight: 700 }}>
             <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--accent-emerald)', boxShadow: '0 0 6px var(--accent-emerald)' }}></div>
-            <span>مدير المختبر</span>
+            <span>Lab Director</span>
           </div>
 
           {/* Mobile Menu Button */}
