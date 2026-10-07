@@ -16,7 +16,7 @@ function escapeHtml(str: any): string {
     .replace(/'/g, '&#039;');
 }
 
-export function getReportEnglishTestName(test: any): string {
+function getReportEnglishTestName(test: any): string {
   if (!test) return 'Unknown Test';
   const rawName = String(test.name || '').trim();
   const rawCode = String(test.code || test.testCode || '').trim();
@@ -40,7 +40,7 @@ export function getReportEnglishTestName(test: any): string {
   return rawName || 'Test';
 }
 
-export function getReportEnglishCategory(cat: string): string {
+function getReportEnglishCategory(cat: string): string {
   if (!cat) return 'General Laboratory Tests';
   const trimmed = String(cat).trim();
 
@@ -82,7 +82,7 @@ export function getReportEnglishCategory(cat: string): string {
   return 'General Laboratory Tests';
 }
 
-export function getReportEnglishSampleType(sampleType: string): string {
+function getReportEnglishSampleType(sampleType: string): string {
   if (!sampleType) return 'Serum';
   const trimmed = String(sampleType).trim();
 
@@ -120,7 +120,7 @@ export function getReportEnglishSampleType(sampleType: string): string {
   return 'Specimen';
 }
 
-export function translateQualitativeResult(val: string): string {
+function translateQualitativeResult(val: string): string {
   if (!val) return val;
   const str = String(val).trim();
 
@@ -263,7 +263,6 @@ function generateHistogramSvg(type: 'WBC' | 'RBC' | 'PLT', points?: number[], wi
   `;
 }
 
-export { isCbcTest, isSfaTest, isGueTest, isGseTest, isGeneralTest } from '../../../../../lib/testClassifier';
 import { isCbcTest, isSfaTest, isGueTest, isGseTest, isGeneralTest } from '../../../../../lib/testClassifier';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
@@ -595,7 +594,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 
   const rawBase = settings.serverBaseUrl?.trim();
-  const baseDomain = rawBase || `http://${getLocalIpAddress()}:8080`;
+  const baseDomain = rawBase || `http://127.0.0.1:8080`;
   const cleanBase = baseDomain.replace(/\/+$/, '');
   const verifyUrl = `${cleanBase}/verify/${sample.id}`;
   const qrSvg = generateQrSvg(verifyUrl, 64);
