@@ -543,7 +543,7 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
                 alignItems: 'center',
               }}
             >
-              <span>Version 1.3.1 Pro</span>
+              <span>Version 1.4.0 Pro</span>
               <span style={{ fontWeight: 800, color: '#0d9488' }}>منظومة المختبر السريري</span>
             </div>
           </div>

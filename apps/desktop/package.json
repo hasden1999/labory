@@ -1,6 +1,6 @@
 {
   "name": "@lab-manager/desktop",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "نظام إدارة المختبرات الطبية المتكامل - النسخة المكتبية الرسمية",
   "author": "Lab Manager Team",
   "main": "main.js",
@@ -44,6 +44,7 @@
       "assets/**/*"
     ],
     "compression": "maximum",
+    "electronLanguages": ["ar", "en-US"],
     "extraResources": [
       {
         "from": "engine",
@@ -52,7 +53,11 @@
           "**/*",
           "!**/*.map",
           "!**/*.md",
-          "!**/*.tsbuildinfo"
+          "!**/*.tsbuildinfo",
+          "!**/*.so.node",
+          "!**/.cache/**",
+          "!**/*.bak",
+          "!**/auto_snapshot_*"
         ]
       }
     ],
