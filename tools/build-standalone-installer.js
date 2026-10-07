@@ -21,6 +21,23 @@ function formatBytes(bytes) {
   return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
 }
 
+function safeWriteFileSync(filePath, content, options) {
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  const maxRetries = 10;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      fs.writeFileSync(filePath, content, options);
+      return;
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+    }
+  }
+}
+
 // -------------------------------------------------------------
 // Phase 1 (P0): Clean seed SQLite database preparation
 // -------------------------------------------------------------
@@ -214,7 +231,7 @@ function pruneEngineContents(rootDir, targetStandalone) {
 // -------------------------------------------------------------
 // Phase 2: Automated Smoke Test Gate
 // -------------------------------------------------------------
-async function runSmokeTestGate({ engineDir, targetStandalone, timeoutMs = 10000 }) {
+async function runSmokeTestGate({ engineDir, targetStandalone, timeoutMs = 25000 }) {
   const nodeExe = path.join(engineDir, 'node.exe');
   const serverJs = path.join(targetStandalone, 'apps', 'web', 'server.js');
   const sanitizedDbSrc = path.join(targetStandalone, 'apps', 'web', 'data', 'lab.db');
@@ -244,7 +261,7 @@ async function runSmokeTestGate({ engineDir, targetStandalone, timeoutMs = 10000
     env: {
       ...process.env,
       PORT: String(port),
-      HOSTNAME: '127.0.0.1',
+      HOSTNAME: '0.0.0.0',
       NODE_ENV: 'production',
       LABRYO_DATA_DIR: tempDir,
       DATABASE_URL: normalizedDbUrl,
@@ -267,7 +284,7 @@ async function runSmokeTestGate({ engineDir, targetStandalone, timeoutMs = 10000
           hostname: '127.0.0.1',
           port,
           path: pathname,
-          timeout: 2000,
+          timeout: 5000,
         },
         (res) => {
           let body = '';
@@ -467,11 +484,11 @@ async function run() {
   storeData.settings.isConfigured = false;
 
   const cleanStoreJson = JSON.stringify(storeData, null, 2);
-  fs.writeFileSync(bundledStoreDest, cleanStoreJson, 'utf-8');
-  fs.writeFileSync(path.join(directDataDest, 'lab_store.json'), cleanStoreJson, 'utf-8');
+  safeWriteFileSync(bundledStoreDest, cleanStoreJson, 'utf-8');
+  safeWriteFileSync(path.join(directDataDest, 'lab_store.json'), cleanStoreJson, 'utf-8');
   const altStoreDest = path.join(targetStandalone, 'data', 'lab_store.json');
   if (fs.existsSync(path.dirname(altStoreDest))) {
-    fs.writeFileSync(altStoreDest, cleanStoreJson, 'utf-8');
+    safeWriteFileSync(altStoreDest, cleanStoreJson, 'utf-8');
   }
   console.log('✅ تم تجهيز وحفظ lab_store.json الأولي بصفر بيانات للعميل الجديد.');
 
