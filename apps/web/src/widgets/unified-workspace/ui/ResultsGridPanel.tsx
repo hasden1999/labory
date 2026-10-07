@@ -329,6 +329,7 @@ export default function ResultsGridPanel({
                         placeholder="-"
                         value={item.value}
                         dir="auto"
+                        data-shift-nav={item.isCalculated ? undefined : 'result'}
                         onChange={(e) => workspace.updateResultValue(item.testId, e.target.value, false)}
                         readOnly={item.isCalculated}
                         style={{

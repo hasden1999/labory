@@ -411,6 +411,7 @@ export default function UnifiedActionBar({
       {/* 4. Save & Print PDF (F9) */}
       <button
         type="button"
+        data-shift-nav="save-btn"
         onClick={handleF9SaveAndPrint}
         disabled={isProcessing || workspace.isSaving}
         style={{

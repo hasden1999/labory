@@ -8,6 +8,7 @@ import ResultsGridPanel from './ResultsGridPanel';
 import UnifiedActionBar from './UnifiedActionBar';
 import { UnifiedWorkspaceReturn } from '../model/types';
 import { useUnifiedWorkspace } from '../model/useUnifiedWorkspace';
+import { useShiftNavigation } from '../lib/useShiftNavigation';
 import {
   FlaskConical,
   Bell,
@@ -48,6 +49,11 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
 
   // Active Specialized Workstation Modal state
   const [activeSpecialModal, setActiveSpecialModal] = useState<SpecialModalType>(null);
+
+  // Wire Shift navigation hook (disabled if modal is open)
+  useShiftNavigation({
+    enabled: activeSpecialModal === null,
+  });
 
   const handleOpenSpecialModal = useCallback((type: 'GUE' | 'GSE' | 'CBC' | 'SFA' | 'CHEMISTRY' | 'MICROBIOLOGY') => {
     setActiveSpecialModal(type);

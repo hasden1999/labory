@@ -382,6 +382,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
               placeholder="e.g. Haider Abdul-Hussein"
               value={patient.name}
               dir="auto"
+              data-shift-nav="patient"
               onChange={(e) => {
                 updatePatientField('name', e.target.value);
                 setSearchQuery(e.target.value);
@@ -510,6 +511,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
               type="text"
               placeholder="Years"
               value={patient.ageYears === '' ? '' : patient.ageYears}
+              data-shift-nav="patient"
               onChange={(e) => handleYearsChange(e.target.value)}
               style={{
                 width: '100%',
@@ -655,6 +657,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
             type="text"
             placeholder="e.g. 07701234567"
             value={patient.phone}
+            data-shift-nav="patient"
             onChange={(e) => updatePatientField('phone', toEnglishDigits(e.target.value))}
             style={{
               width: '100%',
@@ -715,6 +718,7 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
             placeholder="Patient notes or address..."
             value={patient.notes}
             dir="auto"
+            data-shift-nav="patient"
             onChange={(e) => updatePatientField('notes', e.target.value)}
             style={{
               width: '100%',
