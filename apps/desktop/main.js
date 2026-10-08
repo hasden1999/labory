@@ -313,6 +313,11 @@ function getStartCommand(projectRoot) {
 
     const normalizedDbUrl = 'file:' + userSqliteDb.replace(/\\/g, '/') + '?connection_limit=1&socket_timeout=10000&busy_timeout=5000';
 
+    const compileCacheDir = path.join(userDataDir, 'compile-cache');
+    try {
+      if (!fs.existsSync(compileCacheDir)) fs.mkdirSync(compileCacheDir, { recursive: true });
+    } catch (e) {}
+
     return {
       cmd: fs.existsSync(nodeBin) ? nodeBin : 'node',
       args: [serverScript],
@@ -320,9 +325,10 @@ function getStartCommand(projectRoot) {
       extraEnv: {
         LABRYO_DATA_DIR: userDataDir,
         DATABASE_URL: normalizedDbUrl,
-        HOSTNAME: '0.0.0.0',
+        HOSTNAME: '127.0.0.1',
         PORT: String(WEB_PORT),
         NODE_ENV: 'production',
+        NODE_COMPILE_CACHE: compileCacheDir,
         LABRYO_APP_VERSION: app.getVersion(),
       },
     };
@@ -360,20 +366,24 @@ function getStartCommand(projectRoot) {
 
   // Check for ultra-fast standalone server (freshest build prioritized)
   const standalone = findFreshestStandaloneServer(projectRoot);
-  if (standalone) {
+    const compileCacheDir = path.join(standalone.dataDir, 'compile-cache');
+    try {
+      if (!fs.existsSync(compileCacheDir)) fs.mkdirSync(compileCacheDir, { recursive: true });
+    } catch (e) {}
+
     return {
       cmd: nodeCmd,
       args: [standalone.script],
       cwd: standalone.cwd,
       extraEnv: {
         LABRYO_DATA_DIR: standalone.dataDir,
-        HOSTNAME: '0.0.0.0',
+        HOSTNAME: '127.0.0.1',
         PORT: String(WEB_PORT),
         NODE_ENV: 'production',
+        NODE_COMPILE_CACHE: compileCacheDir,
         LABRYO_APP_VERSION: app.getVersion(),
       },
     };
-  }
 
   const nextBinCandidates = [
     path.join(projectRoot, 'node_modules', 'next', 'dist', 'bin', 'next'),
@@ -384,7 +394,7 @@ function getStartCommand(projectRoot) {
     if (fs.existsSync(bin)) {
       return {
         cmd: nodeCmd,
-        args: [bin, 'start', '-H', '0.0.0.0', '-p', String(WEB_PORT)],
+        args: [bin, 'start', '-H', '127.0.0.1', '-p', String(WEB_PORT)],
         cwd: path.join(projectRoot, 'apps', 'web'),
       };
     }
@@ -785,7 +795,7 @@ function getErrorHtml() {
       const btn = document.getElementById('retry-btn');
       btn.innerText = 'جاري الاتصال...';
       btn.disabled = true;
-      window.location.href = 'http://localhost:${WEB_PORT}';
+      window.location.href = 'http://127.0.0.1:${WEB_PORT}';
     }
 
     // Auto-poll in background and automatically enter when ready
@@ -794,7 +804,7 @@ function getErrorHtml() {
         const res = await fetch('http://127.0.0.1:${WEB_PORT}/health', { cache: 'no-store' });
         if (res.ok) {
           clearInterval(autoTimer);
-          window.location.href = 'http://localhost:${WEB_PORT}';
+          window.location.href = 'http://127.0.0.1:${WEB_PORT}';
         }
       } catch (e) {}
     }, 1200);
@@ -804,32 +814,37 @@ function getErrorHtml() {
 }
 
 // Main sequence to poll server and seamlessly transition from splash to main window
-async function startAndLoadApp() {
-  const appUrl = `http://localhost:${WEB_PORT}`;
+async function startAndLoadApp(serverStartPromise = null) {
+  const appUrl = `http://127.0.0.1:${WEB_PORT}`;
 
   tracer.mark('Server Startup Sequence Triggered (T2)');
   updateSplashStatus('جاري إقلاع محرك النظام المحلي...');
-  await ensureServerStarted();
+  if (serverStartPromise) {
+    await serverStartPromise;
+  } else {
+    await ensureServerStarted();
+  }
 
   let ready = false;
   let attempts = 0;
-  const maxAttempts = 100; // 25-second polling budget (100 attempts at 250ms)
-  const pollIntervalMs = 250;
+  const pollIntervalMs = 50;
+  const maxAttempts = 500; // 25-second polling budget (500 attempts at 50ms)
 
   while (attempts < maxAttempts) {
     ready = await isServerReady(WEB_PORT);
     if (ready) {
-      tracer.mark(`Server Ready Detected on attempt #${attempts} (T3)`);
+      tracer.mark(`Server Ready Detected on attempt #${attempts} (${attempts * pollIntervalMs}ms) (T3)`);
       break;
     }
 
-    if (attempts === 0) {
+    const elapsed = attempts * pollIntervalMs;
+    if (elapsed === 0) {
       updateSplashStatus('جاري إقلاع محرك النظام المحلي...');
-    } else if (attempts === 12) { // ~3 seconds
+    } else if (elapsed === 3000) {
       updateSplashStatus('جاري فحص وتأمين قاعدة البيانات...');
-    } else if (attempts === 36) { // ~9 seconds
+    } else if (elapsed === 9000) {
       updateSplashStatus('جاري تحميل واجهات التحاليل...');
-    } else if (attempts === 68) { // ~17 seconds
+    } else if (elapsed === 17000) {
       updateSplashStatus('جاري استكمال إعدادات النظام وتجهيز الواجهة...');
     }
 
@@ -865,6 +880,20 @@ async function startAndLoadApp() {
         mainWindow.maximize();
         mainWindow.focus();
       }
+
+      // Pre-warm primary business routes sequentially in background after UI is active
+      setTimeout(() => {
+        try {
+          const prefetchRoutes = ['/results', '/patients', '/samples', '/financials', '/catalog'];
+          prefetchRoutes.forEach((route, i) => {
+            setTimeout(() => {
+              http.get(`http://127.0.0.1:${WEB_PORT}${route}`, (res) => {
+                res.resume();
+              }).on('error', () => {});
+            }, i * 300);
+          });
+        } catch (e) {}
+      }, 2000);
     };
 
     mainWindow.once('ready-to-show', revealMainWindow);
@@ -993,10 +1022,6 @@ function createTray() {
           label: '⚡ فتح واجهة النظام (إظهار فوري)',
           click: () => showMainWindow(),
         },
-        {
-          label: '🌐 فتح في المتصفح (للأجهزة المتصلة بالشبكة)',
-          click: () => shell.openExternal(`http://localhost:${WEB_PORT}`),
-        },
         { type: 'separator' },
         {
           label: '🚀 التشغيل التلقائي مع بدء الويندوز',
@@ -1012,7 +1037,7 @@ function createTray() {
             killBackendProcess({ forRestart: true });
             await ensureServerStarted();
             if (mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.loadURL(`http://localhost:${WEB_PORT}`);
+              mainWindow.loadURL(`http://127.0.0.1:${WEB_PORT}`);
             }
           },
         },
@@ -1222,6 +1247,18 @@ ipcMain.handle('get-app-version', () => app.getVersion());
 ipcMain.handle('print-document', async (event, { url, printOptions }) => {
   if (!mainWindow) return { success: false, error: 'No main window' };
 
+  // Desktop-only whitelist: allow only local loopback print URLs
+  try {
+    const parsed = new URL(url);
+    const isLoopback = parsed.hostname === '127.0.0.1' && Number(parsed.port) === WEB_PORT && parsed.protocol === 'http:';
+    if (!isLoopback) {
+      console.warn('[Desktop Security] print-document blocked non-local URL:', url);
+      return { success: false, error: 'Print URL must be local 127.0.0.1:8080' };
+    }
+  } catch {
+    return { success: false, error: 'Invalid print URL' };
+  }
+
   try {
     const printWin = new BrowserWindow({
       show: false,
@@ -1250,7 +1287,7 @@ ipcMain.handle('print-document', async (event, { url, printOptions }) => {
 
 // Background pre-warming for hidden launch without network race conditions
 async function startBackgroundPreWarm() {
-  const appUrl = `http://localhost:${WEB_PORT}`;
+  const appUrl = `http://127.0.0.1:${WEB_PORT}`;
   isStartingUp = true;
 
   try {
@@ -1289,6 +1326,9 @@ async function startBackgroundPreWarm() {
 app.whenReady().then(() => {
   tracer.mark('Electron Ready (T1)');
 
+  // Start background web server concurrently with window initialization
+  const serverStartPromise = ensureServerStarted();
+
   // Disable automatic background launch with Windows boot
   configureAutoLaunch(false);
 
@@ -1299,7 +1339,7 @@ app.whenReady().then(() => {
   createMainWindow();
   tracer.mark('Main Window Pre-Created & Warmed');
 
-  startAndLoadApp();
+  startAndLoadApp(serverStartPromise);
   updateService.setBeforeInstallHandler(() => {
     isQuitting = true;
     killBackendProcess();

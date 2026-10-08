@@ -143,7 +143,7 @@ async function bootstrap() {
 
   // Listen on PORT 8000
   const PORT = Number(process.env.PORT) || 8000;
-  server.listen({ port: PORT, host: '0.0.0.0' }, (err, address) => {
+  server.listen({ port: PORT, host: '127.0.0.1' }, (err, address) => {
     if (err) {
       console.error('Server failed to start:', err);
       process.exit(1);

@@ -10,6 +10,8 @@ export interface LabProfile {
   doctorTitle: string;
   labLicense: string;
   whatsappNumber: string;
+  whatsappAutoSendEnabled?: boolean;
+  autoUpdateEnabled?: boolean;
   currency: string;
   address: string;
   phone: string;
@@ -106,6 +108,8 @@ const DEFAULT_LAB_PROFILE: LabProfile = {
   doctorTitle: 'استشاري التحليلات المرضية والمخبرية',
   labLicense: '',
   whatsappNumber: '',
+  whatsappAutoSendEnabled: false,
+  autoUpdateEnabled: true,
   currency: 'د.ع',
   address: '',
   phone: '',

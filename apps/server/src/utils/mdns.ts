@@ -2,6 +2,11 @@ import { Bonjour } from 'bonjour-service';
 import os from 'os';
 
 export function startMDNS(port: number) {
+  // Desktop-only default: no LAN broadcast unless explicitly enabled
+  if (process.env.LABRYO_ENABLE_MDNS !== '1') {
+    console.log('mDNS broadcast disabled (Desktop-only mode). Set LABRYO_ENABLE_MDNS=1 to enable LAN discovery.');
+    return;
+  }
   try {
     const instance = new Bonjour();
     instance.publish({

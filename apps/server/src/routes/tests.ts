@@ -5,13 +5,22 @@ export async function testCatalogRoutes(fastify: FastifyInstance) {
   // Get Catalog Tests & Panels
   fastify.get('/tests', async (request, reply) => {
     const tests = await prisma.testCatalog.findMany({
+      include: {
+        referenceRanges: { orderBy: { sortOrder: 'asc' } },
+      },
       orderBy: [{ category: 'asc' }, { name: 'asc' }],
     });
 
     const panels = await prisma.testPanel.findMany({
       include: {
         items: {
-          include: { test: true },
+          include: {
+            test: {
+              include: {
+                referenceRanges: { orderBy: { sortOrder: 'asc' } },
+              },
+            },
+          },
         },
       },
     });
@@ -22,6 +31,9 @@ export async function testCatalogRoutes(fastify: FastifyInstance) {
   // Get Catalog Tests directly
   fastify.get('/catalog/tests', async (request, reply) => {
     const tests = await prisma.testCatalog.findMany({
+      include: {
+        referenceRanges: { orderBy: { sortOrder: 'asc' } },
+      },
       orderBy: [{ category: 'asc' }, { name: 'asc' }],
     });
     return reply.send(tests);

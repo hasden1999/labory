@@ -517,11 +517,18 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
         rawRef = resolved.rangeText;
       } else {
         const rRanges = t.test?.referenceRanges || [];
-        if (rRanges.length > 1) {
-          rawRef = rRanges.map((r: any) => {
+        if (rRanges.length > 0) {
+          if (rRanges.length === 1) {
+            const r = rRanges[0];
             const txt = r.text || (r.low != null && r.high != null ? `${r.low} - ${r.high}` : (r.low != null ? `>= ${r.low}` : r.high != null ? `<= ${r.high}` : ''));
-            return r.label ? `${r.label}: ${txt}` : txt;
-          }).filter(Boolean).join(' | ');
+            const isGeneral = !r.label || r.label.includes('جميع') || r.label.includes('عام') || r.label === 'المعدل العام';
+            rawRef = isGeneral ? txt : `${r.label}: ${txt}`;
+          } else {
+            rawRef = rRanges.map((r: any) => {
+              const txt = r.text || (r.low != null && r.high != null ? `${r.low} - ${r.high}` : (r.low != null ? `>= ${r.low}` : r.high != null ? `<= ${r.high}` : ''));
+              return r.label ? `${r.label}: ${txt}` : txt;
+            }).filter(Boolean).join(' | ');
+          }
         } else {
           rawRef = t.test?.refRangeText || (t.test?.refRangeLow != null && t.test?.refRangeHigh != null ? `${t.test.refRangeLow} - ${t.test.refRangeHigh}` : (t.refRangeText || (t.refRangeLow != null && t.refRangeHigh != null ? `${t.refRangeLow} - ${t.refRangeHigh}` : '-')));
         }

@@ -246,7 +246,8 @@ export function resolveReferenceRange(
     const text = chosen.text || (chosen.low != null && chosen.high != null 
       ? `${chosen.low} - ${chosen.high}` 
       : (chosen.low != null ? `>= ${chosen.low}` : chosen.high != null ? `<= ${chosen.high}` : ''));
-    const displayText = chosen.label ? `${chosen.label}: ${text}` : text;
+    const isGeneralLabel = !chosen.label || chosen.label.includes('جميع') || chosen.label.includes('عام') || chosen.label === 'المعدل العام';
+    const displayText = isGeneralLabel ? text : (chosen.label ? `${chosen.label}: ${text}` : text);
     return { rangeText: displayText || fallback, isSpecificMatch: true, matchedRange: chosen };
   }
 

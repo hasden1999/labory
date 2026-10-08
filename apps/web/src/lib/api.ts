@@ -10,6 +10,8 @@ const DEFAULT_SETTINGS = {
   address: '',
   phone: '',
   whatsappNumber: '',
+  whatsappAutoSendEnabled: false,
+  autoUpdateEnabled: true,
   isConfigured: false,
 };
 
@@ -188,7 +190,17 @@ export async function apiRequest<T = any>(
 
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
-      const jsonRes = await response.json();
+      const rawBody = await response.text();
+      if (!rawBody || !rawBody.trim()) {
+        return null as unknown as T;
+      }
+      let jsonRes: any;
+      try {
+        jsonRes = JSON.parse(rawBody);
+      } catch (parseErr) {
+        console.warn(`[API] Invalid JSON response from ${cleanEndpoint}:`, rawBody);
+        return null as unknown as T;
+      }
       if (method === 'GET' && cleanEndpoint.includes('/tests') && (!jsonRes?.tests || jsonRes.tests.length === 0)) {
         return handleClientFallback(cleanEndpoint) as unknown as T;
       }

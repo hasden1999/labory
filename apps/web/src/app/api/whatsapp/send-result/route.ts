@@ -110,7 +110,19 @@ export async function POST(request: Request) {
     const waLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultGreeting)}` : null;
 
     // Active Server Dispatch via Authentic Baileys Engine (FEAT-07: Real Puppeteer PDF Document)
+    // Desktop-only gate: respect settings toggle (default OFF for safety)
     if (body.autoSend === true) {
+      const autoSendEnabled = (store.settings as any).whatsappAutoSendEnabled === true;
+      if (!autoSendEnabled) {
+        return NextResponse.json(
+          {
+            success: false,
+            delivered: false,
+            message: 'الإرسال التلقائي معطل من الإعدادات. فعله من الإعدادات أو استخدم رابط wa.me اليدوي.',
+          },
+          { status: 403 }
+        );
+      }
       const SERVER_URL = process.env.FASTIFY_URL || process.env.BACKEND_URL || 'http://127.0.0.1:8000';
       try {
         // 1. Generate authentic Puppeteer PDF report matching the exact print template and logo

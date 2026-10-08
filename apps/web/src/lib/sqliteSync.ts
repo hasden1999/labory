@@ -694,9 +694,11 @@ export async function syncTestToSqlite(t: any): Promise<void> {
       },
     });
 
-    if (Array.isArray(t.referenceRanges) && t.referenceRanges.length > 0) {
+    if (Array.isArray(t.referenceRanges)) {
+      const activeIds: string[] = [];
       for (const rr of t.referenceRanges) {
         const rrId = rr.id || `rr-${t.id}-${rr.sortOrder || 0}`;
+        activeIds.push(rrId);
         await (prisma as any).referenceRange.upsert({
           where: { id: rrId },
           update: {
@@ -734,6 +736,20 @@ export async function syncTestToSqlite(t: any): Promise<void> {
             sortOrder: Number(rr.sortOrder || 0),
           }
         }).catch((err: any) => console.warn('[SQLite Sync] ReferenceRange upsert warning:', err?.message));
+      }
+
+      // Purge deleted/removed reference ranges for this test
+      if (activeIds.length > 0) {
+        await (prisma as any).referenceRange.deleteMany({
+          where: {
+            testId: t.id,
+            id: { notIn: activeIds }
+          }
+        }).catch(() => {});
+      } else {
+        await (prisma as any).referenceRange.deleteMany({
+          where: { testId: t.id }
+        }).catch(() => {});
       }
     }
   } catch (e: any) {

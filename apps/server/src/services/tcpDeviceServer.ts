@@ -165,7 +165,7 @@ export function startTcpDeviceServer(port?: number): Promise<net.Server> {
       reject(err);
     });
 
-    server.listen(TCP_PORT, '0.0.0.0', () => {
+    server.listen(TCP_PORT, '127.0.0.1', () => {
       console.log(`📡 [ASTM TCP] Medical Analyzer Listener active on port ${TCP_PORT}`);
       tcpServerInstance = server;
       resolve(server);

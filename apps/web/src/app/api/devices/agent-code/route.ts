@@ -58,8 +58,8 @@ const tcpServer = net.createServer((socket) => {
   });
 });
 
-tcpServer.listen(CONFIG.TCP_PORT, '0.0.0.0', () => {
-  console.log(\`[Ready] TCP Socket Server active on 0.0.0.0:\${CONFIG.TCP_PORT}\`);
+tcpServer.listen(CONFIG.TCP_PORT, '127.0.0.1', () => {
+  console.log(\`[Ready] TCP Socket Server active on 127.0.0.1:\${CONFIG.TCP_PORT} (Desktop-only loopback)\`);
 });
 
 function sendToLisServer(payload) {

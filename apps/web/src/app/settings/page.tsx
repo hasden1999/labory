@@ -17,6 +17,8 @@ export default function SettingsPage() {
 
   // Network & Portal settings
   const [serverBaseUrl, setServerBaseUrl] = useState<string>(labProfile.serverBaseUrl || '');
+  const [whatsappAutoSendEnabled, setWhatsappAutoSendEnabled] = useState<boolean>(Boolean((labProfile as any).whatsappAutoSendEnabled));
+  const [autoUpdateEnabled, setAutoUpdateEnabled] = useState<boolean>((labProfile as any).autoUpdateEnabled !== false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'PAPER_DESIGN' | 'BACKUP' | 'NETWORK' | 'VERSION'>('PAPER_DESIGN');
 
@@ -139,7 +141,13 @@ export default function SettingsPage() {
     if (labProfile?.serverBaseUrl) {
       setServerBaseUrl(labProfile.serverBaseUrl);
     }
-  }, [labProfile?.serverBaseUrl]);
+    if ((labProfile as any)?.whatsappAutoSendEnabled !== undefined) {
+      setWhatsappAutoSendEnabled(Boolean((labProfile as any).whatsappAutoSendEnabled));
+    }
+    if ((labProfile as any)?.autoUpdateEnabled !== undefined) {
+      setAutoUpdateEnabled(Boolean((labProfile as any).autoUpdateEnabled));
+    }
+  }, [labProfile?.serverBaseUrl, (labProfile as any)?.whatsappAutoSendEnabled, (labProfile as any)?.autoUpdateEnabled]);
 
   const handleSaveNetwork = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -147,6 +155,8 @@ export default function SettingsPage() {
     try {
       const payload = {
         serverBaseUrl: serverBaseUrl.trim(),
+        whatsappAutoSendEnabled,
+        autoUpdateEnabled,
       };
       await updateLabProfile(payload as any);
       await apiRequest('/settings', 'POST', payload);
@@ -543,39 +553,35 @@ export default function SettingsPage() {
           {/* TAB 5: NETWORK & PATIENT PORTAL */}
           {activeTab === 'NETWORK' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }} dir="rtl">
-              
-              {/* Local Network Info Card */}
+              {/* Desktop-only controls: WhatsApp auto-send + auto-update */}
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '18px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-cyan)', fontWeight: 800, fontSize: '15px', marginBottom: '8px' }}>
-                  <Share2 size={20} />
-                  <span>الربط عبر الشبكة المحلية (Local Wi-Fi & LAN)</span>
+                  <Zap size={20} />
+                  <span>وضع سطح-المكتب فقط (Desktop-only)</span>
                 </div>
-                <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '16px' }}>
-                  يمكنك فتح النظام واستعراض التقارير وإدخال النتائج من أي جهاز كمبيوتر، هاتف ذكي، أو جهاز لوحي (تابلت) متصل بنفس شبكة الراوتر أو الواي فاي الخاصة بالمختبر دون الحاجة إلى تثبيت أي برامج على ذلك الجهاز.
+                <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '14px' }}>
+                  النظام يعمل محلياً على هذا الجهاز عبر `http://127.0.0.1:8080`. الإرسال التلقائي معطل افتراضياً للأمان، ويمكن تفعيله عند الحاجة. رابط `wa.me` اليدوي يعمل دائماً.
                 </p>
-
-                <div style={{ background: 'rgba(6, 182, 212, 0.08)', border: '1px solid rgba(6, 182, 212, 0.25)', borderRadius: '10px', padding: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                  <div>
-                    <span style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'block' }}>عنوان الآي بي المحلي المكتشف للجهاز الحالي (LAN IP):</span>
-                    <strong style={{ fontSize: '16px', fontFamily: 'monospace', color: 'var(--accent-cyan)', direction: 'ltr', display: 'inline-block' }}>
-                      {labProfile.detectedLanUrl || 'http://192.168.0.122:8080'}
-                    </strong>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const url = labProfile.detectedLanUrl || 'http://192.168.0.122:8080';
-                      navigator.clipboard.writeText(url);
-                      toast.success('تم نسخ رابط الشبكة المحلية بنجاح!', 'تم النسخ');
-                    }}
-                    className="btn-cyan-primary"
-                    style={{ padding: '6px 14px', fontSize: '12px' }}
-                  >
-                    <span>نسخ رابط الشبكة المحلية 📋</span>
-                  </button>
-                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', fontWeight: 700, marginBottom: '10px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={whatsappAutoSendEnabled}
+                    onChange={(e) => setWhatsappAutoSendEnabled(e.target.checked)}
+                  />
+                  تفعيل الإرسال التلقائي لواتساب (`autoSend` عبر المحرك المحلي `127.0.0.1:8000`)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={autoUpdateEnabled}
+                    onChange={(e) => setAutoUpdateEnabled(e.target.checked)}
+                  />
+                  تفعيل الكشف التلقائي عن التحديثات (`GitHub Releases` بعد `30s` وكل `4h`)
+                </label>
               </div>
+
+              {/* Local Network Info Card — removed in Desktop-only mode (no LAN sharing).
+                  System now binds to 127.0.0.1 only. Use Public Portal below only if you run a tunnel. */}
 
               {/* Public Portal / Domain Card */}
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '18px' }}>

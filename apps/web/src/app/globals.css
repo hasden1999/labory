@@ -800,7 +800,7 @@ html, body {
    ========================================================================== */
 .toast-container {
   position: fixed;
-  top: 24px;
+  top: 54px;
   right: 24px;
   z-index: 9999999 !important;
   display: flex;

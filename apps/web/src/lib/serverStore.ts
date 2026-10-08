@@ -85,6 +85,8 @@ export interface LabSettings {
   doctorTitle?: string;
   labLicense?: string;
   whatsappNumber?: string;
+  whatsappAutoSendEnabled?: boolean;
+  autoUpdateEnabled?: boolean;
   currency?: string;
   reportHeader?: string;
   reportFooter?: string;
@@ -570,6 +572,8 @@ function initStore(): ServerStore {
       doctorLicense: '',
       labLicense: '',
       whatsappNumber: '',
+      whatsappAutoSendEnabled: false,
+      autoUpdateEnabled: true,
       currency: 'د.ع',
       address: '',
       phone: '',
@@ -1254,12 +1258,10 @@ export function updateTestInStore(id: string, data: any): any | null {
         s.tests.forEach(st => {
           if (st.testId === id || st.test?.id === id) {
             st.test = { ...st.test, ...updated };
-            if (!st.refRangeText || st.refRangeText === existing.refRangeText) {
-              st.refRangeText = updated.refRangeText;
-            }
-            if (st.refRangeLow === existing.refRangeLow) st.refRangeLow = updated.refRangeLow;
-            if (st.refRangeHigh === existing.refRangeHigh) st.refRangeHigh = updated.refRangeHigh;
-            if (st.unit === existing.unit) st.unit = updated.unit;
+            st.refRangeText = updated.refRangeText;
+            st.refRangeLow = updated.refRangeLow;
+            st.refRangeHigh = updated.refRangeHigh;
+            if (updated.unit) st.unit = updated.unit;
           }
         });
       }

@@ -1,0 +1,96 @@
+{
+  "timestamp": "2026-10-06T14:59:09.530Z",
+  "engine": {
+    "path": "apps/desktop/engine",
+    "exists": true,
+    "sizeBytes": 148664095,
+    "sizeFormatted": "141.78 MB",
+    "fileCount": 2161
+  },
+  "standaloneNodeModules": {
+    "path": "apps/desktop/engine/standalone/node_modules",
+    "exists": true,
+    "sizeBytes": 43194057,
+    "sizeFormatted": "41.19 MB",
+    "fileCount": 1761
+  },
+  "latestSetupExe": {
+    "fileName": "Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 1.3.1.exe",
+    "filePath": "apps/desktop/dist/Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 1.3.1.exe",
+    "sizeBytes": 106036234,
+    "sizeFormatted": "101.12 MB",
+    "modifiedTime": "2026-10-06T14:53:45.064Z"
+  },
+  "topNodeModulesFolders": [
+    {
+      "name": ".prisma",
+      "path": "apps/desktop/engine/standalone/node_modules/.prisma",
+      "sizeBytes": 21394464,
+      "sizeFormatted": "20.40 MB",
+      "fileCount": 13
+    },
+    {
+      "name": "next",
+      "path": "apps/desktop/engine/standalone/node_modules/next",
+      "sizeBytes": 16047139,
+      "sizeFormatted": "15.30 MB",
+      "fileCount": 970
+    },
+    {
+      "name": "@prisma/client",
+      "path": "apps/desktop/engine/standalone/node_modules/@prisma/client",
+      "sizeBytes": 4119828,
+      "sizeFormatted": "3.93 MB",
+      "fileCount": 32
+    },
+    {
+      "name": "react-dom",
+      "path": "apps/desktop/engine/standalone/node_modules/react-dom",
+      "sizeBytes": 693408,
+      "sizeFormatted": "677.16 KB",
+      "fileCount": 8
+    },
+    {
+      "name": "caniuse-lite",
+      "path": "apps/desktop/engine/standalone/node_modules/caniuse-lite",
+      "sizeBytes": 337526,
+      "sizeFormatted": "329.62 KB",
+      "fileCount": 599
+    },
+    {
+      "name": "react",
+      "path": "apps/desktop/engine/standalone/node_modules/react",
+      "sizeBytes": 140050,
+      "sizeFormatted": "136.77 KB",
+      "fileCount": 9
+    },
+    {
+      "name": "source-map-js",
+      "path": "apps/desktop/engine/standalone/node_modules/source-map-js",
+      "sizeBytes": 108784,
+      "sizeFormatted": "106.23 KB",
+      "fileCount": 12
+    },
+    {
+      "name": "postcss",
+      "path": "apps/desktop/engine/standalone/node_modules/postcss",
+      "sizeBytes": 105233,
+      "sizeFormatted": "102.77 KB",
+      "fileCount": 29
+    },
+    {
+      "name": "semver",
+      "path": "apps/desktop/engine/standalone/node_modules/semver",
+      "sizeBytes": 68829,
+      "sizeFormatted": "67.22 KB",
+      "fileCount": 48
+    },
+    {
+      "name": "busboy",
+      "path": "apps/desktop/engine/standalone/node_modules/busboy",
+      "sizeBytes": 48296,
+      "sizeFormatted": "47.16 KB",
+      "fileCount": 5
+    }
+  ]
+}

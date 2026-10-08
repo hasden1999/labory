@@ -5,15 +5,15 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    // Security Guard: Prevent arbitrary remote overwrites from LAN (SEC-003)
+    // Security Guard (Desktop-only): restore allowed only from local loopback.
+    // Binding is 127.0.0.1 so LAN cannot reach here; this is defense-in-depth.
     const host = request.headers.get('host') || '';
     const origin = request.headers.get('origin') || '';
-    const adminToken = request.headers.get('x-admin-key') || '';
-    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1') || origin.includes('localhost') || origin.includes('127.0.0.1');
+    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1') || origin.includes('localhost') || origin.includes('127.0.0.1') || origin === '';
 
-    if (!isLocalhost && !adminToken) {
+    if (!isLocalhost) {
       return NextResponse.json(
-        { message: 'غير مصرح: استرجاع النسخ الاحتياطية مسموح فقط من جهاز الخادم المحلي أو بمفتاح إداري' },
+        { message: 'غير مصرح: استرجاع النسخ الاحتياطية مسموح فقط من هذا الجهاز المحلي' },
         { status: 403 }
       );
     }
@@ -30,6 +30,11 @@ export async function POST(request: Request) {
 
     if (!jsonContent || jsonContent.trim().length === 0) {
       return NextResponse.json({ message: 'ملف النسخة الاحتياطية فارغ' }, { status: 400 });
+    }
+
+    // Desktop-only hardening: size cap 50MB to prevent memory exhaustion
+    if (jsonContent.length > 50 * 1024 * 1024) {
+      return NextResponse.json({ message: 'ملف النسخة كبير جداً (الحد 50MB)' }, { status: 413 });
     }
 
     const result = restoreBackupFromFile(jsonContent);

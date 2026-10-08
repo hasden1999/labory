@@ -25,7 +25,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "1667-5"
     },
     {
       "id": "t-u-phos-24h",
@@ -52,7 +53,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2779-7"
     },
     {
       "id": "t-u-prot-24h",
@@ -79,7 +81,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2888-6"
     },
     {
       "id": "t-acth",
@@ -106,7 +109,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2141-0"
     },
     {
       "id": "t-ag-ratio",
@@ -133,7 +137,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "1759-0"
     },
     {
       "id": "t-alp",
@@ -160,7 +165,8 @@
       "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
       "groupId": "cmupz2doq0008jtobwofwhfl3",
       "sortOrder": 3,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "referenceSource": "Mayo Clinic Laboratories — Test ID ALP, Alkaline Phosphatase, Serum (adult: M 40-129 U/L, F 35-104 U/L); IFCC reference method"
     },
     {
       "id": "t-afp",
@@ -214,7 +220,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "33935-8"
     },
     {
       "id": "t-dsdna",
@@ -241,7 +248,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "5130-0"
     },
     {
       "id": "t-amh",
@@ -322,7 +330,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "8098-6"
     },
     {
       "id": "t-anti-tpo",
@@ -349,7 +358,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "8099-4"
     },
     {
       "id": "t-ana",
@@ -403,7 +413,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "3174-0"
     },
     {
       "id": "t-b2m",
@@ -430,7 +441,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "1952-1"
     },
     {
       "id": "t-bhcg",
@@ -484,7 +496,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "34555-3"
     },
     {
       "id": "t-bg",
@@ -592,7 +605,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "5070-2"
     },
     {
       "id": "t-cpep",
@@ -673,7 +687,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2154-3"
     },
     {
       "id": "t-ca125",
@@ -808,7 +823,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "3187-2"
     },
     {
       "id": "t-c3",
@@ -835,7 +851,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "4485-9"
     },
     {
       "id": "t-c4",
@@ -862,7 +879,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "4498-2"
     },
     {
       "id": "t-cbc",
@@ -916,7 +934,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2157-6"
     },
     {
       "id": "t-cmv-g",
@@ -943,7 +962,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "25416-9"
     },
     {
       "id": "t-cmv-m",
@@ -970,7 +990,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "25418-5"
     },
     {
       "id": "t-ddimer",
@@ -1024,7 +1045,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2198-0"
     },
     {
       "id": "t-dengue",
@@ -1051,7 +1073,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "75378-0"
     },
     {
       "id": "t-dirbil",
@@ -1105,7 +1128,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "69739-1"
     },
     {
       "id": "t-ebv-vca",
@@ -1132,7 +1156,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "22297-6"
     },
     {
       "id": "t-esr",
@@ -1159,7 +1184,8 @@
       "specialtyId": "cmupz2do30001jtobslzhsylt",
       "groupId": null,
       "sortOrder": 3,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "referenceSource": "Westergren method; CLSI H02-A5; Mayo Clinic Laboratories ESR (M 0-22/F 0-29 method-specific; age formula M age/2, F (age+10)/2)"
     },
     {
       "id": "t-egfr",
@@ -1321,7 +1347,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "3255-7"
     },
     {
       "id": "t-fsh",
@@ -1402,7 +1429,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "10886-0"
     },
     {
       "id": "t-free-testo",
@@ -1429,7 +1457,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2991-8"
     },
     {
       "id": "t-ft4",
@@ -1645,7 +1674,8 @@
       "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
       "groupId": "cmupz2dov000ajtob1jt5zqdp",
       "sortOrder": 3,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "referenceSource": "ACC/AHA 2018 Cholesterol Guideline; ESC/EAS 2019 Dyslipidaemias"
     },
     {
       "id": "t-hiv",
@@ -1699,7 +1729,49 @@
       "specialtyId": "cmupz2do30001jtobslzhsylt",
       "groupId": null,
       "sortOrder": 2,
-      "referenceRanges": []
+      "referenceRanges": [
+        {
+          "id": "rr_m_1791304856844",
+          "testId": "cmu8t1io60003ggs4wegn8m0a",
+          "label": "رجال",
+          "sex": "M",
+          "ageMin": 18,
+          "ageMax": null,
+          "ageUnit": "years",
+          "low": 40,
+          "high": 55,
+          "text": null,
+          "unit": "%",
+          "note": null,
+          "source": null,
+          "sourceUrl": null,
+          "isUserEdited": true,
+          "sortOrder": 0,
+          "createdAt": "2026-10-06T16:41:38.856Z",
+          "updatedAt": "2026-10-07T10:47:11.306Z"
+        },
+        {
+          "id": "rr_f_1791304856845",
+          "testId": "cmu8t1io60003ggs4wegn8m0a",
+          "label": "نساء",
+          "sex": "F",
+          "ageMin": 18,
+          "ageMax": null,
+          "ageUnit": "years",
+          "low": 31,
+          "high": 40,
+          "text": null,
+          "unit": "%",
+          "note": null,
+          "source": null,
+          "sourceUrl": null,
+          "isUserEdited": true,
+          "sortOrder": 1,
+          "createdAt": "2026-10-06T16:41:38.863Z",
+          "updatedAt": "2026-10-07T10:47:11.373Z"
+        }
+      ],
+      "referenceSource": "Dacie and Lewis Practical Haematology 12th ed.; Mayo Clinic Laboratories HCT (M 38.3-48.6, F 35.5-44.9 as method-specific); WHO anaemia companion ranges"
     },
     {
       "id": "t-hb",
@@ -1726,7 +1798,8 @@
       "specialtyId": "cmupz2do30001jtobslzhsylt",
       "groupId": null,
       "sortOrder": 1,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "referenceSource": "Dacie and Lewis Practical Haematology 12th ed.; WHO haemoglobin anaemia cutoffs 2023 (M <13.0/F <12.0); Mayo Clinic Laboratories"
     },
     {
       "id": "t-hbsag",
@@ -1807,7 +1880,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "26927-4"
     },
     {
       "id": "t-hsv-m",
@@ -1834,7 +1908,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "26928-2"
     },
     {
       "id": "t-hscrp",
@@ -1861,7 +1936,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "30522-7"
     },
     {
       "id": "t-gh",
@@ -1888,7 +1964,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2965-2"
     },
     {
       "id": "cmt8fowsm0011ijmdf13h2j70",
@@ -1942,7 +2019,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2483-6"
     },
     {
       "id": "t-pth",
@@ -1969,7 +2047,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2731-8"
     },
     {
       "id": "t-ca-ion",
@@ -1996,7 +2075,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "1994-3"
     },
     {
       "id": "t-ldl",
@@ -2023,7 +2103,8 @@
       "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
       "groupId": "cmupz2dov000ajtob1jt5zqdp",
       "sortOrder": 4,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "referenceSource": "ACC/AHA 2018 Cholesterol Guideline; ESC/EAS 2019; Friedewald Clin Chem 1972 (TG>=400 invalid); CLSI C56-A"
     },
     {
       "id": "t-ldl-hdl-ratio",
@@ -2050,7 +2131,9 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "referenceSource": "Framingham; preventive cardiology literature (descriptive, not a guideline target)",
+      "isCalculated": true
     },
     {
       "id": "t-ldh",
@@ -2077,7 +2160,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2532-0"
     },
     {
       "id": "t-lh",
@@ -2131,7 +2215,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "44558-5"
     },
     {
       "id": "t-malb",
@@ -2185,7 +2270,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "33762-6"
     },
     {
       "id": "t-nonhdl",
@@ -2212,7 +2298,9 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "referenceSource": "ACC/AHA 2018 Cholesterol Guideline (Non-HDL goal = LDL goal + 30 mg/dL); ESC/EAS 2019",
+      "isCalculated": true
     },
     {
       "id": "t-ogtt",
@@ -2347,7 +2435,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2839-9"
     },
     {
       "id": "t-prl",
@@ -2401,7 +2490,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "27817-6"
     },
     {
       "id": "t-prot-s",
@@ -2428,7 +2518,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "27821-8"
     },
     {
       "id": "t-pt",
@@ -2509,7 +2600,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "referenceSource": "Dacie and Lewis Practical Haematology 12th ed.; Mayo Clinic Laboratories RBC (M 4.32-5.72, F 3.92-5.13 method-specific)"
     },
     {
       "id": "t-rf",
@@ -2590,7 +2682,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "25528-1"
     },
     {
       "id": "t-rub-m",
@@ -2617,7 +2710,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "25530-7"
     },
     {
       "id": "t-got",
@@ -2693,7 +2787,7 @@
       "refRangeText": "Normal (Conc >= 15 M/mL, PR >= 32%, Normal Forms >= 4%)",
       "normalRange": "Normal (Conc >= 15 M/mL, PR >= 32%, Normal Forms >= 4%)",
       "unit": "M/mL",
-      "sampleType": "سائل منوي (Semen)",
+      "sampleType": "سائل منوي",
       "active": true,
       "specialtyId": null,
       "groupId": null,
@@ -2752,7 +2846,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "1798-8"
     },
     {
       "id": "t-calcitonin",
@@ -2779,7 +2874,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "1992-7"
     },
     {
       "id": "t-cl",
@@ -2833,7 +2929,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2147-7"
     },
     {
       "id": "t-cort-pm",
@@ -2860,7 +2957,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2142-8"
     },
     {
       "id": "t-cort-am",
@@ -2887,7 +2985,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2143-6"
     },
     {
       "id": "t-creat",
@@ -2914,7 +3013,8 @@
       "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
       "groupId": "cmupz2dok0006jtob1fsc2ra1",
       "sortOrder": 1,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "referenceSource": "Mayo Clinic Laboratories Creatinine Serum (M 0.74-1.35/F 0.59-1.04 IDMS-traceable); KDIGO 2024 CKD guideline; 2021 CKD-EPI equation (Inker NEJM 2021)"
     },
     {
       "id": "t-fer",
@@ -2941,7 +3041,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "referenceSource": "WHO Guideline on use of ferritin for iron deficiency (2020); Roche Elecsys Ferritin method ranges (M 30-400/F 15-150); Mayo Clinic Laboratories"
     },
     {
       "id": "t-folate",
@@ -2968,7 +3069,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2284-8"
     },
     {
       "id": "t-iron",
@@ -3022,7 +3124,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "3040-3"
     },
     {
       "id": "t-mg",
@@ -3043,6 +3146,60 @@
       "criticalHigh": null,
       "refRangeText": "1.7 - 2.4",
       "normalRange": "1.7 - 2.4",
+      "unit": "mg/dL",
+      "sampleType": "مصل الدم (Serum)",
+      "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
+    },
+    {
+      "id": "test_1791303288809_mxoxz",
+      "code": "TEST_1791303288809_MXOXZ",
+      "name": "Serum Magnesium Test",
+      "arabicName": "Serum Magnesium Test",
+      "category": "عام",
+      "price": 8000,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": 1.8,
+      "refRangeHigh": 2.4,
+      "normalMaleLow": null,
+      "normalMaleHigh": null,
+      "normalFemaleLow": null,
+      "normalFemaleHigh": null,
+      "criticalLow": null,
+      "criticalHigh": null,
+      "refRangeText": "1.8 - 2.4",
+      "normalRange": "1.8 - 2.4",
+      "unit": "mg/dL",
+      "sampleType": "مصل الدم (Serum)",
+      "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
+    },
+    {
+      "id": "test_1791335237608_um31p",
+      "code": "TEST_1791335237608_UM31P",
+      "name": "Serum Magnesium Test",
+      "arabicName": "Serum Magnesium Test",
+      "category": "عام",
+      "price": 8000,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": null,
+      "refRangeHigh": null,
+      "normalMaleLow": null,
+      "normalMaleHigh": null,
+      "normalFemaleLow": null,
+      "normalFemaleHigh": null,
+      "criticalLow": null,
+      "criticalHigh": null,
+      "refRangeText": null,
+      "normalRange": null,
       "unit": "mg/dL",
       "sampleType": "مصل الدم (Serum)",
       "active": true,
@@ -3076,7 +3233,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2639-3"
     },
     {
       "id": "t-osm",
@@ -3103,7 +3261,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2692-2"
     },
     {
       "id": "t-phos",
@@ -3211,7 +3370,8 @@
       "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
       "groupId": "cmupz2dok0006jtob1fsc2ra1",
       "sortOrder": 2,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "referenceSource": "Mayo Clinic Laboratories Uric Acid Serum (M 3.4-7.0/F 2.4-6.0); ACR Gout Guideline 2020 (treat-to-target <6.0 mg/dL)"
     },
     {
       "id": "t-zinc",
@@ -3265,7 +3425,9 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "referenceSource": "Framingham Heart Study; ACC/AHA risk discussion (ratio is descriptive, not a guideline target)",
+      "isCalculated": true
     },
     {
       "id": "t-tt",
@@ -3292,7 +3454,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "3243-3"
     },
     {
       "id": "t-tsh",
@@ -3373,7 +3536,8 @@
       "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
       "groupId": "cmupz2dov000ajtob1jt5zqdp",
       "sortOrder": 1,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "referenceSource": "ACC/AHA 2018 Cholesterol Guideline; ESC/EAS 2019"
     },
     {
       "id": "t-hcy",
@@ -3400,7 +3564,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "13965-9"
     },
     {
       "id": "t-tibc",
@@ -3562,7 +3727,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "22576-3"
     },
     {
       "id": "t-toxo-m",
@@ -3589,7 +3755,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "25537-2"
     },
     {
       "id": "t-tpha",
@@ -3616,7 +3783,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "22587-0"
     },
     {
       "id": "t-tg",
@@ -3643,7 +3811,8 @@
       "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
       "groupId": "cmupz2dov000ajtob1jt5zqdp",
       "sortOrder": 2,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "referenceSource": "ACC/AHA 2018; ESC/EAS 2019; Friedewald Clin Chem 1972 cutoff TG>=400 mg/dL"
     },
     {
       "id": "t-trop",
@@ -3697,7 +3866,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "49007-8"
     },
     {
       "id": "t-upcr",
@@ -3724,7 +3894,8 @@
       "specialtyId": null,
       "groupId": null,
       "sortOrder": null,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "loincCode": "2890-2"
     },
     {
       "id": "t-vdrl",
@@ -3759,7 +3930,7 @@
       "name": "VLDL Cholesterol",
       "arabicName": "الكوليسترول شديد انخفاض الكثافة",
       "category": "دهون الدم وصحة القلب",
-      "price": 5000,
+      "price": 0,
       "cost": 0,
       "costEstimate": 0,
       "refRangeLow": 5,
@@ -3778,7 +3949,9 @@
       "specialtyId": "cmupz2dnq0000jtobc6gvzmn9",
       "groupId": "cmupz2dov000ajtob1jt5zqdp",
       "sortOrder": 5,
-      "referenceRanges": []
+      "referenceRanges": [],
+      "referenceSource": "Friedewald WT et al. Clin Chem 1972 (VLDL = TG/5); CLSI C56-A; ACC/AHA 2018",
+      "isCalculated": true
     },
     {
       "id": "t-vitb12",
@@ -3887,6 +4060,213 @@
       "groupId": null,
       "sortOrder": null,
       "referenceRanges": []
+    },
+    {
+      "id": "test_1791369974956_wl3a7",
+      "code": "TEST_1791369974956_WL3A7",
+      "name": "ppcv",
+      "arabicName": "ppcv",
+      "category": "أمراض الدم والتخثر",
+      "price": 5000,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": 35,
+      "refRangeHigh": 50,
+      "normalMaleLow": 35,
+      "normalMaleHigh": 50,
+      "normalFemaleLow": 30,
+      "normalFemaleHigh": 40,
+      "criticalLow": 18,
+      "criticalHigh": 55,
+      "refRangeText": "رجال: 35 - 50 | نساء: 30 - 40",
+      "normalRange": "رجال: 35 - 50 | نساء: 30 - 40",
+      "unit": null,
+      "sampleType": "مصل الدم (Serum)",
+      "active": true,
+      "specialtyId": "cmupz2do30001jtobslzhsylt",
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": [
+        {
+          "id": "rr_m_1791369917420",
+          "testId": "test_1791369974956_wl3a7",
+          "label": "رجال",
+          "sex": "M",
+          "ageMin": 18,
+          "ageMax": null,
+          "ageUnit": "years",
+          "low": 35,
+          "high": 50,
+          "text": null,
+          "unit": null,
+          "note": null,
+          "source": null,
+          "sourceUrl": null,
+          "isUserEdited": true,
+          "sortOrder": 0,
+          "createdAt": "2026-10-07T10:46:15.575Z",
+          "updatedAt": "2026-10-07T10:46:15.575Z"
+        },
+        {
+          "id": "rr_f_1791369917421",
+          "testId": "test_1791369974956_wl3a7",
+          "label": "نساء",
+          "sex": "F",
+          "ageMin": 18,
+          "ageMax": null,
+          "ageUnit": "years",
+          "low": 30,
+          "high": 40,
+          "text": null,
+          "unit": null,
+          "note": null,
+          "source": null,
+          "sourceUrl": null,
+          "isUserEdited": true,
+          "sortOrder": 1,
+          "createdAt": "2026-10-07T10:46:15.833Z",
+          "updatedAt": "2026-10-07T10:46:15.833Z"
+        }
+      ]
+    },
+    {
+      "id": "test_1791304824418_xuxyu",
+      "code": "TEST_1791304824418_XUXYU",
+      "name": "tesr",
+      "arabicName": "tesr",
+      "category": "أمراض الدم والتخثر",
+      "price": 15000,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": 1,
+      "refRangeHigh": 2,
+      "normalMaleLow": 40,
+      "normalMaleHigh": 50,
+      "normalFemaleLow": 60,
+      "normalFemaleHigh": 70,
+      "criticalLow": null,
+      "criticalHigh": null,
+      "refRangeText": "أطفال: 1 - 2 | رجال: 40 - 50 | نساء: 60 - 70",
+      "normalRange": "أطفال: 1 - 2 | رجال: 40 - 50 | نساء: 60 - 70",
+      "unit": null,
+      "sampleType": "مصل الدم (Serum)",
+      "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": [
+        {
+          "id": "rr_c_1791304745050",
+          "testId": "test_1791304824418_xuxyu",
+          "label": "أطفال",
+          "sex": "any",
+          "ageMin": 1,
+          "ageMax": 18,
+          "ageUnit": "months",
+          "low": 1,
+          "high": 2,
+          "text": null,
+          "unit": null,
+          "note": null,
+          "source": null,
+          "sourceUrl": null,
+          "isUserEdited": true,
+          "sortOrder": 0,
+          "createdAt": "2026-10-06T16:40:24.458Z",
+          "updatedAt": "2026-10-06T16:40:24.458Z"
+        },
+        {
+          "id": "rr_m_1791304745051",
+          "testId": "test_1791304824418_xuxyu",
+          "label": "رجال",
+          "sex": "M",
+          "ageMin": 18,
+          "ageMax": null,
+          "ageUnit": "years",
+          "low": 40,
+          "high": 50,
+          "text": null,
+          "unit": null,
+          "note": null,
+          "source": null,
+          "sourceUrl": null,
+          "isUserEdited": true,
+          "sortOrder": 1,
+          "createdAt": "2026-10-06T16:40:24.465Z",
+          "updatedAt": "2026-10-06T16:40:24.465Z"
+        },
+        {
+          "id": "rr_f_1791304745052",
+          "testId": "test_1791304824418_xuxyu",
+          "label": "نساء",
+          "sex": "F",
+          "ageMin": 18,
+          "ageMax": null,
+          "ageUnit": "years",
+          "low": 60,
+          "high": 70,
+          "text": null,
+          "unit": null,
+          "note": null,
+          "source": null,
+          "sourceUrl": null,
+          "isUserEdited": true,
+          "sortOrder": 2,
+          "createdAt": "2026-10-06T16:40:24.474Z",
+          "updatedAt": "2026-10-06T16:40:24.474Z"
+        }
+      ]
+    },
+    {
+      "id": "test_1791291659222_wusy0",
+      "code": "dc",
+      "name": "فحص",
+      "arabicName": "فحص",
+      "category": "أمراض الدم والتخثر",
+      "price": 10000,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": null,
+      "refRangeHigh": null,
+      "normalMaleLow": null,
+      "normalMaleHigh": null,
+      "normalFemaleLow": null,
+      "normalFemaleHigh": null,
+      "criticalLow": null,
+      "criticalHigh": null,
+      "refRangeText": null,
+      "normalRange": null,
+      "unit": null,
+      "sampleType": "مصل الدم (Serum)",
+      "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
+    },
+    {
+      "id": "cmu8t1int0002ggs4qmmcozcv",
+      "code": "HGB",
+      "name": "Hemoglobin",
+      "arabicName": "خضاب الدم (الهيموغلوبين)",
+      "category": "أمراض الدم والتخثر",
+      "price": 3000,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": 12,
+      "refRangeHigh": 17.5,
+      "normalMaleLow": 13.5,
+      "normalMaleHigh": 17.5,
+      "normalFemaleLow": 12,
+      "normalFemaleHigh": 15.5,
+      "criticalLow": 7,
+      "criticalHigh": 20,
+      "refRangeText": "M: 13.5 - 17.5 / F: 12.0 - 15.5 (Adult)",
+      "normalRange": "M: 13.5 - 17.5 / F: 12.0 - 15.5 (Adult)",
+      "unit": "g/dL",
+      "sampleType": "دم كامل (EDTA)",
+      "active": true,
+      "referenceSource": "Dacie and Lewis Practical Haematology 12th ed.; WHO Guideline on haemoglobin concentrations for anaemia diagnosis (2023) lower limits M 13.0/F 12.0; Mayo Clinic Laboratories"
     }
   ],
   "panels": [
@@ -4749,5 +5129,6 @@
     }
   ],
   "incomingResults": [],
-  "deviceRawLogs": []
+  "deviceRawLogs": [],
+  "debtTransactions": []
 }

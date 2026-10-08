@@ -83,6 +83,7 @@ export async function sampleRoutes(fastify: FastifyInstance) {
                 refRangeHigh: true,
                 refRangeText: true,
                 category: true,
+                referenceRanges: { orderBy: { sortOrder: 'asc' } },
               },
             },
           },
@@ -119,6 +120,7 @@ export async function sampleRoutes(fastify: FastifyInstance) {
                 refRangeHigh: true,
                 refRangeText: true,
                 category: true,
+                referenceRanges: { orderBy: { sortOrder: 'asc' } },
               },
             },
           },
@@ -247,7 +249,13 @@ export async function sampleRoutes(fastify: FastifyInstance) {
               patient: true,
               doctor: true,
               tests: {
-                include: { test: true },
+                include: {
+                  test: {
+                    include: {
+                      referenceRanges: { orderBy: { sortOrder: 'asc' } },
+                    },
+                  },
+                },
               },
             },
           });

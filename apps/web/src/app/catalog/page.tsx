@@ -30,6 +30,7 @@ import { useLab } from '../../components/LabContext';
 import { catalogCache } from '../../lib/catalogCache';
 import SpecialtySelector from '../../components/specialties/SpecialtySelector';
 import SpecialtiesManagerModal from '../../components/specialties/SpecialtiesManagerModal';
+import ReferenceRangesEditor from '../../components/catalog/ReferenceRangesEditor';
 
 const cleanArabic = (text: string) => {
   if (!text) return '';
@@ -52,6 +53,7 @@ export default function CatalogPage() {
   const [activeTab, setActiveTab] = useState<'tests' | 'panels'>('tests');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [highlightedTestId, setHighlightedTestId] = useState<string | null>(null);
 
   // Modals
   const [showTestModal, setShowTestModal] = useState(false);
@@ -329,7 +331,21 @@ export default function CatalogPage() {
     setSpecialtyId(null);
     setGroupId(null);
     setSortOrder(null);
-    setReferenceRanges([]);
+    // 1-Click ready default template: "للجميع"
+    setReferenceRanges([
+      {
+        id: `rr_${Date.now()}`,
+        label: 'للجميع',
+        sex: 'any',
+        ageMin: 0,
+        ageMax: null,
+        ageUnit: 'years',
+        low: null,
+        high: null,
+        isUserEdited: true,
+        sortOrder: 0,
+      },
+    ]);
     resetRangeForm();
     setIsFormDirty(false);
     setShowTestModal(true);
@@ -357,7 +373,54 @@ export default function CatalogPage() {
     setSpecialtyId(test.specialtyId || null);
     setGroupId(test.groupId || null);
     setSortOrder(test.sortOrder !== undefined && test.sortOrder !== null ? Number(test.sortOrder) : null);
-    setReferenceRanges(test.referenceRanges && Array.isArray(test.referenceRanges) ? JSON.parse(JSON.stringify(test.referenceRanges)) : []);
+
+    // Smart backward-compatible mapping of existing ranges:
+    if (test.referenceRanges && Array.isArray(test.referenceRanges) && test.referenceRanges.length > 0) {
+      setReferenceRanges(JSON.parse(JSON.stringify(test.referenceRanges)));
+    } else {
+      const mapped: any[] = [];
+      if (test.normalMaleLow != null || test.normalFemaleLow != null) {
+        mapped.push({
+          id: `rr_m_${Date.now()}`,
+          label: 'رجال',
+          sex: 'M',
+          ageMin: 18,
+          ageMax: null,
+          ageUnit: 'years',
+          low: test.normalMaleLow != null ? Number(test.normalMaleLow) : null,
+          high: test.normalMaleHigh != null ? Number(test.normalMaleHigh) : null,
+          unit: test.unit || null,
+          sortOrder: 0,
+        });
+        mapped.push({
+          id: `rr_f_${Date.now() + 1}`,
+          label: 'نساء',
+          sex: 'F',
+          ageMin: 18,
+          ageMax: null,
+          ageUnit: 'years',
+          low: test.normalFemaleLow != null ? Number(test.normalFemaleLow) : null,
+          high: test.normalFemaleHigh != null ? Number(test.normalFemaleHigh) : null,
+          unit: test.unit || null,
+          sortOrder: 1,
+        });
+      } else if (test.refRangeLow != null || test.refRangeHigh != null) {
+        mapped.push({
+          id: `rr_all_${Date.now()}`,
+          label: 'للجميع',
+          sex: 'any',
+          ageMin: 0,
+          ageMax: null,
+          ageUnit: 'years',
+          low: test.refRangeLow != null ? Number(test.refRangeLow) : null,
+          high: test.refRangeHigh != null ? Number(test.refRangeHigh) : null,
+          unit: test.unit || null,
+          sortOrder: 0,
+        });
+      }
+      setReferenceRanges(mapped);
+    }
+
     resetRangeForm();
     setIsFormDirty(false);
     setShowTestModal(true);
@@ -392,33 +455,64 @@ export default function CatalogPage() {
     }
 
     try {
-      // Auto-commit pending inline range if open and labeled
-      let finalReferenceRanges = [...referenceRanges];
-      if (showRangeForm && rangeLabel.trim()) {
-        const pendingRange = {
-          id: rangeEditIndex !== null && referenceRanges[rangeEditIndex]?.id
-            ? referenceRanges[rangeEditIndex].id
-            : `rr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-          label: rangeLabel.trim(),
-          sex: rangeSex,
-          ageMin: rangeAgeMin !== '' ? Number(rangeAgeMin) : null,
-          ageMax: rangeAgeMax !== '' ? Number(rangeAgeMax) : null,
-          ageUnit: rangeAgeUnit,
-          low: rangeLow !== '' ? Number(rangeLow) : null,
-          high: rangeHigh !== '' ? Number(rangeHigh) : null,
-          text: rangeText.trim() || (rangeLow !== '' && rangeHigh !== '' ? `${rangeLow} - ${rangeHigh}` : null),
-          unit: rangeUnit.trim() || unit || null,
-          note: rangeNote.trim() || null,
-          source: rangeSource.trim() || null,
-          sourceUrl: rangeSourceUrl.trim() || null,
-          isUserEdited: true,
-          sortOrder: rangeEditIndex !== null ? rangeEditIndex : referenceRanges.length,
-        };
-        if (rangeEditIndex !== null) {
-          finalReferenceRanges[rangeEditIndex] = pendingRange;
-        } else {
-          finalReferenceRanges.push(pendingRange);
+      // Auto-derive fallback fields and textual summary from referenceRanges
+      let derivedLow: number | null = null;
+      let derivedHigh: number | null = null;
+      let derivedMaleLow: number | null = null;
+      let derivedMaleHigh: number | null = null;
+      let derivedFemaleLow: number | null = null;
+      let derivedFemaleHigh: number | null = null;
+      let derivedRefText: string | null = null;
+
+      if (referenceRanges.length > 0) {
+        for (const r of referenceRanges) {
+          const isAll = r.sex === 'any' || r.label?.includes('جميع') || r.label?.includes('عام') || (!r.sex && !r.label);
+          const isMale = r.sex === 'M' || r.label?.includes('رجال') || r.label?.includes('ذكر');
+          const isFemale = r.sex === 'F' || r.label?.includes('نساء') || r.label?.includes('أنثى');
+
+          if (isAll) {
+            if (r.low != null) derivedLow = r.low;
+            if (r.high != null) derivedHigh = r.high;
+          }
+          if (isMale) {
+            if (r.low != null) derivedMaleLow = r.low;
+            if (r.high != null) derivedMaleHigh = r.high;
+          }
+          if (isFemale) {
+            if (r.low != null) derivedFemaleLow = r.low;
+            if (r.high != null) derivedFemaleHigh = r.high;
+          }
         }
+
+        // If no explicit general range, fallback to male, female, or the first range bounds
+        if (derivedLow === null && derivedHigh === null) {
+          derivedLow = derivedMaleLow ?? derivedFemaleLow ?? (referenceRanges[0].low != null ? referenceRanges[0].low : null);
+          derivedHigh = derivedMaleHigh ?? derivedFemaleHigh ?? (referenceRanges[0].high != null ? referenceRanges[0].high : null);
+        }
+
+        // Generate authoritative reference range text string
+        if (referenceRanges.length === 1) {
+          const r = referenceRanges[0];
+          const valStr = r.text?.trim() || (r.low != null && r.high != null ? `${r.low} - ${r.high}` : (r.low != null ? `>= ${r.low}` : (r.high != null ? `<= ${r.high}` : '')));
+          const hasCustomLabel = r.label && !r.label.includes('جميع') && !r.label.includes('عام') && r.label !== 'المعدل العام';
+          derivedRefText = hasCustomLabel && valStr ? `${r.label}: ${valStr}` : valStr;
+        } else {
+          derivedRefText = referenceRanges
+            .map((r: any) => {
+              const valStr = r.text?.trim() || (r.low != null && r.high != null ? `${r.low} - ${r.high}` : (r.low != null ? `>= ${r.low}` : (r.high != null ? `<= ${r.high}` : '')));
+              return r.label ? `${r.label}: ${valStr}` : valStr;
+            })
+            .filter(Boolean)
+            .join(' | ');
+        }
+      } else {
+        derivedLow = refRangeLow !== '' ? Number(refRangeLow) : null;
+        derivedHigh = refRangeHigh !== '' ? Number(refRangeHigh) : null;
+        derivedMaleLow = normalMaleLow !== '' ? Number(normalMaleLow) : null;
+        derivedMaleHigh = normalMaleHigh !== '' ? Number(normalMaleHigh) : null;
+        derivedFemaleLow = normalFemaleLow !== '' ? Number(normalFemaleLow) : null;
+        derivedFemaleHigh = normalFemaleHigh !== '' ? Number(normalFemaleHigh) : null;
+        derivedRefText = refRangeText.trim() || null;
       }
 
       const payload = {
@@ -431,22 +525,27 @@ export default function CatalogPage() {
         sortOrder: sortOrder !== undefined && sortOrder !== null ? Number(sortOrder) : null,
         price: Number(price),
         costEstimate: costEstimate !== '' ? Number(costEstimate) : null,
-        refRangeLow: refRangeLow !== '' ? Number(refRangeLow) : null,
-        refRangeHigh: refRangeHigh !== '' ? Number(refRangeHigh) : null,
-        normalMaleLow: normalMaleLow !== '' ? Number(normalMaleLow) : null,
-        normalMaleHigh: normalMaleHigh !== '' ? Number(normalMaleHigh) : null,
-        normalFemaleLow: normalFemaleLow !== '' ? Number(normalFemaleLow) : null,
-        normalFemaleHigh: normalFemaleHigh !== '' ? Number(normalFemaleHigh) : null,
-        criticalLow: criticalLow !== '' ? Number(criticalLow) : null,
-        criticalHigh: criticalHigh !== '' ? Number(criticalHigh) : null,
-        refRangeText: refRangeText.trim() || null,
+        refRangeLow: derivedLow,
+        refRangeHigh: derivedHigh,
+        normalMaleLow: derivedMaleLow,
+        normalMaleHigh: derivedMaleHigh,
+        normalFemaleLow: derivedFemaleLow,
+        normalFemaleHigh: derivedFemaleHigh,
+        criticalLow: criticalLow !== '' && criticalLow !== null ? Number(criticalLow) : null,
+        criticalHigh: criticalHigh !== '' && criticalHigh !== null ? Number(criticalHigh) : null,
+        refRangeText: derivedRefText,
         unit: unit.trim() || null,
         sampleType,
-        referenceRanges: finalReferenceRanges.length > 0 ? finalReferenceRanges : undefined,
+        referenceRanges: referenceRanges.length > 0 ? referenceRanges : [],
       };
 
+      let savedTestId = editingTestId;
+
       if (editingTestId) {
-        await apiRequest(`/tests/${editingTestId}`, 'PATCH', payload);
+        const updated = await apiRequest(`/tests/${editingTestId}`, 'PATCH', payload);
+        savedTestId = updated?.id || editingTestId;
+        // Optimistically update test in local tests array with updated referenceRanges
+        setTests((prev) => prev.map((t) => (t.id === editingTestId ? { ...t, ...payload, id: editingTestId, referenceRanges: [...referenceRanges] } : t)));
         toast.success('تم تعديل بيانات الفحص المخبري بنجاح!', 'تم التحديث');
       } else {
         const normName = name.trim().toLowerCase();
@@ -459,8 +558,33 @@ export default function CatalogPage() {
           toast.warning(`فحص بهذا الاسم أو الرمز موجود مسبقاً (${duplicate.name})`, 'تنبيه التكرار');
           return;
         }
-        await apiRequest('/tests', 'POST', payload);
+        const created = await apiRequest('/tests', 'POST', payload);
+        savedTestId = created?.id || `test_${Date.now()}`;
+        // Optimistically insert into local tests array
+        setTests((prev) => [created || { ...payload, id: savedTestId }, ...prev]);
         toast.success('تمت إضافة الفحص الجديد للكتالوج بنجاح!', 'تم الحفظ');
+      }
+
+      // Visual highlight glow & smooth scroll
+      if (savedTestId) {
+        setHighlightedTestId(savedTestId);
+        setTimeout(() => setHighlightedTestId(null), 3500);
+        setTimeout(() => {
+          const el = document.getElementById(`test-row-${savedTestId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 150);
+      }
+
+      // If category filter hides it, switch to ALL or test's category
+      if (selectedCategory !== 'ALL' && selectedCategory !== category) {
+        setSelectedCategory('ALL');
+      }
+
+      // Clear search query if it would hide this test
+      if (searchQuery.trim() && !name.toLowerCase().includes(searchQuery.toLowerCase()) && !code.toLowerCase().includes(searchQuery.toLowerCase())) {
+        setSearchQuery('');
       }
 
       setIsFormDirty(false);
@@ -716,8 +840,18 @@ export default function CatalogPage() {
                       <td colSpan={10} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>لا توجد فحوصات مطابقة للبحث</td>
                     </tr>
                   ) : (
-                    filteredTests.map((t) => (
-                      <tr key={t.id}>
+                    filteredTests.map((t) => {
+                      const isHighlighted = highlightedTestId === t.id;
+                      return (
+                      <tr
+                        key={t.id}
+                        id={`test-row-${t.id}`}
+                        style={{
+                          background: isHighlighted ? 'rgba(6, 182, 212, 0.22)' : undefined,
+                          boxShadow: isHighlighted ? 'inset 0 0 0 1.5px var(--accent-cyan, #06b6d4), 0 0 16px rgba(6, 182, 212, 0.35)' : undefined,
+                          transition: 'background 0.5s ease, box-shadow 0.5s ease',
+                        }}
+                      >
                         <td>
                           {t.code ? (
                             <span style={{ fontSize: '11px', background: 'rgba(6, 182, 212, 0.15)', color: 'var(--accent-cyan)', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
@@ -727,7 +861,16 @@ export default function CatalogPage() {
                             <span style={{ color: 'var(--text-dim)' }}>-</span>
                           )}
                         </td>
-                        <td style={{ fontWeight: 800, color: 'var(--text-main)' }}>{t.name}</td>
+                        <td style={{ fontWeight: 800, color: 'var(--text-main)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>{t.name}</span>
+                            {isHighlighted && (
+                              <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(6, 182, 212, 0.25)', color: 'var(--accent-cyan)', fontWeight: 800 }}>
+                                محدث الآن
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td style={{ color: 'var(--text-muted)' }}>{t.arabicName || '-'}</td>
                         <td>
                           <span className="badge badge-received" style={{ fontSize: '10px' }}>{t.category || 'عام'}</span>
@@ -735,9 +878,68 @@ export default function CatalogPage() {
                         <td style={{ fontWeight: 900, color: 'var(--accent-cyan)' }}>{t.price?.toLocaleString()} {currency}</td>
                         <td style={{ color: 'var(--text-muted)' }}>{t.costEstimate ? `${t.costEstimate.toLocaleString()} ${currency}` : '-'}</td>
                         <td style={{ fontSize: '11.5px' }}>
-                          <span dir="ltr" style={{ display: 'inline-block', direction: 'ltr', unicodeBidi: 'isolate' }}>
-                            {t.refRangeText || (t.refRangeLow != null && t.refRangeHigh != null ? `${t.refRangeLow} - ${t.refRangeHigh}` : (t.refRangeLow != null ? `>= ${t.refRangeLow}` : (t.refRangeHigh != null ? `<= ${t.refRangeHigh}` : '-')))}
-                          </span>
+                          {(() => {
+                            const rRanges = t.referenceRanges && Array.isArray(t.referenceRanges) ? t.referenceRanges : [];
+                            if (rRanges.length === 1) {
+                              const r = rRanges[0];
+                              const val = r.text || (r.low != null && r.high != null ? `${r.low} - ${r.high}` : (r.low != null ? `>= ${r.low}` : (r.high != null ? `<= ${r.high}` : '-')));
+                              const isCustom = r.label && !r.label.includes('جميع') && !r.label.includes('عام') && r.label !== 'المعدل العام';
+                              return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                  <span dir="ltr" style={{ display: 'inline-block', direction: 'ltr', unicodeBidi: 'isolate', fontWeight: 700, color: 'var(--text-main)' }}>
+                                    {val}
+                                  </span>
+                                  {isCustom && (
+                                    <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>{r.label}</span>
+                                  )}
+                                </div>
+                              );
+                            }
+                            if (rRanges.length > 1) {
+                              return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: '280px' }}>
+                                    {rRanges.map((rr: any, idx: number) => {
+                                      const val = rr.text || (rr.low != null && rr.high != null ? `${rr.low} - ${rr.high}` : (rr.low != null ? `>= ${rr.low}` : (rr.high != null ? `<= ${rr.high}` : '')));
+                                      const isMale = rr.sex === 'M' || rr.label?.includes('رجال') || rr.label?.includes('ذكر');
+                                      const isFemale = rr.sex === 'F' || rr.label?.includes('نساء') || rr.label?.includes('أنثى');
+                                      const bg = isMale ? 'rgba(59, 130, 246, 0.12)' : isFemale ? 'rgba(236, 72, 153, 0.12)' : 'rgba(255, 255, 255, 0.06)';
+                                      const border = isMale ? 'rgba(59, 130, 246, 0.3)' : isFemale ? 'rgba(236, 72, 153, 0.3)' : 'var(--border-color)';
+                                      const color = isMale ? '#60a5fa' : isFemale ? '#f472b6' : 'var(--text-main)';
+                                      return (
+                                        <span
+                                          key={idx}
+                                          dir="ltr"
+                                          style={{
+                                            fontSize: '10.5px',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            background: bg,
+                                            border: `1px solid ${border}`,
+                                            color,
+                                            fontWeight: 700,
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px'
+                                          }}
+                                        >
+                                          <span style={{ opacity: 0.85 }}>{rr.label || (isMale ? 'M' : isFemale ? 'F' : '')}:</span>
+                                          <strong>{val}</strong>
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            }
+                            // Fallback for legacy tests
+                            const legacyVal = t.refRangeText || (t.refRangeLow != null && t.refRangeHigh != null ? `${t.refRangeLow} - ${t.refRangeHigh}` : (t.refRangeLow != null ? `>= ${t.refRangeLow}` : (t.refRangeHigh != null ? `<= ${t.refRangeHigh}` : '-')));
+                            return (
+                              <span dir="ltr" style={{ display: 'inline-block', direction: 'ltr', unicodeBidi: 'isolate' }}>
+                                {legacyVal}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td>
                           {(t.criticalLow !== null || t.criticalHigh !== null) ? (
@@ -767,7 +969,8 @@ export default function CatalogPage() {
                           </div>
                         </td>
                       </tr>
-                    ))
+                    );
+                  })
                   )}
                 </tbody>
               </table>
@@ -833,7 +1036,7 @@ export default function CatalogPage() {
           <div
             className="modal-content"
             style={{
-              maxWidth: '680px',
+              maxWidth: '840px',
               width: '95vw',
               maxHeight: '90vh',
               display: 'flex',
@@ -972,379 +1175,23 @@ export default function CatalogPage() {
                 </div>
               </div>
 
-              {/* Reference Range Section */}
-              <div style={{ padding: '10px 12px', background: 'var(--bg-card-subtle)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--accent-cyan)', display: 'block', marginBottom: '8px' }}>
-                  المعدلات الطبيعية المعتمدة (Reference Intervals):
-                </span>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
-                  <div>
-                    <label className="input-label">المعدل العام (الأدنى - الأعلى)</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                      <input
-                        type="number"
-                        step="any"
-                        placeholder="الأدنى"
-                        className="input-control"
-                        value={refRangeLow}
-                        onChange={(e) => setRefRangeLow(e.target.value)}
-                      />
-                      <input
-                        type="number"
-                        step="any"
-                        placeholder="الأعلى"
-                        className="input-control"
-                        value={refRangeHigh}
-                        onChange={(e) => setRefRangeHigh(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="input-label">الحدود الحرجة الطارئة (Panic Low - High)</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                      <input
-                        type="number"
-                        step="any"
-                        placeholder="أقل من (حرج)"
-                        className="input-control"
-                        style={{ color: 'var(--accent-rose)' }}
-                        value={criticalLow}
-                        onChange={(e) => setCriticalLow(e.target.value)}
-                      />
-                      <input
-                        type="number"
-                        step="any"
-                        placeholder="أعلى من (حرج)"
-                        className="input-control"
-                        style={{ color: 'var(--accent-rose)' }}
-                        value={criticalHigh}
-                        onChange={(e) => setCriticalHigh(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label className="input-label">ذكور (Male) (الأدنى - الأعلى)</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                      <input
-                        type="number"
-                        step="any"
-                        placeholder="أدنى ذكر"
-                        className="input-control"
-                        value={normalMaleLow}
-                        onChange={(e) => setNormalMaleLow(e.target.value)}
-                      />
-                      <input
-                        type="number"
-                        step="any"
-                        placeholder="أعلى ذكر"
-                        className="input-control"
-                        value={normalMaleHigh}
-                        onChange={(e) => setNormalMaleHigh(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="input-label">إناث (Female) (الأدنى - الأعلى)</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                      <input
-                        type="number"
-                        step="any"
-                        placeholder="أدنى أنثى"
-                        className="input-control"
-                        value={normalFemaleLow}
-                        onChange={(e) => setNormalFemaleLow(e.target.value)}
-                      />
-                      <input
-                        type="number"
-                        step="any"
-                        placeholder="أعلى أنثى"
-                        className="input-control"
-                        value={normalFemaleHigh}
-                        onChange={(e) => setNormalFemaleHigh(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Multi-Tier Reference Ranges Section (Item 5) */}
-              <div style={{ padding: '12px 14px', background: 'var(--bg-card)', borderRadius: '8px', border: '1.5px solid var(--accent-cyan-subtle, #0284c7)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                  <div>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <BookOpen size={15} />
-                      <span>المديات المرجعية المتقدمة حسب الجنس والعمر (Multiple Reference Ranges)</span>
-                    </span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      تحديد مديات مفصلة للرجال، النساء، الأطفال، وحديثي الولادة مع توثيق المصدر السريري
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      type="button"
-                      onClick={handleAutoFillPcv}
-                      title="ملء تلقائي معتمد من Mayo Clinic و Harriet Lane لـ PCV"
-                      className="btn-secondary"
-                      style={{ fontSize: '11px', padding: '4px 10px', color: '#0284c7', borderColor: '#0284c7', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      <Sparkles size={12} />
-                      <span>ملء معتمد لـ PCV</span>
-                    </button>
-
-                    {!showRangeForm && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          resetRangeForm();
-                          setShowRangeForm(true);
-                        }}
-                        className="btn-secondary"
-                        style={{ fontSize: '11px', padding: '4px 10px', color: 'var(--accent-emerald)', borderColor: 'var(--accent-emerald)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        <Plus size={12} />
-                        <span>+ إضافة مدى</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Existing Ranges List */}
-                {referenceRanges.length === 0 ? (
-                  <div style={{ padding: '12px', background: 'var(--bg-input-deep)', borderRadius: '6px', textAlign: 'center', fontSize: '11.5px', color: 'var(--text-muted)', border: '1px dashed var(--border-color)' }}>
-                    لا توجد مديات فرعية مخصصة مسجلة لهذا الفحص — سيتم اعتماد المعدل العام أعلاه افتراضياً.
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {referenceRanges.map((r, idx) => (
-                      <div
-                        key={r.id || idx}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '8px 12px',
-                          background: 'var(--bg-input-deep)',
-                          borderRadius: '6px',
-                          border: '1px solid var(--border-color)',
-                          fontSize: '11.5px',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>{r.label}</span>
-                          <span style={{ padding: '1px 6px', borderRadius: '4px', background: r.sex === 'M' ? '#dbeafe' : r.sex === 'F' ? '#fce7f3' : '#f1f5f9', color: r.sex === 'M' ? '#1d4ed8' : r.sex === 'F' ? '#be185d' : '#475569', fontSize: '10px', fontWeight: 700 }}>
-                            {r.sex === 'M' ? 'ذكور (M)' : r.sex === 'F' ? 'إناث (F)' : 'الكل (Any)'}
-                          </span>
-                          {(r.ageMin != null || r.ageMax != null) && (
-                            <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
-                              العمر: {r.ageMin ?? 0} - {r.ageMax ?? '∞'} {r.ageUnit === 'days' ? 'يوم' : r.ageUnit === 'months' ? 'شهر' : 'سنة'}
-                            </span>
-                          )}
-                          <span dir="ltr" style={{ fontWeight: 800, color: 'var(--accent-cyan)', direction: 'ltr', unicodeBidi: 'isolate' }}>
-                            {r.text || (r.low != null && r.high != null ? `${r.low} - ${r.high}` : (r.low != null ? `>= ${r.low}` : r.high != null ? `<= ${r.high}` : '-'))} {r.unit || unit || ''}
-                          </span>
-                          {r.source && (
-                            <span style={{ fontSize: '10px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '2px' }} title={r.source}>
-                              <ShieldCheck size={11} /> {r.source.substring(0, 30)}...
-                            </span>
-                          )}
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <button
-                            type="button"
-                            onClick={() => handleMoveRange(idx, 'UP')}
-                            disabled={idx === 0}
-                            style={{ background: 'none', border: 'none', cursor: idx === 0 ? 'default' : 'pointer', color: idx === 0 ? 'var(--text-dim)' : 'var(--text-muted)', padding: '2px' }}
-                            title="تحريك لأعلى"
-                          >
-                            <ChevronUp size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleMoveRange(idx, 'DOWN')}
-                            disabled={idx === referenceRanges.length - 1}
-                            style={{ background: 'none', border: 'none', cursor: idx === referenceRanges.length - 1 ? 'default' : 'pointer', color: idx === referenceRanges.length - 1 ? 'var(--text-dim)' : 'var(--text-muted)', padding: '2px' }}
-                            title="تحريك لأسفل"
-                          >
-                            <ChevronDown size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditRange(idx)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0284c7', padding: '2px' }}
-                            title="تعديل المدى"
-                          >
-                            <Edit3 size={13} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteRange(idx)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '2px' }}
-                            title="حذف المدى"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Sub-form to Add or Edit Range */}
-                {showRangeForm && (
-                  <div style={{ padding: '12px', background: 'var(--bg-input-deep)', borderRadius: '8px', border: '1px solid var(--accent-cyan)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--accent-cyan)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>{rangeEditIndex !== null ? 'تعديل بيانات المدى المرجعي' : 'إضافة مدى مرجعي جديد'}</span>
-                      <button type="button" onClick={resetRangeForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={14} /></button>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: '8px' }}>
-                      <div>
-                        <label className="input-label">التسمية (Label) *</label>
-                        <input
-                          type="text"
-                          placeholder="مثال: البالغين / حديثي الولادة"
-                          className="input-control"
-                          value={rangeLabel}
-                          onChange={(e) => setRangeLabel(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="input-label">الجنس (Sex)</label>
-                        <select className="input-control" value={rangeSex} onChange={(e) => setRangeSex(e.target.value as any)}>
-                          <option value="any">الكل (Any)</option>
-                          <option value="M">ذكور (M)</option>
-                          <option value="F">إناث (F)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="input-label">أدنى عمر</label>
-                        <input
-                          type="number"
-                          step="any"
-                          placeholder="0"
-                          className="input-control"
-                          value={rangeAgeMin}
-                          onChange={(e) => setRangeAgeMin(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="input-label">أعلى عمر</label>
-                        <input
-                          type="number"
-                          step="any"
-                          placeholder="120"
-                          className="input-control"
-                          value={rangeAgeMax}
-                          onChange={(e) => setRangeAgeMax(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="input-label">وحدة العمر</label>
-                        <select className="input-control" value={rangeAgeUnit} onChange={(e) => setRangeAgeUnit(e.target.value as any)}>
-                          <option value="years">سنوات (Years)</option>
-                          <option value="months">أشهر (Months)</option>
-                          <option value="days">أيام (Days)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr 1fr', gap: '8px' }}>
-                      <div>
-                        <label className="input-label">الحد الأدنى (Low)</label>
-                        <input
-                          type="number"
-                          step="any"
-                          placeholder="الأدنى"
-                          className="input-control"
-                          value={rangeLow}
-                          onChange={(e) => setRangeLow(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="input-label">الحد الأعلى (High)</label>
-                        <input
-                          type="number"
-                          step="any"
-                          placeholder="الأعلى"
-                          className="input-control"
-                          value={rangeHigh}
-                          onChange={(e) => setRangeHigh(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="input-label">نص المدى المرجعي (Text Range)</label>
-                        <input
-                          type="text"
-                          placeholder="مثال: 40.0 - 52.0 أو مرغوب <200"
-                          className="input-control"
-                          value={rangeText}
-                          onChange={(e) => setRangeText(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="input-label">الوحدة (Unit)</label>
-                        <input
-                          type="text"
-                          placeholder={unit || 'الوحدة'}
-                          className="input-control"
-                          value={rangeUnit}
-                          onChange={(e) => setRangeUnit(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 2fr', gap: '8px' }}>
-                      <div>
-                        <label className="input-label">المصدر المعتمد (Source)</label>
-                        <input
-                          type="text"
-                          placeholder="مثال: Mayo Clinic / WHO / Tietz"
-                          className="input-control"
-                          value={rangeSource}
-                          onChange={(e) => setRangeSource(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="input-label">رابط المصدر (Source URL)</label>
-                        <input
-                          type="url"
-                          placeholder="https://www.mayocliniclabs.com/..."
-                          className="input-control"
-                          value={rangeSourceUrl}
-                          onChange={(e) => setRangeSourceUrl(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="input-label">ملاحظات سريرية (Note)</label>
-                        <input
-                          type="text"
-                          placeholder="ملاحظة حول الطريقة المخبرية..."
-                          className="input-control"
-                          value={rangeNote}
-                          onChange={(e) => setRangeNote(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', marginTop: '4px' }}>
-                      <button type="button" onClick={handleSaveRange} className="btn-primary" style={{ fontSize: '11px', padding: '6px 14px' }}>
-                        {rangeEditIndex !== null ? 'تحديث المدى' : 'حفظ المدى'}
-                      </button>
-                      <button type="button" onClick={resetRangeForm} className="btn-secondary" style={{ fontSize: '11px', padding: '6px 12px' }}>
-                        إلغاء
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* Unified Clinical Reference Ranges Editor */}
+              <ReferenceRangesEditor
+                testName={name || 'فحص جديد'}
+                unit={unit}
+                ranges={referenceRanges}
+                onChange={(newRanges) => {
+                  setReferenceRanges(newRanges);
+                  setIsFormDirty(true);
+                }}
+                criticalLow={criticalLow}
+                criticalHigh={criticalHigh}
+                onCriticalChange={(low, high) => {
+                  setCriticalLow(low);
+                  setCriticalHigh(high);
+                  setIsFormDirty(true);
+                }}
+              />
               </div>
 
               {/* Sticky Footer */}
