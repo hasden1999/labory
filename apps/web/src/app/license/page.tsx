@@ -3,7 +3,6 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState } from 'react';
-import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { 
@@ -81,7 +80,7 @@ export default function LicensePage() {
   );
 
   return (
-    <AppShell>
+    <>
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -198,6 +197,6 @@ export default function LicensePage() {
         </div>
 
       </div>
-    </AppShell>
+    </>
   );
 }

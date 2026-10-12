@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useLab } from '../../components/LabContext';
@@ -102,7 +101,7 @@ export default function DashboardPage() {
   const statusBreakdown = dashboardData?.statusBreakdown || {};
 
   return (
-    <AppShell>
+    <>
       {/* Header */}
       <div className="page-header">
         <div>
@@ -913,6 +912,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-    </AppShell>
+    </>
   );
 }

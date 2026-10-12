@@ -3,7 +3,6 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -151,7 +150,7 @@ export default function InventoryPage() {
   }, [items, filterMode, searchQuery]);
 
   return (
-    <AppShell>
+    <>
       {/* Header */}
       <div className="page-header">
         <div>
@@ -618,6 +617,6 @@ export default function InventoryPage() {
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteConfirmId(null)}
       />
-    </AppShell>
+    </>
   );
 }

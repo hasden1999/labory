@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState, useMemo, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useLab } from '../../components/LabContext';
@@ -461,7 +460,7 @@ function PatientsContent() {
   }, [patients, patientDetailsMap]);
 
   return (
-    <AppShell>
+    <>
       <div style={{ maxWidth: '1440px', margin: '0 auto', paddingBottom: '40px', direction: 'rtl' }}>
         
         {/* TOP HEADER SECTION */}
@@ -2020,7 +2019,7 @@ function PatientsContent() {
           </div>
         </div>
       )}
-    </AppShell>
+    </>
   );
 }
 

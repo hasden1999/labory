@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useLab } from '../../components/LabContext';
@@ -121,7 +120,7 @@ function SamplesContent() {
   useEffect(() => {
     const interval = setInterval(() => {
       loadSamples(false, true);
-    }, 4000);
+    }, 15000);
 
     const handleFocus = () => {
       loadSamples(false, true);
@@ -204,7 +203,7 @@ function SamplesContent() {
   }, [samples]);
 
   return (
-    <AppShell>
+    <>
       {/* 1. Page Header */}
       <div className="page-header">
         <div>
@@ -871,7 +870,7 @@ function SamplesContent() {
         </div>
       )}
 
-    </AppShell>
+    </>
   );
 }
 

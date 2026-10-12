@@ -2,6 +2,7 @@ import './globals.css';
 import React from 'react';
 import type { Metadata, Viewport } from 'next';
 import Providers from '../components/Providers';
+import AppShell from '../components/AppShell';
 
 export const metadata: Metadata = {
   title: 'Labryo (لابريو) - نظام إدارة المختبرات الطبية والتشخيص الذكي',
@@ -25,7 +26,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <AppShell>{children}</AppShell>
+        </Providers>
         <script
           dangerouslySetInnerHTML={{
             __html: `

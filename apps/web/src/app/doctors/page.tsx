@@ -3,7 +3,6 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -142,7 +141,7 @@ export default function DoctorsPage() {
   const activeCount = doctors.filter((d) => d.isActive !== false).length;
 
   return (
-    <AppShell>
+    <>
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -446,6 +445,6 @@ export default function DoctorsPage() {
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteDoctorId(null)}
       />
-    </AppShell>
+    </>
   );
 }

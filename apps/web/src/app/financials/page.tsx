@@ -3,7 +3,6 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState } from 'react';
-import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { 
@@ -334,7 +333,7 @@ export default function FinancialsPage() {
   const summary = financialData || {};
 
   return (
-    <AppShell>
+    <>
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -1847,6 +1846,6 @@ export default function FinancialsPage() {
           </div>
         </div>
       )}
-    </AppShell>
+    </>
   );
 }

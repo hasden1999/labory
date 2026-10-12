@@ -3,7 +3,6 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState } from 'react';
-import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -80,7 +79,7 @@ export default function StaffPage() {
   };
 
   return (
-    <AppShell>
+    <>
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -253,6 +252,6 @@ export default function StaffPage() {
           </div>
         </div>
       )}
-    </AppShell>
+    </>
   );
 }

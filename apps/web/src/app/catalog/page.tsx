@@ -3,7 +3,6 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -26,11 +25,13 @@ import {
   BookOpen,
   ShieldCheck
 } from 'lucide-react';
+import dynamicImport from 'next/dynamic';
 import { useLab } from '../../components/LabContext';
 import { catalogCache } from '../../lib/catalogCache';
 import SpecialtySelector from '../../components/specialties/SpecialtySelector';
-import SpecialtiesManagerModal from '../../components/specialties/SpecialtiesManagerModal';
-import ReferenceRangesEditor from '../../components/catalog/ReferenceRangesEditor';
+
+const SpecialtiesManagerModal = dynamicImport(() => import('../../components/specialties/SpecialtiesManagerModal'), { ssr: false });
+const ReferenceRangesEditor = dynamicImport(() => import('../../components/catalog/ReferenceRangesEditor'), { ssr: false });
 
 const cleanArabic = (text: string) => {
   if (!text) return '';
@@ -417,6 +418,21 @@ export default function CatalogPage() {
           unit: test.unit || null,
           sortOrder: 0,
         });
+      } else if (test.refRangeText) {
+        mapped.push({
+          id: `rr_text_${Date.now()}`,
+          label: 'للجميع',
+          sex: 'any',
+          ageMin: 0,
+          ageMax: null,
+          ageUnit: 'years',
+          low: null,
+          high: null,
+          text: test.refRangeText,
+          valueType: 'text',
+          unit: test.unit || null,
+          sortOrder: 0,
+        });
       }
       setReferenceRanges(mapped);
     }
@@ -693,7 +709,7 @@ export default function CatalogPage() {
   }, [tests, selectedCategory, searchQuery]);
 
   return (
-    <AppShell>
+    <>
       {/* Header */}
       <div className="page-header">
         <div>
@@ -1390,6 +1406,6 @@ export default function CatalogPage() {
         onClose={() => setShowSpecialtiesModal(false)}
         onChanged={loadCatalog}
       />
-    </AppShell>
+    </>
   );
 }

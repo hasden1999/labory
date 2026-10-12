@@ -3,7 +3,6 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState } from 'react';
-import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -344,7 +343,7 @@ export default function DevicesPage() {
   };
 
   return (
-    <AppShell>
+    <>
       <div style={{ padding: '16px 20px' }}>
         {/* Page Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
@@ -1138,6 +1137,6 @@ export default function DevicesPage() {
           onCancel={() => setDeleteDeviceId(null)}
         />
       </div>
-    </AppShell>
+    </>
   );
 }

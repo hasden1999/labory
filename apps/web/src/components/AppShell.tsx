@@ -33,6 +33,11 @@ import {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
+  const HIDE_SHELL = ['/', '/login', '/showcase'];
+  const hideShell = HIDE_SHELL.includes(pathname) || pathname?.startsWith('/verify');
+  if (hideShell) return <>{children}</>;
+
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { labProfile } = useLab();
@@ -90,7 +95,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', color: 'var(--text-main)', fontFamily: 'var(--font-family)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', color: 'var(--text-main)', fontFamily: 'var(--font-family)', overflowX: 'clip', maxWidth: '100vw' }}>
       <UpdateNotificationBanner />
       {/* 1. TOP SLEEK NAVIGATION BAR (Concept Mockup Style) */}
       <header
@@ -101,12 +106,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           background: 'var(--bg-secondary)',
           borderBottom: '1px solid var(--border-color)',
           backdropFilter: 'blur(12px)',
-          padding: '0 24px',
+          padding: '0 16px',
           height: '68px',
           minHeight: '68px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
         }}
       >
         {/* Left: Brand Logo & Title */}

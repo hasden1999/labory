@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { Plus, DollarSign } from 'lucide-react';
 import { toEnglishDigits, formatEnglishDate } from '../../lib/formatters';
@@ -52,7 +51,7 @@ export default function ExpensesPage() {
   const totalFixedExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
 
   return (
-    <AppShell>
+    <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 800 }}>المصاريف الثابتة والتشغيلية</h1>
@@ -136,6 +135,6 @@ export default function ExpensesPage() {
           </div>
         </div>
       )}
-    </AppShell>
+    </>
   );
 }

@@ -3,7 +3,6 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState, useMemo, useRef, Suspense } from 'react';
-import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useSearchParams } from 'next/navigation';
@@ -358,7 +357,7 @@ function ResultsContent() {
   useEffect(() => {
     const interval = setInterval(() => {
       loadSamples(true);
-    }, 4000);
+    }, 15000);
 
     const handleFocus = () => {
       loadSamples(true);
@@ -1282,7 +1281,7 @@ function ResultsContent() {
   };
 
   return (
-    <AppShell>
+    <>
       {/* Smart Expiry Reagent Clinical Alert Banner */}
       {inventoryAlerts && inventoryAlerts.expiredCount > 0 && (
         <aside
@@ -1470,7 +1469,7 @@ function ResultsContent() {
                 </span>
               </div>
               <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                {selectedSample.patient?.gender === 'FEMALE' ? 'Female' : 'Male'}, {formatClinicalAge(selectedSample.patient, selectedSample.createdAt)} • {new Date(selectedSample.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                {selectedSample.patient?.gender === 'FEMALE' ? 'أنثى' : 'ذكر'}, {formatClinicalAge(selectedSample.patient, selectedSample.createdAt)} • {new Date(selectedSample.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
           )}
@@ -1478,7 +1477,7 @@ function ResultsContent() {
           {/* Queue List with Distinct STAT & Elapsed Time */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', flex: 1, paddingRight: '2px' }}>
             {loadingSamples ? (
-              <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>Loading queue...</div>
+              <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>جاري تحميل قائمة العينات...</div>
             ) : filteredSamples.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)', fontSize: '11.5px' }}>
                 {dateFilter === 'TODAY' ? 'لا توجد عينات مسجلة لليوم حتى الآن' : 'لا توجد عينات مطابقة'}
@@ -3011,7 +3010,7 @@ function ResultsContent() {
         />
       )}
 
-    </AppShell>
+    </>
   );
 }
 

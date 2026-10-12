@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import AppShell from '../../components/AppShell';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { 
@@ -272,7 +271,7 @@ function DebtsContent() {
   };
 
   return (
-    <AppShell>
+    <>
       {/* Page Header */}
       <div className="page-header">
         <div>
@@ -996,7 +995,7 @@ function DebtsContent() {
           </div>
         </div>
       )}
-    </AppShell>
+    </>
   );
 }
 

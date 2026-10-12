@@ -3,8 +3,12 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState } from 'react';
-import AppShell from '../../components/AppShell';
-import PaperDesignerV2 from '../../components/workspace/PaperDesignerV2';
+import dynamicImport from 'next/dynamic';
+
+const PaperDesignerV2 = dynamicImport(() => import('../../components/workspace/PaperDesignerV2'), {
+  ssr: false,
+  loading: () => <div className="p-8 text-center text-slate-400">جاري تحميل مصمم النماذج...</div>,
+});
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useLab } from '../../components/LabContext';
@@ -243,7 +247,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <AppShell>
+    <>
       {/* Load Google Fonts */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -254,10 +258,10 @@ export default function SettingsPage() {
         <div>
           <h1 className="page-title">
             <Layout color="#06b6d4" size={24} />
-            مصمم التقارير البصري الشامل وإعدادات الورقة (Universal Form Designer)
+            إعدادات النظام ومصمم نماذج التقارير الطبية (Settings & Report Templates)
           </h1>
           <p className="page-subtitle">
-            مركز تحكم موحد ومتكامل لتخصيص كامل للتقارير الطبية A4: نوع وحجم الخط، القوالب السريرية، الهوامش بالمليمتر، الهوية الطبية، ومعاينة حية فورية
+            مركز تحكم موحد لتخصيص تقارير المختبر: اختيار النماذج الجاهزة الـ 11، رفع واعتماد فورمة مخصصة، معايرة الهوامش بالمليمتر، الألوان والخطوط، والنسخ الاحتياطي
           </p>
         </div>
 
@@ -298,7 +302,7 @@ export default function SettingsPage() {
           }}
         >
           <Sparkles size={15} />
-          <span>🎨 تصميم وضبط ورقة الطباعة الشاملة (Paper & Report Designer)</span>
+          <span>✨ استوديو وتصميم الفورمات (11 قوالب معتمدة)</span>
         </button>
 
         <button
@@ -862,6 +866,6 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
-    </AppShell>
+    </>
   );
 }
