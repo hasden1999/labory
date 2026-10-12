@@ -77,9 +77,6 @@ const sha256Hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
 console.log(`بصمة التشفير SHA-256: ${sha256Hash}`);
 fs.writeFileSync(`${setupExePath}.sha256`, sha256Hash, 'utf-8');
 
-// اسم الملف عند الرفع (تجنب الأحرف الخاصة في أسماء أصول GitHub Releases)
-const sanitizedRemoteName = `Labryo.LIMS.Setup.${VERSION}.exe`;
-
 // 4. توليد بيان التحديث latest.json
 const manifest = {
   version: VERSION,
@@ -92,7 +89,7 @@ const manifest = {
   releaseDate: new Date().toISOString(),
   downloadUrl: `https://github.com/${OWNER}/${REPO}/releases/download/${TAG}/${sanitizedRemoteName}`,
   mandatory: false,
-  releaseNotes: "تحديث v1.0.7: إرسال النتائج عبر واتساب كصور عالية الدقة (Retina 2x) لكل استمارة طبية، تدقيق القفزات الحرجة والمقارنة بالنتائج السابقة (Delta Check)، تجربة الاستقبال السريعة الفائقة باختصارات F1-F6 ومنع الفحوصات المكررة والطباعة الصامتة للباركود، وتسريع الإقلاع الأولي لتطبيق سطح المكتب."
+  releaseNotes: "تحديث v1.4.7: توحيد غلاف التطبيق في التخطيط الجذري، التدوير التلقائي المشفر لمفاتيح أجهزة التحليل الطبية، تعزيز استقرار المحرك المستقل Standalone، واكتمال منظومة الفحوصات والتدقيق بنسبة 100%."
 };
 
 const manifestPath = path.join(distDir, 'latest.json');
@@ -212,22 +209,32 @@ if (process.argv.includes('--publish')) {
       let release = releaseRes.data;
 
       if (!release || releaseRes.status === 404) {
+        // فحص ما إذا كان الإصدار موجوداً بالفعل في المستودع كمسودة (Draft)
+        const allReleasesRes = await apiRequest(`/repos/${OWNER}/${REPO}/releases`);
+        if (Array.isArray(allReleasesRes.data)) {
+          release = allReleasesRes.data.find(r => r.tag_name === TAG || r.name === VERSION || (r.name && r.name.includes(VERSION)));
+        }
+      }
+
+      const releaseTitle = `Labryo Clinical LIMS ${TAG} - التدوير التلقائي لمفاتيح الأجهزة، توحيد غلاف التطبيق، واستقرار المحرك المستقل`;
+      const releaseBody = `## تحديث نظام المختبرات الطبية (${TAG})
+
+### أبرز التحديثات والميزات في هذا الإصدار:
+1. **نقل وتوحيد غلاف التطبيق (AppShell)**: نقل الغلاف إلى التخطيط الجذري الموحد ومنع وميض إعادة البناء في جميع الصفحات.
+2. **التدوير التلقائي المشفر لمفاتيح أجهزة التحليل**: توليد آمن عبر تشفير عشوائي وحظر المفاتيح الافتراضية المكشوفة تماماً.
+3. **تعزيز الأمان والتحكم**: تشديد حماية مسارات النسخ الاحتياطي وحظر محاكاة الأجهزة في بيئة الإنتاج.
+4. **استقرار المحرك المستقل (Standalone Desktop Engine)**: بناء نظيف واجتياز بوابة فحص الدخان 100% مع كتالوج الـ 150 تحليلاً طبياً نشطاً.
+
+- بصمة التحقق الرقمية (SHA-256): \`${sha256Hash}\`
+`;
+
+      if (!release) {
         console.log(`2. إنشاء الإصدار الجديد ${TAG} على GitHub...`);
         const createRes = await apiRequest(`/repos/${OWNER}/${REPO}/releases`, 'POST', JSON.stringify({
           tag_name: TAG,
           target_commitish: 'main',
-          name: `Labryo LIMS ${TAG} - صور واتساب لكل فورمة، تدقيق النتائج السابقة Delta Check، تسريع الاستقبال والإقلاع الفوري`,
-          body: `## تحديث نظام المختبرات الطبية (${TAG})
-
-### أبرز التحديثات والميزات الجديدة في هذا الإصدار:
-1. **إرسال النتائج كصور واتساب منفصلة عالية الدقة (Retina 2x)**: إرسال كل نموذج طبي (CBC, GUE, GSE, SFA, والكيمياء السريرية) في صورة مخصصة عالية الوضوح مع إمكانية نسخ الصورة للحافظة ولصقها المباشر.
-2. **محرك تدقيق القفزات الحرجة والمقارنة بالنتائج السابقة (Delta Check)**: جلب تلقائي لآخر فحص للمريض، حساب نسبة التغير مع مؤشرات ملونة، وإظهار النتائج السابقة في التقارير الطبية والصور وفق معايير CLSI EP21.
-3. **تجربة الاستقبال الفائقة (15-Second Intake)**: إضافة باقات التحاليل السريعة عبر اختصارات لوحة المفاتيح F1-F6، تنبيه ذكي لمنع تكرار الفحوصات خلال 48 ساعة مع خيار التجاوز الطبي، ودعم الطباعة الصامتة لملصقات باركود الأنابيب.
-4. **تسريع الإقلاع الأولي لتطبيق سطح المكتب (Cold Start Optimization)**: تفعيل تسريع الرسوميات GPU، التسخين المسبق للمفسر في الذاكرة، وتقليص أوقات الربط بالخادم لتحقيق إقلاع شبه فوري.
-5. **استقرار النظام وضبط الترويسة والشعار**: تحسينات جمالية وأدائية على محاذاة الشعار وقوالب الطباعة ومعاينة المطور.
-
-- بصمة التحقق الرقمية (SHA-256): \`${sha256Hash}\`
-`,
+          name: releaseTitle,
+          body: releaseBody,
           draft: false,
           prerelease: false
         }), { 'Content-Type': 'application/json' });
@@ -239,7 +246,22 @@ if (process.argv.includes('--publish')) {
           throw new Error(`فشل إنشاء الإصدار: ${createRes.status}`);
         }
       } else {
-        console.log(`تم العثور على الإصدار (ID: ${release.id})`);
+        console.log(`تم العثور على الإصدار (ID: ${release.id}, Draft: ${release.draft})`);
+        if (release.draft) {
+          console.log(`نشر الإصدار وإلغاء حالة المسودة (Publishing Draft)...`);
+          const updateRes = await apiRequest(`/repos/${OWNER}/${REPO}/releases/${release.id}`, 'PATCH', JSON.stringify({
+            draft: false,
+            tag_name: TAG,
+            name: releaseTitle,
+            body: releaseBody
+          }), { 'Content-Type': 'application/json' });
+          if (updateRes.status >= 200 && updateRes.status < 300) {
+            release = updateRes.data;
+            console.log(`✅ تم نشر الإصدار بنجاح وإلغاء المسودة!`);
+          } else {
+            console.warn(`تحذير أثناء نشر المسودة: ${updateRes.status}`, updateRes.data);
+          }
+        }
       }
 
       // جلب تفاصيل الأصول الحالية بدقة لحذف أي ملف قديم متطابق
@@ -256,13 +278,23 @@ if (process.argv.includes('--publish')) {
         itemsToUpload.push({ localFile: blockmapFile, remoteName: `${sanitizedRemoteName}.blockmap` });
       }
 
+      const sha512Hash = crypto.createHash('sha512').update(fileBuffer).digest('base64');
       const latestYml = path.join(distDir, 'latest.yml');
-      if (fs.existsSync(latestYml)) {
-        let ymlContent = fs.readFileSync(latestYml, 'utf-8');
-        ymlContent = ymlContent.replace(/url:\s*['"]?[^'"\r\n]+['"]?/g, `url: ${sanitizedRemoteName}`);
-        ymlContent = ymlContent.replace(/path:\s*['"]?[^'"\r\n]+['"]?/g, `path: ${sanitizedRemoteName}`);
-        fs.writeFileSync(latestYml, ymlContent, 'utf-8');
-        itemsToUpload.push({ localFile: latestYml, remoteName: 'latest.yml' });
+      const ymlContent = `version: ${VERSION}
+files:
+  - url: ${sanitizedRemoteName}
+    sha512: ${sha512Hash}
+    size: ${fileStats.size}
+path: ${sanitizedRemoteName}
+sha512: ${sha512Hash}
+releaseDate: '${new Date().toISOString()}'
+`;
+      fs.writeFileSync(latestYml, ymlContent, 'utf-8');
+      itemsToUpload.push({ localFile: latestYml, remoteName: 'latest.yml' });
+
+      const sha256File = `${setupExePath}.sha256`;
+      if (fs.existsSync(sha256File)) {
+        itemsToUpload.push({ localFile: sha256File, remoteName: `${sanitizedRemoteName}.sha256` });
       }
 
       for (const item of itemsToUpload) {
