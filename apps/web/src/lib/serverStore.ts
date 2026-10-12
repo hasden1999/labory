@@ -27,6 +27,7 @@ import { prisma } from './prisma';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import crypto from 'crypto';
 
 const DATA_DIR = process.env.LABRYO_DATA_DIR
   ? path.resolve(process.env.LABRYO_DATA_DIR)
@@ -70,11 +71,15 @@ export function getLocalIpAddress(): string {
 export interface LabSettings {
   labName: string;
   labSubtitle?: string;
-  phone?: string;
   address?: string;
-  logoUrl?: string;
-  headerMode: 'DIGITAL' | 'PREPRINTED';
-  reportTemplate: 'CLASSIC' | 'MODERN' | 'EXECUTIVE' | 'COMPACT' | 'SPECIALIZED' | 'BLACK_WHITE';
+  phone?: string;
+  reportTemplate: 'AZURE_WAVE' | 'EMERALD_WAVE' | 'INDIGO_WAVE' | 'ROYAL_CLASSIC' | 'CLINICAL_FRAME' | 'EXECUTIVE_LUXURY' | 'COMPACT_GRID' | 'MONOCHROME_LASER' | 'CBC_DIAGNOSTIC' | 'MULTI_SECTION' | 'MINIMAL_CLEAN' | 'CLASSIC' | 'MODERN' | 'EXECUTIVE' | 'COMPACT' | 'SPECIALIZED' | 'BLACK_WHITE' | 'BLANK_WHITE' | 'PREPRINTED' | string;
+  headerHeightScale?: number;
+  headerPaddingY?: number;
+  headerMode?: 'DIGITAL' | 'PREPRINTED' | string;
+  customLetterheadUrl?: string;
+  useLetterheadBackground?: boolean;
+  letterheadMode?: 'PREPRINTED' | 'DIGITAL_BACKGROUND';
   topMarginMm: number; // e.g. 35 for pre-printed letterhead
   bottomMarginMm: number; // e.g. 25
   leftMarginMm: number;
@@ -449,7 +454,7 @@ export function getInitialDevices(): DeviceRecord[] {
     protocol: 'HL7_V2',
     ipAddress: '192.168.1.150',
     port: 5100,
-    apiKey: 'dev_mindray_bc5000_live',
+    apiKey: crypto.randomBytes(24).toString('hex'),
     status: 'ONLINE',
     autoMatchSample: true,
     notes: 'موصول عبر كابل شبكة LAN مخصص - بروتوكول HL7 v2.3.1 السريع مع تفريق خماسي كريات الدم',
@@ -497,7 +502,7 @@ export function getInitialDevices(): DeviceRecord[] {
     dataBits: 8,
     stopBits: 1,
     parity: 'none',
-    apiKey: 'dev_roche_cobas311_live',
+    apiKey: crypto.randomBytes(24).toString('hex'),
     status: 'ONLINE',
     autoMatchSample: true,
     notes: 'موصول عبر كابل سيريال تسلسلي RS-232 COM1 - بروتوكول ASTM E1381/E1394 القياسي لكيمياء الدم',
@@ -540,7 +545,7 @@ export function getInitialDevices(): DeviceRecord[] {
     dataBits: 8,
     stopBits: 1,
     parity: 'none',
-    apiKey: 'dev_biolyte_2000_live',
+    apiKey: crypto.randomBytes(24).toString('hex'),
     status: 'ONLINE',
     autoMatchSample: true,
     notes: 'محلل شوارد وأملاح الدم الإلكترولايتية (الصوديوم، البوتاسيوم، والكلورايد) عبر COM2',
@@ -550,6 +555,22 @@ export function getInitialDevices(): DeviceRecord[] {
   };
 
   return [devMindray, devCobas, devBiolyte];
+}
+
+/**
+ * Ensures all registered devices have genuine, cryptographically secure 48-char hex API keys.
+ * Automatically rotates and replaces any legacy dev_*_live default keys.
+ */
+export function ensureDeviceApiKeys(store: ServerStore): boolean {
+  if (!store || !Array.isArray(store.devices)) return false;
+  let updated = false;
+  for (const device of store.devices) {
+    if (!device.apiKey || (typeof device.apiKey === 'string' && device.apiKey.startsWith('dev_') && device.apiKey.includes('_live'))) {
+      device.apiKey = crypto.randomBytes(24).toString('hex');
+      updated = true;
+    }
+  }
+  return updated;
 }
 
 declare global {
@@ -847,7 +868,7 @@ export function loadStoreFromFile(): ServerStore | null {
       try {
         const seedContent = fs.readFileSync(seedPath, 'utf-8');
         const parsed = JSON.parse(seedContent);
-        if (parsed && Array.isArray(parsed.tests) && parsed.tests.length > 0) {
+        if (parsed && Array.isArray(parsed.tests) && parsed.tests.length >= 140) {
           if (!Array.isArray(parsed.expenses)) parsed.expenses = [];
           try {
             if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -913,6 +934,12 @@ export function getStore(): ServerStore {
   }
   if (!Array.isArray(global.__labStore.devices) || global.__labStore.devices.length === 0) {
     global.__labStore.devices = getInitialDevices();
+  }
+  const rotated = ensureDeviceApiKeys(global.__labStore);
+  if (rotated) {
+    try {
+      saveStoreToFile();
+    } catch {}
   }
   if (!Array.isArray(global.__labStore.incomingResults)) {
     global.__labStore.incomingResults = [];
@@ -1022,7 +1049,53 @@ export function createBackupSnapshot(label?: string): string {
 
   const payload = JSON.stringify(store, null, 2);
   fs.writeFileSync(destPath, payload, 'utf-8');
+  pruneBackupSnapshots(15);
   return fileName;
+}
+
+export function pruneBackupSnapshots(maxKeep = 15): number {
+  if (!fs.existsSync(BACKUP_DIR)) return 0;
+  try {
+    const files = fs.readdirSync(BACKUP_DIR)
+      .filter(f => f.endsWith('.json'))
+      .map(f => {
+        const fullPath = path.join(BACKUP_DIR, f);
+        try {
+          return { name: f, path: fullPath, time: fs.statSync(fullPath).mtime.getTime() };
+        } catch {
+          return null;
+        }
+      })
+      .filter((item): item is { name: string; path: string; time: number } => item !== null)
+      .sort((a, b) => b.time - a.time);
+
+    let removed = 0;
+    if (files.length > maxKeep) {
+      const toDelete = files.slice(maxKeep);
+      for (const file of toDelete) {
+        try {
+          fs.unlinkSync(file.path);
+          removed++;
+        } catch {}
+      }
+    }
+
+    // Also clean up older corrupt dumps in DATA_DIR if any
+    if (fs.existsSync(DATA_DIR)) {
+      const corruptFiles = fs.readdirSync(DATA_DIR)
+        .filter(f => f.startsWith('lab_store_corrupt_') && f.endsWith('.json'))
+        .map(f => path.join(DATA_DIR, f));
+      if (corruptFiles.length > 3) {
+        for (const cf of corruptFiles.slice(3)) {
+          try { fs.unlinkSync(cf); } catch {}
+        }
+      }
+    }
+
+    return removed;
+  } catch {
+    return 0;
+  }
 }
 
 export function listBackupSnapshots() {
@@ -1563,7 +1636,11 @@ export function addSample(data: any): SampleRecord {
 
   const candidateName = (data.patient?.name || data.patientName || data.name || '').trim();
   const normCandidateName = normalizeArabic(candidateName);
-  const rawTestIds: string[] = data.testIds || (data.tests ? data.tests.map((t: any) => t.id || t.testId) : []);
+  const rawTestIds: string[] = (data.testIds && Array.isArray(data.testIds))
+    ? data.testIds
+    : (data.tests && Array.isArray(data.tests)
+      ? data.tests.map((t: any) => typeof t === 'string' ? t : (t?.id || t?.testId))
+      : []);
   const testIds: string[] = Array.from(new Set(rawTestIds.filter(Boolean)));
   const sortedTestIds = [...testIds].sort().join(',');
 
@@ -1652,12 +1729,12 @@ export function addSample(data: any): SampleRecord {
   });
 
   const doctor = data.doctorId ? store.doctors.find(d => d.id === data.doctorId) || null : null;
-  const priceTotal = Number(data.priceTotal || data.totalPrice || 0);
-  const discount = Number(data.discount || 0);
+  const priceTotal = Math.round(Number(data.priceTotal || data.totalPrice || 0));
+  const discount = Math.round(Number(data.discount || 0));
   const discountPercent = Number(data.discountPercent || 0);
-  const paidAmount = Number(data.paidAmount || 0);
-  const netPayable = Math.max(0, priceTotal - discount);
-  const remainingAmount = data.remainingAmount !== undefined ? Number(data.remainingAmount) : Math.max(0, netPayable - paidAmount);
+  const paidAmount = Math.round(Number(data.paidAmount || 0));
+  const netPayable = Math.round(Math.max(0, priceTotal - discount));
+  const remainingAmount = data.remainingAmount !== undefined ? Math.round(Number(data.remainingAmount)) : Math.round(Math.max(0, netPayable - paidAmount));
 
   // Commission calculation
   const commissionPercent = doctor ? (doctor.commissionPercent || 0) : 0;
@@ -2381,7 +2458,15 @@ export function processDeviceIngest(params: {
 
   // 1. Locate and Authenticate Device
   const key = (params.deviceIdOrKey || '').trim();
-  let device = key ? (store.devices || []).find(d => d.id === key || d.apiKey === key) : undefined;
+  if (!key) {
+    return {
+      success: false,
+      message: 'جهاز غير مصرح به: مفتاح API مطلوب (Device API Key Required)',
+      status: 'UNAUTHORIZED'
+    };
+  }
+
+  const device = (store.devices || []).find(d => d.id === key || d.apiKey === key);
   if (!device) {
     return {
       success: false,
@@ -3033,13 +3118,13 @@ export function paySampleRemaining(
     throw new Error('العينة غير موجودة');
   }
 
-  const amount = Number(params.paidAmount);
+  const amount = Math.round(Number(params.paidAmount));
   if (!amount || amount <= 0) {
     throw new Error('الرجاء إدخال مبلغ دفع صالح أكبر من صفر');
   }
 
-  const newPaid = (sample.paidAmount || 0) + amount;
-  const newRemaining = Math.max(0, sample.priceTotal - (sample.discount || 0) - newPaid);
+  const newPaid = Math.round((sample.paidAmount || 0) + amount);
+  const newRemaining = Math.round(Math.max(0, sample.priceTotal - (sample.discount || 0) - newPaid));
   sample.paidAmount = newPaid;
   sample.remainingAmount = newRemaining;
 

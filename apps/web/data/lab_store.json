@@ -1743,6 +1743,33 @@
       ]
     },
     {
+      "id": "cmv3ykkqf0000tlzdlj2uzkep",
+      "code": "HGB",
+      "name": "Hemoglobin",
+      "arabicName": "خضاب الدم (الهيموغلوبين)",
+      "category": "أمراض الدم والتخثر",
+      "price": 3000,
+      "cost": 0,
+      "costEstimate": 0,
+      "refRangeLow": 11.5,
+      "refRangeHigh": 17.5,
+      "normalMaleLow": null,
+      "normalMaleHigh": null,
+      "normalFemaleLow": null,
+      "normalFemaleHigh": null,
+      "criticalLow": null,
+      "criticalHigh": null,
+      "refRangeText": null,
+      "normalRange": null,
+      "unit": "g/dL",
+      "sampleType": "Serum",
+      "active": true,
+      "specialtyId": null,
+      "groupId": null,
+      "sortOrder": null,
+      "referenceRanges": []
+    },
+    {
       "id": "t-hb",
       "code": "HB",
       "name": "Hemoglobin (Hb)",
@@ -4399,6 +4426,20 @@
   ],
   "patients": [
     {
+      "id": "cmv02qcs50000zdaifl4pvhv3",
+      "name": "أحمد جاسم الشمري (اختبار التكامل)",
+      "phone": "07704622534",
+      "age": 42,
+      "gender": "MALE",
+      "birthDate": null,
+      "birthDateEstimated": false,
+      "referringDoctorId": null,
+      "address": "",
+      "notes": "",
+      "createdAt": "2026-10-08T21:54:11.382Z",
+      "updatedAt": "2026-10-08T21:54:11.382Z"
+    },
+    {
       "id": "pat-1791353469756",
       "name": "نبميسمنبي",
       "phone": "",
@@ -6891,7 +6932,7 @@
       },
       "doctorId": null,
       "doctor": null,
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "isUrgent": false,
       "priceTotal": 15000,
       "totalPrice": 15000,
@@ -6906,7 +6947,7 @@
       "createdAt": "2026-09-19T19:53:09.382Z",
       "tests": [
         {
-          "id": "cmu8t3p5a0003ogyvkk9ffgd0",
+          "id": "cmv3ykoh00004gtq1j5bykc2j",
           "sampleId": "cmu8t1ipy000iggs4bgjf7uxw",
           "testId": "cmu8t1im70000ggs4ngieis4e",
           "test": {
@@ -6934,10 +6975,10 @@
           "refRangeText": null,
           "normalRange": null,
           "unit": "10*3/uL",
-          "createdAt": "2026-09-19T19:54:51.023Z"
+          "createdAt": "2026-10-11T15:08:52.828Z"
         },
         {
-          "id": "cmu8t3p5l0007ogyvm1m6gj4g",
+          "id": "cmv3ykoh70008gtq1icjdih31",
           "sampleId": "cmu8t1ipy000iggs4bgjf7uxw",
           "testId": "cmu8t1inj0001ggs4iqj7la41",
           "test": {
@@ -6960,28 +7001,28 @@
           "interpretation": null,
           "priceAtTime": 3000,
           "costAtTime": 0,
-          "refRangeLow": 3.8,
-          "refRangeHigh": 5.8,
-          "refRangeText": null,
-          "normalRange": null,
+          "refRangeLow": 4,
+          "refRangeHigh": 5.9,
+          "refRangeText": "M: 4.5 - 5.9 / F: 4.0 - 5.2 (Adult)",
+          "normalRange": "M: 4.5 - 5.9 / F: 4.0 - 5.2 (Adult)",
           "unit": "10*6/uL",
-          "createdAt": "2026-09-19T19:54:51.034Z"
+          "createdAt": "2026-10-11T15:08:52.828Z"
         },
         {
-          "id": "cmu8t3p5s000bogyv2sqc1omx",
+          "id": "cmv3ykohb000cgtq1w29jngch",
           "sampleId": "cmu8t1ipy000iggs4bgjf7uxw",
-          "testId": "t-hb",
+          "testId": "cmv3ykkqf0000tlzdlj2uzkep",
           "test": {
-            "id": "t-hb",
-            "code": "HB",
-            "name": "Hemoglobin (Hb)",
+            "id": "cmv3ykkqf0000tlzdlj2uzkep",
+            "code": "HGB",
+            "name": "Hemoglobin",
             "arabicName": "خضاب الدم (الهيموغلوبين)",
             "category": "أمراض الدم والتخثر",
-            "price": 5000,
+            "price": 3000,
             "unit": "g/dL",
-            "refRangeLow": 12,
+            "refRangeLow": 11.5,
             "refRangeHigh": 17.5,
-            "refRangeText": "M: 13.5 - 17.5 / F: 12.0 - 15.5 (Adult)"
+            "refRangeText": null
           },
           "resultValue": "14.2",
           "value": "14.2",
@@ -6996,10 +7037,10 @@
           "refRangeText": null,
           "normalRange": null,
           "unit": "g/dL",
-          "createdAt": "2026-09-19T19:54:51.040Z"
+          "createdAt": "2026-10-11T15:08:52.828Z"
         },
         {
-          "id": "cmu8t3p5z000fogyvzeqfnfh9",
+          "id": "cmv3ykohg000ggtq160fs7s6v",
           "sampleId": "cmu8t1ipy000iggs4bgjf7uxw",
           "testId": "t-plt",
           "test": {
@@ -7027,10 +7068,10 @@
           "refRangeText": "150,000 - 450,000",
           "normalRange": "150,000 - 450,000",
           "unit": "/uL",
-          "createdAt": "2026-09-19T19:54:51.047Z"
+          "createdAt": "2026-10-11T15:08:52.828Z"
         },
         {
-          "id": "cmu8t3p66000jogyvsst1immy",
+          "id": "cmv3ykohk000kgtq1od5ezxvo",
           "sampleId": "cmu8t1ipy000iggs4bgjf7uxw",
           "testId": "cmu8t1io60003ggs4wegn8m0a",
           "test": {
@@ -7053,12 +7094,12 @@
           "interpretation": null,
           "priceAtTime": 3000,
           "costAtTime": 0,
-          "refRangeLow": 36,
-          "refRangeHigh": 50,
-          "refRangeText": null,
-          "normalRange": null,
+          "refRangeLow": 40,
+          "refRangeHigh": 55,
+          "refRangeText": "رجال: 40 - 55 | نساء: 31 - 40",
+          "normalRange": "رجال: 40 - 55 | نساء: 31 - 40",
           "unit": "%",
-          "createdAt": "2026-09-19T19:54:51.054Z"
+          "createdAt": "2026-10-11T15:08:52.828Z"
         }
       ]
     },
@@ -10908,6 +10949,16 @@
           "unit": "g/dL",
           "multiplier": 1,
           "createdAt": "2026-09-19T19:53:09.356Z"
+        },
+        {
+          "id": "cmv3ykkri0002tlzdvc2f1zwc",
+          "deviceId": "cmu8t1ioj0004ggs4v53nzslw",
+          "deviceTestCode": "PLT",
+          "deviceTestName": "Platelets Count",
+          "testCatalogId": "t-plt",
+          "unit": "/uL",
+          "multiplier": 1,
+          "createdAt": "2026-10-11T15:08:48.029Z"
         },
         {
           "id": "cmu8t1ip40009ggs4uprsnwkd",

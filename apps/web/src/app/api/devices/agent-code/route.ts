@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
+import { getStore } from '../../../../lib/serverStore';
 
-const AGENT_CODE = `/**
+function generateAgentCode(device: any): string {
+  const apiKey = device?.apiKey || '';
+  const port = device?.port || 5100;
+  const devName = (device?.name || 'Medical Analyzer').replace(/['"\\]/g, '');
+
+  return `/**
  * LIS Device Hub - Local Communication Agent (Node.js)
- * Standalone background bridge for Medical Analyzers (ASTM 1381/1394 & HL7 v2)
+ * Standalone background bridge for ${devName}
+ * Protocol: ${device?.protocol || 'HL7_V2 / ASTM_1394'}
  */
 
 const http = require('http');
@@ -10,14 +17,14 @@ const net = require('net');
 
 const CONFIG = {
   SERVER_URL: process.env.LIS_SERVER_URL || 'http://127.0.0.1:8080',
-  DEVICE_API_KEY: process.env.DEVICE_API_KEY || 'dev_mindray_bc5000_live',
-  TCP_PORT: parseInt(process.env.DEVICE_TCP_PORT || '5100', 10),
-  SERIAL_PORT: process.env.DEVICE_COM_PORT || 'COM1',
-  BAUD_RATE: parseInt(process.env.DEVICE_BAUD_RATE || '9600', 10),
+  DEVICE_API_KEY: process.env.DEVICE_API_KEY || '${apiKey}',
+  TCP_PORT: parseInt(process.env.DEVICE_TCP_PORT || '${port}', 10),
+  SERIAL_PORT: process.env.DEVICE_COM_PORT || '${device?.comPort || 'COM1'}',
+  BAUD_RATE: parseInt(process.env.DEVICE_BAUD_RATE || '${device?.baudRate || 9600}', 10),
 };
 
 console.log('=====================================================');
-console.log('🏥 LIS Analyzer Local Agent Started');
+console.log('🏥 LIS Analyzer Local Agent Started - ${devName}');
 console.log('Target LIS Server:', CONFIG.SERVER_URL);
 console.log('Listening for Analyzers on TCP Port:', CONFIG.TCP_PORT);
 console.log('=====================================================');
@@ -97,13 +104,35 @@ function sendToLisServer(payload) {
   req.end();
 }
 `;
+}
 
-export async function GET() {
-  return new NextResponse(AGENT_CODE, {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const deviceId = searchParams.get('deviceId');
+  const store = getStore();
+
+  const device = deviceId
+    ? (store.devices || []).find((d) => d.id === deviceId)
+    : (store.devices || [])[0];
+
+  if (deviceId && !device) {
+    return NextResponse.json({ error: 'Device not found' }, { status: 404 });
+  }
+
+  const targetDevice = device || {
+    id: 'custom-analyzer',
+    name: 'Generic Medical Analyzer',
+    apiKey: '',
+    port: 5100,
+  };
+
+  const code = generateAgentCode(targetDevice);
+
+  return new NextResponse(code, {
     status: 200,
     headers: {
       'Content-Type': 'application/javascript; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="lis-agent.js"',
+      'Content-Disposition': `attachment; filename="lis-agent-${targetDevice.id}.js"`,
     },
   });
 }

@@ -7,6 +7,11 @@
   - نقل مكوّن `AppShell` إلى التخطيط العام `apps/web/src/app/layout.tsx` وتجريد الصفحات الـ 14 من التغليف المكرر.
   - استثناء مسارات `/` (الاستقبال المستقل)، `/login`، `/showcase`، و `/verify/*` عبر حارس `hideShell` المدمج.
   - الحفاظ على ثبات مدخلات `GlobalQuickBar` بين التنقلات دون إعادة بناء، واشتراك شريط إشعارات التحديث `UpdateNotificationBanner` مرة واحدة فقط.
+- **التدوير التلقائي لمفاتيح الأجهزة وإلغاء الافتراضات المكشوفة (Device API Keys Auto-Rotation & Hardening):**
+  - إضافة آلية التدوير التلقائي `ensureDeviceApiKeys` بمفاتيح تشفير آمنة 48 محرفاً (Hex) عبر `crypto.randomBytes(24)` لجميع أجهزة التحليل.
+  - إزالة كافة المفاتيح الافتراضية المكشوفة في الكود (`dev_mindray_bc5000_live`, `dev_roche_cobas311_live`, `dev_biolyte_2000_live`).
+  - دعم تمرير `?deviceId=` في مسار تنزيل كود الوكيل `/api/devices/agent-code` لغرس المفتاح المشفر الخاص بكل جهاز ديناميكياً.
+  - إيقاف الـ fallback النصي في `lis-agent.js` و `deviceBridgeService.js` والاعتماد الحصري على المفاتيح المولدة و `process.env.DEVICE_API_KEY`.
 - **معالجة التقريب المالي بالدينار العراقي (Financial Integer Rounding):**
   - إلزام تقريب كافة الحسابات المالية (الإجمالي، الخصم، الصافي، المدفوع، المتبقي، ومبالغ الدفع المباشر) إلى أعداد صحيحة عبر `Math.round()` في `apps/server/src/routes/samples.ts` و `apps/web/src/lib/serverStore.ts` لمنع الكسور غير المعمول بها في الدينار العراقي.
 - **إدارة مساحة التخزين وصيانة النسخ الاحتياطية (Storage & Backup Hygiene):**

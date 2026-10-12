@@ -15,7 +15,7 @@ const path = require('path');
 // 1. CONFIGURATION
 const CONFIG = {
   // SaaS Server URL
-  serverUrl: process.env.LIS_SERVER_URL || 'http://localhost:8000',
+  serverUrl: process.env.LIS_SERVER_URL || 'http://127.0.0.1:8080',
   // Polling interval in ms for folder watcher (if used)
   fileWatchInterval: 5000,
   // Registered Devices for this Lab
@@ -23,7 +23,7 @@ const CONFIG = {
     {
       id: 'mindray_bc5000',
       name: 'Mindray BC-5000 (LAN)',
-      apiKey: process.env.DEVICE_API_KEY || 'YOUR_DEVICE_API_KEY',
+      apiKey: process.env.DEVICE_API_KEY || '',
       type: 'TCP_LISTENER', // 'TCP_LISTENER' | 'SERIAL_PORT' | 'FILE_WATCHER'
       port: 5100, // TCP Port to listen for analyzer
     },
@@ -36,10 +36,10 @@ console.log(`📡 Target Cloud Server: ${CONFIG.serverUrl}`);
 console.log('====================================================');
 
 // 2. HELPER: Send Data to SaaS Server
-function sendPayloadToCloud(apiKey, rawFrame, extraData = {}) {
+function sendPayloadToCloud(apiKey, rawPayload, extraData = {}) {
   const payload = JSON.stringify({
     apiKey,
-    rawFrame,
+    rawPayload,
     ...extraData,
   });
 
