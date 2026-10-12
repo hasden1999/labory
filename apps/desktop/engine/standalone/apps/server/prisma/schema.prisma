@@ -104,6 +104,7 @@ model TestCatalog {
   refRangeText     String?         // مدى طبيعي نصي (مثال: Negative / 70 - 110)
   unit             String?
   sampleType       String?         @default("Serum") // دم كامل / مصل / بلازما / إدرار / مسحة
+  tubeType         String?         // EDTA, SST, Citrate, Urine cup, Stool cup
   active           Boolean         @default(true)
   specialtyId      String?
   specialty        Specialty?      @relation(fields: [specialtyId], references: [id], onDelete: SetNull)

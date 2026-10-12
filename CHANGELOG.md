@@ -12,6 +12,11 @@
   - إزالة كافة المفاتيح الافتراضية المكشوفة في الكود (`dev_mindray_bc5000_live`, `dev_roche_cobas311_live`, `dev_biolyte_2000_live`).
   - دعم تمرير `?deviceId=` في مسار تنزيل كود الوكيل `/api/devices/agent-code` لغرس المفتاح المشفر الخاص بكل جهاز ديناميكياً.
   - إيقاف الـ fallback النصي في `lis-agent.js` و `deviceBridgeService.js` والاعتماد الحصري على المفاتيح المولدة و `process.env.DEVICE_API_KEY`.
+- **تحديث ومزامنة المحرك المستقل لسطح المكتب (Desktop Standalone Engine Sync & Sanitization):**
+  - تنظيف وتصحيح مسارات المزامنة في `tools/sync-engine-standalone.js` وإزالة المسارات الزائدة لتفادي أخطاء النسخ الذاتي.
+  - إعادة بناء حزمة الإنتاج `npm run build:web` بنجاح كامل لجميع المسارات الـ 46 وتوليد المخرجات المستقلة.
+  - مزامنة كافة أصول ومخرجات الخادم `engine/standalone` وتحديث حزمة `win-unpacked` لتطابق أحدث كود للواجهة والخادم.
+  - اجتياز التحقق الشامل `npm run verify` بنجاح 100%.
 - **معالجة التقريب المالي بالدينار العراقي (Financial Integer Rounding):**
   - إلزام تقريب كافة الحسابات المالية (الإجمالي، الخصم، الصافي، المدفوع، المتبقي، ومبالغ الدفع المباشر) إلى أعداد صحيحة عبر `Math.round()` في `apps/server/src/routes/samples.ts` و `apps/web/src/lib/serverStore.ts` لمنع الكسور غير المعمول بها في الدينار العراقي.
 - **إدارة مساحة التخزين وصيانة النسخ الاحتياطية (Storage & Backup Hygiene):**
