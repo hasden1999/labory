@@ -56,6 +56,8 @@ const CbcModal = nextDynamic(() => import('../../components/workstations/CbcModa
 const ChemistryModal = nextDynamic(() => import('../../components/workstations/ChemistryModal'), { ssr: false });
 const MicrobiologyModal = nextDynamic(() => import('../../components/workstations/MicrobiologyModal'), { ssr: false });
 const SemenFormModal = nextDynamic(() => import('../../components/workstations/SemenFormModal'), { ssr: false });
+const AmhFormModal = nextDynamic(() => import('../../components/workstations/AmhFormModal'), { ssr: false });
+const BhcgFormModal = nextDynamic(() => import('../../components/workstations/BhcgFormModal'), { ssr: false });
 const CriticalCallModal = nextDynamic(() => import('../../components/CriticalCallModal'), { ssr: false });
 const SampleRejectionModal = nextDynamic(() => import('../../components/SampleRejectionModal'), { ssr: false });
 const WhatsAppFormsModal = nextDynamic(() => import('../../components/WhatsAppFormsModal'), { ssr: false });
@@ -170,6 +172,8 @@ function ResultsContent() {
   const [showChemistryModal, setShowChemistryModal] = useState(false);
   const [showMicrobiologyModal, setShowMicrobiologyModal] = useState(false);
   const [showSemenModal, setShowSemenModal] = useState(false);
+  const [showAmhModal, setShowAmhModal] = useState(false);
+  const [showBhcgModal, setShowBhcgModal] = useState(false);
   const [showAddTestsModal, setShowAddTestsModal] = useState(false);
   const [allAvailableTests, setAllAvailableTests] = useState<Test[]>([]);
   const [addTestSearch, setAddTestSearch] = useState('');
@@ -2086,6 +2090,62 @@ function ResultsContent() {
                                 </div>
                                 <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>CBC</span>
                               </button>
+                            ) : /* AMH Button */ (st.test?.code === 'AMH' || st.test?.code?.includes('AMH') || st.test?.name?.toLowerCase().includes('anti-mullerian') || st.test?.name?.toLowerCase().includes('mullerian') || st.test?.name?.toLowerCase().includes('amh') || st.test?.name?.toLowerCase().includes('مخزون')) ? (
+                              <button
+                                type="button"
+                                onClick={() => setShowAmhModal(true)}
+                                style={{
+                                  width: '100%',
+                                  minHeight: '36px',
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  background: currentVal ? 'rgba(16, 185, 129, 0.16)' : 'rgba(13, 148, 136, 0.16)',
+                                  border: `1.5px solid ${currentVal ? 'var(--accent-emerald)' : '#0d9488'}`,
+                                  color: currentVal ? 'var(--accent-emerald)' : '#14b8a6',
+                                  fontSize: '12px',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: '8px',
+                                  transition: 'all 0.15s ease',
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  {currentVal ? <Check size={14} /> : <Activity size={14} />}
+                                  <span>{currentVal ? 'Edit AMH Report' : 'Open AMH Form'}</span>
+                                </div>
+                                <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>AMH</span>
+                              </button>
+                            ) : /* BHCG Button */ (st.test?.code === 'BHCG' || st.test?.code === 'B-HCG' || st.test?.code === 'HCG' || st.test?.name?.toLowerCase().includes('beta-hcg') || st.test?.name?.toLowerCase().includes('b-hcg') || st.test?.name?.toLowerCase().includes('β-hcg') || st.test?.name?.toLowerCase().includes('حمل رقمي') || (st.test?.name?.toLowerCase().includes('hcg') && !st.test?.name?.toLowerCase().includes('rapid'))) ? (
+                              <button
+                                type="button"
+                                onClick={() => setShowBhcgModal(true)}
+                                style={{
+                                  width: '100%',
+                                  minHeight: '36px',
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  background: currentVal ? 'rgba(16, 185, 129, 0.16)' : 'rgba(225, 29, 72, 0.16)',
+                                  border: `1.5px solid ${currentVal ? 'var(--accent-emerald)' : '#e11d48'}`,
+                                  color: currentVal ? 'var(--accent-emerald)' : '#fb7185',
+                                  fontSize: '12px',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: '8px',
+                                  transition: 'all 0.15s ease',
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  {currentVal ? <Check size={14} /> : <FileText size={14} />}
+                                  <span>{currentVal ? 'Edit β-HCG Report' : 'Open β-HCG Form'}</span>
+                                </div>
+                                <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>β-HCG</span>
+                              </button>
                             ) : /* Microbiology Button */ (st.test?.category === 'MICROBIOLOGY' || st.test?.code?.includes('CULTURE') || st.test?.name?.toLowerCase().includes('culture') || st.test?.name?.toLowerCase().includes('مزرعة')) ? (
                               <button
                                 type="button"
@@ -2767,6 +2827,72 @@ function ResultsContent() {
           })()}
           onSave={async (serialized, isAbnormal) => {
             await handleSaveWorkstationResult('MICROBIOLOGY', serialized, isAbnormal);
+          }}
+        />
+      )}
+
+      {/* AMH MODAL */}
+      {showAmhModal && selectedSample && (
+        <AmhFormModal
+          isOpen={showAmhModal}
+          onClose={() => setShowAmhModal(false)}
+          patientName={selectedSample.patient?.name}
+          patientGender={selectedSample.patient?.gender}
+          patientAge={selectedSample.patient?.age}
+          initialData={(() => {
+            const t = selectedSample.tests?.find((st: any) => 
+              st.test?.code === 'AMH' || st.test?.code?.includes('AMH') || st.test?.name?.toLowerCase().includes('anti-mullerian') || st.test?.name?.toLowerCase().includes('mullerian') || st.test?.name?.toLowerCase().includes('amh') || st.test?.name?.toLowerCase().includes('مخزون')
+            );
+            return (t?.id ? testResults[t.id]?.resultValue : '') || t?.resultValue || '';
+          })()}
+          onApply={(formattedResult: string) => {
+            setShowAmhModal(false);
+            const targetTest = selectedSample.tests?.find((st: any) => 
+              st.test?.code === 'AMH' || st.test?.code?.includes('AMH') || st.test?.name?.toLowerCase().includes('anti-mullerian') || st.test?.name?.toLowerCase().includes('mullerian') || st.test?.name?.toLowerCase().includes('amh') || st.test?.name?.toLowerCase().includes('مخزون')
+            );
+            if (targetTest?.id) {
+              setTestResults(prev => ({
+                ...prev,
+                [targetTest.id]: {
+                  ...prev[targetTest.id],
+                  resultValue: formattedResult,
+                }
+              }));
+              toast.success('تم إدراج تقرير فحص مخزون المبيض (AMH) بنجاح!');
+            }
+          }}
+        />
+      )}
+
+      {/* BHCG MODAL */}
+      {showBhcgModal && selectedSample && (
+        <BhcgFormModal
+          isOpen={showBhcgModal}
+          onClose={() => setShowBhcgModal(false)}
+          patientName={selectedSample.patient?.name}
+          patientGender={selectedSample.patient?.gender}
+          patientAge={selectedSample.patient?.age}
+          initialData={(() => {
+            const t = selectedSample.tests?.find((st: any) => 
+              st.test?.code === 'BHCG' || st.test?.code === 'B-HCG' || st.test?.code === 'HCG' || st.test?.name?.toLowerCase().includes('beta-hcg') || st.test?.name?.toLowerCase().includes('b-hcg') || st.test?.name?.toLowerCase().includes('β-hcg') || st.test?.name?.toLowerCase().includes('حمل رقمي') || (st.test?.name?.toLowerCase().includes('hcg') && !st.test?.name?.toLowerCase().includes('rapid'))
+            );
+            return (t?.id ? testResults[t.id]?.resultValue : '') || t?.resultValue || '';
+          })()}
+          onApply={(formattedResult: string) => {
+            setShowBhcgModal(false);
+            const targetTest = selectedSample.tests?.find((st: any) => 
+              st.test?.code === 'BHCG' || st.test?.code === 'B-HCG' || st.test?.code === 'HCG' || st.test?.name?.toLowerCase().includes('beta-hcg') || st.test?.name?.toLowerCase().includes('b-hcg') || st.test?.name?.toLowerCase().includes('β-hcg') || st.test?.name?.toLowerCase().includes('حمل رقمي') || (st.test?.name?.toLowerCase().includes('hcg') && !st.test?.name?.toLowerCase().includes('rapid'))
+            );
+            if (targetTest?.id) {
+              setTestResults(prev => ({
+                ...prev,
+                [targetTest.id]: {
+                  ...prev[targetTest.id],
+                  resultValue: formattedResult,
+                }
+              }));
+              toast.success('تم إدراج تقرير فحص الحمل الرقمي (β-HCG) بنجاح!');
+            }
           }}
         />
       )}

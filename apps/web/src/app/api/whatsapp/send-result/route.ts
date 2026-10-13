@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStore } from '../../../../lib/serverStore';
-import { isCbcTest, isGueTest, isGseTest, isSfaTest, isGeneralTest } from '../../../../lib/testClassifier';
+import { isCbcTest, isGueTest, isGseTest, isSfaTest, isAmhTest, isBhcgTest, isGeneralTest } from '../../../../lib/testClassifier';
 import { generatePuppeteerPdf } from '../../../../lib/puppeteerPdfGenerator';
 
 export async function POST(request: Request) {
@@ -35,6 +35,8 @@ export async function POST(request: Request) {
     const gueCount = tests.filter(isGueTest).length;
     const gseCount = tests.filter(isGseTest).length;
     const sfaCount = tests.filter(isSfaTest).length;
+    const amhCount = tests.filter(isAmhTest).length;
+    const bhcgCount = tests.filter(isBhcgTest).length;
     const generalCount = tests.filter(isGeneralTest).length;
 
     if (generalCount > 0) {
@@ -89,6 +91,28 @@ export async function POST(request: Request) {
         imageUrl: `/api/samples/${sample.id}/image?section=sfa`,
         printUrl: `/api/samples/${sample.id}/print?section=sfa`,
         testCount: sfaCount,
+      });
+    }
+
+    if (amhCount > 0) {
+      activeForms.push({
+        section: 'amh',
+        titleArabic: 'فحص هرمون مخزون المبيض (AMH)',
+        titleEnglish: 'Anti-Mullerian Hormone (AMH)',
+        imageUrl: `/api/samples/${sample.id}/image?section=amh`,
+        printUrl: `/api/samples/${sample.id}/print?section=amh`,
+        testCount: amhCount,
+      });
+    }
+
+    if (bhcgCount > 0) {
+      activeForms.push({
+        section: 'bhcg',
+        titleArabic: 'فحص الحمل الرقمي (β-HCG)',
+        titleEnglish: 'Total Beta-HCG Assay',
+        imageUrl: `/api/samples/${sample.id}/image?section=bhcg`,
+        printUrl: `/api/samples/${sample.id}/print?section=bhcg`,
+        testCount: bhcgCount,
       });
     }
 

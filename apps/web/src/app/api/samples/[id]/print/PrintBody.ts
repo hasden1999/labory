@@ -18,6 +18,8 @@ import {
   isSfaTest,
   isGueTest,
   isGseTest,
+  isAmhTest,
+  isBhcgTest,
   isGeneralTest,
 } from '../../../../../lib/testClassifier';
 import {
@@ -35,6 +37,8 @@ export {
   isSfaTest,
   isGueTest,
   isGseTest,
+  isAmhTest,
+  isBhcgTest,
   isGeneralTest,
   LIPID_CATALOG_IDS,
   normalizeLipidUnit,
@@ -353,6 +357,8 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
   const sfaTests = allTests.filter(isSfaTest);
   const gueTests = allTests.filter(isGueTest);
   const gseTests = allTests.filter(isGseTest);
+  const amhTests = allTests.filter(isAmhTest);
+  const bhcgTests = allTests.filter(isBhcgTest);
   const generalTests = allTests.filter(isGeneralTest);
 
   // Section visibility flags based on ?section= query param
@@ -361,6 +367,8 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
   const shouldRenderGue = gueTests.length > 0 && (sectionParam === 'all' || sectionParam === 'gue' || sectionParam === 'urine');
   const shouldRenderGse = gseTests.length > 0 && (sectionParam === 'all' || sectionParam === 'gse' || sectionParam === 'stool');
   const shouldRenderSfa = sfaTests.length > 0 && (sectionParam === 'all' || sectionParam === 'sfa' || sectionParam === 'semen');
+  const shouldRenderAmh = amhTests.length > 0 && (sectionParam === 'all' || sectionParam === 'amh');
+  const shouldRenderBhcg = bhcgTests.length > 0 && (sectionParam === 'all' || sectionParam === 'bhcg' || sectionParam === 'hcg');
 
   // Patient prior visits for Historical Delta display on report
   const patId = sample.patientId || sample.patient?.id;
@@ -1241,6 +1249,8 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
       const lines = clean.split('\n').filter(Boolean);
       let physicalParts: string[] = [];
       let fobtVal = '';
+      let phVal = '';
+      let reducingVal = '';
       let phReducingParts: string[] = [];
       let microParts: string[] = [];
       let paraParts: string[] = [];
@@ -1253,7 +1263,15 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
           physicalParts = cleanLine.replace('PHYSICAL:', '').split('|').map(p => p.trim()).filter(Boolean);
         } else if (cleanLine.startsWith('FOBT:')) {
           fobtVal = cleanLine.replace('FOBT:', '').trim();
+        } else if (cleanLine.startsWith('PH:')) {
+          phVal = cleanLine.replace('PH:', '').trim();
+        } else if (cleanLine.startsWith('REDUCING:')) {
+          reducingVal = cleanLine.replace('REDUCING:', '').trim();
         } else if (cleanLine.startsWith('PH_REDUCING:')) {
+          const matchPh = cleanLine.match(/pH:\s*([^|]+)/i);
+          if (matchPh) phVal = matchPh[1].trim();
+          const matchRed = cleanLine.match(/Reducing Substances:\s*([^|\n]+)/i);
+          if (matchRed) reducingVal = matchRed[1].trim();
           phReducingParts = cleanLine.replace('PH_REDUCING:', '').split('|').map(p => p.trim()).filter(Boolean);
         } else if (cleanLine.startsWith('MICROSCOPIC:')) {
           microParts = cleanLine.replace('MICROSCOPIC:', '').split('|').map(p => p.trim()).filter(Boolean);
@@ -1307,13 +1325,15 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
               </div>
 
               <!-- Chemical Evaluation (pH & Reducing Substances) Section -->
-              ${phReducingParts.length > 0 ? `
+              ${(phVal || reducingVal || phReducingParts.length > 0) ? `
                 <div style="margin-bottom: 14px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
                   <div style="background: #f8fafc; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #0284c7; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-                    <span>CHEMICAL EVALUATION (pH &amp; REDUCING SUBSTANCES)</span>
+                    <span>CHEMICAL EVALUATION ${reducingVal ? '(pH &amp; REDUCING SUBSTANCES)' : '(STOOL pH)'}</span>
                   </div>
-                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
-                    ${phReducingParts.map(p => renderClinicalFindingBadge(p, false, textColor)).join('')}
+                  <div style="display: grid; grid-template-columns: repeat(${reducingVal ? '2' : '1'}, 1fr); gap: 8px; padding: 12px; font-size: 11.5px;" dir="ltr">
+                    ${phVal ? renderClinicalFindingBadge(`pH: ${phVal}`, false, textColor) : ''}
+                    ${reducingVal ? renderClinicalFindingBadge(`Reducing Substances: ${reducingVal}`, reducingVal !== 'Negative', textColor) : ''}
+                    ${(!phVal && !reducingVal && phReducingParts.length > 0) ? phReducingParts.map(p => renderClinicalFindingBadge(p, false, textColor)).join('') : ''}
                   </div>
                 </div>
               ` : ''}
@@ -1497,6 +1517,265 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
               ${noteText ? `
                 <div style="background: #f8fafc; border-left: 4px solid #4338ca; padding: 6px 12px; font-size: 11px; color: #334155; border-radius: 0 6px 6px 0; text-align: left; direction: ltr;">
                   <strong>Laboratory Notes:</strong> <span style="unicode-bidi: isolate; margin-left: 4px;">${escapeHtml(noteText)}</span>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+
+          <div class="report-footer-pinned">
+            ${renderFooter(safeFooter, safeLabName)}
+          </div>
+        </div>
+      `);
+    }
+  }
+
+  // 6. Dedicated Anti-Mullerian Hormone (AMH) Page / Section
+  if (shouldRenderAmh) {
+    for (const amh of amhTests) {
+      const rawVal = amh.resultValue ? String(amh.resultValue) : '';
+      let method = 'VIDAS Autoanalyzer';
+      let displayResult = '';
+      let flag = '';
+      let interpretationText = '';
+      let notesText = '';
+
+      if (rawVal.includes('[ANTI-MULLERIAN')) {
+        const lines = rawVal.split('\n');
+        lines.forEach((l) => {
+          const tr = l.trim();
+          if (tr.toUpperCase().startsWith('METHOD:')) method = tr.replace(/METHOD:/i, '').trim();
+          else if (tr.toUpperCase().startsWith('RESULT:')) displayResult = tr.replace(/RESULT:/i, '').trim();
+          else if (tr.toUpperCase().startsWith('INTERPRETATION:')) interpretationText = tr.replace(/INTERPRETATION:/i, '').trim();
+          else if (tr.toUpperCase().startsWith('NOTES:')) notesText = tr.replace(/NOTES?:/i, '').trim();
+        });
+      } else {
+        displayResult = rawVal.replace(/\[.*?\]/g, '').trim();
+      }
+
+      if (!displayResult) displayResult = 'Pending';
+
+      // Parse flag and unit
+      let unit = amh.test?.unit || 'ng/mL';
+      let cleanVal = displayResult;
+      const flagMatch = displayResult.match(/^([LH])\s+(.+)$/i);
+      if (flagMatch) {
+        flag = flagMatch[1].toUpperCase();
+        cleanVal = flagMatch[2];
+      }
+      cleanVal = cleanVal.replace(/(ng\/mL|pmol\/L)/gi, '').trim();
+
+      // Determine patient age matching
+      const pAge = patient?.age || sample.patient?.age;
+      let numericAge: number | null = null;
+      if (pAge !== undefined && pAge !== null) {
+        const m = String(pAge).match(/(\d+)/);
+        if (m) numericAge = parseInt(m[1], 10);
+      }
+
+      const amhAgeRanges = [
+        { label: 'From 12-17 years', min: 12, max: 17, range: '1.57-7.60' },
+        { label: 'From 18-24 years', min: 18, max: 24, range: '2.15-8.40' },
+        { label: 'From 25-29 years', min: 25, max: 29, range: '1.56-7.76' },
+        { label: 'From 30-34 years', min: 30, max: 34, range: '1.19-7.00' },
+        { label: 'From 35-39 years', min: 35, max: 39, range: '0.36-5.15' },
+        { label: 'From 40-44 years', min: 40, max: 44, range: '0.17-3.84' },
+      ];
+
+      const matchedBracket = numericAge !== null
+        ? amhAgeRanges.find(r => numericAge >= r.min && numericAge <= r.max)
+        : null;
+
+      const amhRowsHtml = amhAgeRanges.map((r, idx) => {
+        const isMatched = matchedBracket?.label === r.label;
+        const bg = isMatched ? '#f0fdf4' : (idx % 2 === 0 ? '#ffffff' : '#f8fafc');
+        const fontWt = isMatched ? '800' : '600';
+        const txtCol = isMatched ? '#047857' : '#1e293b';
+        return `
+          <tr style="background: ${bg}; border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 9px 18px; font-weight: ${fontWt}; color: ${txtCol}; text-align: left; font-size: 13px;">
+              ${r.label}${isMatched ? ' &nbsp;<span style="font-size: 10px; background: #059669; color: #ffffff; padding: 2px 6px; border-radius: 4px; font-weight: 700;">Patient Age Group</span>' : ''}
+            </td>
+            <td style="padding: 9px 18px; font-weight: 800; color: #0f172a; text-align: right; font-family: monospace; font-size: 13.5px;">
+              ${r.range}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      renderedPages.push(`
+        <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
+          ${renderWatermark()}
+          <div class="report-main-content">
+            ${renderPrintHeader(headerParams)}
+            ${renderPatientMetaBox(patientBoxParams)}
+
+            <!-- AMH Title & Result Container matching user image -->
+            <div style="margin-top: 14px; margin-bottom: 24px; text-align: center;" dir="ltr">
+              <div style="color: #15803d; font-size: 18px; font-weight: 800; margin-bottom: 22px; font-family: sans-serif; letter-spacing: 0.2px;">
+                Anti-Mullerian Hormone by ${escapeHtml(method)}
+              </div>
+
+              <div style="margin-bottom: 26px; font-size: 17px; font-weight: 700; color: #0f172a; display: inline-flex; align-items: baseline; gap: 10px;">
+                <span>Result:</span>
+                ${flag ? `<span style="color: ${flag === 'L' || flag === 'H' ? '#dc2626' : '#059669'}; font-weight: 900; font-size: 18px;">${flag}</span>` : ''}
+                <span style="font-size: 21px; font-weight: 900; color: ${flag === 'L' || flag === 'H' ? '#dc2626' : '#0f172a'}; font-family: monospace;">${escapeHtml(cleanVal)}</span>
+                <span style="font-size: 15px; font-weight: 700; color: #475569;">${escapeHtml(unit)}</span>
+              </div>
+
+              <!-- Interpretation Table Box matching user image -->
+              <div style="max-width: 580px; margin: 0 auto; border: 1px solid #94a3b8; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                <div style="background: #cbd5e1; color: #0f172a; padding: 8px 16px; font-weight: 800; font-size: 14px; text-align: center; border-bottom: 1px solid #94a3b8; letter-spacing: 0.5px;">
+                  Interpretation
+                </div>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tbody>
+                    ${amhRowsHtml}
+                  </tbody>
+                </table>
+              </div>
+
+              ${interpretationText ? `
+                <div style="max-width: 580px; margin: 16px auto 0 auto; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 14px; text-align: left; font-size: 12px; color: #1e293b;">
+                  <strong>Clinical Assessment:</strong> <span style="font-weight: 700; color: #0f766e; margin-left: 4px;">${escapeHtml(interpretationText)}</span>
+                </div>
+              ` : ''}
+
+              ${notesText ? `
+                <div style="max-width: 580px; margin: 8px auto 0 auto; background: #ffffff; border-left: 3px solid #0f766e; padding: 6px 12px; font-size: 11px; color: #475569; text-align: left;">
+                  <strong>Note:</strong> <span style="margin-left: 4px;">${escapeHtml(notesText)}</span>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+
+          <div class="report-footer-pinned">
+            ${renderFooter(safeFooter, safeLabName)}
+          </div>
+        </div>
+      `);
+    }
+  }
+
+  // 7. Dedicated Total β-HCG Page / Section
+  if (shouldRenderBhcg) {
+    for (const bhcg of bhcgTests) {
+      const rawVal = bhcg.resultValue ? String(bhcg.resultValue) : '';
+      let method = 'Assay';
+      let displayResult = '';
+      let statusText = '';
+      let weeksText = '';
+      let notesText = '';
+
+      if (rawVal.includes('[TOTAL BETA-HCG') || rawVal.includes('HCG')) {
+        const lines = rawVal.split('\n');
+        lines.forEach((l) => {
+          const tr = l.trim();
+          if (tr.toUpperCase().startsWith('METHOD:')) method = tr.replace(/METHOD:/i, '').trim();
+          else if (tr.toUpperCase().startsWith('RESULT:')) displayResult = tr.replace(/RESULT:/i, '').trim();
+          else if (tr.toUpperCase().startsWith('STATUS:') || tr.toUpperCase().startsWith('INTERPRETATION:')) statusText = tr.replace(/^(STATUS|INTERPRETATION):/i, '').trim();
+          else if (tr.toUpperCase().startsWith('GESTATIONAL_WEEKS:')) weeksText = tr.replace(/GESTATIONAL_WEEKS:/i, '').trim();
+          else if (tr.toUpperCase().startsWith('NOTES:')) notesText = tr.replace(/NOTES?:/i, '').trim();
+        });
+      } else {
+        displayResult = rawVal.replace(/\[.*?\]/g, '').trim();
+      }
+
+      if (!displayResult) displayResult = 'Pending';
+      let unit = bhcg.test?.unit || 'mIU/mL';
+      let cleanVal = displayResult.replace(/(mIU\/mL|IU\/L)/gi, '').trim();
+
+      const bhcgRanges = [
+        { range: '< 5', week: 'Non-pregnant', min: 0, max: 5 },
+        { range: '5 – 50', week: '3', min: 5, max: 50 },
+        { range: '5 – 426', week: '4', min: 5, max: 426 },
+        { range: '18 – 7,340', week: '5', min: 18, max: 7340 },
+        { range: '1,080 – 56,500', week: '6', min: 1080, max: 56500 },
+        { range: '7,650 – 229,000', week: '7 - 8', min: 7650, max: 229000 },
+        { range: '25,700 – 288,000', week: '9 - 12', min: 25700, max: 288000 },
+        { range: '13,300 – 254,000', week: '13 - 16', min: 13300, max: 254000 },
+        { range: '4,060 – 165,400', week: '17 - 24', min: 4060, max: 165400 },
+        { range: '3,640 – 117,000', week: '25 - 40', min: 3640, max: 117000 },
+      ];
+
+      // Detect matching row
+      const numMatch = parseFloat(cleanVal.replace(/,/g, ''));
+      let matchedIdx = -1;
+      if (cleanVal.startsWith('<') || (!isNaN(numMatch) && numMatch < 5)) {
+        matchedIdx = 0;
+      } else if (!isNaN(numMatch)) {
+        matchedIdx = bhcgRanges.findIndex(r => r.min > 0 && numMatch >= r.min && numMatch <= r.max);
+      }
+
+      const bhcgRowsHtml = bhcgRanges.map((r, idx) => {
+        const isMatched = idx === matchedIdx;
+        const bg = isMatched ? '#fef2f2' : (idx % 2 === 0 ? '#ffffff' : '#f8fafc');
+        const fontWt = isMatched ? '800' : '600';
+        const txtCol = isMatched ? '#be123c' : '#1e293b';
+        return `
+          <tr style="background: ${bg}; border-bottom: 1px solid #94a3b8;">
+            <td style="padding: 7px 16px; font-weight: ${fontWt}; color: ${txtCol}; text-align: center; border-right: 1px solid #94a3b8; font-family: monospace; font-size: 12.5px;">
+              ${r.range}
+            </td>
+            <td style="padding: 7px 16px; font-weight: ${fontWt}; color: ${txtCol}; text-align: center; font-size: 12.5px;">
+              ${r.week}${isMatched ? ' &nbsp;<span style="font-size: 9.5px; background: #be123c; color: #ffffff; padding: 1.5px 5px; border-radius: 3px; font-weight: 700;">Current Value</span>' : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      renderedPages.push(`
+        <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
+          ${renderWatermark()}
+          <div class="report-main-content">
+            ${renderPrintHeader(headerParams)}
+            ${renderPatientMetaBox(patientBoxParams)}
+
+            <!-- Total Beta-HCG Container matching user image 2 -->
+            <div style="margin-top: 14px; margin-bottom: 24px; text-align: center;" dir="ltr">
+              <div style="color: #0f172a; font-size: 18px; font-weight: 800; margin-bottom: 18px; font-family: sans-serif; letter-spacing: 0.2px;">
+                Total &beta;&ndash;HCG level Assay
+              </div>
+
+              <!-- Result Banner Box matching user image -->
+              <div style="margin-bottom: 22px; display: inline-flex; align-items: baseline; gap: 8px; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 18px; border-radius: 6px;">
+                <span style="font-size: 16px; font-weight: 700; color: #0f172a;">Result:</span>
+                <span style="font-size: 20px; font-weight: 900; color: #0f172a; font-family: monospace;">${escapeHtml(cleanVal)}</span>
+                <span style="font-size: 14px; font-weight: 700; color: #475569;">${escapeHtml(unit)}</span>
+              </div>
+
+              <!-- Grid Table matching user image 2 with clean borders -->
+              <div style="max-width: 580px; margin: 0 auto; border: 1px solid #94a3b8; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="background: #e2e8f0; border-bottom: 1px solid #94a3b8;">
+                      <th style="padding: 8px 16px; font-weight: 800; font-size: 12.5px; color: #0f172a; text-align: center; border-right: 1px solid #94a3b8; width: 50%;">
+                        Total &beta;&ndash;HCG level (${escapeHtml(unit)})
+                      </th>
+                      <th style="padding: 8px 16px; font-weight: 800; font-size: 12.5px; color: #0f172a; text-align: center; width: 50%;">
+                        Pregnant women (Week since LMP*)
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${bhcgRowsHtml}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style="max-width: 580px; margin: 10px auto 0 auto; font-size: 11px; color: #64748b; text-align: left; font-style: italic;">
+                * LMP = Last Menstrual Period. Note: Clinical and serial ultrasound correlation are recommended.
+              </div>
+
+              ${statusText ? `
+                <div style="max-width: 580px; margin: 12px auto 0 auto; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 14px; text-align: left; font-size: 12px; color: #1e293b;">
+                  <strong>Interpretation:</strong> <span style="font-weight: 700; color: #be123c; margin-left: 4px;">${escapeHtml(statusText)}</span>
+                </div>
+              ` : ''}
+
+              ${notesText ? `
+                <div style="max-width: 580px; margin: 8px auto 0 auto; background: #ffffff; border-left: 3px solid #be123c; padding: 6px 12px; font-size: 11px; color: #475569; text-align: left;">
+                  <strong>Note:</strong> <span style="margin-left: 4px;">${escapeHtml(notesText)}</span>
                 </div>
               ` : ''}
             </div>

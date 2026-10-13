@@ -62,5 +62,43 @@ export const isGseTest = (t: any) => {
   );
 };
 
+export const isAmhTest = (t: any) => {
+  if (isCbcTest(t) || isSfaTest(t) || isGueTest(t) || isGseTest(t)) return false;
+  const code = (t.test?.code || t.testCode || '').toUpperCase();
+  const name = (t.test?.name || '').toLowerCase();
+  const val = typeof t.resultValue === 'string' ? t.resultValue : '';
+  return (
+    code === 'AMH' ||
+    val.includes('ANTI-MULLERIAN') ||
+    val.includes('AMH') ||
+    name.includes('anti-mullerian') ||
+    name.includes('mullerian') ||
+    name.includes('amh') ||
+    name.includes('مخزون المبيض') ||
+    name.includes('مخزون مبيض')
+  );
+};
+
+export const isBhcgTest = (t: any) => {
+  if (isCbcTest(t) || isSfaTest(t) || isGueTest(t) || isGseTest(t) || isAmhTest(t)) return false;
+  const code = (t.test?.code || t.testCode || '').toUpperCase();
+  const name = (t.test?.name || '').toLowerCase();
+  const val = typeof t.resultValue === 'string' ? t.resultValue : '';
+  return (
+    code === 'BHCG' ||
+    code === 'B-HCG' ||
+    code === 'HCG' ||
+    val.includes('BETA-HCG') ||
+    val.includes('Β-HCG') ||
+    name.includes('beta-hcg') ||
+    name.includes('b-hcg') ||
+    name.includes('beta hcg') ||
+    name.includes('β-hcg') ||
+    name.includes('حمل رقمي') ||
+    name.includes('pregnancy quantitative') ||
+    (name.includes('hcg') && !name.includes('rapid') && !name.includes('strip'))
+  );
+};
+
 export const isGeneralTest = (t: any) =>
-  !isCbcTest(t) && !isSfaTest(t) && !isGueTest(t) && !isGseTest(t);
+  !isCbcTest(t) && !isSfaTest(t) && !isGueTest(t) && !isGseTest(t) && !isAmhTest(t) && !isBhcgTest(t);

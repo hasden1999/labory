@@ -263,7 +263,7 @@ function generateHistogramSvg(type: 'WBC' | 'RBC' | 'PLT', points?: number[], wi
   `;
 }
 
-import { isCbcTest, isSfaTest, isGueTest, isGseTest, isGeneralTest } from '../../../../../lib/testClassifier';
+import { isCbcTest, isSfaTest, isGueTest, isGseTest, isAmhTest, isBhcgTest, isGeneralTest } from '../../../../../lib/testClassifier';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const store = getStore();
@@ -291,6 +291,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
     targetTestsToCheck = targetTestsToCheck.filter(isGseTest);
   } else if (sectionParam === 'sfa' || sectionParam === 'semen') {
     targetTestsToCheck = targetTestsToCheck.filter(isSfaTest);
+  } else if (sectionParam === 'amh') {
+    targetTestsToCheck = targetTestsToCheck.filter(isAmhTest);
+  } else if (sectionParam === 'bhcg' || sectionParam === 'hcg') {
+    targetTestsToCheck = targetTestsToCheck.filter(isBhcgTest);
   } else if (sectionParam === 'general' || sectionParam === 'chemistry') {
     targetTestsToCheck = targetTestsToCheck.filter(isGeneralTest);
   }
@@ -490,13 +494,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
   );
 
   const isPreprinted = settings.headerMode === 'PREPRINTED';
-  const rawTop = settings.topMarginMm ?? (isPreprinted ? 45 : 12);
-  const rawBottom = settings.bottomMarginMm ?? (isPreprinted ? 30 : 12);
+  const hasLetterheadBg = Boolean(settings.useLetterheadBackground && settings.customLetterheadUrl);
+  const rawTop = settings.topMarginMm ?? ((isPreprinted || hasLetterheadBg) ? 45 : 12);
+  const rawBottom = settings.bottomMarginMm ?? ((isPreprinted || hasLetterheadBg) ? 30 : 12);
   const rawLeft = settings.leftMarginMm ?? 10;
   const rawRight = settings.rightMarginMm ?? 10;
 
-  const topMm = clampMargin(rawTop, 0, 100, isPreprinted ? 45 : 12);
-  const bottomMm = clampMargin(rawBottom, 0, 100, isPreprinted ? 30 : 12);
+  const topMm = clampMargin(rawTop, 0, 100, (isPreprinted || hasLetterheadBg) ? 45 : 12);
+  const bottomMm = clampMargin(rawBottom, 0, 100, (isPreprinted || hasLetterheadBg) ? 30 : 12);
   const leftMm = clampMargin(rawLeft, 0, 50, 10);
   const rightMm = clampMargin(rawRight, 0, 50, 10);
   const template = settings.reportTemplate || 'CLASSIC';
@@ -642,38 +647,38 @@ export async function GET(request: Request, { params }: { params: { id: string }
   let templateCss = '';
   let containerClass = 'report-card';
 
-  if (template === 'CLASSIC') {
+  if (template === 'CLASSIC' || template === 'ROYAL_CLASSIC') {
     templateCss = `
       .report-card { border: 2px solid #1e3a8a; border-radius: 8px; }
       .header-border { border-bottom: 3px solid #1e3a8a !important; }
       .table-header { background: #1e3a8a !important; }
     `;
-  } else if (template === 'MODERN') {
+  } else if (template === 'MODERN' || template === 'CLINICAL_FRAME') {
     templateCss = `
       .report-card { border: 1px solid #38bdf8; border-radius: 16px; background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 15%); }
       .header-border { border-bottom: 3px solid #0284c7 !important; }
       .table-header { background: linear-gradient(90deg, #0284c7, #0ea5e9) !important; }
     `;
-  } else if (template === 'EXECUTIVE') {
+  } else if (template === 'EXECUTIVE' || template === 'EXECUTIVE_LUXURY') {
     templateCss = `
       .report-card { border: 1px solid #d97706; border-top: 5px solid #b45309; border-radius: 4px; box-shadow: 0 4px 15px rgba(180,83,9,0.06); }
       .header-border { border-bottom: 2px solid #b45309 !important; }
       .table-header { background: #78350f !important; }
     `;
-  } else if (template === 'COMPACT') {
+  } else if (template === 'COMPACT' || template === 'COMPACT_GRID') {
     templateCss = `
       .report-card { border: 1px solid #94a3b8; padding: 14px !important; font-size: 11px !important; }
       .header-border { border-bottom: 2px solid #475569 !important; padding-bottom: 8px !important; margin-bottom: 10px !important; }
       .table-header { background: #334155 !important; }
       table td, table th { padding: 6px 8px !important; }
     `;
-  } else if (template === 'SPECIALIZED') {
+  } else if (template === 'SPECIALIZED' || template === 'MULTI_SECTION') {
     templateCss = `
       .report-card { border: 1.5px solid #0d9488; border-radius: 12px; }
       .header-border { border-bottom: 3px solid #0d9488 !important; }
       .table-header { background: #0f766e !important; }
     `;
-  } else if (template === 'BLACK_WHITE') {
+  } else if (template === 'BLACK_WHITE' || template === 'MONOCHROME_LASER') {
     templateCss = `
       .report-card { border: 2px solid #000000; border-radius: 0px; background: #ffffff !important; box-shadow: none !important; }
       .header-border { border-bottom: 2px solid #000000 !important; }
@@ -681,6 +686,36 @@ export async function GET(request: Request, { params }: { params: { id: string }
       .modern-header-banner { background: #000000 !important; color: #ffffff !important; border-radius: 0px !important; }
       table th { background: #000000 !important; color: #ffffff !important; border: 1px solid #000000 !important; }
       table td { border-bottom: 1px solid #000000 !important; color: #000000 !important; }
+    `;
+  } else if (template === 'AZURE_WAVE') {
+    templateCss = `
+      .report-card { border: 1.5px solid #0284c7; border-radius: 12px; }
+      .header-border { border-bottom: 2.5px solid #0284c7 !important; }
+      .table-header { background: linear-gradient(90deg, #0f172a, #0284c7) !important; color: #ffffff !important; }
+    `;
+  } else if (template === 'EMERALD_WAVE') {
+    templateCss = `
+      .report-card { border: 1.5px solid #10b981; border-radius: 12px; }
+      .header-border { border-bottom: 2.5px solid #10b981 !important; }
+      .table-header { background: linear-gradient(90deg, #064e3b, #059669) !important; color: #ffffff !important; }
+    `;
+  } else if (template === 'INDIGO_WAVE') {
+    templateCss = `
+      .report-card { border: 1.5px solid #7c3aed; border-radius: 12px; }
+      .header-border { border-bottom: 2.5px solid #7c3aed !important; }
+      .table-header { background: linear-gradient(90deg, #1e1b4b, #7c3aed) !important; color: #ffffff !important; }
+    `;
+  } else if (template === 'CBC_DIAGNOSTIC') {
+    templateCss = `
+      .report-card { border: 1.5px solid #dc2626; border-radius: 10px; }
+      .header-border { border-bottom: 2.5px solid #dc2626 !important; }
+      .table-header { background: linear-gradient(90deg, #991b1b, #dc2626) !important; color: #ffffff !important; }
+    `;
+  } else if (template === 'MINIMAL_CLEAN') {
+    templateCss = `
+      .report-card { border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: none; }
+      .header-border { border-bottom: 1px solid #cbd5e1 !important; }
+      .table-header { background: #f8fafc !important; color: #334155 !important; border-bottom: 2px solid #cbd5e1 !important; }
     `;
   }
 
@@ -850,17 +885,23 @@ export async function GET(request: Request, { params }: { params: { id: string }
       max-width: 820px;
       min-height: 297mm;
       margin: 0 auto 24px auto;
-      padding: 24px;
+      padding: ${hasLetterheadBg || isPreprinted ? `${topMm}mm ${rightMm}mm ${bottomMm}mm ${leftMm}mm` : '24px'} !important;
       position: relative;
       background: #ffffff;
-      box-shadow: ${showReportBorder ? '0 4px 15px rgba(0,0,0,0.05)' : 'none'};
-      border-radius: ${showReportBorder ? '8px' : '0'};
+      ${hasLetterheadBg ? `
+        background-image: url('${escapeHtml(settings.customLetterheadUrl)}') !important;
+        background-size: 100% 100% !important;
+        background-repeat: no-repeat !important;
+        background-position: center top !important;
+      ` : ''}
+      box-shadow: ${showReportBorder && !hasLetterheadBg ? '0 4px 15px rgba(0,0,0,0.05)' : 'none'};
+      border-radius: ${showReportBorder && !hasLetterheadBg ? '8px' : '0'};
       overflow: hidden;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       box-sizing: border-box;
-      ${!showReportBorder ? 'border: none !important;' : ''}
+      ${!showReportBorder || hasLetterheadBg ? 'border: none !important;' : ''}
     }
     .report-main-content {
       flex: 1 0 auto;
@@ -889,8 +930,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
       align-items: center;
       justify-content: center;
       pointer-events: none;
-      z-index: 0;
+      z-index: 10;
       overflow: hidden;
+      mix-blend-mode: multiply;
     }
     .watermark-inner {
       transform: rotate(${watermarkAngle}deg);
@@ -948,7 +990,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       .report-card { 
         border: none !important; 
         box-shadow: none !important; 
-        padding: 16mm 14mm 14mm 14mm !important; 
+        padding: ${topMm}mm ${rightMm}mm ${bottomMm}mm ${leftMm}mm !important; 
         width: 100% !important; 
         max-width: none !important; 
         min-height: 297mm !important;
@@ -964,6 +1006,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
         -webkit-print-color-adjust: exact !important; 
         print-color-adjust: exact !important; 
         color-adjust: exact !important; 
+        ${hasLetterheadBg ? `
+          background-image: url('${escapeHtml(settings.customLetterheadUrl)}') !important;
+          background-size: 100% 100% !important;
+          background-repeat: no-repeat !important;
+          background-position: center top !important;
+        ` : ''}
       }
       .report-main-content {
         flex: 1 0 auto !important;
@@ -1003,11 +1051,23 @@ export async function GET(request: Request, { params }: { params: { id: string }
 <body>
   ${!isSingleMode ? `
     <div class="print-btn-bar">
-      <button class="btn-print" onclick="window.print()">Print Report (A4)</button>
+      <button type="button" class="btn-print" id="btnPrintReport" onclick="window.print()">Print Report (A4)</button>
     </div>
   ` : ''}
 
   ${renderedPages.join('\n')}
+
+  <script>
+    (function() {
+      var btn = document.getElementById('btnPrintReport');
+      if (btn) {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.print();
+        });
+      }
+    })();
+  </script>
 </body>
 </html>`;
 
@@ -1015,7 +1075,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     status: 200,
     headers: { 
       'Content-Type': 'text/html; charset=utf-8',
-      'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: http:;"
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: http:;"
     },
   });
 }
