@@ -109,8 +109,18 @@ async function main() {
   });
 
   // 4. Test Catalog (85+ Comprehensive Tests)
-  console.log('🧪 Seeding medical test catalog...');
-  const testsData = [
+  const activeTestCount = await prisma.testCatalog.count({ where: { active: true } });
+  const createdTestsMap: Record<string, any> = {};
+
+  if (activeTestCount >= 310) {
+    console.log(`🛡️ الكتالوج الكامل المعتمد متوفر بالفعل (${activeTestCount} فحص نشط). تم تخطي بذر الكتالوج للحفاظ على البيانات.`);
+    const existingTests = await prisma.testCatalog.findMany({ where: { active: true } });
+    for (const t of existingTests) {
+      if (t.code) createdTestsMap[t.code] = t;
+    }
+  } else {
+    console.log('🧪 Seeding medical test catalog...');
+    const testsData = [
     // --- 1. أمراض الدم والتخثر (Hematology & Coagulation) ---
     { code: 'CBC', name: 'Complete Blood Count (CBC)', arabicName: 'صورة الدم الكاملة', category: 'أمراض الدم والتخثر', price: 15000, costEstimate: 2500, refRangeLow: 12.0, refRangeHigh: 16.0, normalMaleLow: 13.5, normalMaleHigh: 17.5, normalFemaleLow: 12.0, normalFemaleHigh: 15.5, criticalLow: 7.0, criticalHigh: 20.0, refRangeText: '12.0 - 16.0', unit: 'g/dL', sampleType: 'دم كامل (EDTA)' },
     { code: 'HB', name: 'Hemoglobin (Hb)', arabicName: 'خضاب الدم (الهيموغلوبين)', category: 'أمراض الدم والتخثر', price: 5000, costEstimate: 800, refRangeLow: 12.0, refRangeHigh: 16.5, normalMaleLow: 13.5, normalMaleHigh: 17.5, normalFemaleLow: 12.0, normalFemaleHigh: 15.5, criticalLow: 7.0, criticalHigh: 20.0, refRangeText: '12.0 - 16.5', unit: 'g/dL', sampleType: 'دم كامل (EDTA)' },
@@ -214,7 +224,6 @@ async function main() {
     { code: 'AFP', name: 'Alpha-Fetoprotein (AFP)', arabicName: 'دلالات أورام الكبد والجنين (AFP)', category: 'دلالات الأورام', price: 25000, costEstimate: 5000, refRangeLow: 0, refRangeHigh: 7.0, refRangeText: '< 7.0', unit: 'ng/mL', sampleType: 'مصل الدم (Serum)' },
   ];
 
-  const createdTestsMap: Record<string, any> = {};
   for (const t of testsData) {
     const stableId = `t-${(t.code || t.name).toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
     let existing = await prisma.testCatalog.findFirst({
@@ -251,69 +260,40 @@ async function main() {
     }
     createdTestsMap[t.code] = existing;
   }
+  }
 
   // 5. Diagnostic Panels (Packages)
   console.log('📦 Seeding diagnostic test panels...');
   const panelsData = [
     {
-      name: 'الفحص الشامل للاطمئنان والصحة العامة (Comprehensive Health Check)',
-      description: 'يشمل صورة الدم، السكر التراكمي، وظائف الكلى، وظائف الكبد، دهون الدم، فيتامين د، وفحص الإدرار العام',
-      price: 85000, // Regular total: ~135,000
-      testCodes: ['CBC', 'HBA1C', 'CREAT', 'UREA', 'URIC', 'GOT', 'GPT', 'CHOL', 'TG', 'HDL', 'LDL', 'VITD', 'GUE'],
-    },
-    {
       name: 'باقة متابعة مرضى السكري المتكاملة (Diabetic Care Panel)',
-      description: 'يشمل السكر الصائم، السكر التراكمي، وظائف الكلى، الزلال البولي، والدهون الثلاثية',
-      price: 45000,
-      testCodes: ['FBS', 'HBA1C', 'CREAT', 'UREA', 'MALB', 'CHOL', 'TG', 'GUE'],
+      description: 'يشمل السكر الصائم والسكر التراكمي',
+      price: 20000,
+      testCodes: ['FBS', 'HBA1C'],
     },
     {
       name: 'باقة وظائف الكلى والأملاح الشاملة (KFT & Electrolytes Panel)',
-      description: 'الكرياتينين، اليوريا، حمض اليوريك، الصوديوم، البوتاسيوم، وفحص الإدرار العام',
-      price: 30000,
-      testCodes: ['CREAT', 'UREA', 'BUN', 'URIC', 'NA', 'K', 'GUE'],
+      description: 'الكرياتينين، اليوريا، وحمض اليوريك',
+      price: 20000,
+      testCodes: ['CREAT', 'UREA', 'URIC'],
     },
     {
       name: 'باقة وظائف الكبد والمرارة الكاملة (Complete LFT Panel)',
-      description: 'إنزيمات الكبد AST و ALT، الفوسفاتاز القلوي، البيليروبين الكلي والمباشر، والألبومين والبروتين',
-      price: 35000,
-      testCodes: ['GOT', 'GPT', 'ALP', 'TSB', 'DIR-BIL', 'TP', 'ALB'],
+      description: 'إنزيمات الكبد AST و ALT، الفوسفاتاز القلوي، والبيليروبين الكلي',
+      price: 25000,
+      testCodes: ['GPT', 'GOT', 'TSB', 'ALP'],
     },
     {
       name: 'باقة دهون الدم وصحة القلب (Lipid & Cardiovascular Panel)',
       description: 'الكوليسترول الكلي، الدهون الثلاثية، الكوليسترول النافع HDL، والكوليسترول الضار LDL',
       price: 25000,
-      testCodes: ['CHOL', 'TG', 'HDL', 'LDL', 'VLDL'],
+      testCodes: ['CHOL', 'TG', 'HDL', 'LDL'],
     },
     {
       name: 'باقة الغدة الدرقية الكاملة (Thyroid Health Panel)',
       description: 'هرمون المحفز للدرقية TSH، الثايروكسين الحر Free T4، وثلاثي اليود الحر Free T3',
       price: 50000,
       testCodes: ['TSH', 'FT4', 'FT3'],
-    },
-    {
-      name: 'باقة الفحص الطبي قبل الزواج (Premarital Screen Package)',
-      description: 'صورة الدم والأنيميا، فصيلة الدم، التهاب الكبد B و C، فيروس الإيدز، والزهري',
-      price: 60000,
-      testCodes: ['CBC', 'BG', 'HBSAG', 'HCV', 'HIV', 'VDRL'],
-    },
-    {
-      name: 'باقة تساقط الشعر والنشاط والحيوية (Hair Loss & Vitality Screen)',
-      description: 'صورة الدم، الفيريتين مخزون الحديد، هرمون TSH، الزنك، وفيتامين D3',
-      price: 75000,
-      testCodes: ['CBC', 'FER', 'IRON', 'TSH', 'VITD', 'ZINC'],
-    },
-    {
-      name: 'باقة صحة العظام والمفاصل (Bone & Joint Health Panel)',
-      description: 'فيتامين D3، الكالسيوم الكلي، الفوسفور، حمض اليوريك، بروتين الالتهاب CRP، وعامل الروماتويد RF',
-      price: 65000,
-      testCodes: ['VITD', 'CALC', 'PHOS', 'URIC', 'CRP', 'RF'],
-    },
-    {
-      name: 'باقة الخصوبة والهرمونات للرجال والنساء (Fertility & Hormone Profile)',
-      description: 'هرمونات FSH و LH، هرمون الحليب البرولاكتين، هرمون التستوستيرون، وهرمون الاستراديول',
-      price: 85000,
-      testCodes: ['FSH', 'LH', 'PRL', 'TESTO', 'E2'],
     },
   ];
 

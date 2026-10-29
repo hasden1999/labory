@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStore } from '../../../../../lib/serverStore';
-import { getSharedBrowser } from '../../../../../lib/puppeteerLauncher';
-import { GET as getPrintReport } from '../print/route';
+import { generateReportImages } from '../../../../../lib/puppeteerImageGenerator';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const store = getStore();
@@ -13,65 +12,52 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   const { searchParams } = new URL(request.url);
   const section = (searchParams.get('section') || 'all').toLowerCase();
+  const format = (searchParams.get('format') || 'png').toLowerCase();
+  const pageParam = searchParams.get('page');
+  const returnAllJson = searchParams.get('all') === 'true' || format === 'json';
+
+  const requestedPageIndex = pageParam !== null && pageParam !== undefined && pageParam !== ''
+    ? parseInt(pageParam, 10)
+    : undefined;
 
   try {
-    // Generate the exact HTML representation for the requested section in single/image mode
-    const printUrl = new URL(request.url);
-    printUrl.searchParams.set('mode', 'single');
-    printUrl.searchParams.set('force', 'true');
-    if (section && section !== 'all') {
-      printUrl.searchParams.set('section', section);
-    }
-
-    const customRequest = new Request(printUrl.toString(), {
-      headers: request.headers,
+    const isPng = format === 'png';
+    const images = await generateReportImages(sample.id, request.url, {
+      section,
+      format: isPng ? 'png' : 'jpeg',
+      pageIndex: requestedPageIndex,
     });
 
-    const printResponse = await getPrintReport(customRequest, { params });
-    let html = await printResponse.text();
-
-    // Determine baseUrl from the incoming request (e.g. http://localhost:8080)
-    const reqUrl = new URL(request.url);
-    const baseUrl = `${reqUrl.protocol}//${reqUrl.host}`;
-
-    // Inject <base href="${baseUrl}/"> into HTML <head> so relative assets and local fonts load correctly
-    if (!html.includes('<base ')) {
-      html = html.replace('<head>', `<head>\n  <base href="${baseUrl}/">`);
+    if (returnAllJson) {
+      return NextResponse.json({
+        sampleId: sample.id,
+        sampleNumber: sample.sampleNumber,
+        totalPages: images.length > 0 ? images[0].totalPages : 0,
+        images: images.map(img => ({
+          pageIndex: img.pageIndex,
+          dataUrl: img.dataUrl,
+        })),
+      });
     }
 
-    const browser = await getSharedBrowser();
-    const page = await browser.newPage();
-    try {
-      // Use 2x Retina scale factor so medical report image is ultra sharp on high-DPI smartphone displays
-      await page.setViewport({
-        width: 840,
-        height: 1100,
-        deviceScaleFactor: 2,
-      });
-
-      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 15000 });
-
-      // Wait for document fonts to finish loading (replaces arbitrary setTimeout delay)
-      await page.evaluateHandle('document.fonts.ready').catch(() => {});
-
-      const screenshotBuffer = await page.screenshot({
-        type: 'jpeg',
-        quality: 92,
-        fullPage: true,
-      });
-
-      return new Response(new Uint8Array(screenshotBuffer), {
-        status: 200,
-        headers: {
-          'Content-Type': 'image/jpeg',
-          'Content-Disposition': `inline; filename="sample-${sample.sampleNumber}-${section}.jpg"`,
-          'Cache-Control': 'public, max-age=300',
-        },
-      });
-    } finally {
-      // Guarantee page/tab is closed in all cases without closing shared browser instance
-      await page.close().catch(() => {});
+    const targetImg = images[0];
+    if (!targetImg) {
+      return new Response('No report image generated', { status: 500 });
     }
+
+    const pageSuffix = requestedPageIndex !== undefined ? `-p${requestedPageIndex + 1}` : '';
+    const ext = isPng ? 'png' : 'jpg';
+
+    return new Response(new Uint8Array(targetImg.buffer), {
+      status: 200,
+      headers: {
+        'Content-Type': isPng ? 'image/png' : 'image/jpeg',
+        'Content-Disposition': `inline; filename="sample-${sample.sampleNumber}-${section}${pageSuffix}.${ext}"`,
+        'X-Total-Pages': String(targetImg.totalPages),
+        'X-Page-Index': String(targetImg.pageIndex),
+        'Cache-Control': 'public, max-age=300',
+      },
+    });
   } catch (err: any) {
     console.error('[ImageRoute] Failed generating image snapshot:', err);
     return NextResponse.json(

@@ -91,3 +91,7 @@ PROJECT_CONTEXT.md
 .hwid_seal.json
 **/.hwid_seal.json
 
+
+# Legacy Windows 7 Engine & Dist (Backed up safely to D:\lab_snapshots)
+apps/desktop/engine-legacy/
+apps/desktop/dist-legacy/

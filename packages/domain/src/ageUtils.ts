@@ -137,40 +137,80 @@ export function formatClinicalAge(
   patient?: {
     birthDate?: string | Date | null;
     age?: number | string | null;
+    ageYears?: number | string | null;
+    ageMonths?: number | string | null;
+    ageDays?: number | string | null;
     birthDateEstimated?: boolean | null;
   } | null,
   atDate: string | Date = new Date()
 ): string {
   if (!patient) return '-';
 
-  // Legacy patient without birthDate: preserve stored age exactly
-  if (!patient.birthDate) {
-    if (patient.age !== undefined && patient.age !== null && String(patient.age).trim() !== '') {
-      const clean = String(patient.age).trim();
+  // If patient has birthDate, use exact breakdown
+  if (patient.birthDate) {
+    const bDate = new Date(patient.birthDate);
+    if (!isNaN(bDate.getTime())) {
+      const breakdown = computeAgeBreakdown(patient.birthDate, atDate);
+
+      // < 1 month: show in days
+      if (breakdown.totalMonths < 1) {
+        return `${breakdown.days || breakdown.totalDays} D`;
+      }
+
+      // < 2 years (1 to 23 months): show in months
+      if (breakdown.years < 2) {
+        return `${breakdown.totalMonths} M`;
+      }
+
+      // < 18 years: show years and months (e.g. "3 Y 2 M")
+      if (breakdown.years < 18) {
+        return breakdown.months > 0 ? `${breakdown.years} Y ${breakdown.months} M` : `${breakdown.years} Y`;
+      }
+
+      // Adults: show years only (e.g. "45 Y")
+      return `${breakdown.years} Y`;
+    }
+  }
+
+  // Fallback: Check explicitly provided years, months, days
+  const rawY = patient.ageYears ?? patient.age;
+  const rawM = patient.ageMonths;
+  const rawD = patient.ageDays;
+
+  const y = rawY !== undefined && rawY !== null && String(rawY).trim() !== '' ? parseInt(String(rawY).replace(/[^0-9]/g, ''), 10) : 0;
+  const m = rawM !== undefined && rawM !== null && String(rawM).trim() !== '' ? parseInt(String(rawM).replace(/[^0-9]/g, ''), 10) : 0;
+  const d = rawD !== undefined && rawD !== null && String(rawD).trim() !== '' ? parseInt(String(rawD).replace(/[^0-9]/g, ''), 10) : 0;
+
+  const hasY = !isNaN(y) && y > 0;
+  const hasM = !isNaN(m) && m > 0;
+  const hasD = !isNaN(d) && d > 0;
+
+  if (hasY || hasM || hasD) {
+    if (!hasY && !hasM && hasD) {
+      return `${d} D`;
+    }
+    if (!hasY && hasM) {
+      return hasD ? `${m} M ${d} D` : `${m} M`;
+    }
+    if (hasY && y < 2) {
+      const totalM = y * 12 + m;
+      return totalM > 0 ? `${totalM} M` : `${y} Y`;
+    }
+    if (hasY && y < 18) {
+      return hasM ? `${y} Y ${m} M` : `${y} Y`;
+    }
+    return `${y} Y`;
+  }
+
+  // Legacy patient with raw string age e.g. "45 Y" or "30"
+  if (patient.age !== undefined && patient.age !== null && String(patient.age).trim() !== '') {
+    const clean = String(patient.age).trim();
+    if (clean !== '' && clean !== '-') {
       return clean.endsWith('Y') || clean.endsWith('y') ? clean.toUpperCase() : `${clean} Y`;
     }
-    return '-';
   }
 
-  const breakdown = computeAgeBreakdown(patient.birthDate, atDate);
-
-  // < 1 month: show in days
-  if (breakdown.totalMonths < 1) {
-    return `${breakdown.days || breakdown.totalDays} D`;
-  }
-
-  // < 2 years (1 to 23 months): show in months
-  if (breakdown.years < 2) {
-    return `${breakdown.totalMonths} M`;
-  }
-
-  // < 18 years: show years and months (e.g. "3 Y 2 M")
-  if (breakdown.years < 18) {
-    return breakdown.months > 0 ? `${breakdown.years} Y ${breakdown.months} M` : `${breakdown.years} Y`;
-  }
-
-  // Adults: show years only (e.g. "45 Y")
-  return `${breakdown.years} Y`;
+  return '-';
 }
 
 /**
@@ -181,59 +221,101 @@ export function formatClinicalAgeArabic(
   patient?: {
     birthDate?: string | Date | null;
     age?: number | string | null;
+    ageYears?: number | string | null;
+    ageMonths?: number | string | null;
+    ageDays?: number | string | null;
     birthDateEstimated?: boolean | null;
   } | null,
   atDate: string | Date = new Date()
 ): string {
   if (!patient) return '-';
 
-  if (!patient.birthDate) {
-    if (patient.age !== undefined && patient.age !== null && String(patient.age).trim() !== '') {
-      const clean = String(patient.age).replace(/[^0-9]/g, '');
-      const num = parseInt(clean, 10);
-      if (isNaN(num)) return '-';
-      if (num === 1) return 'سنة واحدة';
-      if (num === 2) return 'سنتان';
-      if (num >= 3 && num <= 10) return `${num} سنوات`;
-      return `${num} سنة`;
+  if (patient.birthDate) {
+    const bDate = new Date(patient.birthDate);
+    if (!isNaN(bDate.getTime())) {
+      const breakdown = computeAgeBreakdown(patient.birthDate, atDate);
+
+      // < 1 month: show in days
+      if (breakdown.totalMonths < 1) {
+        const d = breakdown.days || breakdown.totalDays || 1;
+        if (d === 1) return 'يوم واحد';
+        if (d === 2) return 'يومان';
+        if (d >= 3 && d <= 10) return `${d} أيام`;
+        return `${d} يوماً`;
+      }
+
+      // < 2 years (1 to 23 months): show in months
+      if (breakdown.years < 2) {
+        const m = breakdown.totalMonths;
+        if (m === 1) return 'شهر واحد';
+        if (m === 2) return 'شهران';
+        if (m >= 3 && m <= 10) return `${m} أشهر`;
+        return `${m} شهراً`;
+      }
+
+      // < 18 years
+      if (breakdown.years < 18) {
+        const yStr = breakdown.years === 1 ? 'سنة واحدة' : breakdown.years === 2 ? 'سنتان' : (breakdown.years <= 10 ? `${breakdown.years} سنوات` : `${breakdown.years} سنة`);
+        if (breakdown.months > 0) {
+          const mStr = breakdown.months === 1 ? 'شهر واحد' : breakdown.months === 2 ? 'شهران' : (breakdown.months <= 10 ? `${breakdown.months} أشهر` : `${breakdown.months} شهراً`);
+          return `${yStr} و ${mStr}`;
+        }
+        return yStr;
+      }
+
+      // Adults: show years
+      const y = breakdown.years;
+      if (y >= 3 && y <= 10) return `${y} سنوات`;
+      return `${y} سنة`;
     }
-    return '-';
   }
 
-  const breakdown = computeAgeBreakdown(patient.birthDate, atDate);
+  const rawY = patient.ageYears ?? patient.age;
+  const rawM = patient.ageMonths;
+  const rawD = patient.ageDays;
 
-  // < 1 month: show in days
-  if (breakdown.totalMonths < 1) {
-    const d = breakdown.days || breakdown.totalDays || 1;
-    if (d === 1) return 'يوم واحد';
-    if (d === 2) return 'يومان';
-    if (d >= 3 && d <= 10) return `${d} أيام`;
-    return `${d} يوماً`;
-  }
+  const y = rawY !== undefined && rawY !== null && String(rawY).trim() !== '' ? parseInt(String(rawY).replace(/[^0-9]/g, ''), 10) : 0;
+  const m = rawM !== undefined && rawM !== null && String(rawM).trim() !== '' ? parseInt(String(rawM).replace(/[^0-9]/g, ''), 10) : 0;
+  const d = rawD !== undefined && rawD !== null && String(rawD).trim() !== '' ? parseInt(String(rawD).replace(/[^0-9]/g, ''), 10) : 0;
 
-  // < 2 years (1 to 23 months): show in months
-  if (breakdown.years < 2) {
-    const m = breakdown.totalMonths;
-    if (m === 1) return 'شهر واحد';
-    if (m === 2) return 'شهران';
-    if (m >= 3 && m <= 10) return `${m} أشهر`;
-    return `${m} شهراً`;
-  }
+  const hasY = !isNaN(y) && y > 0;
+  const hasM = !isNaN(m) && m > 0;
+  const hasD = !isNaN(d) && d > 0;
 
-  // < 18 years
-  if (breakdown.years < 18) {
-    const yStr = breakdown.years === 1 ? 'سنة واحدة' : breakdown.years === 2 ? 'سنتان' : (breakdown.years <= 10 ? `${breakdown.years} سنوات` : `${breakdown.years} سنة`);
-    if (breakdown.months > 0) {
-      const mStr = breakdown.months === 1 ? 'شهر واحد' : breakdown.months === 2 ? 'شهران' : (breakdown.months <= 10 ? `${breakdown.months} أشهر` : `${breakdown.months} شهراً`);
+  if (hasY || hasM || hasD) {
+    if (!hasY && !hasM && hasD) {
+      if (d === 1) return 'يوم واحد';
+      if (d === 2) return 'يومان';
+      if (d >= 3 && d <= 10) return `${d} أيام`;
+      return `${d} يوماً`;
+    }
+    if (!hasY && hasM) {
+      const mStr = m === 1 ? 'شهر واحد' : m === 2 ? 'شهران' : (m >= 3 && m <= 10 ? `${m} أشهر` : `${m} شهراً`);
+      if (hasD) {
+        const dStr = d === 1 ? 'يوم' : d === 2 ? 'يومان' : (d <= 10 ? `${d} أيام` : `${d} يوم`);
+        return `${mStr} و ${dStr}`;
+      }
+      return mStr;
+    }
+    const yStr = y === 1 ? 'سنة واحدة' : y === 2 ? 'سنتان' : (y <= 10 ? `${y} سنوات` : `${y} سنة`);
+    if (hasM) {
+      const mStr = m === 1 ? 'شهر واحد' : m === 2 ? 'شهران' : (m <= 10 ? `${m} أشهر` : `${m} شهراً`);
       return `${yStr} و ${mStr}`;
     }
     return yStr;
   }
 
-  // Adults: show years
-  const y = breakdown.years;
-  if (y >= 3 && y <= 10) return `${y} سنوات`;
-  return `${y} سنة`;
+  if (patient.age !== undefined && patient.age !== null && String(patient.age).trim() !== '') {
+    const clean = String(patient.age).replace(/[^0-9]/g, '');
+    const num = parseInt(clean, 10);
+    if (isNaN(num)) return '-';
+    if (num === 1) return 'سنة واحدة';
+    if (num === 2) return 'سنتان';
+    if (num >= 3 && num <= 10) return `${num} سنوات`;
+    return `${num} سنة`;
+  }
+
+  return '-';
 }
 
 /**

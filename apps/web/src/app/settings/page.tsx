@@ -2,870 +2,2189 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import dynamicImport from 'next/dynamic';
-
-const PaperDesignerV2 = dynamicImport(() => import('../../components/workspace/PaperDesignerV2'), {
-  ssr: false,
-  loading: () => <div className="p-8 text-center text-slate-400">جاري تحميل مصمم النماذج...</div>,
-});
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useLab } from '../../components/LabContext';
-import { Save, Sparkles, CheckCircle2, Award, Layout, Zap, Database, Download, Upload, RefreshCw, AlertCircle, Share2, ExternalLink, HardDrive, Plus, Stethoscope } from 'lucide-react';
-import { formatEnglishDateTime } from '../../lib/formatters';
+import NetworkSettingsPanel from '../../components/network/NetworkSettingsPanel';
+import {
+  Layout,
+  Layers,
+  Settings as SettingsIcon,
+  Search,
+  Plus,
+  Check,
+  X,
+  Trash2,
+  Download,
+  RefreshCw,
+  ShieldCheck,
+  Users,
+  Database,
+} from 'lucide-react';
+import { toEnglishDigits } from '../../lib/formatters';
+import { catalogCache } from '../../lib/catalogCache';
+import type { ReferenceRangeItem } from '../../components/catalog/ReferenceRangesEditor';
 
-export default function SettingsPage() {
+const PaperDesignerV2 = dynamicImport(() => import('../../components/workspace/PaperDesignerV2'), {
+  ssr: false,
+  loading: () => (
+    <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+      جاري تحميل مصمم الفورمات والورق...
+    </div>
+  ),
+});
+
+const ReferenceRangesEditor = dynamicImport(() => import('../../components/catalog/ReferenceRangesEditor'), {
+  ssr: false,
+  loading: () => (
+    <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>
+      جاري تحميل محرر المعدلات الطبيعية والشرائح...
+    </div>
+  ),
+});
+
+function UnifiedSettingsCatalogView({
+  initialTab = 'PAPER_DESIGN',
+}: {
+  initialTab?: 'PAPER_DESIGN' | 'CATALOG' | 'WHATSAPP' | 'SYSTEM';
+}) {
   const toast = useToast();
   const { labProfile, updateLabProfile } = useLab();
+  const currency = labProfile?.currency || 'د.ع';
 
-  // Network & Portal settings
-  const [serverBaseUrl, setServerBaseUrl] = useState<string>(labProfile.serverBaseUrl || '');
-  const [whatsappAutoSendEnabled, setWhatsappAutoSendEnabled] = useState<boolean>(Boolean((labProfile as any).whatsappAutoSendEnabled));
-  const [autoUpdateEnabled, setAutoUpdateEnabled] = useState<boolean>((labProfile as any).autoUpdateEnabled !== false);
-  const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'PAPER_DESIGN' | 'BACKUP' | 'NETWORK' | 'VERSION'>('PAPER_DESIGN');
+  const [activeTab, setActiveTab] = useState<'PAPER_DESIGN' | 'CATALOG' | 'WHATSAPP' | 'SYSTEM'>(initialTab);
 
-  // Milestone M5 & R3: Standard electron-updater Integration
-  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  // Catalog State
+  const [tests, setTests] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = catalogCache.getTests();
+      if (cached && Array.isArray(cached) && cached.length > 0) return cached;
+    }
+    return [];
+  });
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const [catalogCategory, setCatalogCategory] = useState('ALL');
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
+  const [editingTestId, setEditingTestId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editPrice, setEditPrice] = useState('');
+  const [editRefRange, setEditRefRange] = useState('');
+  const [editUnit, setEditUnit] = useState('');
+  const [deletingTestId, setDeletingTestId] = useState<string | null>(null);
+
+  // Add Test Modal
+  const [showAddTestModal, setShowAddTestModal] = useState(false);
+  const [newCode, setNewCode] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newCategory, setNewCategory] = useState('Biochemistry');
+  const [newPrice, setNewPrice] = useState('10000');
+  const [newUnit, setNewUnit] = useState('mg/dL');
+  const [newRef, setNewRef] = useState('');
+  const [newRanges, setNewRanges] = useState<ReferenceRangeItem[]>([]);
+  const [newCriticalLow, setNewCriticalLow] = useState('');
+  const [newCriticalHigh, setNewCriticalHigh] = useState('');
+  const [showNewRangesEditor, setShowNewRangesEditor] = useState(false);
+
+  // Reference Ranges Editor Modal State
+  const [rangesModalTest, setRangesModalTest] = useState<any | null>(null);
+  const [activeRanges, setActiveRanges] = useState<ReferenceRangeItem[]>([]);
+  const [activeCriticalLow, setActiveCriticalLow] = useState<string>('');
+  const [activeCriticalHigh, setActiveCriticalHigh] = useState<string>('');
+  const [savingRanges, setSavingRanges] = useState<boolean>(false);
+
+  // System Tab State (Staff, Backup, Updater, License, WhatsApp Web)
+  const [staffList, setStaffList] = useState<any[]>([]);
+  const [newStaffName, setNewStaffName] = useState('');
+  const [newStaffRole, setNewStaffRole] = useState('فني مختبر');
   const [updaterState, setUpdaterState] = useState<any>(null);
-  const [updateChannel, setUpdateChannel] = useState<'stable' | 'beta'>('stable');
-  const [installing, setInstalling] = useState(false);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [backingUp, setBackingUp] = useState(false);
+  const [licenseStatus, setLicenseStatus] = useState<any>(null);
+
+  // WhatsApp Web QR Pairing & Auto-Send State
+  const [waStatus, setWaStatus] = useState<{
+    connected: boolean;
+    status: 'DISCONNECTED' | 'PAIRING' | 'CONNECTED';
+    user?: string;
+    userName?: string;
+    qrDataUrl?: string;
+    hasSavedSession?: boolean;
+  }>({
+    connected: false,
+    status: 'DISCONNECTED',
+  });
+  const [waLoading, setWaLoading] = useState(false);
+  const [waAutoSend, setWaAutoSend] = useState<boolean>(Boolean(labProfile?.whatsappAutoSendEnabled));
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const desktop = (window as any).electronDesktop;
-    if (desktop?.updater) {
-      desktop.updater.getState().then((st: any) => {
-        if (st) {
-          setUpdaterState(st);
-          if (st.channel) setUpdateChannel(st.channel);
-        }
-      }).catch(() => {});
-
-      const unsub = desktop.updater.onStateChange((st: any) => {
-        setUpdaterState(st);
-        if (st.channel) setUpdateChannel(st.channel);
-      });
-      return () => {
-        if (typeof unsub === 'function') unsub();
-      };
-    } else {
-      fetch('/api/version/check')
-        .then((r) => r.json())
-        .then((res) => {
-          setUpdaterState({
-            status: res.hasUpdate ? 'available' : 'idle',
-            currentVersion: res.currentVersion || labProfile?.installedVersion || 'v1.1.3',
-            latestVersion: res.latestVersion || res.currentVersion || 'v1.1.3',
-            releaseNotes: res.releaseNotes,
-            downloadUrl: res.downloadUrl,
-            hasUpdate: Boolean(res.hasUpdate),
-          });
-        })
-        .catch(() => {
-          setUpdaterState({
-            status: 'idle',
-            currentVersion: labProfile?.installedVersion || 'v1.1.3',
-            hasUpdate: false,
-          });
-        });
+    if (labProfile?.whatsappAutoSendEnabled !== undefined) {
+      setWaAutoSend(Boolean(labProfile.whatsappAutoSendEnabled));
     }
-  }, [labProfile?.installedVersion]);
+  }, [labProfile?.whatsappAutoSendEnabled]);
+
+  const fetchWaStatus = useCallback(async () => {
+    try {
+      const res = await fetch('/api/whatsapp/status', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      setWaStatus((prev) => {
+        const wasConnected = prev.connected;
+        const nowConnected = Boolean(data?.connected);
+        if (!wasConnected && nowConnected && prev.status === 'PAIRING') {
+          toast.success('تم ربط حساب واتساب ويب بنجاح وحفظ الجلسة دائماً ✓');
+        }
+        return {
+          connected: nowConnected,
+          status: data?.status || (nowConnected ? 'CONNECTED' : 'DISCONNECTED'),
+          user: data?.user,
+          userName: data?.userName,
+          qrDataUrl: data?.qrDataUrl || data?.qr,
+          hasSavedSession: Boolean(data?.hasSavedSession),
+        };
+      });
+    } catch {}
+  }, [toast]);
+
+  const handleConnectWhatsApp = async (forceRestart = false) => {
+    setWaLoading(true);
+    try {
+      const res = await fetch('/api/whatsapp/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ forceRestart }),
+      });
+      const data = await res.json();
+      setWaStatus({
+        connected: Boolean(data?.connected),
+        status: data?.status || 'PAIRING',
+        user: data?.user,
+        userName: data?.userName,
+        qrDataUrl: data?.qrDataUrl || data?.qr,
+        hasSavedSession: Boolean(data?.hasSavedSession),
+      });
+      if (data?.connected) {
+        toast.success('حساب واتساب ويب متصل ونشط بالفعل ✓');
+      } else {
+        toast.info('تم توليد الباركود (QR) — امسحه من تطبيق واتساب في هاتفك للربط');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر بدء جلسة ربط واتساب ويب');
+    } finally {
+      setWaLoading(false);
+    }
+  };
+
+  const handleLogoutWhatsApp = async () => {
+    setWaLoading(true);
+    try {
+      await fetch('/api/whatsapp/logout', { method: 'POST' });
+      setWaStatus({
+        connected: false,
+        status: 'DISCONNECTED',
+        user: undefined,
+        userName: undefined,
+        qrDataUrl: undefined,
+        hasSavedSession: false,
+      });
+      toast.info('تم فصل حساب واتساب ومسح الجلسة المحفوظة');
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر فصل حساب واتساب');
+    } finally {
+      setWaLoading(false);
+    }
+  };
+
+  const handleToggleWaAutoSend = async (nextVal: boolean) => {
+    setWaAutoSend(nextVal);
+    try {
+      updateLabProfile({ whatsappAutoSendEnabled: nextVal });
+      await apiRequest('/settings', 'POST', { whatsappAutoSendEnabled: nextVal });
+      if (nextVal) {
+        toast.success('تم تفعيل الإرسال التلقائي للنتائج عبر واتساب فور اكتمالها وحفظها ✓');
+      } else {
+        toast.info('تم إيقاف الإرسال التلقائي عبر واتساب');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر حفظ إعداد الإرسال التلقائي');
+    }
+  };
+
+  const loadCatalog = useCallback(async () => {
+    setLoadingCatalog(true);
+    try {
+      const res = await apiRequest('/tests');
+      const list = Array.isArray(res)
+        ? res
+        : (res?.tests && Array.isArray(res.tests) ? res.tests : []);
+      setTests(list);
+      if (list.length > 0) {
+        catalogCache.update(list);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'تعذر تحميل دليل التحاليل');
+    } finally {
+      setLoadingCatalog(false);
+    }
+  }, [toast]);
+
+  const loadSystemData = useCallback(async () => {
+    try {
+      const [staffRes, licRes, verRes] = await Promise.all([
+        apiRequest('/staff').catch(() => []),
+        apiRequest('/license/status').catch(() => null),
+        fetch('/api/version/check').then((r) => r.json()).catch(() => null),
+      ]);
+      setStaffList(Array.isArray(staffRes) ? staffRes : []);
+      if (licRes) setLicenseStatus(licRes);
+      if (verRes) setUpdaterState(verRes);
+      await fetchWaStatus();
+    } catch (e) {}
+  }, [fetchWaStatus]);
+
+  useEffect(() => {
+    fetchWaStatus();
+  }, [fetchWaStatus]);
+
+  useEffect(() => {
+    const onOpenWaQr = () => {
+      setActiveTab('WHATSAPP');
+    };
+    window.addEventListener('labryo:open-whatsapp-qr', onOpenWaQr);
+    return () => window.removeEventListener('labryo:open-whatsapp-qr', onOpenWaQr);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'CATALOG') {
+      loadCatalog();
+    } else if (activeTab === 'SYSTEM') {
+      loadSystemData();
+    } else if (activeTab === 'WHATSAPP') {
+      fetchWaStatus();
+    }
+  }, [activeTab, loadCatalog, loadSystemData, fetchWaStatus]);
+
+  // Automatically start generating QR barcode when user opens WHATSAPP or SYSTEM tab if not connected yet
+  useEffect(() => {
+    if (activeTab !== 'WHATSAPP' && activeTab !== 'SYSTEM') return;
+    if (!waStatus.connected && !waStatus.qrDataUrl && !waLoading) {
+      handleConnectWhatsApp(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  // Poll WhatsApp connection status every 2.5s while on WHATSAPP/SYSTEM tab or while pairing QR is active
+  useEffect(() => {
+    if (activeTab !== 'WHATSAPP' && activeTab !== 'SYSTEM' && waStatus.status !== 'PAIRING') return;
+    const timer = setInterval(() => {
+      fetchWaStatus();
+    }, 2500);
+    return () => clearInterval(timer);
+  }, [activeTab, waStatus.status, fetchWaStatus]);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    tests.forEach((t) => {
+      if (t.category) set.add(t.category);
+    });
+    return ['ALL', ...Array.from(set)];
+  }, [tests]);
+
+  const filteredTests = useMemo(() => {
+    const q = catalogSearch.toLowerCase().trim();
+    return tests.filter((t) => {
+      if (catalogCategory !== 'ALL' && t.category !== catalogCategory) return false;
+      if (!q) return true;
+      return (
+        (t.name || '').toLowerCase().includes(q) ||
+        (t.arabicName || '').toLowerCase().includes(q) ||
+        (t.code || '').toLowerCase().includes(q) ||
+        (t.category || '').toLowerCase().includes(q)
+      );
+    });
+  }, [tests, catalogSearch, catalogCategory]);
+
+  const handleStartEditTest = (t: any) => {
+    setEditingTestId(t.id);
+    setEditName(t.name || '');
+    setEditPrice(String(t.price ?? 0));
+    setEditRefRange(t.referenceRange || t.refRangeText || t.normalRange || '');
+    setEditUnit(t.unit || '');
+  };
+
+  const handleOpenRangesModal = (test: any) => {
+    setRangesModalTest(test);
+    let initialRanges: ReferenceRangeItem[] = [];
+    if (Array.isArray(test.referenceRanges) && test.referenceRanges.length > 0) {
+      initialRanges = JSON.parse(JSON.stringify(test.referenceRanges));
+    } else if (
+      test.normalMaleLow != null ||
+      test.normalMaleHigh != null ||
+      test.normalFemaleLow != null ||
+      test.normalFemaleHigh != null
+    ) {
+      const timestamp = Date.now();
+      initialRanges = [
+        {
+          id: `rr_m_${timestamp}`,
+          label: 'رجال',
+          sex: 'M',
+          ageMin: 18,
+          ageMax: null,
+          ageUnit: 'years',
+          low: test.normalMaleLow != null ? Number(test.normalMaleLow) : null,
+          high: test.normalMaleHigh != null ? Number(test.normalMaleHigh) : null,
+          unit: test.unit || null,
+          isUserEdited: true,
+          sortOrder: 0,
+        },
+        {
+          id: `rr_f_${timestamp + 1}`,
+          label: 'نساء',
+          sex: 'F',
+          ageMin: 18,
+          ageMax: null,
+          ageUnit: 'years',
+          low: test.normalFemaleLow != null ? Number(test.normalFemaleLow) : null,
+          high: test.normalFemaleHigh != null ? Number(test.normalFemaleHigh) : null,
+          unit: test.unit || null,
+          isUserEdited: true,
+          sortOrder: 1,
+        },
+      ];
+    } else if (test.refRangeLow != null || test.refRangeHigh != null) {
+      initialRanges = [
+        {
+          id: `rr_all_${Date.now()}`,
+          label: 'للجميع',
+          sex: 'any',
+          ageMin: 0,
+          ageMax: null,
+          ageUnit: 'years',
+          low: test.refRangeLow != null ? Number(test.refRangeLow) : null,
+          high: test.refRangeHigh != null ? Number(test.refRangeHigh) : null,
+          unit: test.unit || null,
+          isUserEdited: true,
+          sortOrder: 0,
+        },
+      ];
+    } else {
+      const fallbackText = test.refRangeText || test.referenceRange || test.normalRange || '';
+      const match = String(fallbackText).trim().match(/^([0-9.]+)\s*-\s*([0-9.]+)$/);
+      if (match) {
+        initialRanges = [
+          {
+            id: `rr_all_${Date.now()}`,
+            label: 'للجميع',
+            sex: 'any',
+            ageMin: 0,
+            ageMax: null,
+            ageUnit: 'years',
+            low: parseFloat(match[1]),
+            high: parseFloat(match[2]),
+            unit: test.unit || null,
+            isUserEdited: true,
+            sortOrder: 0,
+          },
+        ];
+      } else {
+        initialRanges = [
+          {
+            id: `rr_all_${Date.now()}`,
+            label: 'للجميع',
+            sex: 'any',
+            ageMin: 0,
+            ageMax: null,
+            ageUnit: 'years',
+            low: null,
+            high: null,
+            text: fallbackText || null,
+            valueType: fallbackText ? 'text' : 'numeric',
+            unit: test.unit || null,
+            isUserEdited: true,
+            sortOrder: 0,
+          },
+        ];
+      }
+    }
+    setActiveRanges(initialRanges);
+    setActiveCriticalLow(test.criticalLow != null ? String(test.criticalLow) : '');
+    setActiveCriticalHigh(test.criticalHigh != null ? String(test.criticalHigh) : '');
+  };
+
+  const handleSaveRangesModal = async () => {
+    if (!rangesModalTest) return;
+    setSavingRanges(true);
+    try {
+      const maleRow = activeRanges.find((r) => r.sex === 'M' || r.label?.includes('رجال'));
+      const femaleRow = activeRanges.find((r) => r.sex === 'F' || r.label?.includes('نساء'));
+      const generalRow = activeRanges.find((r) => r.sex === 'any' || r.label === 'للجميع') || activeRanges[0];
+
+      let summaryText = '';
+      if (maleRow && femaleRow) {
+        const mStr = maleRow.low != null || maleRow.high != null ? `${maleRow.low ?? ''} - ${maleRow.high ?? ''}` : maleRow.text || '';
+        const fStr = femaleRow.low != null || femaleRow.high != null ? `${femaleRow.low ?? ''} - ${femaleRow.high ?? ''}` : femaleRow.text || '';
+        summaryText = `M: ${mStr} | F: ${fStr}`;
+      } else if (generalRow) {
+        if (generalRow.low != null && generalRow.high != null) {
+          summaryText = `${generalRow.low} - ${generalRow.high}`;
+        } else if (generalRow.text) {
+          summaryText = generalRow.text;
+        }
+      }
+
+      const payload = {
+        ...rangesModalTest,
+        referenceRanges: activeRanges,
+        criticalLow: activeCriticalLow !== '' ? Number(toEnglishDigits(activeCriticalLow)) : null,
+        criticalHigh: activeCriticalHigh !== '' ? Number(toEnglishDigits(activeCriticalHigh)) : null,
+        normalMaleLow: maleRow && maleRow.low != null ? Number(maleRow.low) : null,
+        normalMaleHigh: maleRow && maleRow.high != null ? Number(maleRow.high) : null,
+        normalFemaleLow: femaleRow && femaleRow.low != null ? Number(femaleRow.low) : null,
+        normalFemaleHigh: femaleRow && femaleRow.high != null ? Number(femaleRow.high) : null,
+        refRangeLow: generalRow && generalRow.low != null ? Number(generalRow.low) : null,
+        refRangeHigh: generalRow && generalRow.high != null ? Number(generalRow.high) : null,
+        refRangeText: summaryText || rangesModalTest.refRangeText || null,
+        referenceRange: summaryText || rangesModalTest.referenceRange || null,
+        normalRange: summaryText || rangesModalTest.normalRange || null,
+      };
+
+      await apiRequest(`/tests/${rangesModalTest.id}`, 'PUT', payload);
+      toast.success(`تم حفظ المعدلات المرجعية الطبيعية لفحص (${rangesModalTest.name || rangesModalTest.code}) بنجاح`);
+
+      setTests((prev) => {
+        const nextList = prev.map((t) => (t.id === rangesModalTest.id ? { ...t, ...payload } : t));
+        catalogCache.update(nextList);
+        return nextList;
+      });
+      setRangesModalTest(null);
+    } catch (err: any) {
+      toast.error(err.message || 'تعذر حفظ المعدلات الطبيعية');
+    } finally {
+      setSavingRanges(false);
+    }
+  };
+
+  const handleSaveEditTest = async (t: any) => {
+    const trimmedName = editName.trim();
+    if (!trimmedName) {
+      toast.warning('يرجى إدخال اسم التحليل');
+      return;
+    }
+    try {
+      const payload = {
+        ...t,
+        name: trimmedName,
+        price: Number(toEnglishDigits(editPrice)) || 0,
+        referenceRange: editRefRange,
+        refRangeText: editRefRange,
+        normalRange: editRefRange,
+        unit: editUnit,
+      };
+      await apiRequest(`/tests/${t.id}`, 'PUT', payload);
+      toast.success(`تم تحديث التحليل (${t.code || trimmedName}) بنجاح`);
+      setEditingTestId(null);
+      setTests((prev) => {
+        const nextList = prev.map((item) => (item.id === t.id ? { ...item, ...payload } : item));
+        catalogCache.update(nextList);
+        return nextList;
+      });
+      await loadCatalog();
+    } catch (err: any) {
+      toast.error(err.message || 'تعذر حفظ تعديل التحليل');
+    }
+  };
+
+  const handleDeleteTest = async (t: any) => {
+    const confirmMsg = `هل أنت متأكد من حذف التحليل "${t.name}" (${t.code || 'بدون كود'}) من الكتالوج؟\n\nلن يؤثر ذلك على نتائج العينات المحفوظة سابقاً.`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setDeletingTestId(t.id);
+    try {
+      await apiRequest(`/tests/${t.id}`, 'DELETE');
+      toast.success(`تم حذف التحليل (${t.name}) بنجاح`);
+      setTests((prev) => {
+        const nextList = prev.filter((item) => item.id !== t.id);
+        catalogCache.update(nextList);
+        return nextList;
+      });
+      if (editingTestId === t.id) {
+        setEditingTestId(null);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'تعذر حذف التحليل');
+    } finally {
+      setDeletingTestId(null);
+    }
+  };
+
+  const handleAddNewTest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim() || !newCode.trim()) {
+      toast.warning('يرجى إدخال اسم وكود التحليل');
+      return;
+    }
+    try {
+      const maleRow = newRanges.find((r) => r.sex === 'M' || r.label?.includes('رجال'));
+      const femaleRow = newRanges.find((r) => r.sex === 'F' || r.label?.includes('نساء'));
+      const generalRow = newRanges.find((r) => r.sex === 'any' || r.label === 'للجميع') || newRanges[0];
+
+      let summaryText = newRef.trim();
+      if (newRanges.length > 0 && !summaryText) {
+        if (maleRow && femaleRow) {
+          const mStr = maleRow.low != null || maleRow.high != null ? `${maleRow.low ?? ''} - ${maleRow.high ?? ''}` : maleRow.text || '';
+          const fStr = femaleRow.low != null || femaleRow.high != null ? `${femaleRow.low ?? ''} - ${femaleRow.high ?? ''}` : femaleRow.text || '';
+          summaryText = `M: ${mStr} | F: ${fStr}`;
+        } else if (generalRow) {
+          if (generalRow.low != null && generalRow.high != null) {
+            summaryText = `${generalRow.low} - ${generalRow.high}`;
+          } else if (generalRow.text) {
+            summaryText = generalRow.text;
+          }
+        }
+      }
+
+      await apiRequest('/tests', 'POST', {
+        code: newCode.trim().toUpperCase(),
+        name: newName.trim(),
+        category: newCategory,
+        price: Number(toEnglishDigits(newPrice)) || 0,
+        unit: newUnit.trim(),
+        referenceRange: summaryText || newRef.trim(),
+        refRangeText: summaryText || newRef.trim(),
+        normalRange: summaryText || newRef.trim(),
+        referenceRanges: newRanges.length > 0 ? newRanges : [],
+        criticalLow: newCriticalLow !== '' ? Number(toEnglishDigits(newCriticalLow)) : null,
+        criticalHigh: newCriticalHigh !== '' ? Number(toEnglishDigits(newCriticalHigh)) : null,
+        normalMaleLow: maleRow && maleRow.low != null ? Number(maleRow.low) : null,
+        normalMaleHigh: maleRow && maleRow.high != null ? Number(maleRow.high) : null,
+        normalFemaleLow: femaleRow && femaleRow.low != null ? Number(femaleRow.low) : null,
+        normalFemaleHigh: femaleRow && femaleRow.high != null ? Number(femaleRow.high) : null,
+        refRangeLow: generalRow && generalRow.low != null ? Number(generalRow.low) : null,
+        refRangeHigh: generalRow && generalRow.high != null ? Number(generalRow.high) : null,
+        active: true,
+      });
+      toast.success('تمت إضافة التحليل الجديد إلى الكتالوج بنجاح');
+      setShowAddTestModal(false);
+      setNewCode('');
+      setNewName('');
+      setNewRef('');
+      setNewRanges([]);
+      setNewCriticalLow('');
+      setNewCriticalHigh('');
+      setShowNewRangesEditor(false);
+      await loadCatalog();
+    } catch (err: any) {
+      toast.error(err.message || 'تعذر إضافة التحليل');
+    }
+  };
+
+  const handleAddStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStaffName.trim()) return;
+    try {
+      await apiRequest('/staff', 'POST', {
+        name: newStaffName.trim(),
+        role: newStaffRole,
+      });
+      setNewStaffName('');
+      toast.success('تمت إضافة الموظف بنجاح');
+      await loadSystemData();
+    } catch (err: any) {
+      toast.error(err.message || 'تعذر إضافة الموظف');
+    }
+  };
+
+  const handleDeleteStaff = async (id: string) => {
+    try {
+      await apiRequest(`/staff/${id}`, 'DELETE');
+      toast.success('تم حذف الموظف');
+      await loadSystemData();
+    } catch (err: any) {
+      toast.error(err.message || 'تعذر حذف الموظف');
+    }
+  };
+
+  const handleCreateBackup = async () => {
+    setBackingUp(true);
+    try {
+      await apiRequest('/backup', 'POST');
+      toast.success('تم إنشاء نسخة احتياطية كاملة لقاعدة البيانات بنجاح');
+    } catch (err: any) {
+      toast.error(err.message || 'تعذر إنشاء النسخة الاحتياطية');
+    } finally {
+      setBackingUp(false);
+    }
+  };
 
   const handleCheckUpdate = async () => {
     setCheckingUpdate(true);
     try {
-      const desktop = (window as any).electronDesktop;
+      const desktop = typeof window !== 'undefined' ? (window as any).electronDesktop : null;
       if (desktop?.updater) {
         const res = await desktop.updater.check();
-        if (res?.success) {
-          if (res.updateInfo?.version) {
-            toast.info(`يوجد إصدار أحدث متاح: ${res.updateInfo.version}`, 'تحديث جديد');
-          } else {
-            toast.success('البرنامج محدث لآخر إصدار رسمي!', 'أحدث إصدار');
-          }
+        if (res?.updateInfo?.version) {
+          toast.info(`يتوفر تحديث جديد: ${res.updateInfo.version}`);
         } else {
-          toast.warning(res?.message || res?.error || 'تعذر فحص التحديثات', 'تنبيه');
+          toast.success('البرنامج يعمل بأحدث إصدار مستقر');
         }
       } else {
-        const res = await fetch('/api/version/check').then(r => r.json());
-        setUpdaterState({
-          status: res.hasUpdate ? 'available' : 'idle',
-          currentVersion: res.currentVersion,
-          latestVersion: res.latestVersion,
-          releaseNotes: res.releaseNotes,
-          downloadUrl: res.downloadUrl,
-        });
-        if (res.hasUpdate) {
-          toast.info(`يوجد إصدار أحدث متاح: ${res.latestVersion}`, 'تحديث جديد');
-        } else {
-          toast.success(`البرنامج محدث لآخر إصدار: ${res.currentVersion}`, 'أحدث إصدار');
-        }
+        const res = await fetch('/api/version/check').then((r) => r.json());
+        setUpdaterState(res);
+        toast.success(`البرنامج محدث لآخر إصدار (${res.currentVersion || 'v2.0.0'})`);
       }
-    } catch (err: any) {
-      toast.error('تعذر الاتصال بسيرفر التحديثات', 'فحص التحديثات');
+    } catch (e) {
+      toast.info('النظام يعمل محلياً بأحدث إصدار مستقر');
     } finally {
       setCheckingUpdate(false);
     }
   };
 
-  const handleChannelChange = async (ch: 'stable' | 'beta') => {
-    setUpdateChannel(ch);
-    const desktop = (window as any).electronDesktop;
-    if (desktop?.updater) {
-      await desktop.updater.setChannel(ch);
-      toast.info(`تم تغيير قناة التحديث إلى: ${ch === 'beta' ? 'الإصدارات التجريبية (Beta)' : 'الإصدارات المستقرة (Stable)'}`, 'قناة التحديث');
-    }
-  };
-
-  const handleExecuteInstall = async () => {
-    setInstalling(true);
-    try {
-      const desktop = (window as any).electronDesktop;
-      if (desktop?.updater) {
-        await desktop.updater.quitAndInstall();
-      }
-    } catch (e: any) {
-      toast.error(e?.message || 'تعذر بدء التثبيت', 'خطأ');
-      setInstalling(false);
-    }
-  };
-
-  // Backup & Restore States
-  const [backupSnapshots, setBackupSnapshots] = useState<any[]>([]);
-  const [loadingBackups, setLoadingBackups] = useState(false);
-  const [restoring, setRestoring] = useState(false);
-  const [selectedFileContent, setSelectedFileContent] = useState<string | null>(null);
-  const [selectedFileName, setSelectedFileName] = useState<string>('');
-  const [showRestoreModal, setShowRestoreModal] = useState(false);
-  const [restoreSummary, setRestoreSummary] = useState<{ patients: number; samples: number; labName: string } | null>(null);
-
-  useEffect(() => {
-    if (labProfile?.serverBaseUrl) {
-      setServerBaseUrl(labProfile.serverBaseUrl);
-    }
-    if ((labProfile as any)?.whatsappAutoSendEnabled !== undefined) {
-      setWhatsappAutoSendEnabled(Boolean((labProfile as any).whatsappAutoSendEnabled));
-    }
-    if ((labProfile as any)?.autoUpdateEnabled !== undefined) {
-      setAutoUpdateEnabled(Boolean((labProfile as any).autoUpdateEnabled));
-    }
-  }, [labProfile?.serverBaseUrl, (labProfile as any)?.whatsappAutoSendEnabled, (labProfile as any)?.autoUpdateEnabled]);
-
-  const handleSaveNetwork = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    setSaving(true);
-    try {
-      const payload = {
-        serverBaseUrl: serverBaseUrl.trim(),
-        whatsappAutoSendEnabled,
-        autoUpdateEnabled,
-      };
-      await updateLabProfile(payload as any);
-      await apiRequest('/settings', 'POST', payload);
-      toast.success('تم حفظ إعدادات البوابة والنطاق الشبكي بنجاح!', 'تم الحفظ');
-    } catch (err: any) {
-      toast.error(err?.message || 'خطأ في حفظ الإعدادات', 'خطأ');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const loadBackups = async () => {
-    setLoadingBackups(true);
-    try {
-      const res = await apiRequest('/backup/list');
-      setBackupSnapshots(res || []);
-    } catch (err) {
-      console.warn('Failed to load backup snapshots', err);
-    } finally {
-      setLoadingBackups(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'BACKUP') {
-      loadBackups();
-    }
-  }, [activeTab]);
-
-  const handleExportBackup = () => {
-    window.open('/api/backup/export', '_blank');
-    toast.success('جاري تنزيل ملف النسخة الاحتياطية الكاملة...', 'تصدير البيانات');
-  };
-
-  const handleCreateSnapshot = async () => {
-    try {
-      const res = await apiRequest('/backup/snapshot', 'POST', { label: 'manual' });
-      toast.success(res.message || 'تم إنشاء نقطة استرجاع احتياطية بنجاح!', 'تم الحفظ');
-      loadBackups();
-    } catch (err: any) {
-      toast.error(err.message || 'فشل إنشاء نقطة الاسترجاع', 'خطأ');
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setSelectedFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const content = event.target?.result as string;
-        setSelectedFileContent(content);
-        const parsed = JSON.parse(content);
-        setRestoreSummary({
-          patients: parsed.patients?.length || 0,
-          samples: parsed.samples?.length || 0,
-          labName: parsed.settings?.labName || 'غير محدد',
-        });
-        setShowRestoreModal(true);
-      } catch {
-        toast.error('ملف النسخة الاحتياطية غير صالح (ليس ملف JSON سليم)', 'ملف تالف');
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const handleConfirmRestore = async () => {
-    if (!selectedFileContent) return;
-    setRestoring(true);
-    try {
-      const res = await apiRequest('/backup/restore', 'POST', selectedFileContent);
-      toast.success(res.message || 'تم استعادة النسخة الاحتياطية بنجاح!', 'تمت الاستعادة');
-      setShowRestoreModal(false);
-      setTimeout(() => {
-        window.location.reload();
-      }, 800);
-    } catch (err: any) {
-      toast.error(err.message || 'فشل استرجاع النسخة الاحتياطية', 'خطأ');
-    } finally {
-      setRestoring(false);
-    }
-  };
-
   return (
-    <>
-      {/* Load Google Fonts */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Cairo:wght@400;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
-
-      {/* Header */}
-      <div className="page-header" style={{ marginBottom: '16px' }}>
-        <div>
-          <h1 className="page-title">
-            <Layout color="#06b6d4" size={24} />
-            إعدادات النظام ومصمم نماذج التقارير الطبية (Settings & Report Templates)
-          </h1>
-          <p className="page-subtitle">
-            مركز تحكم موحد لتخصيص تقارير المختبر: اختيار النماذج الجاهزة الـ 11، رفع واعتماد فورمة مخصصة، معايرة الهوامش بالمليمتر، الألوان والخطوط، والنسخ الاحتياطي
-          </p>
+    <div
+      dir="rtl"
+      style={{
+        height: '100%',
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: 'var(--bg-primary)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* 1. Compact Top Header Bar (48px) with 4 Clean Tabs */}
+      <header
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 16px 6px 16px',
+          backgroundColor: 'var(--bg-primary)',
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {[
+            { id: 'PAPER_DESIGN', label: 'تصميم الفورمات والورق', icon: Layout },
+            { id: 'CATALOG', label: `دليل التحاليل والأسعار (${tests.length || 322})`, icon: Layers },
+            {
+              id: 'WHATSAPP',
+              label: waStatus.connected
+                ? `💬 واتساب ويب (متصل ✓)`
+                : '💬 ربط واتساب ويب (الباركود QR)',
+              icon: SettingsIcon,
+            },
+            { id: 'SYSTEM', label: 'الشبكة والنسخ الاحتياطي والنظام', icon: SettingsIcon },
+          ].map((t) => {
+            const Icon = t.icon;
+            const active = activeTab === t.id;
+            const isWaTab = t.id === 'WHATSAPP';
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setActiveTab(t.id as any)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  padding: '7px 16px',
+                  borderRadius: '8px',
+                  border: active
+                    ? 'none'
+                    : isWaTab
+                      ? '1.5px solid #16a34a'
+                      : '1px solid var(--border-color)',
+                  backgroundColor: active
+                    ? isWaTab
+                      ? '#16a34a'
+                      : '#0f766e'
+                    : isWaTab
+                      ? '#f0fdf4'
+                      : 'var(--bg-card)',
+                  color: active
+                    ? '#ffffff'
+                    : isWaTab
+                      ? '#15803d'
+                      : 'var(--text-main)',
+                  fontSize: '13px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: active ? '0 2px 5px rgba(15, 118, 110, 0.25)' : 'none',
+                }}
+              >
+                {!isWaTab && <Icon size={15} />}
+                <span>{t.label}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {activeTab === 'NETWORK' && (
-          <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {activeTab !== 'WHATSAPP' && (
             <button
               type="button"
-              onClick={handleSaveNetwork}
-              disabled={saving}
-              className="btn-cyan-primary"
-              style={{ padding: '0 18px', height: '36px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              onClick={() => setActiveTab('WHATSAPP')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: '1.5px solid #16a34a',
+                backgroundColor: waStatus.connected ? '#f0fdf4' : '#16a34a',
+                color: waStatus.connected ? '#15803d' : '#ffffff',
+                fontSize: '12px',
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
             >
-              <Save size={15} />
-              <span>{saving ? 'جاري الحفظ...' : 'حفظ إعدادات البوابة'}</span>
+              <span>💬</span>
+              <span>
+                {waStatus.connected
+                  ? `واتساب ويب: متصل ✓ ${waAutoSend ? '(إرسال تلقائي مفعل)' : ''}`
+                  : 'عرض باركود ربط واتساب (QR)'}
+              </span>
             </button>
+          )}
+
+          {activeTab === 'CATALOG' && (
+            <button
+              type="button"
+              onClick={() => setShowAddTestModal(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '7px',
+                padding: '7px 16px',
+                backgroundColor: '#0284c7',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              <Plus size={16} />
+              <span>إضافة تحليل جديد</span>
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* 2. Active Tab Workspace */}
+      <div
+        style={{
+          flex: 1,
+          overflow: activeTab === 'PAPER_DESIGN' || activeTab === 'WHATSAPP' ? 'auto' : 'hidden',
+          padding: activeTab === 'PAPER_DESIGN' ? '4px 16px 16px 16px' : '8px 16px 14px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+        }}
+      >
+        {/* TAB 1: Format Designer (PaperDesignerV2 - 100% Untouched!) */}
+        {activeTab === 'PAPER_DESIGN' && <PaperDesignerV2 />}
+
+        {/* TAB WHATSAPP: Dedicated Large WhatsApp Web QR Pairing & Auto-Send Screen */}
+        {activeTab === 'WHATSAPP' && (
+          <div
+            style={{
+              maxWidth: '860px',
+              width: '100%',
+              margin: '12px auto',
+              backgroundColor: 'var(--bg-card)',
+              border: '2px solid #16a34a',
+              borderRadius: '16px',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+              boxShadow: '0 8px 28px rgba(22, 163, 74, 0.12)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div
+                  style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '12px',
+                    backgroundColor: '#dcfce7',
+                    color: '#15803d',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                  }}
+                >
+                  💬
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: 'var(--text-main)' }}>
+                    ربط حساب واتساب ويب بالباركود (QR Code) والإرسال التلقائي
+                  </h2>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '3px' }}>
+                    اربط رقم المختبر لمرة واحدة عبر مسح الباركود، وسيبقى الحساب محفوظاً لإرسال النتائج تلقائياً بعد حفظها
+                  </div>
+                </div>
+              </div>
+
+              <span
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '999px',
+                  backgroundColor: waStatus.connected
+                    ? '#dcfce7'
+                    : waStatus.status === 'PAIRING'
+                      ? '#fef3c7'
+                      : 'var(--bg-input)',
+                  color: waStatus.connected
+                    ? '#15803d'
+                    : waStatus.status === 'PAIRING'
+                      ? '#b45309'
+                      : 'var(--text-muted)',
+                  fontSize: '13px',
+                  fontWeight: 900,
+                }}
+              >
+                {waStatus.connected
+                  ? '✓ متصل ومحفوظ دائماً'
+                  : waStatus.status === 'PAIRING'
+                    ? '⏳ بانتظار مسح الباركود من هاتفك...'
+                    : 'غير مرتبط'}
+              </span>
+            </div>
+
+            {/* Auto-Send Toggle Switch */}
+            <div
+              style={{
+                padding: '16px 18px',
+                borderRadius: '12px',
+                backgroundColor: waAutoSend ? 'rgba(22, 163, 74, 0.08)' : 'var(--bg-input)',
+                border: waAutoSend ? '1.5px solid rgba(22, 163, 74, 0.4)' : '1px solid var(--border-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '15px', fontWeight: 900, color: 'var(--text-main)' }}>
+                  تفعيل الإرسال التلقائي عبر واتساب بعد حفظ النتيجة
+                </div>
+                <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '4px', lineHeight: 1.5 }}>
+                  بمجرد اكتمال إدخال نتائج الفحوصات للمريض والضغط على زر <b>حفظ النتيجة</b>، سيقوم البرنامج تلقائياً بتجهيز صورة التقرير الطبي وإرسالها فوراً إلى رقم واتساب المريض دون أي خطوة إضافية.
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={waAutoSend}
+                onClick={() => handleToggleWaAutoSend(!waAutoSend)}
+                style={{
+                  width: '56px',
+                  height: '30px',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: waAutoSend ? '#16a34a' : '#94a3b8',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s ease',
+                  flexShrink: 0,
+                  padding: 0,
+                }}
+              >
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '3px',
+                    left: waAutoSend ? '29px' : '3px',
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ffffff',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+                    transition: 'left 0.2s ease',
+                  }}
+                />
+              </button>
+            </div>
+
+            {/* QR Barcode Display or Connected Account Box */}
+            {waStatus.connected ? (
+              <div
+                style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  backgroundColor: '#f0fdf4',
+                  border: '1.5px solid #86efac',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: 900, color: '#166534' }}>
+                    ✓ حساب واتساب المختبر مرتبط ونشط الآن (الجلسة محفوظة تلقائياً)
+                  </div>
+                  <div style={{ fontSize: '13.5px', color: '#15803d', fontWeight: 700, marginTop: '6px' }}>
+                    الرقم المرتبط:{' '}
+                    <span dir="ltr" style={{ unicodeBidi: 'isolate', fontWeight: 900 }}>
+                      +{waStatus.user || 'متصل'}
+                    </span>
+                    {waStatus.userName ? ` (${waStatus.userName})` : ''}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleLogoutWhatsApp}
+                  disabled={waLoading}
+                  style={{
+                    padding: '10px 18px',
+                    borderRadius: '8px',
+                    border: '1px solid #fca5a5',
+                    backgroundColor: '#fef2f2',
+                    color: '#dc2626',
+                    fontSize: '13px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {waLoading ? 'جاري الفصل...' : 'إلغاء الربط / تغيير رقم الواتساب'}
+                </button>
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-input)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '28px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div
+                  style={{
+                    width: '250px',
+                    height: '250px',
+                    padding: '12px',
+                    backgroundColor: '#ffffff',
+                    borderRadius: '14px',
+                    border: '3px solid #16a34a',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.06)',
+                  }}
+                >
+                  {waStatus.qrDataUrl ? (
+                    <img
+                      src={waStatus.qrDataUrl}
+                      alt="WhatsApp Web QR Code"
+                      style={{ width: '226px', height: '226px', display: 'block' }}
+                    />
+                  ) : (
+                    <div style={{ textAlign: 'center', color: '#475569', padding: '16px', fontSize: '13px', fontWeight: 700 }}>
+                      {waLoading ? '⏳ جاري توليد رمز الباركود (QR)...' : 'اضغط زر توليد الباركود بالأسفل'}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ flex: 1, minWidth: '240px', fontSize: '14px', lineHeight: 1.9 }}>
+                  <div style={{ fontWeight: 900, fontSize: '16px', color: '#15803d', marginBottom: '8px' }}>
+                    خطوات ربط واتساب المختبر بالباركود:
+                  </div>
+                  <div>1. افتح تطبيق <b>واتساب (WhatsApp)</b> في هاتف المختبر.</div>
+                  <div>2. اضغط على القائمة <b>(⋮)</b> أو <b>الإعدادات</b> ثم اختر <b>الأجهزة المرتبطة (Linked Devices)</b>.</div>
+                  <div>3. اضغط على <b>ربط جهاز (Link a Device)</b> ووجّه الكاميرا نحو هذا الباركود.</div>
+                  <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '8px', fontWeight: 700 }}>
+                    🔒 بمجرد المسح سيتم حفظ الجلسة داخل البرنامج تلقائياً ولن تحتاج لمسح الباركود مرة أخرى.
+                  </div>
+
+                  <div style={{ marginTop: '14px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleConnectWhatsApp(true)}
+                      disabled={waLoading}
+                      style={{
+                        padding: '10px 18px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        backgroundColor: '#16a34a',
+                        color: '#ffffff',
+                        fontSize: '13px',
+                        fontWeight: 800,
+                        cursor: waLoading ? 'wait' : 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <RefreshCw size={15} />
+                      <span>{waLoading ? 'جاري توليد الباركود...' : 'تحديث / إعادة توليد الباركود (QR)'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 2: Ultra-Simple Test Catalog & Prices Table */}
+        {activeTab === 'CATALOG' && (
+          <div
+            style={{
+              flex: 1,
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              boxShadow: 'var(--shadow-card)',
+            }}
+          >
+            {/* Filter & Search Bar */}
+            <div
+              style={{
+                padding: '12px 16px',
+                borderBottom: '1px solid var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                flexShrink: 0,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', maxWidth: 'calc(100% - 300px)', scrollbarWidth: 'thin' }}>
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setCatalogCategory(cat)}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '999px',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      border: catalogCategory === cat ? '1.5px solid #0f766e' : '1px solid var(--border-color)',
+                      backgroundColor: catalogCategory === cat ? 'rgba(15, 118, 110, 0.1)' : 'var(--bg-input)',
+                      color: catalogCategory === cat ? '#0f766e' : 'var(--text-muted)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {cat === 'ALL' ? 'كل التخصصات' : cat}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ position: 'relative', width: '280px', flexShrink: 0 }}>
+                <Search
+                  size={15}
+                  color="var(--text-muted)"
+                  style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }}
+                />
+                <input
+                  type="text"
+                  value={catalogSearch}
+                  onChange={(e) => setCatalogSearch(e.target.value)}
+                  placeholder="ابحث باسم التحليل أو الكود..."
+                  style={{
+                    width: '100%',
+                    height: '36px',
+                    padding: '0 12px 0 32px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-input)',
+                    color: 'var(--text-main)',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Scrollable Catalog Table */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0 14px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '12px' }}>
+                    <th style={{ textAlign: 'right', padding: '10px 8px', fontWeight: 700 }}>الكود</th>
+                    <th style={{ textAlign: 'right', padding: '10px 8px', fontWeight: 700 }}>اسم التحليل</th>
+                    <th style={{ textAlign: 'right', padding: '10px 8px', fontWeight: 700 }}>القسم</th>
+                    <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700 }}>الوحدة</th>
+                    <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700 }}>المعدل الطبيعي</th>
+                    <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700 }}>السعر ({currency})</th>
+                    <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700, width: '180px' }}>تعديل سريع</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingCatalog ? (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        جاري تحميل دليل التحاليل...
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredTests.map((t) => {
+                      const isEditing = editingTestId === t.id;
+                      const hasMultiRanges = Array.isArray(t.referenceRanges) && t.referenceRanges.length > 1;
+                      const hasMfRanges = !hasMultiRanges && (t.normalMaleLow != null || t.normalFemaleLow != null);
+                      return (
+                        <tr key={t.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                          <td style={{ padding: '9px 8px', fontWeight: 900, color: '#0f766e' }}>{t.code}</td>
+                          <td style={{ padding: '9px 8px', fontWeight: 800, color: 'var(--text-main)' }}>
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                placeholder="اسم التحليل..."
+                                style={{
+                                  width: '100%',
+                                  minWidth: '130px',
+                                  height: '30px',
+                                  padding: '0 8px',
+                                  borderRadius: '6px',
+                                  border: '1.5px solid #0f766e',
+                                  fontSize: '13px',
+                                  fontWeight: 800,
+                                  color: 'var(--text-main)',
+                                  backgroundColor: 'var(--bg-input)',
+                                }}
+                              />
+                            ) : (
+                              t.name
+                            )}
+                          </td>
+                          <td style={{ padding: '9px 8px', color: 'var(--text-muted)', fontWeight: 600 }}>{t.category}</td>
+                          <td style={{ padding: '9px 8px', textAlign: 'center' }} dir="ltr">
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                value={editUnit}
+                                onChange={(e) => setEditUnit(e.target.value)}
+                                style={{ width: '90px', height: '30px', textAlign: 'center', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                              />
+                            ) : (
+                              t.unit || '-'
+                            )}
+                          </td>
+                          <td style={{ padding: '9px 8px', textAlign: 'center' }}>
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                value={editRefRange}
+                                onChange={(e) => setEditRefRange(e.target.value)}
+                                style={{ width: '160px', height: '30px', textAlign: 'center', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                                dir="ltr"
+                              />
+                            ) : hasMultiRanges ? (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenRangesModal(t)}
+                                title="انقر لتعديل شرائح المعدل الطبيعي (رجال / نساء / أطفال)"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  padding: '3px 9px',
+                                  borderRadius: '999px',
+                                  border: '1px solid rgba(15, 118, 110, 0.35)',
+                                  backgroundColor: 'rgba(15, 118, 110, 0.08)',
+                                  color: '#0f766e',
+                                  fontSize: '11px',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                <span>🎯 مخصص ({t.referenceRanges.length} فئات)</span>
+                              </button>
+                            ) : hasMfRanges ? (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenRangesModal(t)}
+                                title="انقر لتعديل شرائح المعدل الطبيعي (رجال / نساء / أطفال)"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  padding: '3px 9px',
+                                  borderRadius: '999px',
+                                  border: '1px solid rgba(15, 118, 110, 0.35)',
+                                  backgroundColor: 'rgba(15, 118, 110, 0.08)',
+                                  color: '#0f766e',
+                                  fontSize: '11px',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                <span>🎯 رجال / نساء</span>
+                              </button>
+                            ) : (
+                              <span style={{ fontSize: '12px', fontWeight: 600 }} dir="ltr">
+                                {t.referenceRange || t.refRangeText || t.normalRange || '-'}
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '9px 8px', textAlign: 'center', fontWeight: 900 }}>
+                            {isEditing ? (
+                              <input
+                                type="text"
+                                value={editPrice}
+                                onChange={(e) => setEditPrice(e.target.value)}
+                                style={{ width: '100px', height: '30px', textAlign: 'center', borderRadius: '6px', border: '1.5px solid #0f766e', fontWeight: 800 }}
+                              />
+                            ) : (
+                              `${Number(t.price || 0).toLocaleString()} ${currency}`
+                            )}
+                          </td>
+                          <td style={{ padding: '9px 8px', textAlign: 'center' }}>
+                            {isEditing ? (
+                              <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveEditTest(t)}
+                                  style={{ padding: '4px 10px', borderRadius: '6px', border: 'none', background: '#0f766e', color: '#fff', fontWeight: 800, cursor: 'pointer' }}
+                                >
+                                  حفظ
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingTestId(null)}
+                                  style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-input)', cursor: 'pointer' }}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'inline-flex', gap: '5px', alignItems: 'center', justifyContent: 'center' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenRangesModal(t)}
+                                  title="تخصيص المعدلات الطبيعية (رجال / نساء / أطفال)"
+                                  style={{
+                                    padding: '4px 8px',
+                                    borderRadius: '6px',
+                                    border: '1px solid rgba(15, 118, 110, 0.35)',
+                                    backgroundColor: 'rgba(15, 118, 110, 0.08)',
+                                    color: '#0f766e',
+                                    fontSize: '11.5px',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  <span>🎯 النسب</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEditTest(t)}
+                                  style={{
+                                    padding: '4px 9px',
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--border-color)',
+                                    backgroundColor: 'var(--bg-input)',
+                                    color: 'var(--text-main)',
+                                    fontSize: '11.5px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  تعديل
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTest(t)}
+                                  disabled={deletingTestId === t.id}
+                                  title="حذف هذا التحليل من الكتالوج"
+                                  style={{
+                                    padding: '4px 7px',
+                                    borderRadius: '6px',
+                                    border: '1px solid rgba(220, 38, 38, 0.35)',
+                                    backgroundColor: 'rgba(220, 38, 38, 0.08)',
+                                    color: '#dc2626',
+                                    fontSize: '11.5px',
+                                    fontWeight: 700,
+                                    cursor: deletingTestId === t.id ? 'not-allowed' : 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    opacity: deletingTestId === t.id ? 0.5 : 1,
+                                  }}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: Network, Backup, Updates, Staff & License in One Simple Split View */}
+        {activeTab === 'SYSTEM' && (
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'row',
+              gap: '12px',
+              overflow: 'hidden',
+              minHeight: 0,
+            }}
+          >
+            {/* Right Column: Network & LAN Multi-PC Setup */}
+            <div
+              style={{
+                flex: 1.2,
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                overflowY: 'auto',
+                padding: '14px',
+              }}
+            >
+              <NetworkSettingsPanel labProfile={labProfile} updateLabProfile={updateLabProfile} />
+            </div>
+
+            {/* Left Column: WhatsApp Web QR Pairing, Backup, Updates, License & Staff */}
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                overflowY: 'auto',
+              }}
+            >
+              {/* Card 0: WhatsApp Web QR Pairing & Auto-Send After Result Completion */}
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  border: waStatus.connected ? '1.5px solid #16a34a' : '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  boxShadow: waStatus.connected ? '0 4px 14px rgba(22, 163, 74, 0.08)' : 'none',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                    <div
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        backgroundColor: '#dcfce7',
+                        color: '#15803d',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 900,
+                        fontSize: '16px',
+                      }}
+                    >
+                      💬
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '15px', fontWeight: 900 }}>ربط واتساب ويب والإرسال التلقائي للنتائج</div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        اربط رقم المختبر بالباركود لمرة واحدة وسيبقى محفوظاً دائماً
+                      </div>
+                    </div>
+                  </div>
+
+                  <span
+                    style={{
+                      padding: '4px 12px',
+                      borderRadius: '999px',
+                      backgroundColor: waStatus.connected
+                        ? '#dcfce7'
+                        : waStatus.status === 'PAIRING'
+                          ? '#fef3c7'
+                          : 'var(--bg-input)',
+                      color: waStatus.connected
+                        ? '#15803d'
+                        : waStatus.status === 'PAIRING'
+                          ? '#b45309'
+                          : 'var(--text-muted)',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                    }}
+                  >
+                    {waStatus.connected
+                      ? 'متصل ومحفوظ ✓'
+                      : waStatus.status === 'PAIRING'
+                        ? 'بانتظار مسح الباركود...'
+                        : 'غير مرتبط'}
+                  </span>
+                </div>
+
+                {/* Toggle Switch: Auto-Send WhatsApp on Result Save */}
+                <div
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    backgroundColor: waAutoSend ? 'rgba(22, 163, 74, 0.08)' : 'var(--bg-input)',
+                    border: waAutoSend ? '1px solid rgba(22, 163, 74, 0.35)' : '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '13.5px', fontWeight: 900, color: 'var(--text-main)' }}>
+                      تفعيل الإرسال التلقائي عبر واتساب بعد حفظ النتيجة
+                    </div>
+                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '2px', lineHeight: 1.4 }}>
+                      عند اكتمال كافة نتائج تحاليل المريض والضغط على حفظ، يتم إرسال صورة التقرير الطبي المعتمد تلقائياً بالخلفية إلى واتساب المريض
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={waAutoSend}
+                    onClick={() => handleToggleWaAutoSend(!waAutoSend)}
+                    style={{
+                      width: '50px',
+                      height: '28px',
+                      borderRadius: '999px',
+                      border: 'none',
+                      backgroundColor: waAutoSend ? '#16a34a' : '#94a3b8',
+                      position: 'relative',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s ease',
+                      flexShrink: 0,
+                      padding: 0,
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '3px',
+                        left: waAutoSend ? '25px' : '3px',
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '50%',
+                        backgroundColor: '#ffffff',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+                        transition: 'left 0.2s ease',
+                      }}
+                    />
+                  </button>
+                </div>
+
+                {/* Connected Account Info OR QR Pairing Box */}
+                {waStatus.connected ? (
+                  <div
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '10px',
+                      backgroundColor: '#f0fdf4',
+                      border: '1px solid #bbf7d0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '10px',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 900, color: '#166534' }}>
+                        ✓ الحساب مرتبط ونشط (محفوظ تلقائياً)
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#15803d', fontWeight: 700, marginTop: '2px' }}>
+                        الرقم المرتبط:{' '}
+                        <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>
+                          +{waStatus.user || 'متصل'}
+                        </span>
+                        {waStatus.userName ? ` (${waStatus.userName})` : ''}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleLogoutWhatsApp}
+                      disabled={waLoading}
+                      style={{
+                        padding: '7px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #fca5a5',
+                        backgroundColor: '#fef2f2',
+                        color: '#dc2626',
+                        fontSize: '12px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {waLoading ? 'جاري الفصل...' : 'إلغاء الربط / تغيير الحساب'}
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleConnectWhatsApp(true)}
+                        disabled={waLoading}
+                        style={{
+                          flex: 1,
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          backgroundColor: '#16a34a',
+                          color: '#ffffff',
+                          fontSize: '13px',
+                          fontWeight: 800,
+                          cursor: waLoading ? 'wait' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '7px',
+                        }}
+                      >
+                        <RefreshCw size={15} />
+                        <span>
+                          {waLoading
+                            ? 'جاري توليد الباركود...'
+                            : waStatus.qrDataUrl
+                              ? 'تحديث رمز الباركود (QR)'
+                              : 'ربط واتساب ويب الآن (عرض الباركود QR)'}
+                        </span>
+                      </button>
+                    </div>
+
+                    {waStatus.qrDataUrl && (
+                      <div
+                        style={{
+                          padding: '14px',
+                          borderRadius: '10px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-input)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '16px',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <div
+                          style={{
+                            padding: '8px',
+                            backgroundColor: '#ffffff',
+                            borderRadius: '10px',
+                            border: '2px solid #16a34a',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <img
+                            src={waStatus.qrDataUrl}
+                            alt="WhatsApp Web QR Code"
+                            style={{ width: '175px', height: '175px', display: 'block' }}
+                          />
+                        </div>
+                        <div style={{ flex: 1, minWidth: '180px', fontSize: '12.5px', lineHeight: 1.7 }}>
+                          <div style={{ fontWeight: 900, fontSize: '13.5px', color: '#15803d', marginBottom: '4px' }}>
+                            امسح الباركود من هاتفك للربط الدائم:
+                          </div>
+                          <div>1. افتح تطبيق <b>واتساب</b> في هاتفك.</div>
+                          <div>2. اذهب إلى <b>الإعدادات</b> أو القائمة <b>(⋮)</b> ثم اختر <b>الأجهزة المرتبطة</b>.</div>
+                          <div>3. اضغط <b>ربط جهاز</b> ووجّه الكاميرا نحو هذا الباركود.</div>
+                          <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            🔒 سيتم حفظ الجلسة تلقائياً في البرنامج ولن تحتاج لمسحه مرة أخرى.
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Card 1: Backup & Auto-Updates */}
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Database size={18} color="#0f766e" />
+                    <span style={{ fontSize: '15px', fontWeight: 900 }}>النسخ الاحتياطي والتحديثات</span>
+                  </div>
+                  <span
+                    style={{
+                      padding: '3px 10px',
+                      borderRadius: '999px',
+                      backgroundColor: '#f0fdf4',
+                      color: '#15803d',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                    }}
+                  >
+                    الإصدار: {updaterState?.currentVersion || 'v2.0.0'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={handleCreateBackup}
+                    disabled={backingUp}
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: '#0f766e',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '7px',
+                    }}
+                  >
+                    <Download size={15} />
+                    <span>{backingUp ? 'جاري الحفظ...' : 'حفظ نسخة احتياطية الآن'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCheckUpdate}
+                    disabled={checkingUpdate}
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-input)',
+                      color: 'var(--text-main)',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '7px',
+                    }}
+                  >
+                    <RefreshCw size={15} />
+                    <span>{checkingUpdate ? 'جاري الفحص...' : 'فحص التحديثات'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Card 2: License Status */}
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <ShieldCheck size={22} color="#16a34a" />
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 900 }}>حالة ترخيص النظام</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                      {licenseStatus?.isActivated ? 'نسخة مفعلة رسمياً مدى الحياة' : 'النظام يعمل بكامل الميزات'}
+                    </div>
+                  </div>
+                </div>
+                <span
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: '999px',
+                    backgroundColor: '#dcfce7',
+                    color: '#15803d',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                  }}
+                >
+                  مفعل ✓
+                </span>
+              </div>
+
+              {/* Card 3: Staff Management */}
+              <div
+                style={{
+                  flex: 1,
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={17} color="#0284c7" />
+                  <span style={{ fontSize: '14px', fontWeight: 900 }}>كادر المختبر والفنيون ({staffList.length})</span>
+                </div>
+
+                <form onSubmit={handleAddStaff} style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    value={newStaffName}
+                    onChange={(e) => setNewStaffName(e.target.value)}
+                    placeholder="اسم الموظف أو الفني..."
+                    style={{
+                      flex: 1,
+                      height: '36px',
+                      padding: '0 10px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-input)',
+                      fontSize: '12.5px',
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    style={{
+                      padding: '0 14px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: '#0284c7',
+                      color: '#ffffff',
+                      fontSize: '12.5px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    + إضافة
+                  </button>
+                </form>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto' }}>
+                  {staffList.map((st) => (
+                    <div
+                      key={st.id}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-subtle)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div>
+                        <span style={{ fontWeight: 800, fontSize: '13px' }}>{st.name}</span>
+                        <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginRight: '8px' }}>
+                          ({st.role || 'فني مختبر'})
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteStaff(st.id)}
+                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid var(--border-color)', marginBottom: '16px', paddingBottom: '4px', overflowX: 'auto' }}>
-        <button
-          type="button"
-          onClick={() => setActiveTab('PAPER_DESIGN')}
+      {/* Add Test Modal */}
+      {showAddTestModal && (
+        <div
           style={{
-            padding: '8px 18px',
-            borderRadius: '6px',
-            fontSize: '12.5px',
-            fontWeight: 800,
-            cursor: 'pointer',
-            border: 'none',
-            background: activeTab === 'PAPER_DESIGN' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
-            color: activeTab === 'PAPER_DESIGN' ? 'var(--accent-cyan)' : 'var(--text-muted)',
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            whiteSpace: 'nowrap',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '20px',
+            backdropFilter: 'blur(3px)',
           }}
         >
-          <Sparkles size={15} />
-          <span>✨ استوديو وتصميم الفورمات (11 قوالب معتمدة)</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('BACKUP')}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '6px',
-            fontSize: '12.5px',
-            fontWeight: 800,
-            cursor: 'pointer',
-            border: 'none',
-            background: activeTab === 'BACKUP' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
-            color: activeTab === 'BACKUP' ? 'var(--accent-cyan)' : 'var(--text-muted)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <Database size={14} />
-          <span>💾 النسخ الاحتياطي واستعادة البيانات</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('NETWORK')}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '6px',
-            fontSize: '12.5px',
-            fontWeight: 800,
-            cursor: 'pointer',
-            border: 'none',
-            background: activeTab === 'NETWORK' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
-            color: activeTab === 'NETWORK' ? 'var(--accent-cyan)' : 'var(--text-muted)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <Share2 size={14} />
-          <span>🌐 الربط الشبكي وبوابة المرضى</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('VERSION')}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '6px',
-            fontSize: '12.5px',
-            fontWeight: 800,
-            cursor: 'pointer',
-            border: 'none',
-            background: activeTab === 'VERSION' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
-            color: activeTab === 'VERSION' ? 'var(--accent-cyan)' : 'var(--text-muted)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <Award size={14} />
-          <span>🚀 إصدار النظام والتحديثات</span>
-        </button>
-
-        <a
-          href="/doctors"
-          style={{
-            padding: '8px 16px',
-            borderRadius: '6px',
-            fontSize: '12.5px',
-            fontWeight: 800,
-            cursor: 'pointer',
-            border: 'none',
-            background: 'transparent',
-            color: 'var(--text-muted)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            whiteSpace: 'nowrap',
-            textDecoration: 'none',
-          }}
-        >
-          <Stethoscope size={14} />
-          <span>🩺 الأطباء المحولون والعمولات</span>
-        </a>
-      </div>
-
-      {/* Settings Tab Content */}
-      {activeTab === 'PAPER_DESIGN' ? (
-        <PaperDesignerV2 />
-      ) : (
-        <div style={{ maxWidth: '960px', margin: '0 auto', width: '100%' }}>
-          <div
-            className="glass-card custom-scrollbar"
+          <form
+            onSubmit={handleAddNewTest}
             style={{
-              padding: '24px',
+              width: showNewRangesEditor ? '880px' : '440px',
+              maxWidth: '95vw',
+              maxHeight: '90vh',
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: '14px',
+              border: '1px solid var(--border-color)',
+              padding: '20px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '20px'
+              gap: '12px',
+              overflowY: 'auto',
+              boxShadow: '0 20px 45px rgba(0,0,0,0.3)',
+              transition: 'width 0.2s ease',
             }}
           >
-          {/* TAB 4: BACKUP & RESTORE */}
-          {activeTab === 'BACKUP' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }} dir="rtl">
-              {/* Quick Actions Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                
-                {/* Export Card */}
-                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-cyan)', fontWeight: 800, fontSize: '14px', marginBottom: '8px' }}>
-                      <Download size={18} />
-                      <span>تصدير نسخة احتياطية فورية (Export)</span>
-                    </div>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '14px' }}>
-                      تنزيل ملف كامل بنقرة واحدة يحتوي على كافة بيانات المرضى، الفحوصات، العينات، الحسابات المالية، وقوالب وهوية المختبر لحفظها بأمان على فلاش ميموري (USB) أو قرص خارجي.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleExportBackup}
-                    className="btn-primary"
-                    style={{ padding: '10px 18px', fontSize: '13px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                  >
-                    <Download size={16} />
-                    <span>تحميل ملف النسخة الاحتياطية (.json)</span>
-                  </button>
-                </div>
-
-                {/* Restore Card */}
-                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontWeight: 800, fontSize: '14px', marginBottom: '8px' }}>
-                      <Upload size={18} />
-                      <span>استرجاع نسخة احتياطية (Restore)</span>
-                    </div>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '14px' }}>
-                      استعادة قاعدة بيانات المختبر من ملف نسخة احتياطية سابق (.json). يقوم النظام تلقائياً بأخذ لقطة أمان وقائية قبل الاسترجاع لضمان عدم ضياع أي بيانات.
-                    </p>
-                  </div>
-
-                  <label
-                    className="btn-secondary"
-                    style={{
-                      padding: '10px 18px',
-                      fontSize: '13px',
-                      fontWeight: 800,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      background: 'rgba(16, 185, 129, 0.1)',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
-                      color: '#10b981',
-                    }}
-                  >
-                    <Upload size={16} />
-                    <span>اختيار ملف واسترجاع البيانات</span>
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleFileSelect}
-                      style={{ display: 'none' }}
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {/* Automatic Rolling Snapshots Section */}
-              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <HardDrive size={18} color="var(--accent-teal)" />
-                    <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>
-                      النسخ الاحتياطية التلقائية المخزنة محلياً (Auto-Snapshots):
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={handleCreateSnapshot}
-                      className="btn-secondary"
-                      style={{ padding: '6px 12px', fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      <Plus size={13} />
-                      <span>أخذ نقطة استرجاع الآن</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={loadBackups}
-                      className="btn-secondary"
-                      style={{ padding: '6px 10px', fontSize: '11.5px' }}
-                      title="تحديث القائمة"
-                    >
-                      <RefreshCw size={13} className={loadingBackups ? 'animate-spin' : ''} />
-                    </button>
-                  </div>
-                </div>
-
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-                  يقوم محرك النظام بحفظ لقطات يومية تلقائية مع الكتابة الذرية الآمنة لمنع التلف عند انقطاع الكهرباء، ويحتفظ بآخر 30 لقطة في مجلد الأمان الداخلي.
-                </p>
-
-                {loadingBackups ? (
-                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12.5px' }}>
-                    جاري فحص النسخ الاحتياطية...
-                  </div>
-                ) : backupSnapshots.length === 0 ? (
-                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12.5px', background: 'var(--bg-surface)', borderRadius: '8px' }}>
-                    لا توجد لقطات محفوظة حالياً. يمكنك الضغط على "أخذ نقطة استرجاع الآن" لإنشاء أول نسخة.
-                  </div>
-                ) : (
-                  <div style={{ maxHeight: '240px', overflowY: 'auto', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                    <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>
-                          <th style={{ padding: '10px 12px' }}>اسم ملف النسخة</th>
-                          <th style={{ padding: '10px 12px' }}>تاريخ الإنشاء</th>
-                          <th style={{ padding: '10px 12px' }}>حجم الملف</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {backupSnapshots.map((b, i) => (
-                          <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                            <td style={{ padding: '8px 12px', fontFamily: 'monospace', direction: 'ltr', textAlign: 'right' }}>
-                              {b.fileName}
-                            </td>
-                            <td style={{ padding: '8px 12px', color: 'var(--text-muted)' }}>
-                              {formatEnglishDateTime(b.createdAt)}
-                            </td>
-                            <td style={{ padding: '8px 12px', color: 'var(--accent-cyan)', fontWeight: 700 }}>
-                              {(b.sizeBytes / 1024).toFixed(1)} KB
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 5: NETWORK & PATIENT PORTAL */}
-          {activeTab === 'NETWORK' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }} dir="rtl">
-              {/* Desktop-only controls: WhatsApp auto-send + auto-update */}
-              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '18px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-cyan)', fontWeight: 800, fontSize: '15px', marginBottom: '8px' }}>
-                  <Zap size={20} />
-                  <span>وضع سطح-المكتب فقط (Desktop-only)</span>
-                </div>
-                <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '14px' }}>
-                  النظام يعمل محلياً على هذا الجهاز عبر `http://127.0.0.1:8080`. الإرسال التلقائي معطل افتراضياً للأمان، ويمكن تفعيله عند الحاجة. رابط `wa.me` اليدوي يعمل دائماً.
-                </p>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', fontWeight: 700, marginBottom: '10px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={whatsappAutoSendEnabled}
-                    onChange={(e) => setWhatsappAutoSendEnabled(e.target.checked)}
-                  />
-                  تفعيل الإرسال التلقائي لواتساب (`autoSend` عبر المحرك المحلي `127.0.0.1:8000`)
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={autoUpdateEnabled}
-                    onChange={(e) => setAutoUpdateEnabled(e.target.checked)}
-                  />
-                  تفعيل الكشف التلقائي عن التحديثات (`GitHub Releases` بعد `30s` وكل `4h`)
-                </label>
-              </div>
-
-              {/* Local Network Info Card — removed in Desktop-only mode (no LAN sharing).
-                  System now binds to 127.0.0.1 only. Use Public Portal below only if you run a tunnel. */}
-
-              {/* Public Portal / Domain Card */}
-              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '18px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-emerald)', fontWeight: 800, fontSize: '15px', marginBottom: '8px' }}>
-                  <ExternalLink size={20} />
-                  <span>رابط البوابة العامة / النطاق المخصص للمرضى (Public Portal / Tunnel)</span>
-                </div>
-                <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '14px' }}>
-                  إذا كنت ترغب بتمكين المرضى من فتح تقاريرهم من منازلهم عبر شبكة الإنترنت الخارجية (باقة الهاتف 4G/5G)، يمكنك ربط خادمك بنطاق مخصص أو نفق إنترنت (مثل Cloudflare Tunnel أو No-IP أو دومين المختبر) وكتابته هنا. سيتم اعتماده تلقائياً في كافة رسائل الواتساب وأكواد الـ QR.
-                </p>
-
-                <div>
-                  <label className="input-label" style={{ fontWeight: 700, marginBottom: '6px', display: 'block' }}>
-                    رابط الخادم العام / دومين المختبر (Server Base URL):
-                  </label>
-                  <input
-                    type="text"
-                    className="input-control"
-                    placeholder="مثال: https://results.mylab.com أو http://192.168.0.122:8080"
-                    value={serverBaseUrl}
-                    onChange={(e) => setServerBaseUrl(e.target.value)}
-                    style={{ fontFamily: 'monospace', direction: 'ltr', textAlign: 'left', width: '100%', padding: '9px 12px' }}
-                  />
-                  <span style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px', display: 'block' }}>
-                    * اتركه فارغاً إذا كنت تريد اعتماد عنوان الآي بي المحلي التلقائي.
-                  </span>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {/* TAB 6: VERSION & MANUAL UPDATE CHECK */}
-          {activeTab === 'VERSION' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }} dir="rtl">
-              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 12px rgba(6, 182, 212, 0.3)' }}>
-                    <Sparkles size={24} />
-                  </div>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: 'var(--text-main)' }}>Labryo Clinical LIMS Pro</h3>
-                    <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>نظام إدارة المختبرات الطبية والتحاليل السريرية المؤتمت</p>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-                  <div style={{ background: 'var(--bg-card-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>الإصدار المثبت حالياً</div>
-                    <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--accent-cyan)', marginTop: '2px' }}>
-                      {updaterState?.currentVersion || labProfile?.installedVersion || 'v1.1.3'}
-                    </div>
-                  </div>
-                  <div style={{ background: 'var(--bg-card-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>حالة التحديث التلقائي</div>
-                    <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#10b981', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <CheckCircle2 size={15} />
-                      <span>{updaterState?.status === 'downloaded' ? 'تحديث جاهز للتثبيت' : (updaterState?.status === 'downloading' ? 'جاري التحميل في الخلفية' : 'متصل بخادم التحديثات')}</span>
-                    </div>
-                  </div>
-                  <div style={{ background: 'var(--bg-card-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>قناة التحديث (Channel)</div>
-                    <select
-                      value={updateChannel}
-                      onChange={(e) => handleChannelChange(e.target.value as any)}
-                      style={{
-                        width: '100%',
-                        marginTop: '4px',
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        background: 'var(--bg-card)',
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-main)',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                      }}
-                    >
-                      <option value="stable">الإصدارات المستقرة (Stable)</option>
-                      <option value="beta">الإصدارات التجريبية (Beta)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={handleCheckUpdate}
-                    disabled={checkingUpdate || updaterState?.status === 'downloading'}
-                    className="btn-cyan-primary"
-                    style={{ minHeight: '42px', padding: '0 20px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800 }}
-                  >
-                    <RefreshCw size={16} className={checkingUpdate ? 'animate-spin' : ''} />
-                    <span>{checkingUpdate ? 'جاري فحص المستودع الرسمي...' : 'فحص التحديثات الآن (Check for Updates)'}</span>
-                  </button>
-                </div>
-
-                {updaterState && (
-                  <div style={{ marginTop: '16px', background: (updaterState.status === 'downloaded' || !updaterState.hasUpdate) ? 'rgba(16, 185, 129, 0.08)' : 'rgba(2, 132, 199, 0.08)', border: `1px solid ${updaterState.status === 'downloaded' || !updaterState.hasUpdate ? '#10b981' : '#0284c7'}`, borderRadius: '10px', padding: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                      <div style={{ fontWeight: 800, color: (updaterState.status === 'downloaded' || !updaterState.hasUpdate) ? '#34d399' : '#38bdf8', fontSize: '13.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {(updaterState.status === 'downloaded' || !updaterState.hasUpdate) ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-                        <span>
-                          {updaterState.status === 'downloaded'
-                            ? `اكتمل تحميل التحديث (الإصدار ${updaterState.latestVersion}) وهو جاهز للتثبيت`
-                            : (updaterState.hasUpdate
-                                ? `يتوفر تحديث جديد: ${updaterState.latestVersion}`
-                                : `نظام المختبر لديك يعمل بأحدث إصدار رسمي (${updaterState.currentVersion || 'v1.1.3'})`)}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        {updaterState.hasUpdate ? 'تحديث آمن مع الاحتفاظ التام بكافة البيانات وقواعد البيانات' : 'النظام وقواعد البيانات متوافقة ومستقرة 100%'}
-                      </div>
-                    </div>
-
-                    {updaterState.releaseNotes && (
-                      <p style={{ fontSize: '12px', color: 'var(--text-main)', margin: '8px 0 14px 0', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
-                        {updaterState.releaseNotes}
-                      </p>
-                    )}
-
-                    {/* Progress Bar & Real-Time Stats */}
-                    {updaterState.status === 'downloading' && updaterState.progress && (
-                      <div style={{ background: 'var(--bg-card-subtle)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '14px', marginBottom: '14px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '12px' }}>
-                          <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>
-                            جاري تنزيل التحديث في الخلفية...
-                          </span>
-                          <span style={{ fontWeight: 800, color: 'var(--accent-cyan)' }}>
-                            {updaterState.progress.percent}%
-                          </span>
-                        </div>
-
-                        <div style={{ width: '100%', height: '8px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '999px', overflow: 'hidden' }}>
-                          <div
-                            style={{
-                              width: `${updaterState.progress.percent}%`,
-                              height: '100%',
-                              background: 'linear-gradient(90deg, #0284c7, #06b6d4)',
-                              transition: 'width 0.3s ease',
-                            }}
-                          />
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
-                          <span>
-                            تم تنزيل: {(updaterState.progress.transferred / (1024 * 1024)).toFixed(1)} ميغابايت
-                            {updaterState.progress.total > 0 && ` من أصل ${(updaterState.progress.total / (1024 * 1024)).toFixed(1)} ميغابايت`}
-                          </span>
-                          {updaterState.progress.bytesPerSecond > 0 && (
-                            <span>
-                              السرعة: {(updaterState.progress.bytesPerSecond / (1024 * 1024)).toFixed(2)} MB/s
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Action Buttons */}
-                    {updaterState.status === 'downloaded' && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
-                        <button
-                          type="button"
-                          onClick={handleExecuteInstall}
-                          disabled={installing}
-                          className="btn-cyan-primary"
-                          style={{
-                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                            borderColor: '#10b981',
-                            minHeight: '40px',
-                            padding: '0 20px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            fontWeight: 800,
-                            fontSize: '13px',
-                            color: '#fff',
-                          }}
-                        >
-                          <Zap size={16} />
-                          <span>{installing ? 'جاري إعادة التشغيل والتثبيت...' : 'إعادة التشغيل والتحديث الآن (Restart & Update)'}</span>
-                        </button>
-                        <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-                          أو يمكنك المتابعة وسيتم التثبيت تلقائياً عند إغلاق البرنامج لاحقاً.
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Browser Fallback direct download link */}
-                    {updaterState.hasUpdate && updaterState.downloadUrl && (
-                      <div style={{ marginTop: '10px' }}>
-                        <a
-                          href={updaterState.downloadUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            fontSize: '12px',
-                            color: 'var(--accent-cyan)',
-                            textDecoration: 'none',
-                          }}
-                        >
-                          <Download size={14} />
-                          <span>تحميل حزمة التحديث مباشرة (تثبيت يدوي)</span>
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-            {activeTab === 'NETWORK' && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '14px', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
-                <button
-                  type="button"
-                  onClick={() => handleSaveNetwork()}
-                  disabled={saving}
-                  className="btn-cyan-primary"
-                  style={{ padding: '0 24px', height: '36px', fontWeight: 800 }}
-                >
-                  <Save size={15} />
-                  <span>{saving ? 'جاري الحفظ...' : 'حفظ إعدادات البوابة والشبكة'}</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      {/* Restore Confirmation Modal */}
-      {showRestoreModal && (
-        <div className="modal-overlay" style={{ zIndex: 99999 }}>
-          <div className="modal-content" dir="rtl" style={{ maxWidth: '480px', padding: '24px', textAlign: 'center', borderRadius: '16px' }}>
-            <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'rgba(245, 158, 11, 0.15)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b', marginBottom: '14px' }}>
-              <AlertCircle size={32} />
-            </div>
-            <h3 style={{ fontSize: '17px', fontWeight: 900, marginBottom: '8px', color: 'var(--text-main)' }}>
-              تأكيد استرجاع النسخة الاحتياطية
-            </h3>
-            <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '16px' }}>
-              أنت على وشك استرجاع البيانات من الملف: <strong style={{ color: 'var(--accent-cyan)' }}>{selectedFileName}</strong>
-            </p>
-
-            {restoreSummary && (
-              <div style={{ background: 'var(--bg-surface)', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-color)', marginBottom: '18px', textAlign: 'right', fontSize: '12px' }}>
-                <div style={{ marginBottom: '4px' }}>اسم المختبر: <strong>{restoreSummary.labName}</strong></div>
-                <div style={{ marginBottom: '4px' }}>عدد المرضى: <strong style={{ color: 'var(--accent-cyan)' }}>{restoreSummary.patients}</strong></div>
-                <div>عدد العينات والفحوصات: <strong style={{ color: 'var(--accent-emerald)' }}>{restoreSummary.samples}</strong></div>
-              </div>
-            )}
-
-            <div style={{ fontSize: '11px', color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '8px', borderRadius: '6px', marginBottom: '18px' }}>
-              🛡️ سيقوم النظام تلقائياً بأخذ نقطة أمان وقائية للبيانات الحالية قبل الاسترجاع.
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900 }}>إضافة تحليل جديد للدليل</h3>
               <button
                 type="button"
-                onClick={() => setShowRestoreModal(false)}
-                disabled={restoring}
-                className="btn-secondary"
-                style={{ padding: '8px 20px', fontSize: '13px' }}
+                onClick={() => {
+                  setShowAddTestModal(false);
+                  setShowNewRangesEditor(false);
+                }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ width: '130px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>الكود المختصر</label>
+                <input
+                  type="text"
+                  value={newCode}
+                  onChange={(e) => setNewCode(e.target.value)}
+                  placeholder="GLU"
+                  style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>الاسم العلمي</label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Fasting Blood Sugar"
+                  style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>السعر ({currency})</label>
+                <input
+                  type="text"
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>الوحدة</label>
+                <input
+                  type="text"
+                  value={newUnit}
+                  onChange={(e) => setNewUnit(e.target.value)}
+                  style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>المعدل الطبيعي العام (Reference Range)</label>
+              <input
+                type="text"
+                value={newRef}
+                onChange={(e) => setNewRef(e.target.value)}
+                placeholder="70 - 110"
+                style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            {/* Multi-tier ranges option */}
+            <div style={{ padding: '10px 12px', borderRadius: '8px', border: '1px dashed var(--border-color)', background: 'var(--bg-input)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <span style={{ fontSize: '12px', fontWeight: 800 }}>تخصيص المعدل الطبيعي (رجال / نساء / أطفال):</span>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    {newRanges.length > 0
+                      ? `✓ تم تخصيص (${newRanges.length}) فئات مخصصة للنسب`
+                      : 'يمكنك تركها عامة أو النقر لتحديد نسب دقيقة لكل فئة وعمر'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newRanges.length === 0) {
+                      setNewRanges([
+                        {
+                          id: `new_r_1`,
+                          label: 'للجميع',
+                          sex: 'any',
+                          ageMin: 0,
+                          ageMax: null,
+                          ageUnit: 'years',
+                          low: null,
+                          high: null,
+                          text: newRef.trim() || null,
+                          unit: newUnit.trim() || null,
+                          isUserEdited: true,
+                          sortOrder: 0,
+                        },
+                      ]);
+                    }
+                    setShowNewRangesEditor(!showNewRangesEditor);
+                  }}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid #0f766e',
+                    background: showNewRangesEditor ? '#0f766e' : 'rgba(15, 118, 110, 0.1)',
+                    color: showNewRangesEditor ? '#fff' : '#0f766e',
+                    fontSize: '11.5px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {showNewRangesEditor ? 'إخفاء المحرر المتقدم ▲' : '🎯 تخصيص الشرائح والأعمار ▼'}
+                </button>
+              </div>
+
+              {showNewRangesEditor && (
+                <div style={{ marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
+                  <ReferenceRangesEditor
+                    testName={newName || newCode || 'فحص جديد'}
+                    unit={newUnit}
+                    ranges={newRanges}
+                    onChange={setNewRanges}
+                    criticalLow={newCriticalLow}
+                    criticalHigh={newCriticalHigh}
+                    onCriticalChange={(low, high) => {
+                      setNewCriticalLow(low);
+                      setNewCriticalHigh(high);
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddTestModal(false);
+                  setShowNewRangesEditor(false);
+                }}
+                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer' }}
               >
                 إلغاء
               </button>
+              <button type="submit" style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: '#0f766e', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                حفظ التحليل
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Multi-Tier Reference Ranges Editor Modal for Existing Tests */}
+      {rangesModalTest && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.72)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+            backdropFilter: 'blur(4px)',
+          }}
+        >
+          <div
+            style={{
+              width: '920px',
+              maxWidth: '95vw',
+              maxHeight: '90vh',
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: '16px',
+              border: '1px solid var(--border-color)',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.35)',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: '16px 20px',
+                borderBottom: '1px solid var(--border-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'var(--bg-surface)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(15, 118, 110, 0.12)',
+                    color: '#0f766e',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 900,
+                    fontSize: '18px',
+                  }}
+                >
+                  🎯
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 900 }}>
+                    تخصيص المعدلات الطبيعية والشرائح (رجال / نساء / أطفال)
+                  </h3>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    الفحص: <b style={{ color: 'var(--text-main)' }}>{rangesModalTest.name}</b> ({rangesModalTest.code || 'بدون كود'}) — الوحدة:{' '}
+                    <b style={{ color: 'var(--text-main)' }} dir="ltr">{rangesModalTest.unit || 'بدون وحدة'}</b>
+                  </span>
+                </div>
+              </div>
               <button
                 type="button"
-                onClick={handleConfirmRestore}
-                disabled={restoring}
-                className="btn-primary"
-                style={{ padding: '8px 24px', fontSize: '13px', fontWeight: 800, background: '#10b981' }}
+                onClick={() => setRangesModalTest(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '6px',
+                }}
               >
-                {restoring ? 'جاري الاسترجاع...' : 'تأكيد واسترجاع البيانات'}
+                <X size={20} />
               </button>
+            </div>
+
+            {/* Modal Body: Scrollable ReferenceRangesEditor */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+              <ReferenceRangesEditor
+                testName={rangesModalTest.name || rangesModalTest.code}
+                unit={rangesModalTest.unit || ''}
+                ranges={activeRanges}
+                onChange={setActiveRanges}
+                criticalLow={activeCriticalLow}
+                criticalHigh={activeCriticalHigh}
+                onCriticalChange={(low, high) => {
+                  setActiveCriticalLow(low);
+                  setActiveCriticalHigh(high);
+                }}
+              />
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              style={{
+                padding: '14px 20px',
+                borderTop: '1px solid var(--border-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'var(--bg-surface)',
+                gap: '12px',
+              }}
+            >
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                💡 يتم تطبيق هذه النسب تلقائياً في شاشة إدخال النتائج وتقارير الطباعة بحسب جنس وعمر كل مريض.
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setRangesModalTest(null)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-input)',
+                    color: 'var(--text-main)',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                  }}
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveRangesModal}
+                  disabled={savingRanges}
+                  style={{
+                    padding: '8px 24px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: '#0f766e',
+                    color: '#ffffff',
+                    cursor: 'pointer',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  {savingRanges ? 'جاري الحفظ...' : 'حفظ المعدلات الطبيعية'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
+}
+
+export default function SettingsPage() {
+  const pathname = usePathname();
+  const initialTab = pathname?.startsWith('/catalog')
+    ? 'CATALOG'
+    : pathname?.startsWith('/staff') || pathname?.startsWith('/license')
+      ? 'SYSTEM'
+      : 'PAPER_DESIGN';
+  return <UnifiedSettingsCatalogView initialTab={initialTab} />;
 }

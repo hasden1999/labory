@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '../lib/api';
 import { useToast } from './Toast';
+import { shareReportToWhatsApp } from '../lib/shareReportToWhatsApp';
+import { normalizeIraqiPhone } from '../lib/orderHelpers';
 
 interface ActiveForm {
   section: string;
@@ -81,13 +83,28 @@ export default function WhatsAppFormsModal({
   const handleCopyImageToClipboard = async (form: ActiveForm, index: number) => {
     try {
       toast.info(`جاري نسخ صورة ${form.titleArabic}...`);
-      const res = await fetch(form.imageUrl);
+      const pngUrl = form.imageUrl.includes('?') ? `${form.imageUrl}&format=png` : `${form.imageUrl}?format=png`;
+      const res = await fetch(pngUrl);
       if (!res.ok) throw new Error('فشل جلب الصورة');
       const blob = await res.blob();
 
-      // Convert JPEG blob to PNG for Clipboard API compatibility if needed
+      // Desktop Electron direct clipboard write
+      if ((window as any).electronDesktop?.writeClipboardImage) {
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = async () => {
+          const base64Data = reader.result as string;
+          await (window as any).electronDesktop.writeClipboardImage(base64Data);
+          setCopiedIndex(index);
+          setTimeout(() => setCopiedIndex(null), 2500);
+          toast.success(`تم نسخ صورة ${form.titleArabic} إلى الحافظة! يمكنك الآن الضغط على Ctrl+V في محادثة واتساب.`);
+        };
+        return;
+      }
+
+      // Web async clipboard API (PNG standard)
       if (navigator.clipboard && (window as any).ClipboardItem) {
-        const item = new (window as any).ClipboardItem({ [blob.type]: blob });
+        const item = new (window as any).ClipboardItem({ 'image/png': blob });
         await navigator.clipboard.write([item]);
         setCopiedIndex(index);
         setTimeout(() => setCopiedIndex(null), 2500);
@@ -100,6 +117,26 @@ export default function WhatsAppFormsModal({
       // Fallback: download the image
       handleDownloadImage(form);
       toast.info('تم تحميل الصورة إلى جهازك لتعذر النسخ المباشر إلى الحافظة.');
+    }
+  };
+
+  const handleDirectShareToWhatsApp = async (form: ActiveForm) => {
+    const phone = normalizeIraqiPhone(customPhone);
+    if (!phone) {
+      toast.warning('رقم هاتف المريض غير صالح أو غير متوفر', 'واتساب');
+      return;
+    }
+    toast.info('جاري تجهيز الصورة وفتح واتساب لمحادثة المريض...');
+    const result = await shareReportToWhatsApp({
+      sampleId,
+      phone,
+      caption: form.caption || `${patientName} - نتيجة التحليل`,
+      section: form.section,
+    });
+    if (result.ok) {
+      toast.success(result.message);
+    } else {
+      toast.error(result.message, 'واتساب');
     }
   };
 
@@ -133,26 +170,42 @@ export default function WhatsAppFormsModal({
         setDispatchedSuccess(true);
         toast.success(res.message || 'تم إرسال التقرير الطبي المعتمد إلى هاتف المريض بنجاح!');
       } else if (res && res.success === false) {
-        toast.error(res.message || 'فشل الإرسال عبر واتساب', 'تنبيه');
+        toast.warning(res.message || 'خادم واتساب المباشر غير متصل، جاري فتح محادثة المريض مباشرة...');
+        if (forms.length > 0) {
+          await handleDirectShareToWhatsApp(forms[0]);
+        } else {
+          handleOpenWhatsAppChat();
+        }
       } else {
         setDispatchedSuccess(true);
         toast.success(res?.message || 'تم إرسال التقرير بنجاح!');
       }
     } catch (err: any) {
-      toast.error(err.message || 'فشل الإرسال التلقائي عبر واتساب', 'خطأ');
+      toast.warning('تعذر الإرسال التلقائي عبر الخادم، جاري فتح محادثة واتساب مباشرة...');
+      if (forms.length > 0) {
+        await handleDirectShareToWhatsApp(forms[0]);
+      } else {
+        handleOpenWhatsAppChat();
+      }
     } finally {
       setDispatching(false);
     }
   };
 
-  const handleOpenWhatsAppChat = () => {
-    if (waLink) {
-      window.open(waLink, '_blank');
-    } else {
-      let clean = customPhone.replace(/[^0-9]/g, '');
-      if (clean.startsWith('07') && clean.length === 11) clean = '964' + clean.substring(1);
-      const url = `https://wa.me/${clean}`;
-      window.open(url, '_blank');
+  const handleOpenWhatsAppChat = async () => {
+    if (forms.length > 0) {
+      await handleDirectShareToWhatsApp(forms[0]);
+      return;
+    }
+    let clean = (customPhone || '').replace(/[^0-9]/g, '');
+    if (clean.startsWith('07') && clean.length === 11) clean = '964' + clean.substring(1);
+    else if (clean.startsWith('7') && clean.length === 10) clean = '964' + clean;
+
+    const desktopUrl = clean ? `whatsapp://send?phone=${clean}` : 'whatsapp://';
+    try {
+      window.location.href = desktopUrl;
+    } catch {
+      window.open(desktopUrl, '_blank');
     }
   };
 
@@ -396,58 +449,84 @@ export default function WhatsAppFormsModal({
                     <div 
                       style={{
                         padding: '10px',
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
+                        display: 'flex',
+                        flexDirection: 'column',
                         gap: '6px',
                         background: '#1e293b',
                       }}
                     >
                       <button 
                         type="button" 
-                        onClick={() => handleCopyImageToClipboard(form, index)}
+                        onClick={() => handleDirectShareToWhatsApp(form)}
                         style={{
-                          background: isCopied ? '#10b981' : 'rgba(34, 197, 94, 0.15)',
-                          border: `1px solid ${isCopied ? '#10b981' : '#22c55e'}`,
-                          color: isCopied ? '#fff' : '#4ade80',
-                          padding: '6px 8px',
+                          background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                          border: 'none',
+                          color: '#fff',
+                          padding: '7px 10px',
                           borderRadius: '6px',
-                          fontSize: '11px',
+                          fontSize: '11.5px',
                           fontWeight: 800,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '5px',
-                          transition: 'all 0.15s ease',
+                          gap: '6px',
+                          boxShadow: '0 2px 6px rgba(34, 197, 94, 0.3)',
                         }}
-                        title="نسخ الصورة للحافظة للصقها مباشرة في واتساب (Ctrl+V)"
+                        title="فتح واتساب إلى محادثة المريض ولصق الصورة تلقائياً"
                       >
-                        {isCopied ? <Check size={12} /> : <Copy size={12} />}
-                        <span>{isCopied ? 'تم النسخ!' : 'نسخ للحافظة'}</span>
+                        <Send size={13} />
+                        <span>مشاركة فورية عبر واتساب</span>
                       </button>
 
-                      <button 
-                        type="button" 
-                        onClick={() => handleDownloadImage(form)}
-                        style={{
-                          background: 'rgba(255, 255, 255, 0.08)',
-                          border: '1px solid #475569',
-                          color: '#f8fafc',
-                          padding: '6px 8px',
-                          borderRadius: '6px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '5px',
-                        }}
-                        title="تحميل الصورة على الجهاز"
-                      >
-                        <Download size={12} />
-                        <span>تحميل JPEG</span>
-                      </button>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                        <button 
+                          type="button" 
+                          onClick={() => handleCopyImageToClipboard(form, index)}
+                          style={{
+                            background: isCopied ? '#10b981' : 'rgba(34, 197, 94, 0.15)',
+                            border: `1px solid ${isCopied ? '#10b981' : '#22c55e'}`,
+                            color: isCopied ? '#fff' : '#4ade80',
+                            padding: '6px 8px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '5px',
+                            transition: 'all 0.15s ease',
+                          }}
+                          title="نسخ الصورة للحافظة للصقها مباشرة في واتساب (Ctrl+V)"
+                        >
+                          {isCopied ? <Check size={12} /> : <Copy size={12} />}
+                          <span>{isCopied ? 'تم النسخ!' : 'نسخ للحافظة'}</span>
+                        </button>
+
+                        <button 
+                          type="button" 
+                          onClick={() => handleDownloadImage(form)}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            border: '1px solid #475569',
+                            color: '#f8fafc',
+                            padding: '6px 8px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '5px',
+                          }}
+                          title="تحميل الصورة على الجهاز"
+                        >
+                          <Download size={12} />
+                          <span>تحميل JPEG</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );

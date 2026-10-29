@@ -11,7 +11,7 @@ import {
   UnifiedWorkspaceReturn,
 } from './types';
 import { deriveTubeBadges } from '../lib/tubeBadges';
-import { orderCatalogByImportance } from '../lib/catalogOrdering';
+import { orderCatalogByImportance, getMostUsedTests, normalizeCategory, RECEPTION_CATEGORIES } from '../lib/catalogOrdering';
 import { catalogCache } from '../../../lib/catalogCache';
 import { INITIAL_DOCTORS } from '../../../lib/catalogData';
 import { apiRequest } from '../../../lib/api';
@@ -34,7 +34,7 @@ const INITIAL_PATIENT: UnifiedPatientState = {
   id: null,
   name: '',
   phone: '',
-  gender: 'MALE',
+  gender: null,
   ageYears: '',
   ageMonths: '',
   ageDays: '',
@@ -49,13 +49,11 @@ const INITIAL_PATIENT: UnifiedPatientState = {
 };
 
 const BUNDLE_MAP: Record<string, string[]> = {
-  comprehensive: ['CBC', 'CHOL', 'TG', 'HDL', 'LDL', 'AST', 'ALT', 'UREA', 'CREAT', 'FBS'],
-  premarital: ['CBC', 'BG', 'HBSAG', 'HCV', 'HIV', 'VDRL'],
-  liver_renal: ['AST', 'ALT', 'ALP', 'TSB', 'UREA', 'CREAT', 'UA'],
-  anemia: ['CBC', 'FER', 'IRON', 'VITB12'],
   thyroid: ['TSH', 'FT3', 'FT4'],
-  diabetes: ['FBS', 'HBA1C', 'GUE'],
-  preop: ['CBC', 'PT-INR', 'PTT', 'BG'],
+  diabetes: ['FBS', 'HBA1C'],
+  liver: ['ALT', 'AST', 'TSB', 'ALP'],
+  kidney: ['UREA', 'CREAT', 'URIC'],
+  lipid: ['CHOL', 'TG', 'HDL', 'LDL'],
 };
 
 export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
@@ -106,16 +104,58 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
   }, []);
 
   const setAgeYears = useCallback((years: number | '') => {
-    syncAgeToDob(years, patient.ageMonths, patient.ageDays);
-  }, [patient.ageMonths, patient.ageDays, syncAgeToDob]);
+    setPatient((prev) => {
+      const y = typeof years === 'number' && !isNaN(years) ? years : 0;
+      const m = typeof prev.ageMonths === 'number' && !isNaN(prev.ageMonths) ? prev.ageMonths : 0;
+      const d = typeof prev.ageDays === 'number' && !isNaN(prev.ageDays) ? prev.ageDays : 0;
+      if (y === 0 && m === 0 && d === 0) {
+        return { ...prev, ageYears: years, birthDate: '', birthDateEstimated: false };
+      }
+      const norm = normalizeAgeToBirthDate({ years: y, months: m, days: d });
+      return {
+        ...prev,
+        ageYears: years,
+        birthDate: norm.birthDate ? norm.birthDate.toISOString().split('T')[0] : prev.birthDate,
+        birthDateEstimated: true,
+      };
+    });
+  }, []);
 
   const setAgeMonths = useCallback((months: number | '') => {
-    syncAgeToDob(patient.ageYears, months, patient.ageDays);
-  }, [patient.ageYears, patient.ageDays, syncAgeToDob]);
+    setPatient((prev) => {
+      const y = typeof prev.ageYears === 'number' && !isNaN(prev.ageYears) ? prev.ageYears : 0;
+      const m = typeof months === 'number' && !isNaN(months) ? months : 0;
+      const d = typeof prev.ageDays === 'number' && !isNaN(prev.ageDays) ? prev.ageDays : 0;
+      if (y === 0 && m === 0 && d === 0) {
+        return { ...prev, ageMonths: months, birthDate: '', birthDateEstimated: false };
+      }
+      const norm = normalizeAgeToBirthDate({ years: y, months: m, days: d });
+      return {
+        ...prev,
+        ageMonths: months,
+        birthDate: norm.birthDate ? norm.birthDate.toISOString().split('T')[0] : prev.birthDate,
+        birthDateEstimated: true,
+      };
+    });
+  }, []);
 
   const setAgeDays = useCallback((days: number | '') => {
-    syncAgeToDob(patient.ageYears, patient.ageMonths, days);
-  }, [patient.ageYears, patient.ageMonths, syncAgeToDob]);
+    setPatient((prev) => {
+      const y = typeof prev.ageYears === 'number' && !isNaN(prev.ageYears) ? prev.ageYears : 0;
+      const m = typeof prev.ageMonths === 'number' && !isNaN(prev.ageMonths) ? prev.ageMonths : 0;
+      const d = typeof days === 'number' && !isNaN(days) ? days : 0;
+      if (y === 0 && m === 0 && d === 0) {
+        return { ...prev, ageDays: days, birthDate: '', birthDateEstimated: false };
+      }
+      const norm = normalizeAgeToBirthDate({ years: y, months: m, days: d });
+      return {
+        ...prev,
+        ageDays: days,
+        birthDate: norm.birthDate ? norm.birthDate.toISOString().split('T')[0] : prev.birthDate,
+        birthDateEstimated: true,
+      };
+    });
+  }, []);
 
   const setBirthDate = useCallback((birthDate: string) => {
     if (!birthDate) {
@@ -177,7 +217,29 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
       outstandingDebt: p.outstandingDebt || 0,
       lastTestIds: p.lastTestIds || [],
       lastTestNames: p.lastTestNames || [],
+      priorVisits: p.priorVisits || [],
     });
+
+    if (p.priorVisits && Array.isArray(p.priorVisits) && p.priorVisits.length > 0) {
+      setSelectedTests((prev) =>
+        prev.map((t) => {
+          const tCode = (t.code || '').toUpperCase().trim();
+          for (const pv of p.priorVisits) {
+            const match = (pv.tests || []).find(
+              (x: any) =>
+                x.testId === t.id ||
+                (tCode && (x.code || '').toUpperCase().trim() === tCode) ||
+                (x.name && t.name && x.name.toLowerCase().trim() === t.name.toLowerCase().trim()) ||
+                (tCode && tCode.length > 2 && (x.name || '').toUpperCase().includes(tCode))
+            );
+            if (match && match.resultValue && String(match.resultValue).trim() !== '') {
+              return { ...t, previousValue: String(match.resultValue), previousDate: pv.createdAt } as any;
+            }
+          }
+          return t;
+        })
+      );
+    }
   }, []);
 
   const resetPatient = useCallback(() => {
@@ -195,10 +257,76 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
   const [catalogTests, setCatalogTests] = useState<any[]>(() => {
     return (catalogCache.getTests() as any[]) || [];
   });
+  const [customPanels, setCustomPanels] = useState<any[]>(() => {
+    return (catalogCache.getPanels() as any[]) || [];
+  });
   const [doctors, setDoctors] = useState<any[]>(() => {
     return (INITIAL_DOCTORS as any[]) || [];
   });
   const [userRole, setUserRole] = useState<string>('OWNER');
+
+  // Intelligent dynamic test frequency learning map (from samples + local clicks)
+  const [frequencyMap, setFrequencyMap] = useState<Record<string, number>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const local = localStorage.getItem('labryo_test_frequencies') || localStorage.getItem('labryo_cached_frequencies');
+        if (local) return JSON.parse(local);
+      } catch {}
+    }
+    return catalogCache.getFrequencies() || {};
+  });
+
+  const recordTestUsage = useCallback((testId: string, testCode?: string) => {
+    if (!testId && !testCode) return;
+    setFrequencyMap((prev) => {
+      const next = { ...prev };
+      if (testId) next[testId] = (next[testId] || 0) + 1;
+      if (testCode) {
+        const cUpper = testCode.toUpperCase().trim();
+        next[cUpper] = (next[cUpper] || 0) + 1;
+      }
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('labryo_test_frequencies', JSON.stringify(next));
+        } catch {}
+      }
+      return next;
+    });
+  }, []);
+
+  const refreshPanels = useCallback(async () => {
+    try {
+      const res = await catalogCache.refresh(true);
+      if (res?.panels && Array.isArray(res.panels)) {
+        setCustomPanels(res.panels);
+      }
+      const freqs = catalogCache.getFrequencies();
+      if (freqs && Object.keys(freqs).length > 0) {
+        setFrequencyMap((prev) => ({ ...freqs, ...prev }));
+      }
+    } catch {}
+  }, []);
+
+  const updateCatalogTestPrice = useCallback(async (testId: string, newPrice: number) => {
+    try {
+      const res = await apiRequest(`/tests/${encodeURIComponent(testId)}`, 'PATCH', { price: newPrice });
+      if (res) {
+        setCatalogTests((prev) => {
+          const next = prev.map((t) => (t.id === testId ? { ...t, price: newPrice } : t));
+          catalogCache.update(next);
+          return next;
+        });
+        setSelectedTests((prev) =>
+          prev.map((t) => (t.id === testId ? { ...t, price: newPrice } : t))
+        );
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      console.error('Failed to update test price:', err);
+      throw err;
+    }
+  }, []);
 
   useEffect(() => {
     // 0ms cached tests + subscribe to catalog updates
@@ -207,12 +335,34 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
       if (Array.isArray(tests) && tests.length > 0) {
         setCatalogTests(tests);
       }
+      const panels = catalogCache.getPanels();
+      if (Array.isArray(panels)) {
+        setCustomPanels(panels);
+      }
+      const freqs = catalogCache.getFrequencies();
+      if (freqs && Object.keys(freqs).length > 0) {
+        setFrequencyMap((prev) => ({ ...freqs, ...prev }));
+      }
     });
+
+    // Background fetch to ensure latest catalog tests, panels, frequencies and doctors
+    catalogCache.refresh(true).then((res) => {
+      if (res?.tests && Array.isArray(res.tests) && res.tests.length > 0) {
+        setCatalogTests(res.tests);
+      }
+      if (res?.panels && Array.isArray(res.panels)) {
+        setCustomPanels(res.panels);
+      }
+      const freqs = catalogCache.getFrequencies();
+      if (freqs && Object.keys(freqs).length > 0) {
+        setFrequencyMap((prev) => ({ ...freqs, ...prev }));
+      }
+    }).catch(() => {});
 
     // Load doctors and user role
     apiRequest('/doctors')
       .then((res) => {
-        if (Array.isArray(res) && res.length > 0) {
+        if (Array.isArray(res)) {
           setDoctors(res);
         }
       })
@@ -228,9 +378,18 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
     };
   }, []);
 
+  const addDoctorDirectly = useCallback((doctor: any) => {
+    if (!doctor || !doctor.id) return;
+    setDoctors((prev) => {
+      const existing = prev.find((d) => d.id === doctor.id);
+      if (existing) return prev;
+      return [doctor, ...prev];
+    });
+  }, []);
+
   const [selectedTests, setSelectedTests] = useState<UnifiedCartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [selectedCategory, setSelectedCategory] = useState('MOST_USED');
 
   // Duplicate prevention & Cart modification
   const addTestToCart = useCallback((test: any): boolean => {
@@ -239,13 +398,32 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
     const testId = String(test.id);
     const testCode = (test.code || '').toUpperCase().trim();
 
-    // Check if already selected
+    // Check if already selected in current snapshot
     const alreadySelected = selectedTests.some(
       (t) => t.id === testId || (testCode && (t.code || '').toUpperCase().trim() === testCode)
     );
 
     if (alreadySelected) {
       return false;
+    }
+
+    let prevVal: string | null = null;
+    let prevDate: string | null = null;
+    if (patient.priorVisits && Array.isArray(patient.priorVisits)) {
+      for (const pv of patient.priorVisits) {
+        const match = (pv.tests || []).find(
+          (x: any) =>
+            x.testId === testId ||
+            (testCode && (x.code || '').toUpperCase().trim() === testCode) ||
+            (x.name && test.name && x.name.toLowerCase().trim() === test.name.toLowerCase().trim()) ||
+            (testCode && testCode.length > 2 && (x.name || '').toUpperCase().includes(testCode))
+        );
+        if (match && match.resultValue && String(match.resultValue).trim() !== '') {
+          prevVal = String(match.resultValue);
+          prevDate = pv.createdAt;
+          break;
+        }
+      }
     }
 
     const cartItem: UnifiedCartItem = {
@@ -262,11 +440,23 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
       refRangeText: test.refRangeText,
       referenceRanges: test.referenceRanges,
       isCalculated: Boolean(test.isCalculated),
-    };
+      ...(prevVal ? { previousValue: prevVal, previousDate: prevDate } : {}),
+    } as any;
 
-    setSelectedTests((prev) => [...prev, cartItem]);
+    // Deduplicate atomically inside functional state update as well
+    setSelectedTests((prev) => {
+      const exists = prev.some(
+        (t) => t.id === testId || (testCode && (t.code || '').toUpperCase().trim() === testCode)
+      );
+      if (exists) return prev;
+      return [...prev, cartItem];
+    });
+
+    // Learn and track usage frequency
+    recordTestUsage(testId, test.code);
+
     return true;
-  }, [selectedTests]);
+  }, [selectedTests, recordTestUsage]);
 
   const removeTestFromCart = useCallback((testId: string) => {
     setSelectedTests((prev) => prev.filter((t) => t.id !== testId));
@@ -283,52 +473,243 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
     setDirectLdlOverride(null);
   }, []);
 
+  // Category counts across catalog tests
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      MOST_USED: getMostUsedTests(catalogTests, frequencyMap).length,
+      BIOCHEMISTRY: 0,
+      HEMATOLOGY: 0,
+      HORMONES: 0,
+      IMMUNOLOGY: 0,
+      URINE_STOOL: 0,
+      TUMOR_MARKERS: 0,
+    };
+
+    catalogTests.forEach((t) => {
+      const canonicalKey = normalizeCategory(t.category);
+      if (counts[canonicalKey] !== undefined) {
+        counts[canonicalKey] += 1;
+      } else {
+        counts.BIOCHEMISTRY += 1;
+      }
+    });
+
+    return counts;
+  }, [catalogTests, frequencyMap]);
+
   // Filtered Catalog
   const filteredCatalog = useMemo(() => {
     let list = catalogTests;
 
-    if (selectedCategory !== 'ALL') {
-      const catLower = selectedCategory.toLowerCase();
-      list = list.filter((t) => {
-        const itemCat = (t.category || '').toLowerCase();
-        if (catLower === 'hematology') return itemCat.includes('دم') || itemCat.includes('hematology') || itemCat.includes('تخثر');
-        if (catLower === 'chemistry') return itemCat.includes('كيمياء') || itemCat.includes('chemistry') || itemCat.includes('سكري') || itemCat.includes('كبد') || itemCat.includes('كلى') || itemCat.includes('دهون');
-        if (catLower === 'hormones') return itemCat.includes('هرمون') || itemCat.includes('hormone') || itemCat.includes('غدة');
-        if (catLower === 'immunology') return itemCat.includes('مناعة') || itemCat.includes('immunology') || itemCat.includes('أمصال');
-        if (catLower === 'urine_stool') return itemCat.includes('إدرار') || itemCat.includes('خروج') || itemCat.includes('urine') || itemCat.includes('stool') || itemCat.includes('مجهري');
-        if (catLower === 'vitamins_markers') return itemCat.includes('فيتامين') || itemCat.includes('vitamin') || itemCat.includes('أورام') || itemCat.includes('معادن');
-        return itemCat.includes(catLower);
-      });
-    }
-
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
-      list = list.filter((t) => {
+      const searched = list.filter((t) => {
         const name = (t.name || '').toLowerCase();
         const code = (t.code || '').toLowerCase();
         const arabic = (t.arabicName || '').toLowerCase();
         return name.includes(q) || code.includes(q) || arabic.includes(q);
       });
+      return orderCatalogByImportance(searched, frequencyMap, 50, selectedCategory);
     }
 
-    // Prioritize top clinical/frequency tests at the head of the list
-    return orderCatalogByImportance(list);
-  }, [catalogTests, selectedCategory, searchQuery]);
+    if (selectedCategory === 'MOST_USED') {
+      return getMostUsedTests(catalogTests, frequencyMap);
+    }
+
+    if (selectedCategory && selectedCategory !== 'ALL') {
+      const catKey = selectedCategory.toUpperCase();
+      list = list.filter((t) => {
+        return normalizeCategory(t.category) === catKey;
+      });
+    }
+
+    // Prioritize top clinical and frequent tests at the head of the list
+    return orderCatalogByImportance(list, frequencyMap, 50, selectedCategory);
+  }, [catalogTests, selectedCategory, searchQuery, frequencyMap]);
 
   // Apply Quick Bundles
   const applyBundle = useCallback((bundleKey: string) => {
     const codes = BUNDLE_MAP[bundleKey];
     if (!codes || !Array.isArray(codes)) return;
 
+    const matchedTests: any[] = [];
+    const seenIds = new Set<string>();
+
     codes.forEach((code) => {
-      const target = catalogTests.find(
-        (t) => (t.code || '').toUpperCase().trim() === code.toUpperCase().trim()
-      );
-      if (target) {
-        addTestToCart(target);
+      const cleanCode = code.toUpperCase().trim();
+      const target = catalogTests.find((t) => {
+        const tCode = (t.code || '').toUpperCase().trim();
+        if (tCode === cleanCode) return true;
+        if (cleanCode === 'ALT' && tCode === 'GPT') return true;
+        if (cleanCode === 'AST' && tCode === 'GOT') return true;
+        if (cleanCode === 'UA' && tCode === 'URIC') return true;
+        return false;
+      });
+      if (target && !seenIds.has(String(target.id))) {
+        seenIds.add(String(target.id));
+        matchedTests.push(target);
       }
     });
-  }, [catalogTests, addTestToCart]);
+
+    if (matchedTests.length === 0) return;
+
+    setSelectedTests((prev) => {
+      const existingIds = new Set(prev.map((t) => String(t.id)));
+      const existingCodes = new Set(
+        prev.map((t) => (t.code || '').toUpperCase().trim()).filter(Boolean)
+      );
+
+      const toAdd: UnifiedCartItem[] = [];
+      matchedTests.forEach((test) => {
+        const testId = String(test.id);
+        const testCode = (test.code || '').toUpperCase().trim();
+        if (existingIds.has(testId) || (testCode && existingCodes.has(testCode))) {
+          return;
+        }
+        existingIds.add(testId);
+        if (testCode) existingCodes.add(testCode);
+
+        toAdd.push({
+          id: testId,
+          name: test.name || testCode || 'Test',
+          code: test.code,
+          arabicName: test.arabicName,
+          category: test.category || 'General',
+          price: Number(test.price) || 0,
+          sampleType: test.sampleType,
+          unit: test.unit,
+          refRangeLow: test.refRangeLow,
+          refRangeHigh: test.refRangeHigh,
+          refRangeText: test.refRangeText,
+          referenceRanges: test.referenceRanges,
+          isCalculated: Boolean(test.isCalculated),
+        });
+
+        recordTestUsage(testId, test.code);
+      });
+
+      return toAdd.length > 0 ? [...prev, ...toAdd] : prev;
+    });
+  }, [catalogTests, recordTestUsage]);
+
+  // Apply Diagnostic Panel / Custom Package with exact custom panel price
+  const applyPanel = useCallback((panel: any): number => {
+    if (!panel) return 0;
+    const testIds = new Set<string>(Array.isArray(panel.testIds) ? panel.testIds.map(String) : []);
+    const testCodes = new Set<string>(
+      Array.isArray(panel.testCodes) ? panel.testCodes.map((c: string) => c.toUpperCase().trim()) : []
+    );
+
+    if (Array.isArray(panel.items)) {
+      panel.items.forEach((item: any) => {
+        const tId = item.testId || item.test?.id;
+        const tCode = (item.test?.code || '').toUpperCase().trim();
+        if (tId) testIds.add(String(tId));
+        if (tCode) testCodes.add(tCode);
+      });
+    }
+
+    const matchedTests: any[] = [];
+    const seenIds = new Set<string>();
+
+    catalogTests.forEach((t) => {
+      const tId = String(t.id);
+      const tCode = (t.code || '').toUpperCase().trim();
+      const idMatch = testIds.has(tId);
+      const codeMatch = Boolean(tCode && testCodes.has(tCode));
+      if ((idMatch || codeMatch) && !seenIds.has(tId)) {
+        seenIds.add(tId);
+        matchedTests.push(t);
+      }
+    });
+
+    if (matchedTests.length === 0) return 0;
+
+    const hasCustomPrice = panel.price !== undefined && panel.price !== null && Number(panel.price) > 0;
+    const targetPanelPrice = hasCustomPrice ? Math.round(Number(panel.price)) : 0;
+    const totalCatalogPrice = matchedTests.reduce((sum, t) => sum + (Number(t.price) || 0), 0);
+
+    // Compute distributed price for each matched test so the sum exactly equals targetPanelPrice
+    const distributedPrices: number[] = [];
+    if (hasCustomPrice && matchedTests.length > 0) {
+      let allocatedSum = 0;
+      matchedTests.forEach((test, idx) => {
+        if (idx === matchedTests.length - 1) {
+          distributedPrices.push(Math.max(0, targetPanelPrice - allocatedSum));
+        } else {
+          const share = totalCatalogPrice > 0
+            ? Math.round((Number(test.price || 0) / totalCatalogPrice) * targetPanelPrice)
+            : Math.floor(targetPanelPrice / matchedTests.length);
+          distributedPrices.push(share);
+          allocatedSum += share;
+        }
+      });
+    }
+
+    let addedCount = 0;
+    setSelectedTests((prev) => {
+      const existingIds = new Set(prev.map((t) => String(t.id)));
+      const existingCodes = new Set(
+        prev.map((t) => (t.code || '').toUpperCase().trim()).filter(Boolean)
+      );
+
+      // If tests already existed, update their price/panel info if this panel carries a custom price
+      let nextCart = prev.map((item) => {
+        const matchIdx = matchedTests.findIndex((mt) => String(mt.id) === String(item.id) || (mt.code && item.code && mt.code.toUpperCase() === item.code.toUpperCase()));
+        if (matchIdx !== -1 && hasCustomPrice) {
+          return {
+            ...item,
+            price: distributedPrices[matchIdx],
+            panelId: String(panel.id),
+            panelName: String(panel.name || 'باقة'),
+            panelPrice: targetPanelPrice,
+            originalPrice: item.originalPrice || item.price,
+          };
+        }
+        return item;
+      });
+
+      const toAdd: UnifiedCartItem[] = [];
+      matchedTests.forEach((test, idx) => {
+        const testId = String(test.id);
+        const testCode = (test.code || '').toUpperCase().trim();
+        if (existingIds.has(testId) || (testCode && existingCodes.has(testCode))) {
+          return;
+        }
+        existingIds.add(testId);
+        if (testCode) existingCodes.add(testCode);
+
+        const assignedPrice = hasCustomPrice ? distributedPrices[idx] : (Number(test.price) || 0);
+
+        toAdd.push({
+          id: testId,
+          name: test.name || testCode || 'Test',
+          code: test.code,
+          arabicName: test.arabicName,
+          category: test.category || 'General',
+          price: assignedPrice,
+          panelId: hasCustomPrice ? String(panel.id) : undefined,
+          panelName: hasCustomPrice ? String(panel.name || 'باقة') : undefined,
+          panelPrice: hasCustomPrice ? targetPanelPrice : undefined,
+          originalPrice: Number(test.price) || 0,
+          sampleType: test.sampleType,
+          unit: test.unit,
+          refRangeLow: test.refRangeLow,
+          refRangeHigh: test.refRangeHigh,
+          refRangeText: test.refRangeText,
+          referenceRanges: test.referenceRanges,
+          isCalculated: Boolean(test.isCalculated),
+        });
+
+        recordTestUsage(testId, test.code);
+      });
+
+      addedCount = toAdd.length;
+      return toAdd.length > 0 ? [...nextCart, ...toAdd] : nextCart;
+    });
+
+    return addedCount;
+  }, [catalogTests, recordTestUsage]);
 
   // -------------------------------------------------------------
   // 4. Results State, Lipid Engine & eGFR Auto-Calculations
@@ -371,6 +752,14 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
             arrow: '',
             isCalculated: Boolean(test.isCalculated),
             isDirectOverride: false,
+            previousValue: (test as any).previousValue || null,
+            previousDate: (test as any).previousDate || null,
+          };
+        } else if ((test as any).previousValue !== undefined && next[test.id].previousValue !== (test as any).previousValue) {
+          next[test.id] = {
+            ...next[test.id],
+            previousValue: (test as any).previousValue || null,
+            previousDate: (test as any).previousDate || null,
           };
         }
       });
@@ -380,12 +769,21 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
   }, [selectedTests, patient.gender, patient.ageYears, patient.birthDate]);
 
   // Update specific result row and trigger clinical evaluations
-  const updateResultValue = useCallback((testId: string, rawVal: string, isOverride = false) => {
+  const updateResultValue = useCallback((testId: string, rawVal: string, isOverride?: boolean) => {
     const cleanStr = toEnglishDigits(rawVal);
 
     setResults((prev) => {
       const current = prev[testId];
       if (!current) return prev;
+
+      const catalogTest = catalogTests.find((t) => t.id === testId) || selectedTests.find((t) => t.id === testId);
+      const isCalc = Boolean(catalogTest?.isCalculated || current.isCalculated);
+      const resolvedOverride =
+        typeof isOverride === 'boolean'
+          ? isOverride
+          : isCalc
+          ? cleanStr.trim() !== ''
+          : false;
 
       const numVal = parseFloat(cleanStr);
       let status: UnifiedResultItem['status'] = 'NONE';
@@ -400,7 +798,7 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
         };
 
         // Classify against range
-        const classified = classifyResultRange(numVal, { refRangeText: current.refRangeText }, patientCtx);
+        const classified = classifyResultRange(numVal, catalogTest || { refRangeText: current.refRangeText }, patientCtx);
         if (classified.status === 'HIGH') {
           status = 'HIGH';
           arrow = '↑';
@@ -417,7 +815,7 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
           current.testCode || current.testName,
           numVal,
           typeof patient.ageYears === 'number' ? patient.ageYears : undefined,
-          patient.gender
+          patient.gender || undefined
         );
 
         if (panic.isPanic) {
@@ -431,8 +829,8 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
         value: cleanStr,
         status,
         arrow,
-        isDirectOverride: isOverride,
-        isCalculated: isOverride ? false : current.isCalculated,
+        isDirectOverride: resolvedOverride,
+        isCalculated: isCalc,
       };
 
       return {
@@ -440,7 +838,23 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
         [testId]: nextItem,
       };
     });
-  }, [patient.gender, patient.ageYears, patient.birthDate]);
+  }, [catalogTests, selectedTests, patient.gender, patient.ageYears, patient.birthDate]);
+
+  const toggleDirectOverride = useCallback((testId: string) => {
+    setResults((prev) => {
+      const current = prev[testId];
+      if (!current) return prev;
+      const nextOverride = !current.isDirectOverride;
+      return {
+        ...prev,
+        [testId]: {
+          ...current,
+          isDirectOverride: nextOverride,
+          value: nextOverride ? current.value : '',
+        },
+      };
+    });
+  }, []);
 
   // Live Friedewald Lipid Engine & eGFR Auto-Calculations
   useEffect(() => {
@@ -504,7 +918,7 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
         }
 
         // VLDL Row
-        if (vldlTestId && next[vldlTestId]) {
+        if (vldlTestId && next[vldlTestId] && !next[vldlTestId].isDirectOverride) {
           const vldlRes = lipidPanel.vldl;
           const newVal = vldlRes.value !== null ? String(vldlRes.value) : (vldlRes.invalidReason ? LIPID_NOT_CALCULATED_MSG : '');
           if (next[vldlTestId].value !== newVal) {
@@ -519,7 +933,7 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
         }
 
         // Non-HDL Row
-        if (nonHdlTestId && next[nonHdlTestId]) {
+        if (nonHdlTestId && next[nonHdlTestId] && !next[nonHdlTestId].isDirectOverride) {
           const newVal = lipidPanel.nonHdl.value !== null ? String(lipidPanel.nonHdl.value) : '';
           if (next[nonHdlTestId].value !== newVal) {
             next[next[nonHdlTestId].testId] = {
@@ -532,7 +946,7 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
         }
 
         // TC/HDL Ratio
-        if (tcHdlTestId && next[tcHdlTestId]) {
+        if (tcHdlTestId && next[tcHdlTestId] && !next[tcHdlTestId].isDirectOverride) {
           const newVal = lipidPanel.tcHdlRatio.value !== null ? String(lipidPanel.tcHdlRatio.value) : '';
           if (next[tcHdlTestId].value !== newVal) {
             next[tcHdlTestId] = {
@@ -545,7 +959,7 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
         }
 
         // LDL/HDL Ratio
-        if (ldlHdlTestId && next[ldlHdlTestId]) {
+        if (ldlHdlTestId && next[ldlHdlTestId] && !next[ldlHdlTestId].isDirectOverride) {
           const newVal = lipidPanel.ldlHdlRatio.value !== null ? String(lipidPanel.ldlHdlRatio.value) : '';
           if (next[ldlHdlTestId].value !== newVal) {
             next[ldlHdlTestId] = {
@@ -564,10 +978,10 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
     // 2. Calculate eGFR
     if (creatVal !== null && egfrTestId) {
       const ageNum = typeof patient.ageYears === 'number' ? patient.ageYears : 0;
-      const egfrRes = calculateEgfr(creatVal, ageNum, patient.gender);
+      const egfrRes = calculateEgfr(creatVal, ageNum, patient.gender || 'MALE');
 
       setResults((prev) => {
-        if (!prev[egfrTestId!]) return prev;
+        if (!prev[egfrTestId!] || prev[egfrTestId!].isDirectOverride) return prev;
         const current = prev[egfrTestId!];
         const newVal = egfrRes.value !== null ? String(egfrRes.value) : '';
         if (current.value !== newVal) {
@@ -679,11 +1093,19 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
     selectedCategory,
     setSelectedCategory,
     filteredCatalog,
+    categoryCounts,
+    frequencyMap,
+    recordTestUsage,
     applyBundle,
+    customPanels,
+    applyPanel,
+    refreshPanels,
+    updateCatalogTestPrice,
 
     // Results & Formulas
     results,
     updateResultValue,
+    toggleDirectOverride,
     directLdlOverride,
     setDirectLdlOverride,
 
@@ -697,6 +1119,7 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
 
     // Helpers
     doctors,
+    addDoctorDirectly,
     userRole,
     isSaving,
     setIsSaving,

@@ -1,11 +1,19 @@
 import { INITIAL_TESTS_CATALOG, INITIAL_PANELS, INITIAL_DOCTORS, TestItem, PanelItem } from './catalogData';
 import { apiRequest } from './api';
 
-export type DoctorItem = (typeof INITIAL_DOCTORS)[number];
+export interface DoctorItem {
+  id: string;
+  name: string;
+  phone?: string;
+  clinic?: string;
+  specialty?: string;
+  commissionPercent: number;
+}
 
 let cachedTests: TestItem[] = [...INITIAL_TESTS_CATALOG];
 let cachedPanels: PanelItem[] = [...INITIAL_PANELS];
 let cachedDoctors: DoctorItem[] = [...INITIAL_DOCTORS];
+let cachedFrequencies: Record<string, number> = {};
 let lastFetchTime = 0;
 const CACHE_TTL_MS = 60 * 1000;
 
@@ -22,9 +30,16 @@ if (typeof window !== 'undefined') {
     const rawTests = localStorage.getItem('labryo_cached_tests');
     const rawPanels = localStorage.getItem('labryo_cached_panels');
     const rawDoctors = localStorage.getItem('labryo_cached_doctors');
-    if (rawTests) cachedTests = JSON.parse(rawTests);
+    const rawFrequencies = localStorage.getItem('labryo_cached_frequencies');
+    if (rawTests) {
+      const parsed = JSON.parse(rawTests);
+      if (Array.isArray(parsed) && parsed.length >= INITIAL_TESTS_CATALOG.length) {
+        cachedTests = parsed;
+      }
+    }
     if (rawPanels) cachedPanels = JSON.parse(rawPanels);
     if (rawDoctors) cachedDoctors = JSON.parse(rawDoctors);
+    if (rawFrequencies) cachedFrequencies = JSON.parse(rawFrequencies);
   } catch {}
 
   window.addEventListener('storage', (event) => {
@@ -60,6 +75,7 @@ export const catalogCache = {
   getTests(): TestItem[] { return cachedTests; },
   getPanels(): PanelItem[] { return cachedPanels; },
   getDoctors(): DoctorItem[] { return cachedDoctors; },
+  getFrequencies(): Record<string, number> { return cachedFrequencies; },
   isStale(): boolean { return Date.now() - lastFetchTime > CACHE_TTL_MS; },
   subscribe(callback: () => void): () => void {
     subscribers.add(callback);
@@ -78,12 +94,14 @@ export const catalogCache = {
       if (testsRes?.tests && Array.isArray(testsRes.tests) && testsRes.tests.length > 0) cachedTests = testsRes.tests;
       if (testsRes?.panels && Array.isArray(testsRes.panels) && testsRes.panels.length > 0) cachedPanels = testsRes.panels;
       if (doctorsRes && Array.isArray(doctorsRes) && doctorsRes.length > 0) cachedDoctors = doctorsRes;
+      if (testsRes?.frequencies && typeof testsRes.frequencies === 'object') cachedFrequencies = testsRes.frequencies;
       lastFetchTime = Date.now();
       if (typeof window !== 'undefined') {
         try {
           localStorage.setItem('labryo_cached_tests', JSON.stringify(cachedTests));
           localStorage.setItem('labryo_cached_panels', JSON.stringify(cachedPanels));
           localStorage.setItem('labryo_cached_doctors', JSON.stringify(cachedDoctors));
+          localStorage.setItem('labryo_cached_frequencies', JSON.stringify(cachedFrequencies));
         } catch {}
       }
       notifySubscribers();

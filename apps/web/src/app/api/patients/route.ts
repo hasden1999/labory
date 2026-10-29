@@ -74,6 +74,27 @@ export async function GET() {
       samples: patientSamples,
       visitsCount: patientSamples.length,
       visitCount: patientSamples.length,
+      priorVisits: patientSamples.slice(0, 5).map(s => ({
+        id: s.id,
+        sampleNumber: s.sampleNumber,
+        status: s.status,
+        createdAt: s.createdAt,
+        priceTotal: s.priceTotal,
+        discount: s.discount,
+        paidAmount: s.paidAmount,
+        remainingAmount: s.remainingAmount,
+        isUrgent: s.isUrgent,
+        testsCount: (s.tests || []).length,
+        testsSummary: (s.tests || []).map((t: any) => t.test?.code || t.test?.name).join(', '),
+        tests: (s.tests || []).map((t: any) => ({
+          testId: t.testId || t.test?.id,
+          code: t.test?.code || t.code,
+          name: t.test?.name || t.name,
+          resultValue: t.resultValue,
+          unit: t.test?.unit || t.unit,
+          isAbnormal: t.isAbnormal,
+        })),
+      })),
     };
   });
 

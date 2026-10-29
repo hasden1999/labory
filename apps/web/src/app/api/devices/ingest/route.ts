@@ -24,6 +24,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: result.message }, { status: 401 });
     }
 
+    if (!result.success && result.status === 'UNMATCHED_SAMPLE') {
+      return NextResponse.json(result, { status: 422 });
+    }
+
     return NextResponse.json(result);
   } catch (err: any) {
     return NextResponse.json({ message: 'فشل معالجة واستقبال حزمة الجهاز' }, { status: 500 });

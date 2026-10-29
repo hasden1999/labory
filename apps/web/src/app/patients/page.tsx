@@ -3,22 +3,18 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState, useMemo, Suspense, useCallback } from 'react';
+import nextDynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import { useLab } from '../../components/LabContext';
-import { getShareableUrl } from '../../lib/urlHelper';
 import ConfirmModal from '../../components/ConfirmModal';
-import { Patient, Sample, SampleTest } from '../../types';
 import {
-  Users,
   Search,
   Plus,
   User,
   Phone,
   Calendar,
-  Clock,
-  Activity,
   Printer,
   Share2,
   FileText,
@@ -26,2007 +22,2030 @@ import {
   Trash2,
   Edit3,
   CheckCircle2,
-  AlertCircle,
-  ExternalLink,
-  ChevronDown,
-  ChevronUp,
-  X,
-  UserPlus,
-  ArrowUpRight,
-  Sparkles,
-  FlaskConical,
-  DollarSign,
-  AlertOctagon,
   AlertTriangle,
+  X,
   Check,
   RefreshCw,
-  TestTube2,
-  FileSpreadsheet,
-  Layers,
-  HelpCircle,
-  CheckCircle
+  FlaskConical,
+  FolderOpen,
+  History,
+  ExternalLink,
 } from 'lucide-react';
-import { toEnglishDigits, formatEnglishDate, formatEnglishTime, formatEnglishDateTime, formatClinicalAge } from '../../lib/formatters';
-import { ClinicalAgeInput, ClinicalAgeValue } from '../../components/common/ClinicalAgeInput';
-import { computeAgeBreakdown } from '@lab-manager/domain';
+import { toEnglishDigits, formatEnglishDate, formatClinicalAge } from '../../lib/formatters';
+import { shareReportToWhatsApp, autoSendReportViaWhatsAppWeb } from '../../lib/shareReportToWhatsApp';
 
-// Helper to determine collection tubes used in a sample
-function getSampleTubes(tests: SampleTest[] = []) {
-  const list: { id: string; name: string; color: string; bg: string; border: string }[] = [];
-  let hasEdta = false;
-  let hasSerum = false;
-  let hasCitrate = false;
-  let hasUrine = false;
+const UrineFormModal = nextDynamic(() => import('../../components/UrineFormModal'), { ssr: false });
+const GseModal = nextDynamic(() => import('../../components/workstations/GseModal'), { ssr: false });
+const CbcModal = nextDynamic(() => import('../../components/workstations/CbcModal'), { ssr: false });
+const SemenFormModal = nextDynamic(() => import('../../components/workstations/SemenFormModal'), { ssr: false });
+const MicrobiologyModal = nextDynamic(() => import('../../components/workstations/MicrobiologyModal'), { ssr: false });
+const BhcgFormModal = nextDynamic(() => import('../../components/workstations/BhcgFormModal'), { ssr: false });
+const AmhFormModal = nextDynamic(() => import('../../components/workstations/AmhFormModal'), { ssr: false });
 
-  tests.forEach((st) => {
-    const t = st.test;
-    if (!t) return;
-    const text = `${t.name || ''} ${t.code || ''} ${t.category || ''}`.toLowerCase();
-    if (text.includes('pt') || text.includes('inr') || text.includes('ptt') || text.includes('ddimer') || text.includes('d-dimer')) {
-      hasCitrate = true;
-    } else if (text.includes('cbc') || text.includes('esr') || text.includes('hb') || text.includes('hba1c') || text.includes('plt') || text.includes('blood group') || text.includes('bg')) {
-      hasEdta = true;
-    } else if (text.includes('gue') || text.includes('gse') || text.includes('urine') || text.includes('stool') || text.includes('ادرار') || text.includes('خروج')) {
-      hasUrine = true;
-    } else {
-      hasSerum = true;
-    }
-  });
-
-  if (hasEdta) list.push({ id: 'edta', name: 'EDTA', color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe' });
-  if (hasSerum) list.push({ id: 'serum', name: 'SST / Gel', color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' });
-  if (hasCitrate) list.push({ id: 'citrate', name: 'Citrate', color: '#0ea5e9', bg: '#f0f9ff', border: '#bae6fd' });
-  if (hasUrine) list.push({ id: 'urine', name: 'عبوة فحص', color: '#10b981', bg: '#ecfdf5', border: '#a7f3d0' });
-
-  return list;
+interface FlattenedVisit {
+  sampleId: string;
+  sampleNumber: string;
+  sampleStatus: string;
+  collectionTime: string;
+  finalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  paymentStatus: string;
+  patient: any;
+  tests: any[];
+  rawSample: any;
 }
 
-function PatientsContent() {
+function isSpecialFormTest(code: string, name: string): 'GUE' | 'GSE' | 'CBC' | 'SFA' | 'MICROBIOLOGY' | 'BHCG' | 'AMH' | null {
+  const c = (code || '').toUpperCase().trim();
+  const n = (name || '').toLowerCase().trim();
+  if (c === 'GUE' || c === 'URINE' || n.includes('urine exam') || n.includes('general urine') || n.includes('فحص الإدرار العام')) return 'GUE';
+  if (c === 'GSE' || c === 'STOOL' || n.includes('stool exam') || n.includes('general stool') || n.includes('فحص الخروج العام')) return 'GSE';
+  if (c === 'CBC' || n.includes('complete blood count') || n.includes('صورة دم كاملة')) return 'CBC';
+  if (c === 'SFA' || c === 'SEMEN' || n.includes('semen analysis') || n.includes('السائل المنوي')) return 'SFA';
+  if (c === 'BHCG' || c === 'B-HCG' || c === 'HCG' || c === 'BETA-HCG' || n.includes('b-hcg') || n.includes('bhcg') || n.includes('beta hcg') || n.includes('beta-hcg') || n.includes('الحمل الرقمي')) return 'BHCG';
+  if (c === 'AMH' || n.includes('anti-mullerian') || n.includes('anti mullerian') || n.includes('مخزون المبيض')) return 'AMH';
+  if (c.includes('CULTURE') || c.includes('C&S') || n.includes('culture') || n.includes('مزرعة')) return 'MICROBIOLOGY';
+  return null;
+}
+
+function parseRefRangeBounds(refStr: string): { low?: number; high?: number } {
+  if (!refStr) return {};
+  const match = refStr.match(/(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)/);
+  if (match) {
+    return { low: parseFloat(match[1]), high: parseFloat(match[2]) };
+  }
+  return {};
+}
+
+function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?: 'ALL' | 'TODAY' | 'PENDING' | 'DEBT' }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
   const { labProfile } = useLab();
   const currency = labProfile?.currency || 'د.ع';
 
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const [samples, setSamples] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'ALL' | 'WITH_DEBT' | 'TODAY' | 'MALE' | 'FEMALE'>('ALL');
+  const [activeFilter, setActiveFilter] = useState<'ALL' | 'TODAY' | 'PENDING' | 'DEBT'>(defaultFilter);
 
-  // In-Place Expanded Patient State
-  const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
-  const [patientDetailsMap, setPatientDetailsMap] = useState<Record<string, Patient>>({});
-  const [loadingDetailsId, setLoadingDetailsId] = useState<string | null>(null);
+  const [selectedSampleId, setSelectedSampleId] = useState<string | null>(null);
+  const [editedResults, setEditedResults] = useState<Record<string, string>>({});
+  const [savingResults, setSavingResults] = useState(false);
 
-  // Modals
-  const [showAddPatientModal, setShowAddPatientModal] = useState(false);
-  const [showEditPatientModal, setShowEditPatientModal] = useState(false);
-  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
-  const [deletePatientId, setDeletePatientId] = useState<string | null>(null);
-
-  // Document & WhatsApp Modals
-  const [docPreviewUrl, setDocPreviewUrl] = useState<string | null>(null);
-  const [docPreviewTitle, setDocPreviewTitle] = useState('');
-  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
-  const [whatsappPhone, setWhatsappPhone] = useState('');
-  const [whatsappText, setWhatsappText] = useState('');
-
-  // Quick Pay Modal & Thermal Voucher States
-  const [payModalSample, setPayModalSample] = useState<any | null>(null);
-  const [payModalPatient, setPayModalPatient] = useState<Patient | null>(null);
-  const [payAmount, setPayAmount] = useState<string>('');
-  const [payMethod, setPayMethod] = useState<string>('نقداً');
-  const [payNotes, setPayNotes] = useState<string>('');
+  // Payment Modal State
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [payAmount, setPayAmount] = useState('');
+  const [payMethod, setPayMethod] = useState('نقداً');
   const [paying, setPaying] = useState(false);
-  const [activeVoucher, setActiveVoucher] = useState<any | null>(null);
-  const [showVoucherModal, setShowVoucherModal] = useState(false);
 
-  // Form States
-  const [patientName, setPatientName] = useState('');
-  const [patientPhone, setPatientPhone] = useState('');
-  const [patientAge, setPatientAge] = useState('');
-  const [patientAgeMonths, setPatientAgeMonths] = useState('');
-  const [patientAgeDays, setPatientAgeDays] = useState('');
-  const [patientBirthDate, setPatientBirthDate] = useState<string | null>(null);
-  const [patientBirthDateEstimated, setPatientBirthDateEstimated] = useState<boolean>(true);
-  const [patientGender, setPatientGender] = useState<'MALE' | 'FEMALE'>('MALE');
+  // Edit Patient Modal State
+  const [showEditPatientModal, setShowEditPatientModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editGender, setEditGender] = useState('ذكر');
+  const [editAgeYears, setEditAgeYears] = useState('');
 
-  const loadPatients = async (silent = false) => {
-    if (!silent) setLoading(true);
+  // Delete Confirm State
+  const [deleteSampleId, setDeleteSampleId] = useState<string | null>(null);
+
+  // Print Preview Modal
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Specialized Form Modal
+  const [specialModal, setSpecialModal] = useState<{ type: 'GUE' | 'GSE' | 'CBC' | 'SFA' | 'MICROBIOLOGY' | 'BHCG' | 'AMH'; testId: string } | null>(null);
+
+  // Patient Past Visits History Modal
+  const [showPatientHistoryModal, setShowPatientHistoryModal] = useState(false);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
     try {
-      const res = await apiRequest('/patients');
-      const list = Array.isArray(res) ? res : (res?.patients && Array.isArray(res.patients) ? res.patients : []);
-      setPatients(list);
+      const data = await apiRequest('/samples');
+      const list = Array.isArray(data) ? data : [];
+      setSamples(list);
 
-      // If URL has patient id, auto expand it
-      const paramId = searchParams.get('id');
-      if (paramId) {
-        setExpandedPatientId(paramId);
+      const qSampleId = searchParams?.get('sampleId');
+      if (qSampleId && list.some((s: any) => s.id === qSampleId)) {
+        setSelectedSampleId(qSampleId);
+      } else if (!selectedSampleId && list.length > 0) {
+        setSelectedSampleId(list[0].id);
       }
     } catch (err: any) {
-      if (!silent) toast.error('فشل في جلب سجل المرضى', 'خطأ');
+      toast.error(err.message || 'تعذر تحميل سجل المرضى والنتائج');
     } finally {
-      if (!silent) setLoading(false);
+      setLoading(false);
     }
-  };
+  }, [searchParams, selectedSampleId, toast]);
 
   useEffect(() => {
-    loadPatients();
+    loadData();
   }, []);
 
-  // Live Auto-Polling & Focus Sync across LAN devices
+  const visits: FlattenedVisit[] = useMemo(() => {
+    return samples.map((s: any) => {
+      const finalAmt = Number(s.finalAmount ?? s.totalAmount ?? 0);
+      const paidAmt = Number(s.paidAmount ?? finalAmt);
+      const remAmt = Math.max(0, Number(s.remainingAmount ?? finalAmt - paidAmt));
+      return {
+        sampleId: s.id,
+        sampleNumber: s.sampleNumber || s.id.slice(-4),
+        sampleStatus: s.status || 'PENDING',
+        collectionTime: s.collectionTime || s.createdAt || new Date().toISOString(),
+        finalAmount: finalAmt,
+        paidAmount: paidAmt,
+        remainingAmount: remAmt,
+        paymentStatus: remAmt > 0 ? 'UNPAID' : 'PAID',
+        patient: s.patient || { id: s.patientId, name: 'مريض غير مسمى', gender: 'ذكر', ageYears: 0, phone: '' },
+        tests: Array.isArray(s.tests) ? s.tests : [],
+        rawSample: s,
+      };
+    });
+  }, [samples]);
+
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  const isCompletedStatus = (status: string) => ['COMPLETED', 'READY', 'DELIVERED'].includes(status);
+
+  // Group visits count by patient
+  const patientVisitsMap = useMemo(() => {
+    const map = new Map<string, number>();
+    visits.forEach((v) => {
+      const pId = v.patient?.id || v.rawSample?.patientId;
+      const pName = (v.patient?.name || '').trim().toLowerCase();
+      if (pId) map.set(pId, (map.get(pId) || 0) + 1);
+      if (pName) map.set(`name:${pName}`, (map.get(`name:${pName}`) || 0) + 1);
+    });
+    return map;
+  }, [visits]);
+
+  const getPatientVisitCount = useCallback((pId?: string, pName?: string) => {
+    if (pId && patientVisitsMap.has(pId)) return patientVisitsMap.get(pId)!;
+    const cleanName = (pName || '').trim().toLowerCase();
+    if (cleanName && patientVisitsMap.has(`name:${cleanName}`)) return patientVisitsMap.get(`name:${cleanName}`)!;
+    return 1;
+  }, [patientVisitsMap]);
+
+  const stats = useMemo(() => {
+    const todayCount = visits.filter((v) => String(v.collectionTime).slice(0, 10) === todayStr).length;
+    const pendingCount = visits.filter((v) => !isCompletedStatus(v.sampleStatus)).length;
+    const debtTotal = visits.reduce((acc, v) => acc + v.remainingAmount, 0);
+    return { todayCount, pendingCount, debtTotal };
+  }, [visits, todayStr]);
+
+  const filteredVisits = useMemo(() => {
+    const q = toEnglishDigits(searchQuery).toLowerCase().trim();
+    return visits.filter((v) => {
+      if (activeFilter === 'TODAY' && String(v.collectionTime).slice(0, 10) !== todayStr) return false;
+      if (activeFilter === 'PENDING' && isCompletedStatus(v.sampleStatus)) return false;
+      if (activeFilter === 'DEBT' && v.remainingAmount <= 0) return false;
+
+      if (!q) return true;
+      const pName = (v.patient?.name || '').toLowerCase();
+      const pPhone = toEnglishDigits(v.patient?.phone || '').toLowerCase();
+      const sNum = String(v.sampleNumber || '').toLowerCase();
+      const testsText = v.tests.map((t: any) => `${t.test?.code || ''} ${t.test?.name || ''}`).join(' ').toLowerCase();
+      return pName.includes(q) || pPhone.includes(q) || sNum.includes(q) || testsText.includes(q);
+    });
+  }, [visits, activeFilter, searchQuery, todayStr]);
+
+  const activeVisit = useMemo(() => {
+    return visits.find((v) => v.sampleId === selectedSampleId) || filteredVisits[0] || null;
+  }, [visits, filteredVisits, selectedSampleId]);
+
+  const currentPatientVisits = useMemo(() => {
+    if (!activeVisit) return [];
+    const pId = activeVisit.patient?.id || activeVisit.rawSample?.patientId;
+    const pName = (activeVisit.patient?.name || '').trim().toLowerCase();
+    return visits
+      .filter((v) => {
+        const vId = v.patient?.id || v.rawSample?.patientId;
+        const vName = (v.patient?.name || '').trim().toLowerCase();
+        return (pId && vId && pId === vId) || (pName && vName && pName === vName);
+      })
+      .sort((a, b) => new Date(b.collectionTime).getTime() - new Date(a.collectionTime).getTime());
+  }, [visits, activeVisit]);
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      loadPatients(true);
-    }, 6000);
-
-    const handleFocus = () => {
-      loadPatients(true);
-    };
-
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('visibilitychange', handleFocus);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('visibilitychange', handleFocus);
-    };
-  }, []);
-
-  // Fetch full fresh details when expanding a patient
-  const toggleExpandPatient = useCallback(async (patient: Patient) => {
-    if (expandedPatientId === patient.id) {
-      setExpandedPatientId(null);
+    if (!activeVisit) {
+      setEditedResults({});
       return;
     }
+    const map: Record<string, string> = {};
+    activeVisit.tests.forEach((st: any) => {
+      const key = st.testId || st.id;
+      map[key] = st.resultValue ?? '';
+    });
+    setEditedResults(map);
+  }, [activeVisit?.sampleId]);
 
-    setExpandedPatientId(patient.id);
+  const handleResultChange = (testKey: string, val: string) => {
+    setEditedResults((prev) => ({ ...prev, [testKey]: val }));
+  };
 
-    // If we don't have fresh details or want to ensure latest
-    setLoadingDetailsId(patient.id);
+  const handleSaveResults = async () => {
+    if (!activeVisit) return;
+    setSavingResults(true);
     try {
-      const fresh = await apiRequest(`/patients/${patient.id}`);
-      if (fresh) {
-        setPatientDetailsMap((prev) => ({ ...prev, [patient.id]: fresh }));
-      }
-    } catch (err) {
-      // Fallback to existing list item
-    } finally {
-      setLoadingDetailsId(null);
-    }
-  }, [expandedPatientId]);
-
-  // Keyboard shortcut F2
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F2') {
-        e.preventDefault();
-        if (expandedPatientId) {
-          const currentP = patientDetailsMap[expandedPatientId] || patients.find((p) => p.id === expandedPatientId);
-          if (currentP) {
-            handleStartNewTest(currentP);
-            return;
-          }
+      const resultsPayload = activeVisit.tests.map((st: any) => {
+        const key = st.testId || st.id;
+        const val = editedResults[key] !== undefined ? editedResults[key] : (st.resultValue || '');
+        const refRange = st.referenceRange || st.test?.referenceRange || '';
+        const bounds = parseRefRangeBounds(refRange);
+        const numVal = parseFloat(val);
+        let isAbnormal = Boolean(st.isAbnormal);
+        if (!Number.isNaN(numVal) && (bounds.low !== undefined || bounds.high !== undefined)) {
+          isAbnormal = (bounds.low !== undefined && numVal < bounds.low) || (bounds.high !== undefined && numVal > bounds.high);
         }
-        setShowAddPatientModal(true);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [expandedPatientId, patientDetailsMap, patients]);
-
-  const handleStartNewTest = (patient: Patient) => {
-    router.push(
-      `/?patientId=${patient.id}&patientName=${encodeURIComponent(patient.name)}&patientPhone=${patient.phone || ''}&patientAge=${patient.age || ''}&patientBirthDate=${patient.birthDate || ''}&patientGender=${patient.gender === 'FEMALE' || (patient.gender as string) === 'أنثى' ? 'FEMALE' : 'MALE'}`
-    );
-  };
-
-  const handleCreatePatient = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!patientName.trim()) {
-      toast.warning('يرجى إدخال اسم المريض', 'بيانات ناقصة');
-      return;
-    }
-
-    try {
-      const cleanPhone = patientPhone.trim() ? toEnglishDigits(patientPhone.trim()) : undefined;
-      const cleanAge = patientAge ? Number(toEnglishDigits(patientAge)) : (patientBirthDate ? computeAgeBreakdown(patientBirthDate).years : undefined);
-      const newP = await apiRequest('/patients', 'POST', {
-        name: patientName.trim(),
-        phone: cleanPhone,
-        age: cleanAge,
-        gender: patientGender,
-        birthDate: patientBirthDate || undefined,
-        birthDateEstimated: patientBirthDateEstimated,
+        return {
+          testId: st.testId || st.test?.id || st.id,
+          resultValue: val,
+          isAbnormal,
+        };
       });
 
-      setShowAddPatientModal(false);
-      setPatientName('');
-      setPatientPhone('');
-      setPatientAge('');
-      setPatientAgeMonths('');
-      setPatientAgeDays('');
-      setPatientBirthDate(null);
-      setPatientBirthDateEstimated(true);
-      setPatientGender('MALE');
-      toast.success('تمت إضافة المريض الجديد بنجاح!', 'تم الحفظ');
-      await loadPatients();
-      setExpandedPatientId(newP.id);
+      const allCompleted =
+        resultsPayload.length > 0 &&
+        resultsPayload.every(
+          (r: any) => r.resultValue !== undefined && r.resultValue !== null && String(r.resultValue).trim() !== ''
+        );
+
+      await apiRequest(`/samples/${activeVisit.sampleId}/results`, 'PUT', {
+        results: resultsPayload,
+        status: allCompleted ? 'COMPLETED' : 'IN_PROGRESS',
+        markReady: allCompleted,
+      });
+
+      if (allCompleted) {
+        activeVisit.sampleStatus = 'COMPLETED';
+        if (activeVisit.rawSample) activeVisit.rawSample.status = 'COMPLETED';
+      }
+
+      toast.success(allCompleted ? 'تم حفظ كافة النتائج واعتمادها وتحديث الحالة إلى مكتمل' : 'تم حفظ نتائج التحاليل واعتمادها بنجاح', 'تم الحفظ');
+      await loadData();
+      const patientPhone = (activeVisit.patient?.phone || '').trim();
+
+      if (allCompleted && labProfile?.whatsappAutoSendEnabled && patientPhone) {
+        const currentLabName = labProfile?.labName || 'مختبر التحليلات الطبية';
+        const caption = `مرحباً ${activeVisit.patient?.name || 'المريض'}، يسر (${currentLabName}) إرفاق نتائج تحاليلكم الطبية المعتمدة للعينة رقم (#${activeVisit.sampleNumber}). نتمنى لكم دوام الصحة والعافية.`;
+        toast.info('جارٍ إرسال النتيجة تلقائياً عبر واتساب ويب المربوط...');
+        autoSendReportViaWhatsAppWeb({
+          sampleId: activeVisit.sampleId,
+          phone: patientPhone,
+          caption,
+        }).then((waRes) => {
+          if (waRes.ok) {
+            toast.success(waRes.message, 'واتساب التلقائي');
+          } else {
+            toast.warning(waRes.message, 'واتساب التلقائي');
+          }
+        });
+      }
     } catch (err: any) {
-      if (err?.duplicate) {
-        toast.warning(err.message, 'حماية من التكرار');
+      toast.error(err.message || 'حدث خطأ أثناء حفظ النتائج');
+    } finally {
+      setSavingResults(false);
+    }
+  };
+
+  const handlePrintReport = async () => {
+    if (!activeVisit) return;
+    const allHaveVal = activeVisit.tests.length > 0 && activeVisit.tests.every((st: any) => {
+      const val = editedResults[st.testId || st.id] !== undefined ? editedResults[st.testId || st.id] : st.resultValue;
+      return val !== undefined && val !== null && String(val).trim() !== '';
+    });
+    if (allHaveVal && !isCompletedStatus(activeVisit.sampleStatus)) {
+      try {
+        await apiRequest(`/samples/${activeVisit.sampleId}/results`, 'PUT', {
+          results: activeVisit.tests.map((st: any) => ({
+            testId: st.testId || st.id,
+            resultValue: editedResults[st.testId || st.id] !== undefined ? editedResults[st.testId || st.id] : (st.resultValue || ''),
+          })),
+          status: 'COMPLETED',
+          markReady: true,
+        });
+        activeVisit.sampleStatus = 'COMPLETED';
+        if (activeVisit.rawSample) activeVisit.rawSample.status = 'COMPLETED';
+        loadData();
+      } catch {}
+    }
+    setPreviewUrl(`/api/samples/${activeVisit.sampleId}/print`);
+  };
+
+  const handleSendWhatsApp = async () => {
+    if (!activeVisit) return;
+    const allHaveVal = activeVisit.tests.length > 0 && activeVisit.tests.every((st: any) => {
+      const val = editedResults[st.testId || st.id] !== undefined ? editedResults[st.testId || st.id] : st.resultValue;
+      return val !== undefined && val !== null && String(val).trim() !== '';
+    });
+    if (allHaveVal && !isCompletedStatus(activeVisit.sampleStatus)) {
+      try {
+        await apiRequest(`/samples/${activeVisit.sampleId}/results`, 'PUT', {
+          results: activeVisit.tests.map((st: any) => ({
+            testId: st.testId || st.id,
+            resultValue: editedResults[st.testId || st.id] !== undefined ? editedResults[st.testId || st.id] : (st.resultValue || ''),
+          })),
+          status: 'COMPLETED',
+          markReady: true,
+        });
+        activeVisit.sampleStatus = 'COMPLETED';
+        if (activeVisit.rawSample) activeVisit.rawSample.status = 'COMPLETED';
+        loadData();
+      } catch {}
+    }
+    try {
+      const res = await shareReportToWhatsApp({
+        sampleId: activeVisit.sampleId,
+        phone: activeVisit.patient?.phone || '',
+        caption: `تقرير التحاليل الطبية - ${activeVisit.patient?.name || 'المريض'} (#${activeVisit.sampleNumber})`,
+      });
+      if (res.ok) {
+        toast.success(res.message);
       } else {
-        toast.error(err.message || 'خطأ أثناء إضافة المريض', 'فشل العملية');
+        toast.warning(res.message);
       }
-    }
-  };
-
-  const openEditModal = (p: Patient) => {
-    setEditingPatient(p);
-    setPatientName(p.name);
-    setPatientPhone(p.phone || '');
-    if (p.birthDate) {
-      setPatientBirthDate(p.birthDate);
-      setPatientBirthDateEstimated(p.birthDateEstimated ?? false);
-      const b = computeAgeBreakdown(p.birthDate);
-      setPatientAge(b.years > 0 ? String(b.years) : '');
-      setPatientAgeMonths(b.months > 0 ? String(b.months) : '');
-      setPatientAgeDays(b.days > 0 ? String(b.days) : '');
-    } else {
-      setPatientBirthDate(null);
-      setPatientBirthDateEstimated(true);
-      setPatientAge(p.age ? String(p.age) : '');
-      setPatientAgeMonths('');
-      setPatientAgeDays('');
-    }
-    setPatientGender(p.gender === 'FEMALE' || (p.gender as string) === 'أنثى' ? 'FEMALE' : 'MALE');
-    setShowEditPatientModal(true);
-  };
-
-  const handleUpdatePatient = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingPatient || !patientName.trim()) return;
-
-    try {
-      const cleanPhone = patientPhone.trim() ? toEnglishDigits(patientPhone.trim()) : undefined;
-      const cleanAge = patientAge ? Number(toEnglishDigits(patientAge)) : (patientBirthDate ? computeAgeBreakdown(patientBirthDate).years : undefined);
-      await apiRequest(`/patients/${editingPatient.id}`, 'PATCH', {
-        name: patientName.trim(),
-        phone: cleanPhone,
-        age: cleanAge,
-        gender: patientGender,
-        birthDate: patientBirthDate || undefined,
-        birthDateEstimated: patientBirthDateEstimated,
-      });
-
-      setShowEditPatientModal(false);
-      toast.success('تم تحديث بيانات المريض بنجاح!', 'تم التحديث');
-      loadPatients(true);
-
-      // Refresh details in map
-      const p = await apiRequest(`/patients/${editingPatient.id}`);
-      setPatientDetailsMap((prev) => ({ ...prev, [editingPatient.id]: p }));
     } catch (err: any) {
-      toast.error(err.message || 'فشل تعديل بيانات المريض', 'خطأ');
+      toast.error(err.message || 'تعذر مشاركة التقرير عبر واتساب');
     }
   };
 
-  const handleConfirmDelete = async () => {
-    if (!deletePatientId) return;
-    try {
-      await apiRequest(`/patients/${deletePatientId}`, 'DELETE');
-      toast.success('تم حذف ملف المريض بنجاح', 'تم الحذف');
-      if (expandedPatientId === deletePatientId) {
-        setExpandedPatientId(null);
-      }
-      setDeletePatientId(null);
-      loadPatients();
-    } catch (err: any) {
-      toast.error(err.message || 'لا يمكن حذف المريض لوجود فحوصات مرتبطة به', 'تعذر الحذف');
-    }
+  const handleOpenPayModal = () => {
+    if (!activeVisit) return;
+    setPayAmount(String(activeVisit.remainingAmount || activeVisit.finalAmount || 0));
+    setShowPayModal(true);
   };
 
-  const handlePaySample = async (e: React.FormEvent) => {
+  const handleConfirmPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!payModalSample) return;
+    if (!activeVisit) return;
     const amt = Number(toEnglishDigits(payAmount));
     if (!amt || amt <= 0) {
-      toast.warning('يرجى إدخال مبلغ صحيح', 'تنبيه');
+      toast.warning('يرجى إدخال مبلغ صحيح');
       return;
     }
     setPaying(true);
     try {
-      const res = await apiRequest(`/samples/${payModalSample.id}/pay`, 'PATCH', {
-        paidAmount: amt,
-        paymentMethod: payMethod,
-        notes: payNotes,
-      });
-      toast.success(`تم تسجيل سداد الدفعة بنجاح! رقم السند: #${res.voucherNumber || ''}`, 'سداد دفعة');
-      const targetPId = payModalPatient?.id || payModalSample.patientId;
-      setPayModalSample(null);
+      const newPaid = Number(activeVisit.paidAmount || 0) + amt;
+      const newRem = Math.max(0, Number(activeVisit.remainingAmount || 0) - amt);
 
-      // Reload fresh details
-      if (targetPId) {
-        const p = await apiRequest(`/patients/${targetPId}`);
-        setPatientDetailsMap((prev) => ({ ...prev, [targetPId]: p }));
-      }
-      loadPatients(true);
-
-      if (res?.voucherNumber) {
-        setActiveVoucher({
-          voucherNumber: toEnglishDigits(res.voucherNumber),
-          debtorName: payModalPatient?.name || payModalSample.patient?.name || 'مريض',
-          phone: payModalPatient?.phone || payModalSample.patient?.phone,
-          amount: amt,
-          type: 'سند قبض مالي (سداد متبقي فحص)',
-          paymentMethod: payMethod,
-          date: formatEnglishDateTime(new Date()),
-          notes: payNotes || `سداد متبقي فحص عينة #${toEnglishDigits(payModalSample.sampleNumber)}`,
+      // 1. Try dedicated payment route first (/pay)
+      try {
+        await apiRequest(`/samples/${activeVisit.sampleId}/pay`, 'POST', {
+          paidAmount: amt,
+          payAmount: amt,
+          paymentMethod: 'CASH',
+          notes: 'تسديد حساب من شاشة المرضى',
         });
-        setShowVoucherModal(true);
+      } catch (payErr) {
+        // 2. Fallback to sample PATCH if /pay is unavailable
+        await apiRequest(`/samples/${activeVisit.sampleId}`, 'PATCH', {
+          paidAmount: newPaid,
+          remainingAmount: newRem,
+          paymentStatus: newRem <= 0 ? 'PAID' : 'PARTIAL',
+        });
       }
+
+      toast.success('تم تسديد الحساب وتحديث الرصيد بنجاح');
+      setShowPayModal(false);
+      await loadData();
     } catch (err: any) {
-      toast.error(err.message || 'فشل سداد الدفعة', 'خطأ');
+      toast.error(err.message || 'تعذر تسجيل الدفعة');
     } finally {
       setPaying(false);
     }
   };
 
-  const handleOpenWhatsApp = (sample: Sample, patient: Patient) => {
-    // Clinical Safety Rule: Check for incomplete tests
-    const incomplete = (sample.tests || []).filter((t: any) => !t.resultValue || String(t.resultValue).trim() === '');
-    if (incomplete.length > 0) {
-      toast.warning(`⚠️ لا يمكن مشاركة التقرير لوجود (${incomplete.length}) فحص لم يُنجز بعد!`, 'فحوصات معلقة');
-      return;
-    }
-
-    const phone = patient?.phone || '';
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    const formattedPhone = cleanPhone.startsWith('0') ? `964${cleanPhone.slice(1)}` : cleanPhone;
-    setWhatsappPhone(formattedPhone);
-
-    const reportUrl = getShareableUrl(`/api/samples/${sample.id}/print`, labProfile);
-    const currentLabName = labProfile?.labName || 'المختبر للتحليلات الطبية';
-    setWhatsappText(
-      `مرحباً ${patient?.name || ''}،\nيسر ${currentLabName} إعلامكم بصدور نتائج فحصكم رقم (#${sample.sampleNumber}).\nيمكنكم الاطلاع على التقرير المعتمد وتحميله مباشرة من الرابط:\n${reportUrl}\n\nنتمنى لكم دوام الصحة والعافية.`
-    );
-    setShowWhatsAppModal(true);
+  const handleOpenEditPatient = () => {
+    if (!activeVisit?.patient) return;
+    setEditName(activeVisit.patient.name || '');
+    setEditPhone(activeVisit.patient.phone || '');
+    setEditGender(activeVisit.patient.gender || 'ذكر');
+    setEditAgeYears(String(activeVisit.patient.ageYears ?? ''));
+    setShowEditPatientModal(true);
   };
 
-  // Helper to calculate total patient debt
-  const getPatientDebt = (patient: Patient): number => {
-    const details = patientDetailsMap[patient.id] || patient;
-    if (!details.samples) return 0;
-    return details.samples.reduce((sum: number, s: any) => sum + (s.remainingAmount || 0), 0);
+  const handleSaveEditPatient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeVisit?.patient?.id) return;
+    try {
+      await apiRequest(`/patients/${activeVisit.patient.id}`, 'PUT', {
+        name: editName.trim(),
+        phone: toEnglishDigits(editPhone.trim()),
+        gender: editGender,
+        ageYears: Number(toEnglishDigits(editAgeYears)) || 0,
+      });
+      toast.success('تم تحديث بيانات المريض بنجاح');
+      setShowEditPatientModal(false);
+      await loadData();
+    } catch (err: any) {
+      toast.error(err.message || 'تعذر تحديث بيانات المريض');
+    }
   };
 
-  // Filtered and searched list
-  const filteredPatients = useMemo(() => {
-    let list = patients;
-
-    // Apply active filter
-    if (activeFilter === 'WITH_DEBT') {
-      list = list.filter((p) => getPatientDebt(p) > 0);
-    } else if (activeFilter === 'TODAY') {
-      const todayStr = new Date().toISOString().split('T')[0];
-      list = list.filter((p) => {
-        const createdStr = p.createdAt ? new Date(p.createdAt).toISOString().split('T')[0] : '';
-        const hasTodaySample = p.samples?.some((s) => s.createdAt && s.createdAt.startsWith(todayStr));
-        return createdStr === todayStr || hasTodaySample;
-      });
-    } else if (activeFilter === 'MALE') {
-      list = list.filter((p) => p.gender === 'MALE' || (p.gender as string) === 'ذكر');
-    } else if (activeFilter === 'FEMALE') {
-      list = list.filter((p) => p.gender === 'FEMALE' || (p.gender as string) === 'أنثى');
+  const handleDeleteSample = async () => {
+    if (!deleteSampleId) return;
+    try {
+      await apiRequest(`/samples/${deleteSampleId}`, 'DELETE');
+      toast.success('تم حذف السجل بنجاح');
+      setDeleteSampleId(null);
+      setSelectedSampleId(null);
+      await loadData();
+    } catch (err: any) {
+      toast.error(err.message || 'تعذر حذف السجل');
     }
-
-    // Apply search query
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter((p) => {
-        return (
-          (p.name || '').toLowerCase().includes(q) ||
-          (p.phone && p.phone.includes(q)) ||
-          (p.age !== undefined && p.age !== null && p.age.toString().includes(q)) ||
-          (p.id && p.id.includes(q))
-        );
-      });
-    }
-
-    return list;
-  }, [patients, searchQuery, activeFilter, patientDetailsMap]);
-
-  // Statistics
-  const stats = useMemo(() => {
-    const totalPatients = patients.length;
-    let debtCount = 0;
-    let totalSamples = 0;
-    const todayStr = new Date().toISOString().split('T')[0];
-    let todayCount = 0;
-
-    patients.forEach((p) => {
-      const debt = getPatientDebt(p);
-      if (debt > 0) debtCount++;
-      const samplesCount = p.samples?.length || p.visitsCount || 0;
-      totalSamples += samplesCount;
-
-      const createdStr = p.createdAt ? new Date(p.createdAt).toISOString().split('T')[0] : '';
-      const hasTodaySample = p.samples?.some((s) => s.createdAt && s.createdAt.startsWith(todayStr));
-      if (createdStr === todayStr || hasTodaySample) todayCount++;
-    });
-
-    return { totalPatients, debtCount, totalSamples, todayCount };
-  }, [patients, patientDetailsMap]);
+  };
 
   return (
-    <>
-      <div style={{ maxWidth: '1440px', margin: '0 auto', paddingBottom: '40px', direction: 'rtl' }}>
-        
-        {/* TOP HEADER SECTION */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '16px',
-            marginBottom: '20px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div
-              style={{
-                width: '46px',
-                height: '46px',
-                borderRadius: '16px',
-                background: 'rgba(37, 99, 235, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#2563eb',
-              }}
-            >
-              <Users size={24} />
-            </div>
-            <div>
-              <h1 style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text-main)', margin: 0, letterSpacing: '-0.3px' }}>
-                سجل وملفات المرضى
-              </h1>
-              <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: '3px 0 0 0' }}>
-                استعراض سريع، فتح الزيارات والتحاليل السابقة في نفس المكان، والطباعة بضغطة زر
-              </p>
-            </div>
-          </div>
-
-          {/* New Patient CTA */}
+    <div
+      dir="rtl"
+      style={{
+        height: '100%',
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: 'var(--bg-primary)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* 1. Compact Top Header Bar (48px - exact match to mockup & Main Screen) */}
+      <header
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 16px 4px 16px',
+          backgroundColor: 'var(--bg-primary)',
+          flexShrink: 0,
+        }}
+      >
+        {/* Left Action Pill Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
-            onClick={() => {
-              setPatientName('');
-              setPatientPhone('');
-              setPatientAge('');
-              setPatientGender('MALE');
-              setShowAddPatientModal(true);
-            }}
+            type="button"
+            onClick={() => router.push('/')}
             style={{
-              background: '#0f172a',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '7px 16px',
+              backgroundColor: '#0284c7',
               color: '#ffffff',
               border: 'none',
-              borderRadius: '14px',
-              padding: '10px 20px',
+              borderRadius: '8px',
               fontSize: '13px',
               fontWeight: 800,
               cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.15)',
-              transition: 'all 0.15s ease',
+              boxShadow: '0 2px 5px rgba(2, 132, 199, 0.25)',
             }}
-            title="إضافة ملف مريض جديد (F2)"
           >
-            <UserPlus size={16} />
+            <Plus size={16} />
             <span>إضافة مريض جديد</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handlePrintReport}
+            disabled={!activeVisit}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '7px 16px',
+              backgroundColor: '#0f766e',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 800,
+              cursor: activeVisit ? 'pointer' : 'not-allowed',
+              opacity: activeVisit ? 1 : 0.5,
+              boxShadow: '0 2px 5px rgba(15, 118, 110, 0.25)',
+            }}
+          >
+            <Printer size={15} />
+            <span>طباعة التقرير</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSendWhatsApp}
+            disabled={!activeVisit}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '7px 16px',
+              backgroundColor: '#16a34a',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 800,
+              cursor: activeVisit ? 'pointer' : 'not-allowed',
+              opacity: activeVisit ? 1 : 0.5,
+              boxShadow: '0 2px 5px rgba(22, 163, 74, 0.25)',
+            }}
+          >
+            <Share2 size={15} />
+            <span>إرسال واتساب</span>
           </button>
         </div>
 
-        {/* QUICK METRICS BAR */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: '12px',
-            marginBottom: '20px',
-          }}
-        >
-          {/* Total Patients */}
+        {/* Right Summary Pills */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
             style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '18px',
-              padding: '14px 18px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+              gap: '8px',
+              padding: '6px 14px',
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '9px',
+              fontSize: '12.5px',
+              fontWeight: 700,
             }}
           >
-            <div>
-              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>إجمالي المرضى</div>
-              <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text-main)', marginTop: '2px' }}>
-                {stats.totalPatients}
-              </div>
-            </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Users size={20} />
-            </div>
+            <Calendar size={15} color="#0f766e" />
+            <span style={{ color: 'var(--text-muted)' }}>عينات اليوم:</span>
+            <strong style={{ color: 'var(--text-main)', fontSize: '14px' }}>{stats.todayCount}</strong>
           </div>
 
-          {/* Today's Visits */}
           <div
             style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '18px',
-              padding: '14px 18px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+              gap: '8px',
+              padding: '6px 14px',
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '9px',
+              fontSize: '12.5px',
+              fontWeight: 700,
             }}
           >
-            <div>
-              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>مرضى اليوم</div>
-              <div style={{ fontSize: '22px', fontWeight: 900, color: '#10b981', marginTop: '2px' }}>
-                {stats.todayCount}
-              </div>
-            </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#ecfdf5', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Calendar size={20} />
-            </div>
+            <FlaskConical size={15} color="#0284c7" />
+            <span style={{ color: 'var(--text-muted)' }}>قيد الفحص:</span>
+            <strong style={{ color: '#0284c7', fontSize: '14px' }}>{stats.pendingCount}</strong>
           </div>
 
-          {/* Outstanding Debts */}
           <div
             style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '18px',
-              padding: '14px 18px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+              gap: '8px',
+              padding: '6px 14px',
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '9px',
+              fontSize: '12.5px',
+              fontWeight: 700,
             }}
           >
-            <div>
-              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>مرضى بذمم معلقة</div>
-              <div style={{ fontSize: '22px', fontWeight: 900, color: stats.debtCount > 0 ? '#ef4444' : 'var(--text-main)', marginTop: '2px' }}>
-                {stats.debtCount}
-              </div>
-            </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#fff1f2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CreditCard size={20} />
-            </div>
+            <CreditCard size={15} color="#dc2626" />
+            <span style={{ color: 'var(--text-muted)' }}>ديون غير مسددة:</span>
+            <strong style={{ color: '#dc2626', fontSize: '14px' }}>
+              {stats.debtTotal.toLocaleString()} {currency}
+            </strong>
           </div>
 
-          {/* Total Tests Done */}
-          <div
+          <button
+            type="button"
+            onClick={loadData}
+            title="تحديث السجلات"
             style={{
-              background: 'var(--bg-card)',
+              width: '34px',
+              height: '34px',
+              borderRadius: '8px',
               border: '1px solid var(--border-color)',
-              borderRadius: '18px',
-              padding: '14px 18px',
+              backgroundColor: 'var(--bg-card)',
+              color: 'var(--text-muted)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+              justifyContent: 'center',
+              cursor: 'pointer',
             }}
           >
-            <div>
-              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)' }}>إجمالي الزيارات والطلبات</div>
-              <div style={{ fontSize: '22px', fontWeight: 900, color: '#8b5cf6', marginTop: '2px' }}>
-                {stats.totalSamples}
-              </div>
-            </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#f5f3ff', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Activity size={20} />
-            </div>
-          </div>
+            <RefreshCw size={15} />
+          </button>
         </div>
+      </header>
 
-        {/* SEARCH & CATEGORY FILTERS CARD */}
-        <div
+      {/* 2. Split Workspace Panels (Right: Master Queue | Left: Active Patient & Results Table) */}
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'row',
+          gap: '12px',
+          padding: '10px 16px 14px 16px',
+          overflow: 'hidden',
+          minHeight: 0,
+        }}
+      >
+        {/* RIGHT PANEL: Master List of Patients & Samples (~370px) */}
+        <section
           style={{
-            background: 'var(--bg-card)',
+            width: '370px',
+            minWidth: '370px',
+            height: '100%',
+            backgroundColor: 'var(--bg-card)',
             border: '1px solid var(--border-color)',
-            borderRadius: '20px',
-            padding: '16px 20px',
-            marginBottom: '20px',
-            boxShadow: '0 3px 12px rgba(0,0,0,0.02)',
+            borderRadius: '12px',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxShadow: 'var(--shadow-card)',
           }}
         >
-          {/* Search Input */}
-          <div style={{ position: 'relative', marginBottom: '14px' }}>
-            <Search
-              size={18}
-              style={{
-                position: 'absolute',
-                right: '16px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: '#94a3b8',
-                pointerEvents: 'none',
-              }}
-            />
-            <input
-              type="text"
-              placeholder="ابحث بالاسم، رقم الهاتف، العمر، أو المعرف الطبي..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                background: 'var(--bg-input-deep)',
-                border: '1.5px solid var(--border-color)',
-                borderRadius: '14px',
-                padding: '12px 48px 12px 40px',
-                fontSize: '13.5px',
-                color: 'var(--text-main)',
-                outline: 'none',
-                transition: 'all 0.15s ease',
-              }}
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
+          {/* Search Input & Filter Pills */}
+          <div
+            style={{
+              padding: '12px',
+              borderBottom: '1px solid var(--border-subtle)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ position: 'relative' }}>
+              <Search
+                size={16}
+                color="var(--text-muted)"
+                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="بحث باسم المريض، الهاتف، أو رقم العينة..."
                 style={{
-                  position: 'absolute',
-                  left: '14px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  color: '#94a3b8',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  width: '100%',
+                  height: '38px',
+                  padding: '0 12px 0 34px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-input)',
+                  color: 'var(--text-main)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  outline: 'none',
+                  boxSizing: 'border-box',
                 }}
-              >
-                <X size={16} />
-              </button>
-            )}
-          </div>
-
-          {/* Filter Pills */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--text-muted)', marginLeft: '4px' }}>
-              تصفية سريعة:
-            </span>
-
-            {[
-              { key: 'ALL', label: `الكل (${patients.length})` },
-              { key: 'WITH_DEBT', label: `عليهم ديون متبقية (${stats.debtCount})` },
-              { key: 'TODAY', label: `زيارات اليوم (${stats.todayCount})` },
-              { key: 'MALE', label: 'ذكور فقط' },
-              { key: 'FEMALE', label: 'إناث فقط' },
-            ].map((f) => {
-              const active = activeFilter === f.key;
-              return (
-                <button
-                  key={f.key}
-                  onClick={() => setActiveFilter(f.key as any)}
-                  style={{
-                    background: active ? '#0f172a' : 'var(--bg-input-deep)',
-                    color: active ? '#ffffff' : 'var(--text-muted)',
-                    border: `1px solid ${active ? '#0f172a' : 'var(--border-color)'}`,
-                    borderRadius: '20px',
-                    padding: '6px 14px',
-                    fontSize: '11.5px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  {f.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* PATIENT CARDS STREAM (IN-PLACE EXPANDABLE) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {loading ? (
-            <div
-              style={{
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '20px',
-                padding: '40px',
-                textAlign: 'center',
-                color: 'var(--text-muted)',
-                fontSize: '13px',
-              }}
-            >
-              <RefreshCw size={22} className="animate-spin" style={{ margin: '0 auto 10px', color: '#2563eb' }} />
-              <div>جاري تحميل سجل المرضى والملفات الطبية...</div>
+              />
             </div>
-          ) : filteredPatients.length === 0 ? (
-            <div
-              style={{
-                background: 'var(--bg-card)',
-                border: '1px dashed var(--border-color)',
-                borderRadius: '20px',
-                padding: '48px 20px',
-                textAlign: 'center',
-                color: 'var(--text-muted)',
-              }}
-            >
-              <Users size={36} style={{ margin: '0 auto 12px', color: '#94a3b8' }} />
-              <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 6px 0' }}>
-                لا توجد نتائج مطابقة للبحث
-              </h3>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 16px 0' }}>
-                تأكد من كتابة الاسم أو رقم الهاتف بشكل صحيح، أو قم بإضافة مريض جديد الآن
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                {searchQuery && (
+
+            {/* Filter Pills */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {[
+                { id: 'ALL', label: 'الكل' },
+                { id: 'TODAY', label: 'اليوم' },
+                { id: 'PENDING', label: 'قيد الفحص' },
+                { id: 'DEBT', label: 'عليه دين' },
+              ].map((f) => {
+                const active = activeFilter === f.id;
+                return (
                   <button
-                    onClick={() => setSearchQuery('')}
-                    className="btn-secondary"
-                    style={{ fontSize: '12px', padding: '6px 14px' }}
-                  >
-                    مسح البحث
-                  </button>
-                )}
-                <button
-                  onClick={() => setShowAddPatientModal(true)}
-                  className="btn-primary"
-                  style={{ fontSize: '12px', padding: '6px 14px' }}
-                >
-                  <Plus size={14} />
-                  <span>إضافة مريض جديد</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            filteredPatients.map((patient) => {
-              const isExpanded = expandedPatientId === patient.id;
-              const details = patientDetailsMap[patient.id] || patient;
-              const debt = getPatientDebt(patient);
-              const samples = details.samples || [];
-              const isFemale = patient.gender === 'FEMALE' || (patient.gender as string) === 'أنثى';
-
-              return (
-                <div
-                  key={patient.id}
-                  className="patient-card-stream-item"
-                  style={{
-                    contentVisibility: 'auto',
-                    containIntrinsicSize: '0 100px',
-                    background: 'var(--bg-card)',
-                    borderRadius: '20px',
-                    border: `1.5px solid ${isExpanded ? '#3b82f6' : 'var(--border-color)'}`,
-                    boxShadow: isExpanded
-                      ? '0 10px 30px rgba(59, 130, 246, 0.08)'
-                      : '0 2px 8px rgba(0, 0, 0, 0.02)',
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {/* PATIENT CARD HEADER ROW (Click to expand in-place) */}
-                  <div
-                    onClick={() => toggleExpandPatient(patient)}
+                    key={f.id}
+                    type="button"
+                    onClick={() => setActiveFilter(f.id as any)}
                     style={{
-                      padding: '16px 20px',
+                      flex: 1,
+                      padding: '5px 8px',
+                      borderRadius: '999px',
+                      fontSize: '12px',
+                      fontWeight: 800,
                       cursor: 'pointer',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      gap: '14px',
-                      background: isExpanded ? 'rgba(37, 99, 235, 0.03)' : 'transparent',
+                      border: active ? '1.5px solid #0f766e' : '1px solid var(--border-color)',
+                      backgroundColor: active ? 'rgba(15, 118, 110, 0.1)' : 'var(--bg-input)',
+                      color: active ? '#0f766e' : 'var(--text-muted)',
+                      transition: 'all 0.12s ease',
                     }}
                   >
-                    {/* Patient Main Info (Right side RTL) */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                      {/* Avatar */}
+                    {f.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Scrollable Cards List */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '10px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+          >
+            {loading ? (
+              <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                جاري تحميل السجلات...
+              </div>
+            ) : filteredVisits.length === 0 ? (
+              <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                لا توجد سجلات مطابقة للبحث
+              </div>
+            ) : (
+              filteredVisits.map((visit) => {
+                const isSelected = activeVisit?.sampleId === visit.sampleId;
+                const isCompleted = isCompletedStatus(visit.sampleStatus);
+                const hasDebt = visit.remainingAmount > 0;
+                const patientVisitsCount = getPatientVisitCount(visit.patient?.id || visit.rawSample?.patientId, visit.patient?.name);
+                const testSummary = visit.tests
+                  .slice(0, 4)
+                  .map((t: any) => t.test?.code || t.test?.name || 'فحص')
+                  .join(' , ');
+
+                return (
+                  <div
+                    key={visit.sampleId}
+                    onClick={() => setSelectedSampleId(visit.sampleId)}
+                    style={{
+                      padding: '11px 12px',
+                      borderRadius: '10px',
+                      border: isSelected ? '2px solid #0f766e' : '1px solid var(--border-color)',
+                      backgroundColor: isSelected ? 'rgba(15, 118, 110, 0.06)' : 'var(--bg-card)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      transition: 'all 0.12s ease',
+                    }}
+                  >
+                    {/* Patient Info (Right side in RTL) */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                       <div
                         style={{
-                          width: '44px',
-                          height: '44px',
-                          borderRadius: '14px',
-                          background: isFemale ? '#fff1f2' : '#eff6ff',
-                          border: `1.5px solid ${isFemale ? '#fecdd3' : '#bfdbfe'}`,
-                          color: isFemale ? '#e11d48' : '#2563eb',
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '999px',
+                          backgroundColor: isSelected ? '#0f766e' : 'var(--bg-input)',
+                          color: isSelected ? '#ffffff' : 'var(--text-muted)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           flexShrink: 0,
+                          fontWeight: 800,
+                          fontSize: '13px',
                         }}
                       >
-                        <User size={22} />
+                        <User size={17} />
                       </div>
-
-                      {/* Name & Basic Chips */}
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                          <h2
-                            style={{
-                              fontSize: '15.5px',
-                              fontWeight: 900,
-                              color: isExpanded ? '#2563eb' : 'var(--text-main)',
-                              margin: 0,
-                            }}
-                          >
-                            {patient.name}
-                          </h2>
-
-                          {/* Gender Pill */}
-                          <span
-                            style={{
-                              padding: '2px 8px',
-                              borderRadius: '8px',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              background: isFemale ? '#fff1f2' : '#f1f5f9',
-                              color: isFemale ? '#be123c' : '#334155',
-                              border: `1px solid ${isFemale ? '#fecdd3' : '#e2e8f0'}`,
-                            }}
-                          >
-                            {isFemale ? 'أنثى' : 'ذكر'}
-                            {formatClinicalAge(patient) !== '-' ? ` • ${formatClinicalAge(patient)}` : ''}
-                          </span>
-
-                          {/* Total Visits Badge */}
-                          <span
-                            style={{
-                              padding: '2px 9px',
-                              borderRadius: '8px',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              background: '#eff6ff',
-                              color: '#2563eb',
-                              border: '1px solid #bfdbfe',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                            }}
-                          >
-                            <Activity size={12} />
-                            <span>{patient.visitsCount ?? samples.length ?? 0} زيارات سابقة</span>
-                          </span>
-
-                          {/* Debt Badge if any */}
-                          {debt > 0 && (
-                            <span
-                              style={{
-                                padding: '2px 9px',
-                                borderRadius: '8px',
-                                fontSize: '11px',
-                                fontWeight: 800,
-                                background: '#fef2f2',
-                                color: '#dc2626',
-                                border: '1px solid #fecaca',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                              }}
-                            >
-                              <AlertCircle size={12} />
-                              <span>متبقي دين: {debt.toLocaleString()} {currency}</span>
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Sub-info: Phone & Registration */}
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '16px',
-                            fontSize: '12px',
-                            color: 'var(--text-muted)',
-                            marginTop: '4px',
-                            flexWrap: 'wrap',
-                          }}
-                        >
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <Phone size={12} style={{ color: '#94a3b8' }} />
-                            <strong style={{ color: 'var(--text-main)', direction: 'ltr' }}>
-                              {patient.phone || 'بدون هاتف'}
-                            </strong>
-                          </span>
-
-                          {patient.createdAt && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              <Calendar size={12} style={{ color: '#94a3b8' }} />
-                              <span>مسجل: {formatEnglishDate(patient.createdAt)}</span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Patient Card Fast Action Buttons (Left side RTL) */}
-                    <div
-                      style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {/* Fast Intake Button */}
-                      <button
-                        onClick={() => handleStartNewTest(patient)}
-                        style={{
-                          background: '#0f172a',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '10px',
-                          padding: '7px 14px',
-                          fontSize: '11.5px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          transition: 'all 0.15s ease',
-                        }}
-                        title="بدء طلب فحص جديد لهذا المريض مباشرة (F2)"
-                      >
-                        <Plus size={13} />
-                        <span>طلب فحص جديد</span>
-                      </button>
-
-                      {/* Expand / Collapse In-Place Indicator */}
-                      <button
-                        onClick={() => toggleExpandPatient(patient)}
-                        style={{
-                          background: isExpanded ? 'rgba(37, 99, 235, 0.1)' : 'var(--bg-input-deep)',
-                          border: `1px solid ${isExpanded ? '#bfdbfe' : 'var(--border-color)'}`,
-                          color: isExpanded ? '#2563eb' : 'var(--text-main)',
-                          borderRadius: '10px',
-                          padding: '7px 12px',
-                          fontSize: '11.5px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        <span>{isExpanded ? 'إخفاء التحاليل' : 'عرض التحاليل السابقة'}</span>
-                        {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* IN-PLACE EXPANDED CONTENT (تنفتح في نفس المكان مباشرة) */}
-                  {isExpanded && (
-                    <div
-                      style={{
-                        borderTop: '1px solid var(--border-color)',
-                        background: 'var(--bg-card-subtle)',
-                        padding: '18px 22px',
-                        animation: 'fadeIn 0.2s ease',
-                      }}
-                    >
-                      {/* Top Patient Details & Actions Toolbar */}
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          flexWrap: 'wrap',
-                          gap: '12px',
-                          background: 'var(--bg-card)',
-                          padding: '12px 16px',
-                          borderRadius: '14px',
-                          border: '1px solid var(--border-color)',
-                          marginBottom: '16px',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                            الملف الطبي للمريض: <strong style={{ color: 'var(--text-main)' }}>{details.name}</strong>
-                          </span>
-
-                          {debt > 0 && (
-                            <span
-                              style={{
-                                fontSize: '11.5px',
-                                color: '#dc2626',
-                                fontWeight: 800,
-                                background: '#fef2f2',
-                                padding: '3px 10px',
-                                borderRadius: '8px',
-                                border: '1px solid #fecaca',
-                              }}
-                            >
-                              إجمالي الدين المعلق: {debt.toLocaleString()} {currency}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Action buttons for Patient Record */}
+                      <div style={{ minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          {debt > 0 && (
-                            <button
-                              onClick={() => router.push(`/debts?search=${encodeURIComponent(patient.name)}`)}
-                              className="btn-secondary"
-                              style={{ fontSize: '11px', padding: '5px 10px', color: '#dc2626', borderColor: '#fca5a5' }}
-                            >
-                              <CreditCard size={12} />
-                              <span>كشف الحساب والديون</span>
-                            </button>
-                          )}
-
-                          <button
-                            onClick={() => openEditModal(details)}
-                            className="btn-secondary"
-                            style={{ fontSize: '11px', padding: '5px 10px' }}
+                          <span
+                            style={{
+                              fontSize: '13.5px',
+                              fontWeight: 800,
+                              color: 'var(--text-main)',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
                           >
-                            <Edit3 size={12} />
-                            <span>تعديل الملف</span>
-                          </button>
-
-                          <button
-                            onClick={() => setDeletePatientId(details.id)}
-                            className="btn-secondary"
-                            style={{ fontSize: '11px', padding: '5px 8px', color: '#ef4444' }}
-                            title="حذف ملف المريض"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Header for Previous Tests */}
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginBottom: '12px',
-                        }}
-                      >
-                        <strong
-                          style={{
-                            fontSize: '13px',
-                            fontWeight: 800,
-                            color: 'var(--text-main)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                          }}
-                        >
-                          <Activity size={16} color="#2563eb" />
-                          <span>سجل الزيارات والتحاليل السابقة ({samples.length})</span>
-                        </strong>
-
-                        {loadingDetailsId === patient.id && (
-                          <span style={{ fontSize: '11px', color: '#2563eb', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <RefreshCw size={11} className="animate-spin" />
-                            <span>جاري تحديث النتائج...</span>
+                            {visit.patient?.name || 'مريض'}
                           </span>
-                        )}
-                      </div>
-
-                      {/* SAMPLES / VISITS STREAM */}
-                      {samples.length === 0 ? (
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              padding: '1px 7px',
+                              borderRadius: '999px',
+                              backgroundColor: 'rgba(15, 118, 110, 0.12)',
+                              color: '#0f766e',
+                              flexShrink: 0,
+                            }}
+                          >
+                            #{visit.sampleNumber}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 800,
+                              padding: '1px 6px',
+                              borderRadius: '999px',
+                              backgroundColor: patientVisitsCount > 1 ? 'rgba(15, 118, 110, 0.12)' : 'var(--bg-input)',
+                              color: patientVisitsCount > 1 ? '#0f766e' : 'var(--text-muted)',
+                              border: '1px solid var(--border-color)',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {patientVisitsCount} {patientVisitsCount === 1 ? 'زيارة' : 'زيارات'}
+                          </span>
+                        </div>
                         <div
                           style={{
-                            background: 'var(--bg-card)',
-                            border: '1px dashed var(--border-color)',
-                            borderRadius: '14px',
-                            padding: '30px',
-                            textAlign: 'center',
+                            fontSize: '11.5px',
                             color: 'var(--text-muted)',
-                            fontSize: '12.5px',
+                            fontWeight: 600,
+                            marginTop: '3px',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
                           }}
                         >
-                          <FlaskConical size={30} style={{ margin: '0 auto 8px', color: '#94a3b8' }} />
-                          <div>لا توجد طلبات فحص سابقة مسجلة لهذا المريض حتى الآن.</div>
-                          <button
-                            onClick={() => handleStartNewTest(patient)}
-                            className="btn-primary"
-                            style={{ marginTop: '12px', fontSize: '11.5px', padding: '6px 14px' }}
-                          >
-                            <Plus size={13} />
-                            <span>إنشاء أول طلب فحص لهذا المريض</span>
-                          </button>
+                          {testSummary || 'بدون فحوصات'}
                         </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          {samples.map((sample: Sample) => {
-                            const sampleTubes = getSampleTubes(sample.tests);
-                            const sampleDebt = sample.remainingAmount || 0;
+                      </div>
+                    </div>
 
-                            return (
-                              <div
-                                key={sample.id}
-                                style={{
-                                  background: 'var(--bg-card)',
-                                  border: '1.5px solid var(--border-color)',
-                                  borderRadius: '16px',
-                                  padding: '14px 18px',
-                                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.02)',
-                                }}
-                              >
-                                {/* Sample Top Header */}
-                                <div
-                                  style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    flexWrap: 'wrap',
-                                    gap: '10px',
-                                    marginBottom: '12px',
-                                    borderBottom: '1px solid var(--border-color)',
-                                    paddingBottom: '10px',
-                                  }}
-                                >
-                                  {/* Right Info: Sample number, status, date, tubes */}
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                    <strong
-                                      style={{
-                                        color: '#2563eb',
-                                        fontSize: '14px',
-                                        fontWeight: 900,
-                                      }}
-                                    >
-                                      عينة #{sample.sampleNumber}
-                                    </strong>
-
-                                    {/* Status Badge */}
-                                    <span
-                                      style={{
-                                        padding: '2px 9px',
-                                        borderRadius: '20px',
-                                        fontSize: '11px',
-                                        fontWeight: 800,
-                                        background:
-                                          sample.status === 'READY'
-                                            ? 'rgba(16, 185, 129, 0.12)'
-                                            : sample.status === 'IN_PROGRESS'
-                                            ? 'rgba(37, 99, 235, 0.12)'
-                                            : 'rgba(100, 116, 139, 0.12)',
-                                        color:
-                                          sample.status === 'READY'
-                                            ? '#059669'
-                                            : sample.status === 'IN_PROGRESS'
-                                            ? '#2563eb'
-                                            : '#475569',
-                                        border: `1px solid ${
-                                          sample.status === 'READY'
-                                            ? 'rgba(16, 185, 129, 0.3)'
-                                            : sample.status === 'IN_PROGRESS'
-                                            ? 'rgba(37, 99, 235, 0.3)'
-                                            : 'rgba(100, 116, 139, 0.3)'
-                                        }`,
-                                      }}
-                                    >
-                                      {sample.status === 'RECEIVED'
-                                        ? 'تم استلام العينة'
-                                        : sample.status === 'IN_PROGRESS'
-                                        ? 'جاري الفحص المخبري'
-                                        : sample.status === 'READY'
-                                        ? 'جاهزة للطباعة والاعتماد'
-                                        : 'تم تسليم التقرير'}
-                                    </span>
-
-                                    {sample.isUrgent && (
-                                      <span
-                                        style={{
-                                          padding: '2px 8px',
-                                          borderRadius: '20px',
-                                          fontSize: '10.5px',
-                                          fontWeight: 800,
-                                          background: 'rgba(239, 68, 68, 0.12)',
-                                          color: '#dc2626',
-                                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                                        }}
-                                      >
-                                        STAT عاجل
-                                      </span>
-                                    )}
-
-                                    {/* Date and Time */}
-                                    <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-                                      {formatEnglishDate(sample.createdAt)} • {formatEnglishTime(sample.createdAt)}
-                                    </span>
-
-                                    {/* Tubes Chips */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                      {sampleTubes.map((tube) => (
-                                        <span
-                                          key={tube.id}
-                                          style={{
-                                            padding: '2px 7px',
-                                            borderRadius: '6px',
-                                            fontSize: '10px',
-                                            fontWeight: 800,
-                                            background: tube.bg,
-                                            color: tube.color,
-                                            border: `1px solid ${tube.border}`,
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '3px',
-                                          }}
-                                        >
-                                          <span
-                                            style={{
-                                              width: '6px',
-                                              height: '6px',
-                                              borderRadius: '50%',
-                                              background: tube.color,
-                                            }}
-                                          />
-                                          <span>{tube.name}</span>
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </div>
-
-                                  {/* Left Actions: Print, Barcode, WhatsApp, Results */}
-                                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                    {/* Link to Results */}
-                                    <button
-                                      onClick={() => router.push(`/results?sampleId=${sample.id}`)}
-                                      className="btn-secondary"
-                                      style={{ padding: '4px 9px', fontSize: '11px', color: '#2563eb' }}
-                                      title="فتح شاشة تدقيق وإدخال النتائج"
-                                    >
-                                      <FileText size={12} />
-                                      <span>النتائج</span>
-                                    </button>
-
-                                    {/* Print Barcode */}
-                                    <button
-                                      onClick={() => {
-                                        setDocPreviewUrl(`/api/samples/${sample.id}/barcode`);
-                                        setDocPreviewTitle(`طباعة ملصق الباركود - عينة #${sample.sampleNumber} (${details.name})`);
-                                      }}
-                                      className="btn-secondary"
-                                      style={{ padding: '4px 9px', fontSize: '11px' }}
-                                      title="طباعة باركود أنبوب الفحص"
-                                    >
-                                      <Printer size={12} />
-                                      <span>باركود</span>
-                                    </button>
-
-                                    {/* Print A4 Report */}
-                                    <button
-                                      onClick={() => {
-                                        const incomplete = (sample.tests || []).filter((t: any) => !t.resultValue || String(t.resultValue).trim() === '');
-                                        if (incomplete.length > 0) {
-                                          toast.warning(`⚠️ لا يمكن طباعة التقرير لوجود (${incomplete.length}) فحص لم يُنجز بعد!`, 'فحوصات غير مكتملة');
-                                          return;
-                                        }
-                                        setDocPreviewUrl(`/api/samples/${sample.id}/print`);
-                                        setDocPreviewTitle(`معاينة تقرير الفحص A4 - عينة #${sample.sampleNumber} (${details.name})`);
-                                      }}
-                                      className="btn-secondary"
-                                      style={{ padding: '4px 9px', fontSize: '11px' }}
-                                      title="طباعة ومعاينة التقرير الطبي A4"
-                                    >
-                                      <FileText size={12} />
-                                      <span>تقرير A4</span>
-                                    </button>
-
-                                    {/* WhatsApp */}
-                                    <button
-                                      onClick={() => handleOpenWhatsApp(sample, details)}
-                                      className="btn-secondary"
-                                      style={{ padding: '4px 9px', fontSize: '11px', color: '#10b981' }}
-                                      title="إرسال التقرير للمريض عبر واتساب"
-                                    >
-                                      <Share2 size={12} />
-                                      <span>واتساب</span>
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* Tests and Results Table */}
-                                <div style={{ overflowX: 'auto', marginBottom: '10px' }}>
-                                  <table
-                                    style={{
-                                      width: '100%',
-                                      borderCollapse: 'collapse',
-                                      fontSize: '12px',
-                                      textAlign: 'right',
-                                    }}
-                                  >
-                                    <thead>
-                                      <tr style={{ background: 'var(--bg-input-deep)', borderBottom: '1px solid var(--border-color)' }}>
-                                        <th style={{ padding: '8px 12px', fontWeight: 800, color: 'var(--text-muted)' }}>الفحص الطبي</th>
-                                        <th style={{ padding: '8px 12px', fontWeight: 800, color: 'var(--text-muted)' }}>النتيجة</th>
-                                        <th style={{ padding: '8px 12px', fontWeight: 800, color: 'var(--text-muted)' }}>المعدل الطبيعي (Ref)</th>
-                                        <th style={{ padding: '8px 12px', fontWeight: 800, color: 'var(--text-muted)' }}>الوحدة</th>
-                                        <th style={{ padding: '8px 12px', fontWeight: 800, color: 'var(--text-muted)' }}>الحالة التشخيصية</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {sample.tests?.map((st: SampleTest) => {
-                                        return (
-                                          <tr
-                                            key={st.id}
-                                            style={{
-                                              borderBottom: '1px solid var(--border-color)',
-                                              transition: 'background 0.1s',
-                                            }}
-                                          >
-                                            <td style={{ padding: '8px 12px', fontWeight: 700, color: 'var(--text-main)' }}>
-                                              {st.test?.name}
-                                            </td>
-
-                                            <td style={{ padding: '8px 12px' }}>
-                                              {st.resultValue ? (
-                                                <strong
-                                                  style={{
-                                                    fontSize: '13px',
-                                                    color: st.isCritical
-                                                      ? '#ef4444'
-                                                      : st.isAbnormal
-                                                      ? '#f59e0b'
-                                                      : '#10b981',
-                                                  }}
-                                                >
-                                                  {st.resultValue}
-                                                </strong>
-                                              ) : (
-                                                <span style={{ color: 'var(--text-dim)', fontSize: '11px' }}>بانتظار الإدخال</span>
-                                              )}
-                                            </td>
-
-                                            <td
-                                              style={{
-                                                padding: '8px 12px',
-                                                fontSize: '11.5px',
-                                                color: 'var(--text-muted)',
-                                                direction: 'ltr',
-                                                unicodeBidi: 'isolate',
-                                                textAlign: 'right',
-                                              }}
-                                            >
-                                              {st.test?.refRangeText ||
-                                                (st.test?.refRangeLow !== null && st.test?.refRangeHigh !== null
-                                                  ? `${st.test?.refRangeLow} - ${st.test?.refRangeHigh}`
-                                                  : '-')}
-                                            </td>
-
-                                            <td style={{ padding: '8px 12px', color: 'var(--text-dim)', fontSize: '11.5px' }}>
-                                              {st.test?.unit || '-'}
-                                            </td>
-
-                                            <td style={{ padding: '8px 12px' }}>
-                                              {st.isCritical ? (
-                                                <span
-                                                  style={{
-                                                    padding: '2px 7px',
-                                                    borderRadius: '6px',
-                                                    fontSize: '10px',
-                                                    fontWeight: 800,
-                                                    background: '#fee2e2',
-                                                    color: '#dc2626',
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    gap: '3px',
-                                                  }}
-                                                >
-                                                  <AlertOctagon size={11} />
-                                                  <span>حرج (Panic)</span>
-                                                </span>
-                                              ) : st.isAbnormal ? (
-                                                <span
-                                                  style={{
-                                                    padding: '2px 7px',
-                                                    borderRadius: '6px',
-                                                    fontSize: '10px',
-                                                    fontWeight: 800,
-                                                    background: '#fef3c7',
-                                                    color: '#d97706',
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    gap: '3px',
-                                                  }}
-                                                >
-                                                  <AlertTriangle size={11} />
-                                                  <span>غير طبيعي</span>
-                                                </span>
-                                              ) : st.resultValue ? (
-                                                <span
-                                                  style={{
-                                                    padding: '2px 7px',
-                                                    borderRadius: '6px',
-                                                    fontSize: '10px',
-                                                    fontWeight: 800,
-                                                    background: '#dcfce7',
-                                                    color: '#15803d',
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    gap: '3px',
-                                                  }}
-                                                >
-                                                  <Check size={11} />
-                                                  <span>طبيعي</span>
-                                                </span>
-                                              ) : (
-                                                <span style={{ color: 'var(--text-dim)', fontSize: '11px' }}>-</span>
-                                              )}
-                                            </td>
-                                          </tr>
-                                        );
-                                      })}
-                                    </tbody>
-                                  </table>
-                                </div>
-
-                                {/* Financial Note & Quick Pay for Sample */}
-                                <div
-                                  style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    flexWrap: 'wrap',
-                                    gap: '8px',
-                                    background: 'var(--bg-input-deep)',
-                                    borderRadius: '10px',
-                                    padding: '8px 14px',
-                                    fontSize: '11.5px',
-                                  }}
-                                >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', color: 'var(--text-muted)' }}>
-                                    <span>
-                                      المبلغ الإجمالي: <strong style={{ color: 'var(--text-main)' }}>{sample.priceTotal?.toLocaleString()} {currency}</strong>
-                                    </span>
-                                    <span>
-                                      المسدد: <strong style={{ color: '#10b981' }}>{(sample.paidAmount || 0).toLocaleString()} {currency}</strong>
-                                    </span>
-                                  </div>
-
-                                  <div>
-                                    {sampleDebt > 0 ? (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span style={{ color: '#ef4444', fontWeight: 800 }}>
-                                          متبقي دين: {sampleDebt.toLocaleString()} {currency}
-                                        </span>
-                                        <button
-                                          onClick={() => {
-                                            setPayModalSample(sample);
-                                            setPayModalPatient(details);
-                                            setPayAmount(String(sampleDebt));
-                                            setPayMethod('نقداً');
-                                            setPayNotes(`سداد متبقي فحص عينة #${sample.sampleNumber} (${details.name})`);
-                                          }}
-                                          style={{
-                                            background: '#10b981',
-                                            color: '#fff',
-                                            border: 'none',
-                                            borderRadius: '8px',
-                                            padding: '4px 10px',
-                                            fontSize: '11px',
-                                            fontWeight: 700,
-                                            cursor: 'pointer',
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '4px',
-                                          }}
-                                          title="سداد المبلغ المتبقي وطباعة السند الحراري"
-                                        >
-                                          <CreditCard size={12} />
-                                          <span>سداد وطباعة السند</span>
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <span style={{ color: '#10b981', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                        <CheckCircle2 size={13} />
-                                        <span>واصل بالكامل</span>
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
+                    {/* Status Badges (Left side in RTL) */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          padding: '2px 9px',
+                          borderRadius: '999px',
+                          backgroundColor: isCompleted ? '#dcfce7' : '#e0f2fe',
+                          color: isCompleted ? '#15803d' : '#0369a1',
+                        }}
+                      >
+                        {isCompleted ? 'مكتمل' : 'قيد الفحص'}
+                      </span>
+                      {hasDebt && (
+                        <span
+                          style={{
+                            fontSize: '10.5px',
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: '999px',
+                            backgroundColor: '#fee2e2',
+                            color: '#b91c1c',
+                          }}
+                        >
+                          غير مسدد
+                        </span>
                       )}
                     </div>
-                  )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+
+        {/* LEFT PANEL: Selected Patient Info + Editable Results Table + Bottom Action Bar */}
+        <section
+          style={{
+            flex: 1,
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            overflow: 'hidden',
+            minWidth: 0,
+          }}
+        >
+          {!activeVisit ? (
+            <div
+              style={{
+                flex: 1,
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-muted)',
+                gap: '10px',
+              }}
+            >
+              <FileText size={40} strokeWidth={1.5} />
+              <div style={{ fontSize: '15px', fontWeight: 800 }}>اختر مريضاً من القائمة على اليمين لعرض وتعديل نتائجه</div>
+            </div>
+          ) : (
+            <>
+              {/* Top Patient Card (Matching Mockup) */}
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '12px 18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexShrink: 0,
+                  boxShadow: 'var(--shadow-card)',
+                }}
+              >
+                {/* Right: Avatar + Name + Age + Phone */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div
+                    style={{
+                      width: '46px',
+                      height: '46px',
+                      borderRadius: '999px',
+                      backgroundColor: 'var(--bg-input)',
+                      border: '1px solid var(--border-color)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#0f766e',
+                    }}
+                  >
+                    <User size={24} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: 'var(--text-main)' }}>
+                        {activeVisit.patient?.name}
+                      </h2>
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: 800,
+                          padding: '2px 9px',
+                          borderRadius: '999px',
+                          backgroundColor: 'rgba(15, 118, 110, 0.12)',
+                          color: '#0f766e',
+                        }}
+                      >
+                        عينة #{activeVisit.sampleNumber}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowPatientHistoryModal(true)}
+                        title="عرض ملف المريض وسجل الزيارات السابقة والتحاليل"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          fontSize: '11.5px',
+                          fontWeight: 800,
+                          padding: '2px 10px',
+                          borderRadius: '999px',
+                          backgroundColor: currentPatientVisits.length > 1 ? '#0f766e' : 'var(--bg-input)',
+                          color: currentPatientVisits.length > 1 ? '#ffffff' : 'var(--text-main)',
+                          border: '1px solid var(--border-color)',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <FolderOpen size={13} />
+                        <span>ملف المريض ({currentPatientVisits.length} {currentPatientVisits.length === 1 ? 'زيارة' : 'زيارات'})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleOpenEditPatient}
+                        title="تعديل بيانات المريض"
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          padding: '4px',
+                        }}
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteSampleId(activeVisit.sampleId)}
+                        title="حذف العينة"
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          padding: '4px',
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        fontSize: '12.5px',
+                        color: 'var(--text-muted)',
+                        fontWeight: 600,
+                        marginTop: '4px',
+                      }}
+                    >
+                      <span>
+                        العمر:{' '}
+                        {formatClinicalAge({
+                          ageYears: activeVisit.patient?.ageYears,
+                          ageMonths: activeVisit.patient?.ageMonths,
+                          ageDays: activeVisit.patient?.ageDays,
+                        }) || `${activeVisit.patient?.ageYears || 0} سنة`}
+                      </span>
+                      <span>•</span>
+                      <span>الجنس: {activeVisit.patient?.gender || 'ذكر'}</span>
+                      {activeVisit.patient?.phone && (
+                        <>
+                          <span>•</span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Phone size={12} />
+                            {activeVisit.patient.phone}
+                          </span>
+                        </>
+                      )}
+                      <span>•</span>
+                      <span>التاريخ: {formatEnglishDate(activeVisit.collectionTime)}</span>
+                    </div>
+                  </div>
                 </div>
-              );
-            })
+
+                {/* Left: Financial Status Badge */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    onClick={activeVisit.remainingAmount > 0 ? handleOpenPayModal : undefined}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      backgroundColor: activeVisit.remainingAmount > 0 ? '#fef2f2' : '#f0fdf4',
+                      border: activeVisit.remainingAmount > 0 ? '1px solid #fecaca' : '1px solid #bbf7d0',
+                      cursor: activeVisit.remainingAmount > 0 ? 'pointer' : 'default',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: activeVisit.remainingAmount > 0 ? '#991b1b' : '#166534',
+                      }}
+                    >
+                      {activeVisit.remainingAmount > 0 ? 'المتبقي غير المسدد' : 'الحالة المالية'}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '14px',
+                        fontWeight: 900,
+                        color: activeVisit.remainingAmount > 0 ? '#dc2626' : '#15803d',
+                      }}
+                    >
+                      {activeVisit.remainingAmount > 0
+                        ? `${activeVisit.remainingAmount.toLocaleString()} ${currency}`
+                        : `مسدد بالكامل (${activeVisit.finalAmount.toLocaleString()} ${currency})`}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Middle Results Table Card + Bottom Sticky Action Bar */}
+              <div
+                style={{
+                  flex: 1,
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                  boxShadow: 'var(--shadow-card)',
+                  minHeight: 0,
+                }}
+              >
+                {/* Table Header Title */}
+                <div
+                  style={{
+                    padding: '10px 16px',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexShrink: 0,
+                  }}
+                >
+                  <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>
+                    النتائج ({activeVisit.tests.length} فحوصات)
+                  </span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    يمكنك تعديل النتائج مباشرة والضغط على حفظ النتائج
+                  </span>
+                </div>
+
+                {/* Scrollable LTR Results Table */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px' }} dir="ltr">
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13.5px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '12px' }}>
+                        <th style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 700 }}>Test Name</th>
+                        <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700, width: '220px' }}>Result</th>
+                        <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700 }}>Units</th>
+                        <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700 }}>Reference Range</th>
+                        <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700, width: '110px' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeVisit.tests.map((st: any) => {
+                        const key = st.testId || st.id;
+                        const code = st.test?.code || '';
+                        const name = st.test?.name || code || 'Test';
+                        const unit = st.unit || st.test?.unit || '-';
+                        const rRangesArr = Array.isArray(st.test?.referenceRanges) ? st.test.referenceRanges : [];
+                        const refRange =
+                          st.referenceRange ||
+                          st.test?.referenceRange ||
+                          st.test?.refRangeText ||
+                          (st.test?.refRangeLow != null && st.test?.refRangeHigh != null
+                            ? `${st.test.refRangeLow} - ${st.test.refRangeHigh}`
+                            : rRangesArr.length > 0
+                              ? rRangesArr
+                                  .map((r: any) => {
+                                    const txt =
+                                      r.text ||
+                                      (r.low != null && r.high != null ? `${r.low} - ${r.high}` : r.low != null ? `>= ${r.low}` : r.high != null ? `<= ${r.high}` : '');
+                                    return r.label ? `${r.label}: ${txt}` : txt;
+                                  })
+                                  .join('\n')
+                              : '-');
+                        const val = editedResults[key] !== undefined ? editedResults[key] : (st.resultValue || '');
+                        const specialType = isSpecialFormTest(code, name);
+
+                        // Determine status badge
+                        const bounds = parseRefRangeBounds(refRange);
+                        const numVal = parseFloat(val);
+                        let statusLabel = val ? 'Normal' : 'قيد الفحص';
+                        let statusBg = val ? '#dcfce7' : '#f1f5f9';
+                        let statusColor = val ? '#15803d' : '#64748b';
+
+                        if (!Number.isNaN(numVal)) {
+                          if (bounds.high !== undefined && numVal > bounds.high) {
+                            statusLabel = 'High ↑';
+                            statusBg = '#fee2e2';
+                            statusColor = '#dc2626';
+                          } else if (bounds.low !== undefined && numVal < bounds.low) {
+                            statusLabel = 'Low ↓';
+                            statusBg = '#e0f2fe';
+                            statusColor = '#0284c7';
+                          }
+                        }
+
+                        return (
+                          <tr key={key} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                            <td style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--text-main)' }}>
+                              <div>{name}</div>
+                              {(() => {
+                                let displayPriorVal = st.previousValue;
+                                let displayPriorDate = st.previousDate;
+                                if (!displayPriorVal && currentPatientVisits.length > 1) {
+                                  const curSampleCreated = new Date(activeVisit.collectionTime).getTime();
+                                  for (const pv of currentPatientVisits) {
+                                    if (pv.sampleId === activeVisit.sampleId) continue;
+                                    if (new Date(pv.collectionTime).getTime() >= curSampleCreated) continue;
+                                    const pt = (pv.tests || []).find((x: any) =>
+                                      x.testId === (st.testId || st.id) ||
+                                      (code && (x.test?.code || x.code || '').toUpperCase().trim() === code.toUpperCase().trim()) ||
+                                      (name && (x.test?.name || x.name || '').toLowerCase().trim() === name.toLowerCase().trim())
+                                    );
+                                    if (pt && pt.resultValue && String(pt.resultValue).trim() !== '') {
+                                      displayPriorVal = String(pt.resultValue);
+                                      displayPriorDate = pv.collectionTime;
+                                      break;
+                                    }
+                                  }
+                                }
+                                if (!displayPriorVal) return null;
+                                return (
+                                  <span
+                                    dir="rtl"
+                                    style={{
+                                      display: 'inline-block',
+                                      fontSize: '10.5px',
+                                      padding: '1px 6px',
+                                      borderRadius: '4px',
+                                      backgroundColor: '#eff6ff',
+                                      color: '#1d4ed8',
+                                      marginTop: '3px',
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    📊 السابق: {displayPriorVal} {displayPriorDate ? `(${formatEnglishDate(displayPriorDate)})` : ''}
+                                  </span>
+                                );
+                              })()}
+                            </td>
+
+                            <td style={{ padding: '8px', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                <input
+                                  type="text"
+                                  value={val}
+                                  onChange={(e) => handleResultChange(key, e.target.value)}
+                                  placeholder="أدخل النتيجة..."
+                                  style={{
+                                    width: specialType ? '120px' : '160px',
+                                    height: '34px',
+                                    padding: '0 10px',
+                                    borderRadius: '7px',
+                                    border: '1px solid var(--border-color)',
+                                    backgroundColor: 'var(--bg-input)',
+                                    color: statusLabel === 'High ↑' ? '#dc2626' : statusLabel === 'Low ↓' ? '#0284c7' : 'var(--text-main)',
+                                    fontWeight: 800,
+                                    fontSize: '13.5px',
+                                    textAlign: 'center',
+                                    outline: 'none',
+                                  }}
+                                />
+                                {specialType && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSpecialModal({ type: specialType, testId: key })}
+                                    style={{
+                                      padding: '6px 10px',
+                                      borderRadius: '7px',
+                                      backgroundColor: '#0f766e',
+                                      color: '#ffffff',
+                                      border: 'none',
+                                      fontSize: '11px',
+                                      fontWeight: 800,
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    الفورمة
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+
+                            <td style={{ padding: '10px 8px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600 }}>
+                              {unit}
+                            </td>
+
+                            <td style={{ padding: '10px 8px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600 }}>
+                              {(() => {
+                                const lines = String(refRange || '-')
+                                  .split(/\r?\n|\||;/)
+                                  .map((s) => s.trim())
+                                  .filter(Boolean);
+                                if (lines.length <= 1) {
+                                  return <span>{refRange}</span>;
+                                }
+                                return (
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                                    {lines.map((ln, lIdx) => {
+                                      const m = ln.match(/(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)/);
+                                      const mGe = ln.match(/>=?\s*(\d+(?:\.\d+)?)/);
+                                      const mLe = ln.match(/<=?\s*(\d+(?:\.\d+)?)/);
+                                      return (
+                                        <button
+                                          key={lIdx}
+                                          type="button"
+                                          onClick={() => {
+                                            if (m) {
+                                              const mid = (parseFloat(m[1]) + parseFloat(m[2])) / 2;
+                                              handleResultChange(key, mid.toFixed(1));
+                                            } else if (mGe) {
+                                              handleResultChange(key, (parseFloat(mGe[1]) + 0.5).toFixed(1));
+                                            } else if (mLe) {
+                                              handleResultChange(key, (parseFloat(mLe[1]) * 0.8).toFixed(1));
+                                            }
+                                          }}
+                                          title="اضغط لاختيار هذا المدى وإدراج القيمة المطابقة"
+                                          style={{
+                                            padding: '2px 8px',
+                                            borderRadius: '5px',
+                                            border: '1px solid var(--border-color)',
+                                            backgroundColor: 'var(--bg-input)',
+                                            color: 'var(--text-main)',
+                                            fontSize: '11.5px',
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                          }}
+                                        >
+                                          {ln}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              })()}
+                            </td>
+
+                            <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '3px 10px',
+                                  borderRadius: '999px',
+                                  fontSize: '11.5px',
+                                  fontWeight: 800,
+                                  backgroundColor: statusBg,
+                                  color: statusColor,
+                                }}
+                              >
+                                {statusLabel}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Sticky Bottom Action Bar (Exact Match to Mockup) */}
+                <div
+                  dir="rtl"
+                  style={{
+                    padding: '12px 16px',
+                    borderTop: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-card)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-end',
+                    gap: '10px',
+                    flexShrink: 0,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={handleSendWhatsApp}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      padding: '9px 18px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-input)',
+                      color: 'var(--text-main)',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Share2 size={15} color="#16a34a" />
+                    <span>واتساب</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenPayModal}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      padding: '9px 18px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-input)',
+                      color: 'var(--text-main)',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <CreditCard size={15} color="#0284c7" />
+                    <span>تسديد الحساب</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handlePrintReport}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      padding: '9px 20px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: '#1e293b',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Printer size={15} />
+                    <span>طباعة التقرير النهائي</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveResults}
+                    disabled={savingResults}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      padding: '9px 22px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: '#0f766e',
+                      color: '#ffffff',
+                      fontSize: '13.5px',
+                      fontWeight: 800,
+                      cursor: savingResults ? 'wait' : 'pointer',
+                      boxShadow: '0 2px 6px rgba(15, 118, 110, 0.25)',
+                    }}
+                  >
+                    <Check size={16} />
+                    <span>{savingResults ? 'جاري الحفظ...' : 'حفظ النتائج'}</span>
+                  </button>
+                </div>
+              </div>
+            </>
           )}
-        </div>
+        </section>
       </div>
 
-      {/* ================= MODALS ================= */}
-
-      {/* ADD PATIENT MODAL */}
-      {showAddPatientModal && (
-        <div className="modal-overlay" onClick={() => setShowAddPatientModal(false)}>
-          <div className="modal-content" style={{ maxWidth: '440px', borderRadius: '20px' }} onClick={(e) => e.stopPropagation()}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '16px',
-                borderBottom: '1px solid var(--border-color)',
-                paddingBottom: '12px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <UserPlus size={18} color="#2563eb" />
-                <h3 style={{ fontSize: '15px', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>إضافة مريض جديد</h3>
-              </div>
-              <button onClick={() => setShowAddPatientModal(false)} className="btn-icon">
-                <X size={16} />
+      {/* Quick Payment Modal */}
+      {showPayModal && activeVisit && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+          }}
+        >
+          <form
+            onSubmit={handleConfirmPayment}
+            style={{
+              width: '400px',
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: '14px',
+              border: '1px solid var(--border-color)',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900 }}>تسديد حساب العينة #{activeVisit.sampleNumber}</h3>
+              <button type="button" onClick={() => setShowPayModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={18} />
               </button>
             </div>
-
-            <form onSubmit={handleCreatePatient} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <label className="input-label">اسم المريض الكامل *</label>
-                <input
-                  type="text"
-                  placeholder="مثال: أحمد عبد الله رشيد"
-                  className="input-control"
-                  value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
-                  required
-                  autoFocus
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label className="input-label">رقم الهاتف</label>
-                  <input
-                    type="text"
-                    placeholder="مثال: 07701234567"
-                    className="input-control"
-                    value={patientPhone}
-                    onChange={(e) => setPatientPhone(toEnglishDigits(e.target.value).replace(/[^0-9+\-\s]/g, ''))}
-                  />
-                </div>
-
-                <div>
-                  <ClinicalAgeInput
-                    idPrefix="add-patient-age"
-                    years={patientAge}
-                    months={patientAgeMonths}
-                    days={patientAgeDays}
-                    birthDate={patientBirthDate}
-                    birthDateEstimated={patientBirthDateEstimated}
-                    onChange={(val) => {
-                      setPatientAge(val.years);
-                      setPatientAgeMonths(val.months);
-                      setPatientAgeDays(val.days);
-                      setPatientBirthDate(val.birthDate);
-                      setPatientBirthDateEstimated(val.birthDateEstimated);
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="input-label">الجنس</label>
-                <select
-                  className="select-control"
-                  value={patientGender}
-                  onChange={(e) => setPatientGender(e.target.value as 'MALE' | 'FEMALE')}
-                >
-                  <option value="MALE">ذكر (Male)</option>
-                  <option value="FEMALE">أنثى (Female)</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                <button type="submit" className="btn-primary" style={{ flex: 1, padding: '10px', borderRadius: '12px' }}>
-                  حفظ المريض
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAddPatientModal(false)}
-                  className="btn-secondary"
-                  style={{ borderRadius: '12px' }}
-                >
-                  إلغاء
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* EDIT PATIENT MODAL */}
-      {showEditPatientModal && (
-        <div className="modal-overlay" onClick={() => setShowEditPatientModal(false)}>
-          <div className="modal-content" style={{ maxWidth: '440px', borderRadius: '20px' }} onClick={(e) => e.stopPropagation()}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '16px',
-                borderBottom: '1px solid var(--border-color)',
-                paddingBottom: '12px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Edit3 size={18} color="#2563eb" />
-                <h3 style={{ fontSize: '15px', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>تعديل بيانات المريض</h3>
-              </div>
-              <button onClick={() => setShowEditPatientModal(false)} className="btn-icon">
-                <X size={16} />
-              </button>
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>
+              المريض: <strong style={{ color: 'var(--text-main)' }}>{activeVisit.patient?.name}</strong> | المتبقي:{' '}
+              <strong style={{ color: '#dc2626' }}>
+                {activeVisit.remainingAmount.toLocaleString()} {currency}
+              </strong>
             </div>
-
-            <form onSubmit={handleUpdatePatient} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <label className="input-label">اسم المريض *</label>
-                <input
-                  type="text"
-                  className="input-control"
-                  value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label className="input-label">رقم الهاتف</label>
-                  <input
-                    type="text"
-                    className="input-control"
-                    value={patientPhone}
-                    onChange={(e) => setPatientPhone(toEnglishDigits(e.target.value).replace(/[^0-9+\-\s]/g, ''))}
-                  />
-                </div>
-
-                <div>
-                  <ClinicalAgeInput
-                    idPrefix="edit-patient-age"
-                    years={patientAge}
-                    months={patientAgeMonths}
-                    days={patientAgeDays}
-                    birthDate={patientBirthDate}
-                    birthDateEstimated={patientBirthDateEstimated}
-                    onChange={(val) => {
-                      setPatientAge(val.years);
-                      setPatientAgeMonths(val.months);
-                      setPatientAgeDays(val.days);
-                      setPatientBirthDate(val.birthDate);
-                      setPatientBirthDateEstimated(val.birthDateEstimated);
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="input-label">الجنس</label>
-                <select
-                  className="select-control"
-                  value={patientGender}
-                  onChange={(e) => setPatientGender(e.target.value as 'MALE' | 'FEMALE')}
-                >
-                  <option value="MALE">ذكر (Male)</option>
-                  <option value="FEMALE">أنثى (Female)</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                <button type="submit" className="btn-primary" style={{ flex: 1, padding: '10px', borderRadius: '12px' }}>
-                  حفظ التعديلات
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowEditPatientModal(false)}
-                  className="btn-secondary"
-                  style={{ borderRadius: '12px' }}
-                >
-                  إلغاء
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* DELETE CONFIRMATION */}
-      <ConfirmModal
-        isOpen={!!deletePatientId}
-        title="حذف ملف المريض"
-        message="هل أنت متأكد من حذف هذا المريض من السجلات؟ لا يمكن التراجع إذا تم الحذف."
-        type="danger"
-        confirmText="نعم، احذف الملف"
-        cancelText="تراجع"
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setDeletePatientId(null)}
-      />
-
-      {/* WHATSAPP MODAL */}
-      {showWhatsAppModal && (
-        <div className="modal-overlay" onClick={() => setShowWhatsAppModal(false)}>
-          <div className="modal-content" style={{ maxWidth: '480px', borderRadius: '20px' }} onClick={(e) => e.stopPropagation()}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '14px',
-                borderBottom: '1px solid var(--border-color)',
-                paddingBottom: '10px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Share2 size={18} color="#10b981" />
-                <h3 style={{ fontSize: '15px', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>إرسال التقرير عبر واتساب</h3>
-              </div>
-              <button onClick={() => setShowWhatsAppModal(false)} className="btn-icon">
-                <X size={16} />
-              </button>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>المبلغ المدفوع الآن ({currency})</label>
+              <input
+                type="text"
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  padding: '0 12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-input)',
+                  fontSize: '14px',
+                  fontWeight: 800,
+                  boxSizing: 'border-box',
+                }}
+              />
             </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <label className="input-label">رقم الهاتف الدولي:</label>
-                <input
-                  type="text"
-                  className="input-control"
-                  value={whatsappPhone}
-                  onChange={(e) => setWhatsappPhone(e.target.value)}
-                  style={{ direction: 'ltr' }}
-                />
-              </div>
-
-              <div>
-                <label className="input-label">نص الرسالة:</label>
-                <textarea
-                  className="textarea-control"
-                  rows={4}
-                  value={whatsappText}
-                  onChange={(e) => setWhatsappText(e.target.value)}
-                />
-              </div>
-
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button
                 type="button"
-                onClick={() => {
-                  const url = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(whatsappText)}`;
-                  window.open(url, '_blank');
-                  setShowWhatsAppModal(false);
-                  toast.success('تم فتح واتساب لإرسال الرسالة!', 'إرسال التقرير');
+                onClick={() => setShowPayModal(false)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-input)',
+                  fontWeight: 700,
+                  cursor: 'pointer',
                 }}
-                className="btn-success"
-                style={{ width: '100%', padding: '10px', borderRadius: '12px' }}
               >
-                <span>فتح واتساب الآن</span>
+                إلغاء
+              </button>
+              <button
+                type="submit"
+                disabled={paying}
+                style={{
+                  padding: '8px 20px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#0f766e',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                {paying ? 'جاري التسديد...' : 'تأكيد التسديد'}
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
 
-      {/* DOCUMENT PREVIEW MODAL */}
-      {docPreviewUrl && (
-        <div className="modal-overlay" onClick={() => setDocPreviewUrl(null)}>
+      {/* Quick Edit Patient Modal */}
+      {showEditPatientModal && activeVisit && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+          }}
+        >
+          <form
+            onSubmit={handleSaveEditPatient}
+            style={{
+              width: '420px',
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: '14px',
+              border: '1px solid var(--border-color)',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900 }}>تعديل بيانات المريض</h3>
+              <button type="button" onClick={() => setShowEditPatientModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>الاسم الكامل</label>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>العمر (سنة)</label>
+                <input
+                  type="text"
+                  value={editAgeYears}
+                  onChange={(e) => setEditAgeYears(e.target.value)}
+                  style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>الجنس</label>
+                <select
+                  value={editGender}
+                  onChange={(e) => setEditGender(e.target.value)}
+                  style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+                >
+                  <option value="ذكر">ذكر</option>
+                  <option value="أنثى">أنثى</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>رقم الهاتف</label>
+              <input
+                type="text"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+              <button type="button" onClick={() => setShowEditPatientModal(false)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                إلغاء
+              </button>
+              <button type="submit" style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: '#0f766e', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                حفظ التعديلات
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Print Preview Modal */}
+      {previewUrl && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 110,
+            padding: '24px',
+          }}
+        >
           <div
-            className="modal-content"
-            style={{ maxWidth: '840px', height: '88vh', display: 'flex', flexDirection: 'column', borderRadius: '20px' }}
-            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '900px',
+              maxWidth: '95vw',
+              height: '90vh',
+              backgroundColor: '#ffffff',
+              borderRadius: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
           >
             <div
               style={{
+                padding: '10px 16px',
+                backgroundColor: '#1e293b',
+                color: '#ffffff',
                 display: 'flex',
-                justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '10px',
-                borderBottom: '1px solid var(--border-color)',
-                paddingBottom: '10px',
+                justifyContent: 'space-between',
               }}
             >
-              <h3 style={{ fontSize: '14px', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>{docPreviewTitle}</h3>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <button
-                  type="button"
-                  onClick={() => window.open(docPreviewUrl, '_blank')}
-                  className="btn-primary"
-                  style={{ fontSize: '11.5px', padding: '5px 12px', borderRadius: '8px' }}
-                >
-                  <Printer size={14} />
-                  <span>طباعة في نافذة جديدة</span>
-                </button>
-                <button type="button" onClick={() => setDocPreviewUrl(null)} className="btn-icon">
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
-
-            <iframe
-              src={docPreviewUrl}
-              style={{ flex: 1, width: '100%', border: 'none', borderRadius: '10px', background: '#fff' }}
-              title="معاينة المستند"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* QUICK PAY MODAL */}
-      {payModalSample && (
-        <div className="modal-overlay" onClick={() => setPayModalSample(null)}>
-          <div className="modal-content" style={{ maxWidth: '420px', borderRadius: '20px' }} onClick={(e) => e.stopPropagation()}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '14px',
-                borderBottom: '1px solid var(--border-color)',
-                paddingBottom: '10px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CreditCard size={18} color="#10b981" />
-                <h3 style={{ fontSize: '15px', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>
-                  سداد متبقي حساب عينة #{payModalSample.sampleNumber}
-                </h3>
-              </div>
-              <button onClick={() => setPayModalSample(null)} className="btn-icon">
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handlePaySample} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div
+              <span style={{ fontWeight: 800, fontSize: '14px' }}>معاينة وطباعة التقرير الطبي</span>
+              <button
+                type="button"
+                onClick={() => setPreviewUrl(null)}
                 style={{
-                  background: 'var(--bg-input-deep)',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--border-color)',
-                  fontSize: '12px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
+                  background: 'rgba(255,255,255,0.15)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '4px 10px',
+                  cursor: 'pointer',
+                  fontWeight: 700,
                 }}
               >
-                <div>
-                  <strong>اسم المريض:</strong> {payModalPatient?.name || payModalSample.patient?.name}
-                </div>
-                <div>
-                  <strong>إجمالي كلفة الفحوصات:</strong> {payModalSample.priceTotal?.toLocaleString()} {currency}
-                </div>
-                <div>
-                  <strong>المسدد سابقاً:</strong> {(payModalSample.paidAmount || 0).toLocaleString()} {currency}
-                </div>
-                <div style={{ color: '#dc2626', fontWeight: 800, fontSize: '13px', marginTop: '2px' }}>
-                  <strong>المتبقي بذمة المريض:</strong> {(payModalSample.remainingAmount || 0).toLocaleString()} {currency}
-                </div>
-              </div>
-
-              <div>
-                <label className="input-label">المبلغ المطلوب تسديده الآن ({currency}) *</label>
-                <input
-                  type="number"
-                  value={payAmount}
-                  onChange={(e) => setPayAmount(e.target.value)}
-                  className="input-control"
-                  style={{ fontSize: '16px', fontWeight: 900, color: '#10b981' }}
-                  min="1"
-                  max={payModalSample.remainingAmount}
-                  required
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="input-label">طريقة الدفع</label>
-                <select
-                  value={payMethod}
-                  onChange={(e) => setPayMethod(e.target.value)}
-                  className="select-control"
-                >
-                  <option value="نقداً">نقداً (كاش - قاصة الصندوق)</option>
-                  <option value="زين كاش">زين كاش (ZainCash)</option>
-                  <option value="بطاقة دفع">بطاقة ماستركارد / كي كارد (POS)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="input-label">ملاحظات / بيان السند</label>
-                <input
-                  type="text"
-                  value={payNotes}
-                  onChange={(e) => setPayNotes(e.target.value)}
-                  className="input-control"
-                  placeholder="ملاحظات اختيارية..."
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
-                <button type="button" onClick={() => setPayModalSample(null)} className="btn-secondary" style={{ borderRadius: '10px' }}>
-                  إلغاء
-                </button>
-                <button type="submit" disabled={paying} className="btn-success" style={{ borderRadius: '10px' }}>
-                  {paying ? <RefreshCw size={13} className="animate-spin" /> : <DollarSign size={13} />}
-                  <span>{paying ? 'جاري التسجيل...' : 'تأكيد السداد وطباعة السند'}</span>
-                </button>
-              </div>
-            </form>
+                إغلاق ✕
+              </button>
+            </div>
+            <iframe src={previewUrl} style={{ flex: 1, width: '100%', border: 'none' }} title="Report Preview" />
           </div>
         </div>
       )}
 
-      {/* THERMAL VOUCHER PREVIEW & PRINT */}
-      {showVoucherModal && activeVoucher && (
-        <div className="modal-overlay" onClick={() => setShowVoucherModal(false)}>
-          <div className="modal-content" style={{ maxWidth: '380px', padding: '16px', borderRadius: '20px' }} onClick={(e) => e.stopPropagation()}>
+      {/* Specialized Workstation Modals */}
+      {specialModal?.type === 'GUE' && activeVisit && (
+        <UrineFormModal
+          isOpen={true}
+          onClose={() => setSpecialModal(null)}
+          patientName={activeVisit.patient?.name || ''}
+          sampleNumber={activeVisit.sampleNumber}
+          initialData={editedResults[specialModal.testId] || ''}
+          onApply={(val: string) => {
+            handleResultChange(specialModal.testId, val);
+            setSpecialModal(null);
+          }}
+        />
+      )}
+      {specialModal?.type === 'GSE' && activeVisit && (
+        <GseModal
+          isOpen={true}
+          onClose={() => setSpecialModal(null)}
+          sample={activeVisit.rawSample}
+          initialValue={editedResults[specialModal.testId] || ''}
+          onSave={(val: string) => {
+            handleResultChange(specialModal.testId, val);
+            setSpecialModal(null);
+          }}
+        />
+      )}
+      {specialModal?.type === 'CBC' && activeVisit && (
+        <CbcModal
+          isOpen={true}
+          onClose={() => setSpecialModal(null)}
+          sample={activeVisit.rawSample}
+          initialValue={editedResults[specialModal.testId] || ''}
+          onSave={(val: string) => {
+            handleResultChange(specialModal.testId, val);
+            setSpecialModal(null);
+          }}
+        />
+      )}
+      {specialModal?.type === 'SFA' && activeVisit && (
+        <SemenFormModal
+          isOpen={true}
+          onClose={() => setSpecialModal(null)}
+          patientName={activeVisit.patient?.name || ''}
+          sampleNumber={activeVisit.sampleNumber}
+          initialData={editedResults[specialModal.testId] || ''}
+          onApply={(val: string) => {
+            handleResultChange(specialModal.testId, val);
+            setSpecialModal(null);
+          }}
+        />
+      )}
+      {specialModal?.type === 'MICROBIOLOGY' && activeVisit && (
+        <MicrobiologyModal
+          isOpen={true}
+          onClose={() => setSpecialModal(null)}
+          sample={activeVisit.rawSample}
+          initialValue={editedResults[specialModal.testId] || ''}
+          onSave={(val: string) => {
+            handleResultChange(specialModal.testId, val);
+            setSpecialModal(null);
+          }}
+        />
+      )}
+      {specialModal?.type === 'BHCG' && activeVisit && (
+        <BhcgFormModal
+          isOpen={true}
+          onClose={() => setSpecialModal(null)}
+          patientName={activeVisit.patient?.name || ''}
+          patientAge={activeVisit.patient?.age || ''}
+          initialData={editedResults[specialModal.testId] || ''}
+          onApply={(val: string) => {
+            handleResultChange(specialModal.testId, val);
+            setSpecialModal(null);
+          }}
+        />
+      )}
+      {specialModal?.type === 'AMH' && activeVisit && (
+        <AmhFormModal
+          isOpen={true}
+          onClose={() => setSpecialModal(null)}
+          patientName={activeVisit.patient?.name || ''}
+          patientAge={activeVisit.patient?.age || ''}
+          initialData={editedResults[specialModal.testId] || ''}
+          onApply={(val: string) => {
+            handleResultChange(specialModal.testId, val);
+            setSpecialModal(null);
+          }}
+        />
+      )}
+
+      {/* Patient Profile & Past Visits Modal */}
+      {showPatientHistoryModal && activeVisit && (
+        <div
+          dir="rtl"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 120,
+            padding: '20px',
+            backdropFilter: 'blur(3px)',
+          }}
+          onClick={() => setShowPatientHistoryModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '680px',
+              maxHeight: '88vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Header */}
             <div
-              id="thermal-voucher-print"
               style={{
-                background: '#fff',
-                color: '#000',
-                padding: '16px',
-                borderRadius: '10px',
-                fontFamily: 'monospace',
-                fontSize: '12px',
-                textAlign: 'center',
-                border: '1px dashed #cbd5e1',
+                padding: '16px 20px',
+                borderBottom: '1px solid var(--border-color)',
+                backgroundColor: 'rgba(15, 118, 110, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
               }}
             >
-              <h2 style={{ fontSize: '16px', fontWeight: 900, marginBottom: '2px', color: '#000' }}>
-                {labProfile?.labName || 'المختبر للتحليلات الطبية'}
-              </h2>
-              <p style={{ fontSize: '11px', color: '#475569', marginBottom: '8px' }}>
-                هاتف: {labProfile?.phone || '07701234567'} | {labProfile?.address || 'العراق'}
-              </p>
-              <div style={{ borderTop: '1px dashed #000', borderBottom: '1px dashed #000', padding: '6px 0', margin: '8px 0' }}>
-                <strong style={{ fontSize: '14px', display: 'block' }}>{activeVoucher.type}</strong>
-                <span style={{ fontSize: '12px' }}>رقم السند: #{activeVoucher.voucherNumber}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '999px',
+                    backgroundColor: '#0f766e',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <FolderOpen size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: 'var(--text-main)' }}>
+                    ملف المريض: {activeVisit.patient?.name}
+                  </h3>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    إجمالي الزيارات المسجلة: <strong>{currentPatientVisits.length}</strong> {currentPatientVisits.length === 1 ? 'زيارة' : 'زيارات'}
+                    {activeVisit.patient?.phone ? ` • هاتف: ${activeVisit.patient.phone}` : ''}
+                  </div>
+                </div>
               </div>
-
-              <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '4px', margin: '10px 0', fontSize: '12px' }}>
-                <div><strong>التاريخ:</strong> {activeVoucher.date}</div>
-                <div><strong>المريض:</strong> {activeVoucher.debtorName}</div>
-                {activeVoucher.phone && <div><strong>الهاتف:</strong> {activeVoucher.phone}</div>}
-                <div><strong>طريقة الدفع:</strong> {activeVoucher.paymentMethod}</div>
-                <div><strong>البيان:</strong> {activeVoucher.notes}</div>
-              </div>
-
-              <div style={{ background: '#f1f5f9', padding: '8px', borderRadius: '6px', margin: '12px 0', border: '1px solid #cbd5e1' }}>
-                <span style={{ fontSize: '11px', color: '#334155', display: 'block' }}>المبلغ المقبوض:</span>
-                <strong style={{ fontSize: '18px', color: '#0f172a' }}>{activeVoucher.amount?.toLocaleString()} دينار عراقي</strong>
-              </div>
-
-              <p style={{ fontSize: '10px', color: '#64748b', marginTop: '10px' }}>
-                شكراً لتعاملكم معنا. يعتبر هذا السند إشعاراً رسمياً بالقبض.
-              </p>
+              <button
+                type="button"
+                onClick={() => setShowPatientHistoryModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '6px',
+                }}
+              >
+                <X size={20} />
+              </button>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
-              <button onClick={() => window.print()} className="btn-primary" style={{ flex: 1, borderRadius: '10px' }}>
-                <Printer size={15} />
-                <span>طباعة السند فوري</span>
-              </button>
-              <button onClick={() => setShowVoucherModal(false)} className="btn-secondary" style={{ borderRadius: '10px' }}>
-                إغلاق
-              </button>
+            {/* Visits List */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {currentPatientVisits.map((visitItem) => {
+                const isCurrent = visitItem.sampleId === activeVisit.sampleId;
+                const isCompleted = isCompletedStatus(visitItem.sampleStatus);
+                return (
+                  <div
+                    key={visitItem.sampleId}
+                    style={{
+                      border: isCurrent ? '2px solid #0f766e' : '1px solid var(--border-color)',
+                      backgroundColor: isCurrent ? 'rgba(15, 118, 110, 0.04)' : 'var(--bg-input)',
+                      borderRadius: '12px',
+                      padding: '14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px',
+                    }}
+                  >
+                    {/* Top Row: Sample #, Date, Status Badges */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontWeight: 900, fontSize: '14px', color: '#0f766e' }}>
+                          عينة #{visitItem.sampleNumber}
+                        </span>
+                        {isCurrent && (
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              padding: '2px 8px',
+                              borderRadius: '999px',
+                              backgroundColor: '#0f766e',
+                              color: '#ffffff',
+                            }}
+                          >
+                            الزيارة الحالية
+                          </span>
+                        )}
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          تاريخ: {formatEnglishDate(visitItem.collectionTime)}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: '999px',
+                            backgroundColor: isCompleted ? '#dcfce7' : '#e0f2fe',
+                            color: isCompleted ? '#15803d' : '#0369a1',
+                          }}
+                        >
+                          {isCompleted ? 'مكتمل' : 'قيد الفحص'}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: '999px',
+                            backgroundColor: visitItem.remainingAmount > 0 ? '#fee2e2' : '#f0fdf4',
+                            color: visitItem.remainingAmount > 0 ? '#dc2626' : '#15803d',
+                          }}
+                        >
+                          {visitItem.remainingAmount > 0 ? `متبقي: ${visitItem.remainingAmount.toLocaleString()} ${currency}` : 'مسدد'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Middle: Tests & Results Table / Badges */}
+                    <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '8px', padding: '8px 12px', border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                        الفحوصات ونتائجها:
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '6px' }}>
+                        {visitItem.tests.map((t: any, tIdx: number) => {
+                          const tName = t.test?.name || t.name || t.test?.code || t.code || 'تحليل';
+                          const tVal = t.resultValue;
+                          const tUnit = t.unit || t.test?.unit || '';
+                          return (
+                            <div
+                              key={tIdx}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                fontSize: '12px',
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                backgroundColor: 'var(--bg-input)',
+                                border: '1px solid var(--border-subtle)',
+                              }}
+                            >
+                              <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{tName}:</span>
+                              <span
+                                style={{
+                                  fontWeight: 800,
+                                  color: tVal ? (t.isAbnormal ? '#dc2626' : '#0f766e') : 'var(--text-muted)',
+                                }}
+                                dir="ltr"
+                              >
+                                {tVal ? `${tVal} ${tUnit}`.trim() : 'قيد الفحص'}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Bottom: Action buttons */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                      {!isCurrent && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedSampleId(visitItem.sampleId);
+                            setShowPatientHistoryModal(false);
+                            toast.info(`تم الانتقال إلى العينة #${visitItem.sampleNumber}`);
+                          }}
+                          style={{
+                            padding: '5px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-card)',
+                            color: 'var(--text-main)',
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          الانتقال لهذه العينة
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPreviewUrl(`/api/samples/${visitItem.sampleId}/print`);
+                          setShowPatientHistoryModal(false);
+                        }}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          backgroundColor: '#1e293b',
+                          color: '#ffffff',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <Printer size={13} />
+                        <span>طباعة تقرير هذه العينة</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
       )}
-    </>
+
+      <ConfirmModal
+        isOpen={Boolean(deleteSampleId)}
+        title="حذف السجل والعينة"
+        message="هل أنت متأكد من حذف هذه العينة نهائياً؟"
+        confirmText="نعم، حذف"
+        cancelText="إلغاء"
+        onConfirm={handleDeleteSample}
+        onCancel={() => setDeleteSampleId(null)}
+      />
+    </div>
   );
 }
 
 export default function PatientsPage() {
   return (
-    <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>جاري التحميل...</div>}>
-      <PatientsContent />
+    <Suspense fallback={<div style={{ padding: '32px', textAlign: 'center' }}>جاري تحميل سجل المرضى والنتائج...</div>}>
+      <UnifiedPatientsResultsView defaultFilter="ALL" />
     </Suspense>
   );
 }

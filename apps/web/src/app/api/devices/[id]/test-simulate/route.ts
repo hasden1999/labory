@@ -4,6 +4,16 @@ import { generateAnalyzerSimulation, ClinicalProfileKey } from '../../../../../l
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Simulation mode is completely disabled in production. Labryo requires genuine instrument interfacing via ASTM E1381/E1394 or HL7 socket.',
+        },
+        { status: 403 }
+      );
+    }
+
     const device = findDevice(params.id);
     if (!device) {
       return NextResponse.json({ message: 'الجهاز غير موجود في النظام' }, { status: 404 });
@@ -49,6 +59,17 @@ export async function POST(request: Request, { params }: { params: { id: string 
       overridePatientName: targetPatientName,
     });
 
+    if (!ingestSummary.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: (ingestSummary as any).message || 'فشلت مطابقة نتيجة المحاكاة مع أي عينة.',
+          summary: ingestSummary,
+        },
+        { status: 422 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       simulation: {
@@ -64,7 +85,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
         parsedItems: simulation.parsed.items,
       },
       summary: ingestSummary,
-      message: `تم تشغيل المحاكاة بنجاح: تم إرسال (${simulation.parsed.items.length}) فحص ومطابقة (${ingestSummary.appliedItems}) نتيجة بالعينة #${targetSampleNumber}`,
+      message: `تم تشغيل المحاكاة بنجاح: تم إرسال (${simulation.parsed.items.length}) فحص ومطابقة (${(ingestSummary as any).appliedItems}) نتيجة بالعينة #${targetSampleNumber}`,
     });
   } catch (err: any) {
     return NextResponse.json({ message: 'فشل تشغيل محاكاة الجهاز', error: err?.message }, { status: 500 });

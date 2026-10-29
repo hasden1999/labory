@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap');
-
+/* Local system font stack - zero external network latency */
 :root, [data-theme="light"] {
   /* Clean Clinical Light Theme */
   --bg-primary: #f8fafc;
@@ -44,6 +43,17 @@
   
   --table-header-bg: #f8fafc;
   --table-row-hover: rgba(37, 99, 235, 0.03);
+
+  /* High-Contrast Clinical Alert Strips (Light Mode) */
+  --alert-danger-bg: #fef2f2;
+  --alert-danger-border: #f87171;
+  --alert-danger-title: #991b1b;
+  --alert-danger-text: #b91c1c;
+  --alert-danger-highlight: #7f1d1d;
+  --alert-warning-bg: #fffbeb;
+  --alert-warning-border: #f59e0b;
+  --alert-warning-title: #92400e;
+  --alert-warning-text: #b45309;
 
   --font-family: 'Inter', 'Cairo', system-ui, -apple-system, sans-serif;
   --radius-sm: 8px;
@@ -94,6 +104,17 @@
   
   --table-header-bg: #111a2e;
   --table-row-hover: rgba(56, 189, 248, 0.06);
+
+  /* High-Contrast Clinical Alert Strips (Dark Mode) */
+  --alert-danger-bg: rgba(185, 28, 28, 0.25);
+  --alert-danger-border: #ef4444;
+  --alert-danger-title: #ffffff;
+  --alert-danger-text: #fecaca;
+  --alert-danger-highlight: #ffffff;
+  --alert-warning-bg: rgba(217, 119, 6, 0.22);
+  --alert-warning-border: #f59e0b;
+  --alert-warning-title: #fef3c7;
+  --alert-warning-text: #fde68a;
 
   --font-family: 'Inter', 'Cairo', system-ui, -apple-system, sans-serif;
   --radius-sm: 8px;
@@ -890,11 +911,33 @@ html, body {
 }
 
 .toast-item.toast-error {
-  border-right: 4px solid #f43f5e;
+  border-right: 4px solid #dc2626;
+  background: var(--alert-danger-bg, #fef2f2);
+  border-color: var(--alert-danger-border, #f87171);
+}
+
+.toast-item.toast-error .toast-title {
+  color: var(--alert-danger-title, #991b1b);
+}
+
+.toast-item.toast-error .toast-message {
+  color: var(--alert-danger-text, #b91c1c);
+  font-weight: 600;
 }
 
 .toast-item.toast-warning {
   border-right: 4px solid #f59e0b;
+  background: var(--alert-warning-bg, #fffbeb);
+  border-color: var(--alert-warning-border, #f59e0b);
+}
+
+.toast-item.toast-warning .toast-title {
+  color: var(--alert-warning-title, #92400e);
+}
+
+.toast-item.toast-warning .toast-message {
+  color: var(--alert-warning-text, #b45309);
+  font-weight: 600;
 }
 
 .toast-item.toast-urgent {

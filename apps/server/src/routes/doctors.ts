@@ -72,6 +72,18 @@ export async function doctorRoutes(fastify: FastifyInstance) {
   fastify.delete('/doctors/:id', { onRequest: [fastify.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string };
 
+    // Prevent destructive deletion if doctor has associated medical/financial sample records
+    const sampleCount = await prisma.sample.count({
+      where: { doctorId: id },
+    });
+
+    if (sampleCount > 0) {
+      return reply.status(400).send({
+        success: false,
+        message: `لا يمكن حذف هذا الطبيب لوجود (${sampleCount}) سجلات طبية ومالية مرتبطة به في النظام. يرجى تعديل بياناته أو أرشفته بدلاً من الحذف لتجنب تضارب السجلات.`,
+      });
+    }
+
     await prisma.referringDoctor.delete({
       where: { id },
     });

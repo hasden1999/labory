@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getStore, clampMargin, getLocalIpAddress } from '../../../../../lib/serverStore';
+import { getStore, clampMargin, getLocalIpAddress, saveStoreToFile } from '../../../../../lib/serverStore';
 import { toEnglishDigits, formatEnglishDate, formatEnglishDateTime, isBloodGroupTest, evaluateClinicalResult } from '../../../../../lib/formatters';
 import { calculateLipidPanel, LIPID_REFERENCE_SOURCES, LIPID_CATALOG_IDS, normalizeLipidUnit, classifyResultRange, formatClinicalAge } from '@lab-manager/domain';
 import { resolveReferenceRange } from '../../../../../lib/orderHelpers';
 import { renderPrintBodyPages } from './PrintBody';
-import { renderPrintHeader, renderPatientMetaBox } from './PrintHeader';
+import { renderPrintHeader, renderPatientMetaBox, renderEmblemSvg, HEADER_STYLE_TO_TEMPLATE_MAP, TEMPLATE_TO_HEADER_STYLE_MAP } from './PrintHeader';
 
 function escapeHtml(str: any): string {
   if (str === null || str === undefined) return '';
@@ -267,14 +267,45 @@ import { isCbcTest, isSfaTest, isGueTest, isGseTest, isAmhTest, isBhcgTest, isGe
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const store = getStore();
-  const sample = store.samples.find(s => s.id === params.id || String(s.sampleNumber) === params.id);
+  const rawSample = store.samples.find(s => s.id === params.id || String(s.sampleNumber) === params.id);
   
-  if (!sample) {
+  if (!rawSample) {
     return new Response('<h2>Sample Not Found</h2>', {
       status: 404,
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
     });
   }
+
+  // Enrich sample.tests with live catalog test definitions (especially referenceRanges) from store.tests
+  const catalogTests = store.tests || [];
+  const sample = {
+    ...rawSample,
+    tests: (rawSample.tests || []).map((st: any) => {
+      const tid = st.testId || st.test?.id;
+      const tcode = String(st.test?.code || st.code || '').toUpperCase().trim();
+      const catalogMatch = catalogTests.find(
+        (ct: any) =>
+          (tid && ct.id === tid) ||
+          (tcode && String(ct.code || '').toUpperCase().trim() === tcode)
+      );
+      if (!catalogMatch) return st;
+      return {
+        ...st,
+        test: {
+          ...(st.test || {}),
+          ...catalogMatch,
+          referenceRanges:
+            Array.isArray(catalogMatch.referenceRanges) && catalogMatch.referenceRanges.length > 0
+              ? catalogMatch.referenceRanges
+              : st.test?.referenceRanges || [],
+          refRangeText: catalogMatch.refRangeText ?? st.test?.refRangeText ?? null,
+          refRangeLow: catalogMatch.refRangeLow ?? st.test?.refRangeLow ?? null,
+          refRangeHigh: catalogMatch.refRangeHigh ?? st.test?.refRangeHigh ?? null,
+          unit: catalogMatch.unit || st.test?.unit || st.unit || '',
+        },
+      };
+    }),
+  };
 
   const { searchParams } = new URL(request.url);
   const allowForce = searchParams.get('force') === 'true';
@@ -471,6 +502,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
     });
   }
 
+  // If all tests in the sample are completed, ensure sample status is marked as COMPLETED
+  const allTestsComplete =
+    Array.isArray(rawSample.tests) &&
+    rawSample.tests.length > 0 &&
+    rawSample.tests.every((t: any) => t.resultValue && String(t.resultValue).trim() !== '');
+  if (allTestsComplete && rawSample.status !== 'COMPLETED') {
+    rawSample.status = 'COMPLETED';
+    saveStoreToFile();
+  }
+
   const settings = store.settings;
   const patient = sample.patient || { name: 'Patient', age: '-', gender: 'MALE' };
   let referringDocName = '';
@@ -489,7 +530,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
   const doctor = { name: referringDocName || 'Self / Direct' };
   const clinicalAge = formatClinicalAge(
-    patient.birthDate ? { birthDate: patient.birthDate } : { age: patient.age },
+    {
+      birthDate: patient.birthDate,
+      age: patient.age,
+      ageMonths: (patient as any).ageMonths,
+      ageDays: (patient as any).ageDays,
+    },
     sample.createdAt
   );
 
@@ -504,7 +550,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const bottomMm = clampMargin(rawBottom, 0, 100, (isPreprinted || hasLetterheadBg) ? 30 : 12);
   const leftMm = clampMargin(rawLeft, 0, 50, 10);
   const rightMm = clampMargin(rawRight, 0, 50, 10);
-  const template = settings.reportTemplate || 'CLASSIC';
+  const templateParam = searchParams.get('template');
+  const headerStyleParam = searchParams.get('headerStyle');
+  const activeHeaderStyle = headerStyleParam || settings.headerStyle;
+  const template = templateParam || (activeHeaderStyle ? HEADER_STYLE_TO_TEMPLATE_MAP[activeHeaderStyle] : null) || settings.reportTemplate || 'CLASSIC';
+  if (activeHeaderStyle && !settings.headerStyle) {
+    settings.headerStyle = activeHeaderStyle;
+  }
   const primaryCol = settings.primaryColor || '#0284c7';
   const qrEnabled = settings.enableQrCode !== false;
   const qrPosition = settings.qrCodePosition || 'HEADER';
@@ -566,11 +618,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const textColor = settings.textColor || '#0f172a';
   const borderColor = settings.borderColor || (template === 'BLACK_WHITE' ? '#000000' : '#e2e8f0');
 
-  const reportTitleFontSize = settings.reportTitleFontSize || settings.labNameFontSize || 20;
   const testNameFontSize = settings.testNameFontSize || (fontSize === 'SMALL' ? 10.5 : fontSize === 'LARGE' ? 13.5 : 12);
   const resultValueFontSize = settings.resultValueFontSize || (fontSize === 'SMALL' ? 10.5 : fontSize === 'LARGE' ? 13.5 : 12);
   const unitFontSize = settings.unitFontSize || (fontSize === 'SMALL' ? 9.5 : fontSize === 'LARGE' ? 12 : 11);
   const refRangeFontSize = settings.refRangeFontSize || (fontSize === 'SMALL' ? 9.5 : fontSize === 'LARGE' ? 12 : 11);
+  const specialFormFontSize = Number(searchParams.get('specialFormFontSize')) || Number(settings.specialFormFontSize) || Number(settings.print_special_form_font_size) || 13;
 
   const testNameFontWeight = settings.testNameFontWeight || 'bold';
   const resultValueFontWeight = settings.resultValueFontWeight || 'normal';
@@ -585,11 +637,18 @@ export async function GET(request: Request, { params }: { params: { id: string }
         { id: 'notes', label: 'NOTES', visible: false, align: 'left' },
       ];
 
-  const visibleColumns = rawTableColumns.filter((c: any) => c.visible !== false);
+  const visibleColumns = rawTableColumns
+    .filter((c: any) => c.visible !== false)
+    .map((c: any) => ({
+      ...c,
+      label: String(c.label || '')
+        .replace(/\s*\([^)]*[\u0600-\u06FF][^)]*\)/g, '')
+        .trim() || String(c.id || '').toUpperCase(),
+    }));
   const groupByCategory = settings.groupByCategory === true;
   const tableRowBorders = settings.tableRowBorders !== false;
-  const tableZebraStriping = settings.tableZebraStriping === true;
-  const tableRowSpacing = settings.tableRowSpacing || 'COMFORTABLE';
+  const tableZebraStriping = settings.tableZebraStriping === true || (settings as any).tableStyle === 'zebra';
+  const tableRowSpacing = settings.tableRowSpacing || ((settings as any).tableStyle === 'compact' ? 'COMPACT' : 'COMFORTABLE');
 
   let customCellPadding = tableCellPadding;
   if (tableRowSpacing === 'COMPACT') {
@@ -606,6 +665,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   // Watermark Layer Helper
   const renderWatermark = () => {
+    if (settings.labEmblem && settings.labEmblem !== 'none' && !watermarkText && (settings.emblemPlacement === 'watermark' || settings.emblemPlacement === 'both' || !settings.emblemPlacement)) {
+      return `
+        <div class="watermark-layer" aria-hidden="true" style="opacity: 0.035; transform: translate(-50%, -50%) rotate(-25deg); position: absolute; top: 50%; left: 50%; pointer-events: none; z-index: 1;">
+          ${renderEmblemSvg(settings.labEmblem, '#0f172a', 360)}
+        </div>
+      `;
+    }
     if (!enableWatermark) return '';
     return `
       <div class="watermark-layer" aria-hidden="true">
@@ -647,7 +713,55 @@ export async function GET(request: Request, { params }: { params: { id: string }
   let templateCss = '';
   let containerClass = 'report-card';
 
-  if (template === 'CLASSIC' || template === 'ROYAL_CLASSIC') {
+  if (template === 'INDIAN_DUAL_WING' || template === 'DR_LAL_CLINICAL') {
+    templateCss = `
+      .report-card { border: 1px solid #cbd5e1; border-top: 5px solid #005691; border-radius: 4px; }
+      .header-border { border-bottom: 2.5px solid #0f172a !important; }
+      .table-header { background: #005691 !important; color: #ffffff !important; font-weight: 700; }
+    `;
+  } else if (template === 'BAGHDAD_ROYAL_DUAL') {
+    templateCss = `
+      .report-card { border: 2px solid #1e3a8a; border-top: 6px solid #b45309; border-radius: 8px; box-shadow: 0 4px 15px rgba(30,58,138,0.08); }
+      .header-border { border-bottom: 2px solid #b45309 !important; }
+      .table-header { background: #1e3a8a !important; color: #ffffff !important; }
+    `;
+  } else if (template === 'ACADEMIC_HOSPITAL') {
+    templateCss = `
+      .report-card { border: 2px solid #0f172a; border-radius: 4px; box-shadow: none !important; }
+      .header-border { border-bottom: 3px double #0f172a !important; }
+      .table-header { background: #0f172a !important; color: #ffffff !important; }
+    `;
+  } else if (template === 'MAYO_EXECUTIVE') {
+    templateCss = `
+      .report-card { border: 1px solid #cbd5e1; border-top: 4px solid #0284c7; border-radius: 6px; }
+      .header-border { border-bottom: 2px solid #1e3a8a !important; }
+      .table-header { background: #0284c7 !important; color: #ffffff !important; }
+    `;
+  } else if (template === 'METROPOLIS_TEAL') {
+    templateCss = `
+      .report-card { border: 1px solid #14b8a6; border-radius: 12px; }
+      .header-border { border-bottom: 3px solid #0f766e !important; }
+      .table-header { background: linear-gradient(90deg, #0f766e, #14b8a6) !important; color: #ffffff !important; }
+    `;
+  } else if (template === 'REGAL_GOLD_FRAME') {
+    templateCss = `
+      .report-card { border: 2px solid #0f172a; border-top: 6px solid #d97706; border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); }
+      .header-border { border-bottom: 2px solid #d97706 !important; }
+      .table-header { background: #0f172a !important; color: #fbbf24 !important; }
+    `;
+  } else if (template === 'MINIMAL_PURE_LINE') {
+    templateCss = `
+      .report-card { border: 1.5px solid #000000; border-radius: 0px; box-shadow: none !important; }
+      .header-border { border-bottom: 1.5px solid #000000 !important; }
+      .table-header { background: #000000 !important; color: #ffffff !important; }
+    `;
+  } else if (template === 'COMPACT_MICRO_STRIP') {
+    templateCss = `
+      .report-card { border: 1px solid #94a3b8; padding: 12px !important; font-size: 11px !important; }
+      .header-border { border-bottom: 2px solid #475569 !important; }
+      .table-header { background: #334155 !important; color: #ffffff !important; }
+    `;
+  } else if (template === 'CLASSIC' || template === 'ROYAL_CLASSIC') {
     templateCss = `
       .report-card { border: 2px solid #1e3a8a; border-radius: 8px; }
       .header-border { border-bottom: 3px solid #1e3a8a !important; }
@@ -717,6 +831,36 @@ export async function GET(request: Request, { params }: { params: { id: string }
       .header-border { border-bottom: 1px solid #cbd5e1 !important; }
       .table-header { background: #f8fafc !important; color: #334155 !important; border-bottom: 2px solid #cbd5e1 !important; }
     `;
+  } else if (template === 'GLASS_CAPSULE') {
+    templateCss = `
+      .report-card { border: 2px solid #0284c7; border-radius: 14px; box-shadow: 0 4px 20px rgba(2,132,199,0.08); background: #ffffff !important; }
+      .header-border { border-bottom: 2px solid #0284c7 !important; }
+      .table-header { background: linear-gradient(90deg, #0284c7, #06b6d4) !important; color: #ffffff !important; border-radius: 6px; }
+    `;
+  } else if (template === 'SMART_DIGITAL') {
+    templateCss = `
+      .report-card { border: 2px solid #0284c7; border-top: 6px solid #06b6d4; border-radius: 10px; }
+      .header-border { border-bottom: 2px solid #06b6d4 !important; }
+      .table-header { background: #0f172a !important; color: #06b6d4 !important; }
+    `;
+  } else if (template === 'MULTI_ACCREDITED') {
+    templateCss = `
+      .report-card { border: 2px solid #1e3a8a; border-top: 6px solid #0284c7; border-radius: 8px; }
+      .header-border { border-bottom: 2px solid #0284c7 !important; }
+      .table-header { background: #1e3a8a !important; color: #ffffff !important; }
+    `;
+  } else if (template === 'BAUHAUS_GRID') {
+    templateCss = `
+      .report-card { border: 2.5px solid #0f172a; border-radius: 0px; box-shadow: none !important; }
+      .header-border { border-bottom: 2.5px solid #0f172a !important; }
+      .table-header { background: #0f172a !important; color: #ffffff !important; }
+    `;
+  } else if (template === 'VERTICAL_SPINE') {
+    templateCss = `
+      .report-card { border: 1.5px solid #cbd5e1; border-left: 8px solid #0284c7 !important; border-radius: 4px; }
+      .header-border { border-bottom: 2px solid #0284c7 !important; }
+      .table-header { background: #0f172a !important; color: #ffffff !important; }
+    `;
   }
 
   // Apply User Form Design System Overrides
@@ -733,6 +877,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
     .header-border {
       border-bottom: 2.5px solid ${borderColor} !important;
     }
+    ${(settings as any).tableStyle === 'grid' ? `
+    table td, table th {
+      border: 1px solid ${borderColor} !important;
+    }
+    ` : ''}
   `;
 
   const safePatientName = escapeHtml(patient.name);
@@ -743,7 +892,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const safePhone = escapeHtml(settings.phone);
   const safeDocTitle = escapeHtml(settings.doctorTitle);
   const safeDocName = escapeHtml(settings.doctorName);
-  const safeLicense = escapeHtml(settings.labLicense);
+  const safeLicense = settings.labLicense && settings.labLicense !== 'MOH-IQ-2026-8842' ? escapeHtml(settings.labLicense) : '';
   const safeFooter = escapeHtml(settings.reportFooter);
 
   const renderedPages = renderPrintBodyPages({
@@ -761,12 +910,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
     resultValueFontSize,
     unitFontSize,
     refRangeFontSize,
+    specialFormFontSize,
+    testNameFontWeight,
     resultValueFontWeight,
     customCellPadding,
     tableRowBorders,
     tableZebraStriping,
     visibleColumns,
     groupByCategory,
+    isSingleMode,
     containerClass,
     renderWatermark,
     renderFooter,
@@ -810,6 +962,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       sampleNumber: sample.sampleNumber,
       primaryCol,
       createdAt: sample.createdAt,
+      settings,
     },
   });
 
@@ -878,8 +1031,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
       color-adjust: exact !important; 
     }
     table td, table th {
-      font-size: ${tableFontSize} !important;
-      padding: ${tableCellPadding} !important;
+      font-size: ${tableFontSize};
+      padding: ${tableCellPadding};
+    }
+    .report-card, .report-card * {
+      font-family: ${fontFamilyCss} !important;
     }
     .report-card {
       max-width: 820px;

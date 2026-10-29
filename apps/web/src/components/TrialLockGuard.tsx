@@ -59,9 +59,13 @@ export default function TrialLockGuard({ children }: { children: React.ReactNode
       return;
     }
 
-    // 3. For desktop app only, check license status
+    // 3. For desktop app only, check license status on initial load
     checkLicense();
-  }, [pathname]);
+
+    // 4. Periodic license check every 5 minutes
+    const intervalId = setInterval(checkLicense, 5 * 60 * 1000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   const handleCopyHWID = () => {
     if (!licenseStatus?.hardwareId) return;
@@ -291,27 +295,70 @@ export default function TrialLockGuard({ children }: { children: React.ReactNode
               <label style={{ fontSize: '12px', fontWeight: 800, color: '#e2e8f0', display: 'block', marginBottom: '6px' }}>
                 أدخل كود التفعيل المعتمد (Activation Key):
               </label>
-              <input
-                type="text"
-                placeholder="LIC-..."
-                className="input-control"
-                style={{
-                  fontSize: '14px',
-                  fontFamily: 'monospace',
-                  minHeight: '44px',
-                  textAlign: 'left',
-                  direction: 'ltr',
-                  background: 'rgba(2, 6, 23, 0.85)',
-                  border: '1px solid #475569',
-                  borderRadius: '10px',
-                  color: '#f8fafc',
-                  padding: '10px 14px',
-                  width: '100%',
-                }}
-                value={activationKey}
-                onChange={(e) => setActivationKey(e.target.value)}
-                required
-              />
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  placeholder="LIC-..."
+                  className="input-control"
+                  style={{
+                    fontSize: '14px',
+                    fontFamily: 'monospace',
+                    minHeight: '44px',
+                    textAlign: 'left',
+                    direction: 'ltr',
+                    background: 'rgba(2, 6, 23, 0.85)',
+                    border: '1px solid #475569',
+                    borderRadius: '10px',
+                    color: '#f8fafc',
+                    padding: '10px 14px',
+                    flex: 1,
+                  }}
+                  value={activationKey}
+                  onChange={(e) => setActivationKey(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      let text = '';
+                      if ((window as any).electronDesktop?.readClipboardText) {
+                        text = await (window as any).electronDesktop.readClipboardText();
+                      } else if (navigator.clipboard?.readText) {
+                        text = await navigator.clipboard.readText();
+                      }
+                      if (text && text.trim()) {
+                        setActivationKey(text.trim());
+                        toast.success('تم لصق كود التفعيل بنجاح!');
+                      } else {
+                        toast.info('الحافظة فارغة، يرجى نسخ كود التفعيل أولاً.');
+                      }
+                    } catch {
+                      toast.error('تعذر الوصول للحافظة، يمكنك استخدام اختصار Ctrl+V.');
+                    }
+                  }}
+                  style={{
+                    height: '44px',
+                    padding: '0 14px',
+                    borderRadius: '10px',
+                    border: '1px solid #0284c7',
+                    background: 'rgba(2, 132, 199, 0.2)',
+                    color: '#38bdf8',
+                    fontWeight: 800,
+                    fontSize: '12.5px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    flexShrink: 0,
+                    transition: 'all 0.15s ease',
+                  }}
+                  title="لصق الكود من الحافظة بضغطة واحدة"
+                >
+                  <Copy size={15} />
+                  <span>لصق الكود</span>
+                </button>
+              </div>
             </div>
 
             <button

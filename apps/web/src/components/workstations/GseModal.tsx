@@ -39,14 +39,19 @@ export interface GseAnalysisData {
   includeFobt: boolean;
   fobt: string;
 
+  // Stool pH (Required for every patient)
+  ph: string;
+
   // Stool Culture & Sensitivity (Optional)
   includeSensitivity: boolean;
   sensitivity: string;
 
-  // pH & Reducing Substances (Optional)
-  includePhAndReducing: boolean;
-  ph: string;
+  // Reducing Substances (Optional / On Demand)
+  includeReducingSubstances: boolean;
   reducingSubstances: string;
+
+  // Backward compatibility alias
+  includePhAndReducing?: boolean;
 
   // Microscopic Examination (HPF)
   pusCells: string;
@@ -67,13 +72,14 @@ export interface GseAnalysisData {
 export const DEFAULT_GSE_DATA: GseAnalysisData = {
   color: 'Brown',
   consistency: 'Formed',
+  ph: '6.5',
   includeFobt: false,
   fobt: 'Negative',
   includeSensitivity: false,
   sensitivity: 'Nil',
-  includePhAndReducing: false,
-  ph: '6.5',
+  includeReducingSubstances: false,
   reducingSubstances: 'Negative',
+  includePhAndReducing: false,
   pusCells: '0-2',
   rbcs: '0-1',
   muscleFibers: 'Nil',
@@ -86,6 +92,7 @@ export const DEFAULT_GSE_DATA: GseAnalysisData = {
 };
 
 export const DEFAULT_PARASITE_SUGGESTIONS = [
+  'Entamoeba histolytica/dispar',
   'Entamoeba histolytica',
   'Entamoeba coli',
   'Giardia lamblia',
@@ -129,9 +136,16 @@ export function serializeGse(data: GseAnalysisData): string {
     parts.push(`SENSITIVITY: ${data.sensitivity}`);
   }
 
-  // Only serialize pH & Reducing Substances if explicitly enabled!
-  if (data.includePhAndReducing) {
-    parts.push(`PH_REDUCING: pH: ${data.ph || '6.5'} | Reducing Substances: ${data.reducingSubstances || 'Negative'}`);
+  // Stool pH is standard and required for every patient
+  if (data.ph) {
+    parts.push(`PH: ${data.ph}`);
+  }
+
+  // Only serialize Reducing Substances if explicitly enabled (on-demand)
+  if (data.includeReducingSubstances && data.reducingSubstances && data.reducingSubstances !== 'Not Requested') {
+    parts.push(`REDUCING: ${data.reducingSubstances}`);
+  } else if (data.includePhAndReducing && data.reducingSubstances && !data.includeReducingSubstances) {
+    parts.push(`REDUCING: ${data.reducingSubstances}`);
   }
 
   const microItems: string[] = [
@@ -195,8 +209,14 @@ export function parseGse(raw: string): GseAnalysisData {
     } else if (trimmed.startsWith('SENSITIVITY:')) {
       parsed.includeSensitivity = true;
       parsed.sensitivity = trimmed.replace('SENSITIVITY:', '').trim();
+    } else if (trimmed.startsWith('PH:')) {
+      parsed.ph = trimmed.replace('PH:', '').trim();
+    } else if (trimmed.startsWith('REDUCING:')) {
+      parsed.includeReducingSubstances = true;
+      parsed.reducingSubstances = trimmed.replace('REDUCING:', '').trim();
     } else if (trimmed.startsWith('PH_REDUCING:')) {
       parsed.includePhAndReducing = true;
+      parsed.includeReducingSubstances = true;
       const matchPh = trimmed.match(/pH:\s*([^|]+)/i);
       if (matchPh) parsed.ph = matchPh[1].trim();
       const matchRed = trimmed.match(/Reducing Substances:\s*([^|\n]+)/i);
@@ -1098,11 +1118,76 @@ export default function GseModal({
                   )}
                 </div>
 
-                {/* pH & Reducing Substances (فحص الحموضة والمواد المختزلة) */}
+                {/* درجة الحموضة (Stool pH / Reaction) - مطلوب لكل مريض */}
                 <div
                   style={{
                     background: 'var(--bg-card)',
-                    border: data.includePhAndReducing ? '1.5px solid #0d9488' : '1px solid var(--border-color)',
+                    border: '1.5px solid #0d9488',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      درجة الحموضة (Stool pH / Reaction)
+                    </span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#0d9488' }}>
+                      مطلوب لكل مريض (دائم بالتقرير)
+                    </span>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                      قيمة درجة الحموضة (pH):
+                    </label>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      {['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0'].map((p) => {
+                        const isSel = data.ph === p;
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setField('ph', p)}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: '6px',
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              border: isSel ? '1.5px solid #0d9488' : '1px solid var(--border-color)',
+                              background: isSel ? 'rgba(13, 148, 136, 0.15)' : 'var(--bg-input)',
+                              color: isSel ? '#0d9488' : 'var(--text-main)',
+                            }}
+                          >
+                            {p}
+                          </button>
+                        );
+                      })}
+                      <input
+                        type="text"
+                        placeholder="يدوي..."
+                        value={data.ph}
+                        onChange={(e) => setField('ph', e.target.value)}
+                        style={{
+                          width: '70px',
+                          padding: '5px 8px',
+                          borderRadius: '6px',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-input)',
+                          color: 'var(--text-main)',
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* فحص المواد المختزلة (Reducing Substances) - حسب الطلب اختياري */}
+                <div
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: data.includeReducingSubstances ? '1.5px solid #0284c7' : '1px solid var(--border-color)',
                     borderRadius: '8px',
                     padding: '12px 14px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
@@ -1113,94 +1198,50 @@ export default function GseModal({
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', userSelect: 'none' }}>
                       <input
                         type="checkbox"
-                        checked={data.includePhAndReducing}
-                        onChange={(e) => setField('includePhAndReducing', e.target.checked)}
-                        style={{ width: '16px', height: '16px', accentColor: '#0d9488', cursor: 'pointer' }}
+                        checked={data.includeReducingSubstances}
+                        onChange={(e) => setField('includeReducingSubstances', e.target.checked)}
+                        style={{ width: '16px', height: '16px', accentColor: '#0284c7', cursor: 'pointer' }}
                       />
-                      <span>فحص الحموضة والمواد المختزلة (pH &amp; Reducing Substances)</span>
+                      <span>فحص المواد المختزلة (Reducing Substances)</span>
                     </label>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: data.includePhAndReducing ? '#0d9488' : 'var(--text-muted)' }}>
-                      {data.includePhAndReducing ? 'مُفعّل بالتقرير' : 'غير مطلوب'}
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: data.includeReducingSubstances ? '#0284c7' : 'var(--text-muted)' }}>
+                      {data.includeReducingSubstances ? 'مُفعّل بالتقرير' : 'غير مطلوب (حسب الطلب)'}
                     </span>
                   </div>
 
-                  {data.includePhAndReducing && (
-                    <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-color)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
-                          درجة الحموضة (pH):
-                        </label>
-                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                          {['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0'].map((p) => {
-                            const isSel = data.ph === p;
-                            return (
-                              <button
-                                key={p}
-                                type="button"
-                                onClick={() => setField('ph', p)}
-                                style={{
-                                  padding: '4px 8px',
-                                  borderRadius: '5px',
-                                  fontSize: '11px',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                  border: isSel ? '1.5px solid #0d9488' : '1px solid var(--border-color)',
-                                  background: isSel ? 'rgba(13, 148, 136, 0.15)' : 'var(--bg-input)',
-                                  color: isSel ? '#0d9488' : 'var(--text-main)',
-                                }}
-                              >
-                                {p}
-                              </button>
-                            );
-                          })}
-                          <input
-                            type="text"
-                            placeholder="يدوي..."
-                            value={data.ph}
-                            onChange={(e) => setField('ph', e.target.value)}
-                            style={{
-                              width: '60px',
-                              padding: '3px 6px',
-                              borderRadius: '5px',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              border: '1px solid var(--border-color)',
-                              background: 'var(--bg-input)',
-                              color: 'var(--text-main)',
-                            }}
-                          />
-                        </div>
+                  {data.includeReducingSubstances ? (
+                    <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-color)' }}>
+                      <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                        نتيجة المواد المختزلة (Reducing Substances):
+                      </label>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {['Negative', 'Trace', '0.25% (+)', '0.5% (++)', '0.75% (+++)', '>=1.0% (++++)'].map((rs) => {
+                          const isSel = data.reducingSubstances === rs;
+                          return (
+                            <button
+                              key={rs}
+                              type="button"
+                              onClick={() => setField('reducingSubstances', rs)}
+                              style={{
+                                padding: '5px 10px',
+                                borderRadius: '6px',
+                                fontSize: '11.5px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                border: isSel ? '1.5px solid #0284c7' : '1px solid var(--border-color)',
+                                background: isSel ? 'rgba(2, 132, 199, 0.15)' : 'var(--bg-input)',
+                                color: isSel ? '#0284c7' : 'var(--text-main)',
+                              }}
+                            >
+                              {rs}
+                            </button>
+                          );
+                        })}
                       </div>
-
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
-                          المواد المختزلة (Reducing Substances):
-                        </label>
-                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                          {['Negative', 'Trace', '0.25% (+)', '0.5% (++)', '0.75% (+++)', '>=1.0% (++++)'].map((rs) => {
-                            const isSel = data.reducingSubstances === rs;
-                            return (
-                              <button
-                                key={rs}
-                                type="button"
-                                onClick={() => setField('reducingSubstances', rs)}
-                                style={{
-                                  padding: '4px 8px',
-                                  borderRadius: '5px',
-                                  fontSize: '11px',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                  border: isSel ? '1.5px solid #0d9488' : '1px solid var(--border-color)',
-                                  background: isSel ? 'rgba(13, 148, 136, 0.15)' : 'var(--bg-input)',
-                                  color: isSel ? '#0d9488' : 'var(--text-main)',
-                                }}
-                              >
-                                {rs}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                      ملاحظة: فحص المواد المختزلة اختياري (حسب الطلب). عند عدم اختياره لن يظهر في التقرير المطبوع.
                     </div>
                   )}
                 </div>
@@ -1645,14 +1686,18 @@ export default function GseModal({
                         </td>
                       </tr>
                     )}
-                    {data.includePhAndReducing && (
-                      <tr>
-                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>pH:</td>
-                        <td style={{ fontWeight: 700, color: '#0f172a', textAlign: 'left' }}>{data.ph}</td>
-                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>Reducing:</td>
-                        <td style={{ fontWeight: 700, color: data.reducingSubstances !== 'Negative' ? '#dc2626' : '#047857', textAlign: 'left' }}>{data.reducingSubstances}</td>
-                      </tr>
-                    )}
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>pH:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', textAlign: 'left' }}>{data.ph || '6.5'}</td>
+                      {(data.includeReducingSubstances || data.includePhAndReducing) ? (
+                        <>
+                          <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>Reducing:</td>
+                          <td style={{ fontWeight: 700, color: data.reducingSubstances !== 'Negative' ? '#dc2626' : '#047857', textAlign: 'left' }}>{data.reducingSubstances}</td>
+                        </>
+                      ) : (
+                        <td colSpan={2}></td>
+                      )}
+                    </tr>
                   </tbody>
                 </table>
               </div>

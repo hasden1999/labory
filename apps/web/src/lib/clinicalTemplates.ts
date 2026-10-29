@@ -16,14 +16,21 @@ export type {
 };
 export { DEFAULT_CLINICAL_TEMPLATES };
 
+function getDynamicAppData(): string | null {
+  const envKey = 'APPDATA';
+  const appDataVal = process.env[envKey];
+  return appDataVal ? path.join(appDataVal, '@lab-manager', 'desktop', 'data') : null;
+}
+
 function getCandidatePaths(): string[] {
   const paths: string[] = [];
   if (process.env.LABRYO_DATA_DIR) {
     paths.push(path.join(path.resolve(process.env.LABRYO_DATA_DIR), 'clinical_templates.json'));
   }
-  // Windows AppData fallback
-  if (process.env.APPDATA) {
-    paths.push(path.join(process.env.APPDATA, '@lab-manager', 'desktop', 'data', 'clinical_templates.json'));
+  // Windows AppData fallback (dynamic runtime resolution)
+  const appDataDir = getDynamicAppData();
+  if (appDataDir) {
+    paths.push(path.join(appDataDir, 'clinical_templates.json'));
   }
   // Project / web data paths
   paths.push(path.resolve(process.cwd().includes('apps') ? process.cwd() : path.join(process.cwd(), 'apps', 'web'), 'data', 'clinical_templates.json'));
@@ -60,10 +67,11 @@ export function getClinicalTemplates(): ClinicalTemplates {
 
 export function saveClinicalTemplates(newConfig: Partial<ClinicalTemplates>): boolean {
   try {
+    const dynamicAppData = getDynamicAppData();
     const targetDir = process.env.LABRYO_DATA_DIR
       ? path.resolve(process.env.LABRYO_DATA_DIR)
-      : (process.env.APPDATA
-          ? path.join(process.env.APPDATA, '@lab-manager', 'desktop', 'data')
+      : (dynamicAppData
+          ? dynamicAppData
           : path.resolve(process.cwd().includes('apps') ? process.cwd() : path.join(process.cwd(), 'apps', 'web'), 'data'));
 
     if (!fs.existsSync(targetDir)) {

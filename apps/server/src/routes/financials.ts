@@ -663,6 +663,14 @@ export async function financialRoutes(fastify: FastifyInstance) {
         ...(existing.voucherNumber
           ? [prisma.financialTransaction.deleteMany({ where: { voucherNumber: existing.voucherNumber, type: 'EXPENSE' } })]
           : []),
+        prisma.auditLog.create({
+          data: {
+            action: 'DELETE',
+            entity: 'EXPENSE',
+            entityId: id,
+            details: `حذف سند المصروف رقم ${existing.voucherNumber || id} بمبلغ ${existing.amount} د.ع`,
+          },
+        }),
       ]);
     }
     return reply.send({ success: true });

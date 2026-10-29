@@ -110,7 +110,7 @@ export default function GlobalQuickBar() {
     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
       
       {/* 1. Global Search Box (Accessible across all screens) */}
-      <div style={{ position: 'relative', width: '320px' }} ref={dropdownRef}>
+      <div style={{ position: 'relative', width: 'clamp(180px, 18vw, 280px)' }} ref={dropdownRef}>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <Search size={14} style={{ position: 'absolute', right: '12px', color: 'var(--text-dim)', pointerEvents: 'none' }} />
           <input

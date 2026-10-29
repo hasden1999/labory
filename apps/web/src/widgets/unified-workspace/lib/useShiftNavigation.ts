@@ -121,7 +121,7 @@ export function useShiftNavigation({
 export function advanceFocusToNextField(root: HTMLElement) {
   const elements = Array.from(
     root.querySelectorAll<HTMLElement>(
-      'input[data-shift-nav], textarea[data-shift-nav], button[data-shift-nav]'
+      'input[data-shift-nav], textarea[data-shift-nav], button[data-shift-nav], select[data-shift-nav]'
     )
   ).filter((el) => {
     // Only focus visible, non-disabled, non-readonly inputs
@@ -135,7 +135,8 @@ export function advanceFocusToNextField(root: HTMLElement) {
   if (elements.length === 0) return;
 
   const activeEl = document.activeElement as HTMLElement | null;
-  const currentIndex = activeEl ? elements.indexOf(activeEl) : -1;
+  const currentNavEl = activeEl ? (activeEl.closest('[data-shift-nav]') as HTMLElement | null) : null;
+  const currentIndex = currentNavEl ? elements.indexOf(currentNavEl) : (activeEl ? elements.indexOf(activeEl) : -1);
 
   let nextIndex = 0;
   if (currentIndex >= 0 && currentIndex < elements.length - 1) {
@@ -151,6 +152,8 @@ export function advanceFocusToNextField(root: HTMLElement) {
     if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
       target.select();
     }
-    target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (typeof target.scrollIntoView === 'function') {
+      target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
   }
 }

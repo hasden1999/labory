@@ -194,15 +194,15 @@ export async function sampleRoutes(fastify: FastifyInstance) {
       where: { id: { in: uniqueTestIds } },
     });
 
-    const subtotal = catalogTests.reduce((sum, t) => sum + t.price, 0);
-    let finalDiscount = discount !== undefined ? Number(discount) : 0;
+    const subtotal = Math.round(catalogTests.reduce((sum, t) => sum + t.price, 0));
+    let finalDiscount = discount !== undefined ? Math.round(Number(discount)) : 0;
     const discPct = discountPercent !== undefined ? Number(discountPercent) : 0;
     if (discPct > 0 && finalDiscount === 0) {
-      finalDiscount = (subtotal * discPct) / 100;
+      finalDiscount = Math.round((subtotal * discPct) / 100);
     }
-    const priceTotal = Math.max(0, subtotal - finalDiscount);
-    const paid = paidAmount !== undefined ? Number(paidAmount) : priceTotal;
-    const remaining = Math.max(0, priceTotal - paid);
+    const priceTotal = Math.round(Math.max(0, subtotal - finalDiscount));
+    const paid = paidAmount !== undefined ? Math.round(Number(paidAmount)) : priceTotal;
+    const remaining = Math.round(Math.max(0, priceTotal - paid));
 
     // Atomic creation with automatic collision retry
     let sample: any = null;
@@ -350,7 +350,7 @@ export async function sampleRoutes(fastify: FastifyInstance) {
   });
 
   // Settle or Pay Remaining Sample Debt with Official Voucher Generation
-  fastify.post('/samples/:id/pay', async (request: any, reply: any) => {
+  const handlePaySample = async (request: any, reply: any) => {
     const { id } = request.params as any;
     const { payAmount, paymentMethod, notes } = request.body as any;
 
@@ -362,13 +362,13 @@ export async function sampleRoutes(fastify: FastifyInstance) {
       return reply.status(404).send({ message: 'العينة غير موجودة' });
     }
 
-    const amount = Number(payAmount) || 0;
+    const amount = Math.round(Number(payAmount) || 0);
     if (amount <= 0) {
       return reply.status(400).send({ message: 'الرجاء إدخال مبلغ دفع صالح أكبر من صفر' });
     }
 
-    const newPaid = sample.paidAmount + amount;
-    const newRemaining = Math.max(0, sample.priceTotal - newPaid);
+    const newPaid = Math.round(sample.paidAmount + amount);
+    const newRemaining = Math.round(Math.max(0, sample.priceTotal - newPaid));
 
     const transactionResult = await prisma.$transaction(async (tx) => {
       // 1. Update Sample
@@ -448,6 +448,21 @@ export async function sampleRoutes(fastify: FastifyInstance) {
     });
 
     return reply.send(transactionResult);
+  };
+
+  fastify.post('/samples/:id/pay', handlePaySample);
+  fastify.patch('/samples/:id/pay', handlePaySample);
+
+  fastify.patch('/samples/:id', async (request: any, reply: any) => {
+    const { id } = request.params as any;
+    const body = request.body || {};
+    const updateData: any = {};
+    if (body.paidAmount !== undefined) updateData.paidAmount = Math.round(Number(body.paidAmount));
+    if (body.remainingAmount !== undefined) updateData.remainingAmount = Math.round(Number(body.remainingAmount));
+    if (body.paymentStatus !== undefined) updateData.paymentStatus = body.paymentStatus;
+    if (body.status !== undefined) updateData.status = body.status;
+    const updated = await prisma.sample.update({ where: { id }, data: updateData });
+    return reply.send(updated);
   });
 
   // Append Additional Tests to an Existing Patient Sample

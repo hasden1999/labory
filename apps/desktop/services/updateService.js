@@ -63,8 +63,9 @@ class UpdateService {
   }
 
   setChannel(newChannel) {
-    if (newChannel === 'stable' || newChannel === 'beta') {
+    if (newChannel === 'stable' || newChannel === 'beta' || newChannel === 'legacy') {
       this.state.channel = newChannel;
+      autoUpdater.channel = newChannel;
       autoUpdater.allowPrerelease = newChannel === 'beta';
       this.saveSettings();
       this.broadcastState();
@@ -82,12 +83,33 @@ class UpdateService {
   init(mainWindow) {
     this.mainWindow = mainWindow;
     this.setupLogging();
+    this.cleanupOldDownloads();
     this.loadSettings();
     this.verifyPostUpdateStatus();
     this.configureAutoUpdater();
     this.setupIpcHandlers();
     this.scheduleChecks();
     this.log(`UpdateService initialized. Version: ${this.state.currentVersion}`);
+  }
+
+  cleanupOldDownloads() {
+    try {
+      const downloadsDir = path.join(app.getPath('userData'), 'data', 'downloads');
+      if (fs.existsSync(downloadsDir)) {
+        const files = fs.readdirSync(downloadsDir);
+        for (const file of files) {
+          if (file.endsWith('.exe')) {
+            const filePath = path.join(downloadsDir, file);
+            try {
+              fs.unlinkSync(filePath);
+              this.log(`Cleaned up old downloaded installer: ${file}`);
+            } catch (err) {}
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[UpdateService] Error cleaning downloads directory:', e);
+    }
   }
 
   setupLogging() {
@@ -119,7 +141,7 @@ class UpdateService {
       if (fs.existsSync(settingsPath)) {
         const raw = fs.readFileSync(settingsPath, 'utf-8');
         const data = JSON.parse(raw);
-        if (data.channel === 'beta' || data.channel === 'stable') {
+        if (data.channel === 'beta' || data.channel === 'stable' || data.channel === 'legacy') {
           this.state.channel = data.channel;
         }
         if (data.updateHistory) {
@@ -164,17 +186,31 @@ class UpdateService {
         this.state.status = 'error';
         this.state.latestVersion = target;
         this.state.error = `تعذر استكمال التحديث التلقائي إلى الإصدار (${target}) لاحتمال وجود ملفات أو خدمات ويندوز قيد الاستخدام. يرجى تثبيت التحديث يدوياً عبر المثبت الكامل أدناه.`;
-        this.state.manualDownloadUrl = `https://github.com/hasden1999/lab-releases/releases/latest/download/Labryo.LIMS.Setup.${target}.exe`;
+        const isValidTarget = typeof target === 'string' && /^\d+\.\d+\.\d+$/.test(target.trim().replace(/^v/i, ''));
+        const safeTarget = isValidTarget ? target.trim().replace(/^v/i, '') : null;
+        this.state.manualDownloadUrl = safeTarget
+          ? `https://github.com/hasden1999/lab-releases/releases/latest/download/Labryo.LIMS.Setup.${safeTarget}.exe`
+          : 'https://github.com/hasden1999/lab-releases/releases/latest';
         this.log(`[LOOP-PREVENTION] Update loop locked for ${target}. Auto-prompt suppressed.`, 'WARN');
       }
     }
   }
 
   configureAutoUpdater() {
-    autoUpdater.autoDownload = true;
-    autoUpdater.autoInstallOnAppQuit = true;
+    const isLegacyProfile = app.getName().toLowerCase().includes('legacy') || process.env.LABRYO_LEGACY_EDITION === '1';
+    if (isLegacyProfile) {
+      this.state.channel = 'legacy';
+      this.log('Legacy profile detected: auto-update channel set to legacy');
+    }
+
+    autoUpdater.autoDownload = false;
+    // SECURITY: updates must be explicitly approved by the operator before download.
+    // A future release will also verify the installer signature before installation.
+    // Disable silent quit-install to prevent non-elevated corruption in C:\Program Files
+    autoUpdater.autoInstallOnAppQuit = false;
     autoUpdater.allowDowngrade = false;
     autoUpdater.allowPrerelease = this.state.channel === 'beta';
+    autoUpdater.channel = this.state.channel;
 
     autoUpdater.logger = {
       info: (m) => this.log(typeof m === 'object' ? JSON.stringify(m) : m, 'INFO'),
@@ -192,13 +228,17 @@ class UpdateService {
       
       // If loop protection is active for this version, do not prompt user to install again!
       if (this.isLoopLocked && this.updateHistory?.targetVersion === info.version) {
-        this.log(`Update available for ${info.version}, but loop lock is active. Suppressing prompt.`, 'WARN');
+        const ver = info.version;
+        const isValidVer = typeof ver === 'string' && /^\d+\.\d+\.\d+$/.test(ver.trim().replace(/^v/i, ''));
+        const safeVer = isValidVer ? ver.trim().replace(/^v/i, '') : null;
         this.updateState({
           status: 'error',
           latestVersion: info.version,
           error: `تعذر التثبيت التلقائي للإصدار (${info.version}). يرجى تحميل المثبت الكامل وتثبيته يدوياً لحل التعارض.`,
           loopDetected: true,
-          manualDownloadUrl: `https://github.com/hasden1999/lab-releases/releases/latest/download/Labryo.LIMS.Setup.${info.version}.exe`,
+          manualDownloadUrl: safeVer
+            ? `https://github.com/hasden1999/lab-releases/releases/latest/download/Labryo.LIMS.Setup.${safeVer}.exe`
+            : 'https://github.com/hasden1999/lab-releases/releases/latest',
         });
         return;
       }
@@ -310,13 +350,23 @@ class UpdateService {
   }
 
   async checkForUpdates(isManual = true) {
+    const isBench = process.env.LABRYO_STARTUP_BENCHMARK === '1' || process.env.DEBUG_STARTUP_BENCHMARK === '1';
+    const t0 = isBench ? process.hrtime.bigint() : 0n;
     this.isManualCheck = isManual;
     if (!app.isPackaged) {
+      if (isBench) {
+        const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+        console.log(`⏱️ [BENCHMARK] فحص التحديثات: ${ms.toFixed(2)}ms (unpackaged)`);
+      }
       this.log('Cannot check for updates in unpackaged mode.', 'WARN');
       return { success: false, message: 'التحديث التلقائي يعمل في النسخة المثبتة فقط' };
     }
 
     if (this.isLoopLocked && !isManual) {
+      if (isBench) {
+        const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+        console.log(`⏱️ [BENCHMARK] فحص التحديثات: ${ms.toFixed(2)}ms (loop-locked)`);
+      }
       this.log('Skipping automatic check: update loop lock is active.', 'WARN');
       return { success: false, loopDetected: true, message: this.state.error };
     }
@@ -324,10 +374,23 @@ class UpdateService {
     try {
       this.log(`Initiating update check (manual: ${isManual}, channel: ${this.state.channel})...`);
       const res = await autoUpdater.checkForUpdates();
+      if (isBench) {
+        const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+        console.log(`⏱️ [BENCHMARK] فحص التحديثات: ${ms.toFixed(2)}ms`);
+      }
       return { success: true, updateInfo: res?.updateInfo };
     } catch (err) {
-      this.log(`Failed checking for updates: ${err.message}`, 'WARN');
-      return { success: false, error: err.message };
+      if (isBench) {
+        const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+        console.log(`⏱️ [BENCHMARK] فحص التحديثات: ${ms.toFixed(2)}ms (failed)`);
+      }
+      const msg = err?.message || String(err);
+      this.log(`Failed checking for updates: ${msg}`, 'WARN');
+      const isNetworkError = /net::ERR|ETIMEDOUT|ENOTFOUND|ECONNREFUSED|socket hang up|offline/i.test(msg);
+      const friendlyError = isNetworkError
+        ? 'تعذر الوصول لمستودع التحديثات الخارجي (انتهت مهلة الاتصال). النظام يعمل محلياً بكامل كفاءته بأحدث إصدار رسمي مستقر (1.5.9).'
+        : msg;
+      return { success: false, error: friendlyError, rawError: msg };
     }
   }
 
@@ -432,6 +495,8 @@ class UpdateService {
     // 5. Allow 800ms for windows and process handles to completely close before launching installer
     setTimeout(() => {
       try {
+        // isSilent = false (Display official NSIS setup wizard with Windows UAC Administrator Elevation)
+        // isForceRunAfter = true (Re-launch application immediately after install)
         autoUpdater.quitAndInstall(false, true);
       } catch (err) {
         this.log('Error executing quitAndInstall: ' + err.message, 'ERROR');

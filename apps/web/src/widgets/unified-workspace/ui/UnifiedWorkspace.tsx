@@ -105,11 +105,12 @@ export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWo
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'row',
-        backgroundColor: '#eef2f5',
-        color: '#14202b',
+        backgroundColor: 'var(--bg-primary)',
+        color: 'var(--text-main)',
         fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",
         userSelect: 'none',
         boxSizing: 'border-box',
+        transition: 'background-color 0.15s ease, color 0.15s ease',
       }}
     >
       {/* 1. Sections Sidebar on the RIGHT edge (RTL) */}

@@ -13,4 +13,4 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location 'd:\
 Write-Host ""
 Write-Host "تم تشغيل الخدمات بنمط الأداء الفائق!" -ForegroundColor Green
 Write-Host "رابط الواجهة في المتصفح: http://localhost:8080" -ForegroundColor Cyan
-Start-Process "http://localhost:8080"
+# تم تعطيل الفتح التلقائي للمتصفح الخارجي بناءً على إعدادات سطح المكتب

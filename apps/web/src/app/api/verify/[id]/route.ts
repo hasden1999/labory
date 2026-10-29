@@ -8,7 +8,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const sample = store.samples.find((s: any) => s.id === targetId || (targetId.length >= 6 && String(s.sampleNumber) === targetId));
   
   if (!sample) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return NextResponse.json({ error: 'لم يتم العثور على نتيجة العينة' }, { status: 404 });
   }
 
   // Mask patient name explicitly here to ensure it doesn't leak

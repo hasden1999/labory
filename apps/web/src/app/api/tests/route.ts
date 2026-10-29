@@ -6,9 +6,28 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const store = getStore();
   const activeTests = (store.tests || []).filter((t: any) => t.active !== false);
+
+  // Compute test frequencies from actual lab order history
+  const frequencies: Record<string, number> = {};
+  for (const sample of (store.samples || [])) {
+    const items = sample.tests || (sample as any).results || [];
+    for (const item of items) {
+      const tid = item.testId || item.test?.id || item.id;
+      if (tid) {
+        frequencies[String(tid)] = (frequencies[String(tid)] || 0) + 1;
+      }
+      const code = item.code || item.test?.code;
+      if (code) {
+        const cUpper = String(code).toUpperCase().trim();
+        frequencies[cUpper] = (frequencies[cUpper] || 0) + 1;
+      }
+    }
+  }
+
   return NextResponse.json({
     tests: activeTests,
     panels: store.panels || [],
+    frequencies,
   });
 }
 

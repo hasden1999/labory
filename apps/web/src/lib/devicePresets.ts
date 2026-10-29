@@ -21,6 +21,9 @@ export interface DevicePreset {
   parity?: string;
   description: string;
   arabicDescription: string;
+  cableTypeAr?: string;
+  analyzerMenuPath?: string;
+  setupSteps?: string[];
   defaultMappings: PresetMapping[];
 }
 
@@ -36,6 +39,14 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     defaultPort: 5100,
     description: 'Mindray 5-Part Auto Hematology Analyzer (HL7 over LAN TCP/IP)',
     arabicDescription: 'جهاز صورة الدم الكاملة ميندراي خماسي الفئات عبر شبكة LAN',
+    cableTypeAr: '🌐 كابل شبكة إنترنت عادي (LAN RJ-45) يربط الجهاز بالراوتر أو السويتش أو بالحاسوب مباشرة',
+    analyzerMenuPath: 'Setup ➔ Host Communication (LIS) ➔ Network / HL7',
+    setupSteps: [
+      '1. وصّل كابل الشبكة (LAN) خلف جهاز Mindray BC-5000 وإلى راوتر المختبر (أو الحاسوب الرئيسي مباشرة).',
+      '2. من شاشة جهاز Mindray اضغط على قائمة (Setup) ثم اختر (Host Communication / LIS).',
+      '3. في خانة (Host IP / Server IP) اكتب رقم الـ IP الخاص بحاسوب السيرفر الظاهر أمامك بالأعلى، وفي خانة (Port) اكتب: 5000.',
+      '4. اختر البروتوكول (HL7) وفعّل خيار (Auto-Send / Auto Transmit) ثم اضغط (Save) في الجهاز.',
+    ],
     defaultMappings: [
       { deviceTestCode: 'WBC', deviceTestName: 'White Blood Cells', testCatalogCode: 'CBC', testCatalogName: 'WBC - White Blood Cells', unit: '10^3/uL' },
       { deviceTestCode: 'RBC', deviceTestName: 'Red Blood Cells', testCatalogCode: 'CBC', testCatalogName: 'RBC - Red Blood Cells', unit: '10^6/uL' },
@@ -66,6 +77,14 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     parity: 'none',
     description: 'Mindray 3-Part Auto Hematology Analyzer (ASTM over RS-232 / USB COM)',
     arabicDescription: 'جهاز صورة الدم الكاملة ميندراي ثلاثي الفئات عبر منفذ السيريال',
+    cableTypeAr: '🔌 كابل سيريال (RS-232 DB9 إلى USB) يُربط بين خلف الجهاز ومنفذ USB في الحاسوب',
+    analyzerMenuPath: 'Menu ➔ Setup ➔ System Setup ➔ Communication',
+    setupSteps: [
+      '1. وصّل كابل السيريال (RS-232 to USB) من منفذ Serial خلف جهاز Mindray إلى منفذ USB في الحاسوب.',
+      '2. من شاشة جهاز Mindray ادخل إلى: Menu ➔ Setup ➔ Communication.',
+      '3. اضبط سرعة النقل (Baud Rate) على 9600، و (Data Bits: 8, Stop: 1, Parity: None) وفعّل (Auto Transmit: ON).',
+      '4. اختر رقم منفذ الـ COM أدناه (غالباً COM3 أو COM4) ثم شغّل الوسيط المحلي (LIS Agent).',
+    ],
     defaultMappings: [
       { deviceTestCode: 'WBC', deviceTestName: 'White Blood Cells', testCatalogCode: 'CBC', testCatalogName: 'WBC - White Blood Cells', unit: '10^3/uL' },
       { deviceTestCode: 'RBC', deviceTestName: 'Red Blood Cells', testCatalogCode: 'CBC', testCatalogName: 'RBC - Red Blood Cells', unit: '10^6/uL' },
@@ -95,6 +114,14 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     parity: 'none',
     description: 'Sysmex 3-Part Automated Hematology Analyzer (ASTM 1394 Serial)',
     arabicDescription: 'جهاز صورة الدم الكاملة سيسمكس ثلاثي الفئات عبر كابل السيريال',
+    cableTypeAr: '🔌 كابل سيريال متقاطع (Null-Modem RS-232 to USB) بين منفذ Host في الجهاز والكمبيوتر',
+    analyzerMenuPath: 'Menu ➔ Settings ➔ Host Output ➔ Serial',
+    setupSteps: [
+      '1. وصّل كابل السيريال (RS-232 to USB) في منفذ (Host) خلف جهاز Sysmex XP-300 / KX-21N إلى الحاسوب.',
+      '2. من شاشة جهاز Sysmex ادخل إلى: Settings ➔ Host Output.',
+      '3. اضبط الحالة على (Auto Output: ON)، وسرعة الباود (Baud Rate: 9600)، والصيغة (ASTM / Format 1).',
+      '4. اكتب رقم العينة في الجهاز عند فحص المريض وستنزل النتيجة تلقائياً في شاشة النتائج.',
+    ],
     defaultMappings: [
       { deviceTestCode: 'WBC', deviceTestName: 'WBC', testCatalogCode: 'CBC', testCatalogName: 'WBC - White Blood Cells', unit: '10^3/uL' },
       { deviceTestCode: 'RBC', deviceTestName: 'RBC', testCatalogCode: 'CBC', testCatalogName: 'RBC - Red Blood Cells', unit: '10^6/uL' },
@@ -119,6 +146,14 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     defaultPort: 5000,
     description: 'Sysmex XN-L Series 5-Part Hematology Analyzer (HL7 over TCP/IP)',
     arabicDescription: 'جهاز صورة الدم الكاملة سيسمكس XN خماسي الفئات عبر شبكة LAN',
+    cableTypeAr: '🌐 كابل شبكة (LAN RJ-45) من الجهاز أو حاسوب IPU إلى شبكة المختبر',
+    analyzerMenuPath: 'IPU Menu ➔ Network Settings ➔ Host (HIS/LIS)',
+    setupSteps: [
+      '1. وصّل جهاز Sysmex XN (أو حاسوب الجهاز المرفق) بنفس شبكة المختبر (LAN).',
+      '2. افتح إعدادات الاتصال (Host / LIS Settings) في برنامج الجهاز.',
+      '3. أدخل عنوان IP لحاسوب السيرفر الظاهر بالأعلى والمنفذ (Port: 5000) واختر بروتوكول HL7 / ASTM.',
+      '4. فعّل الإرسال الفوري (Real-time Output) ليتم إرسال كل فحص فور اكتماله.',
+    ],
     defaultMappings: [
       { deviceTestCode: 'WBC', deviceTestName: 'WBC', testCatalogCode: 'CBC', testCatalogName: 'WBC - White Blood Cells', unit: '10^3/uL' },
       { deviceTestCode: 'RBC', deviceTestName: 'RBC', testCatalogCode: 'CBC', testCatalogName: 'RBC - Red Blood Cells', unit: '10^6/uL' },
@@ -141,6 +176,14 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     defaultPort: 5100,
     description: 'Mindray Auto Chemistry Analyzer (HL7 / ASTM over LAN)',
     arabicDescription: 'جهاز الكيمياء السريرية الآلي ميندراي عبر الشبكة المحلية',
+    cableTypeAr: '🌐 كابل شبكة (LAN) بين حاسوب جهاز الكيمياء وحاسوب نظام المختبر',
+    analyzerMenuPath: 'System Setup (F7) ➔ LIS Communication ➔ Network (TCP/IP)',
+    setupSteps: [
+      '1. في برنامج التشغيل الخاص بجهاز Mindray BS، اضغط على (System Setup) ثم تبويب (LIS).',
+      '2. اختر نوع الاتصال (TCP/IP) والبروتوكول (HL7).',
+      '3. اكتب في خانة (LIS IP Address) رقم الـ IP الخاص بالسيرفر الظاهر بالأعلى، وفي خانة (Port) اكتب: 5000.',
+      '4. ضع علامة صح أمام (Auto connect on startup) و (Real-time send results) ثم اضغط Save.',
+    ],
     defaultMappings: [
       { deviceTestCode: 'GLU', deviceTestName: 'Glucose', testCatalogCode: 'FBS', testCatalogName: 'Fasting Blood Sugar (FBS)', unit: 'mg/dL' },
       { deviceTestCode: 'UREA', deviceTestName: 'Urea', testCatalogCode: 'UREA', testCatalogName: 'Blood Urea', unit: 'mg/dL' },
@@ -172,6 +215,14 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     parity: 'none',
     description: 'Roche Cobas Clinical Chemistry Analyzer (ASTM 1394 Serial/LAN)',
     arabicDescription: 'جهاز الكيمياء السريرية روش كوباس c311 عبر منفذ السيريال',
+    cableTypeAr: '🔌 كابل سيريال (RS-232) أو كابل شبكة LAN حسب إصدار الكوباس لديك',
+    analyzerMenuPath: 'Utilities ➔ System ➔ Host Communication',
+    setupSteps: [
+      '1. وصّل كابل الربط بين جهاز Roche Cobas وحاسوب المختبر.',
+      '2. من شاشة Cobas ادخل إلى: Utilities ➔ System ➔ Host Interface.',
+      '3. فعّل خيار (Host Communication: ON) واختر بروتوكول (ASTM 1394).',
+      '4. عند انتهاء أي فحص كيمياء سيرسل الجهاز القراءات مباشرة إلى رقم العينة المطابق.',
+    ],
     defaultMappings: [
       { deviceTestCode: 'GLUC', deviceTestName: 'Glucose', testCatalogCode: 'FBS', testCatalogName: 'Fasting Blood Sugar (FBS)', unit: 'mg/dL' },
       { deviceTestCode: 'UREA', deviceTestName: 'Urea', testCatalogCode: 'UREA', testCatalogName: 'Blood Urea', unit: 'mg/dL' },
@@ -195,6 +246,14 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     defaultPort: 5000,
     description: 'Roche Cobas e411 Immunoassay & Hormones Analyzer (ASTM 1394 TCP)',
     arabicDescription: 'جهاز تحاليل الهرمونات والمناعة روش كوباس e411',
+    cableTypeAr: '🌐 كابل شبكة (LAN) أو كابل سيريال (RS-232) من منفذ Host في الخلف',
+    analyzerMenuPath: 'Utility ➔ System (Page 2) ➔ Host Setting',
+    setupSteps: [
+      '1. وصّل كابل الشبكة أو السيريال بين جهاز Cobas e411 وحاسوب المختبر.',
+      '2. من شاشة الجهاز اضغط (Utility) ثم انتقل للصفحة الثانية في (System) وافتح (Host Setting).',
+      '3. فعّل (Host Communication: ON) واضبط عنوان السيرفر الظاهر بالأعلى والمنفذ: 5000.',
+      '4. تأكد أن رقم العينة (Sample ID) المكتوب في الجهاز يطابق رقم العينة في برنامج المختبر.',
+    ],
     defaultMappings: [
       { deviceTestCode: 'TSH', deviceTestName: 'TSH (Thyroid)', testCatalogCode: 'TSH', testCatalogName: 'TSH - Thyroid Stimulating Hormone', unit: 'uIU/mL' },
       { deviceTestCode: 'FT3', deviceTestName: 'Free T3', testCatalogCode: 'FT3', testCatalogName: 'Free T3 (FT3)', unit: 'pg/mL' },
@@ -218,6 +277,14 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     defaultPort: 5100,
     description: 'Snibe Maglumi CLIA Chemiluminescence Analyzer (HL7 v2 / ASTM)',
     arabicDescription: 'جهاز الهرمونات والمناعة الآلي سنيب ماجلومي عبر شبكة LAN',
+    cableTypeAr: '🌐 كابل شبكة (LAN) بين حاسوب جهاز Maglumi وشبكة المختبر',
+    analyzerMenuPath: 'Menu ➔ LIS Settings ➔ HL7 / ASTM TCP',
+    setupSteps: [
+      '1. في برنامج Maglumi على حاسوب الجهاز، افتح قائمة (LIS Settings / Communication).',
+      '2. اختر الاتصال عبر الشبكة (TCP/IP - HL7) وأدخل رقم الـ IP الخاص بالسيرفر الظاهر بالأعلى والمنفذ: 5000.',
+      '3. فعّل خيار الإرسال التلقائي للنتائج (Auto Send After Test).',
+      '4. احفظ الإعدادات وابدأ الفحص؛ ستنزل نتائج الهرمونات والفيتامينات مباشرة في العينة.',
+    ],
     defaultMappings: [
       { deviceTestCode: 'TSH', deviceTestName: 'TSH', testCatalogCode: 'TSH', testCatalogName: 'TSH', unit: 'uIU/mL' },
       { deviceTestCode: 'FT4', deviceTestName: 'FT4', testCatalogCode: 'FT4', testCatalogName: 'FT4', unit: 'ng/dL' },
@@ -241,6 +308,13 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     parity: 'none',
     description: 'Electrolytes Analyzer (Na+, K+, Cl-, Ca2+, pH)',
     arabicDescription: 'جهاز تحليل أملاح الدم والشوارد (Na, K, Cl, Ca)',
+    cableTypeAr: '🔌 كابل سيريال (RS-232 to USB) من منفذ COM خلف جهاز الأملاح إلى الحاسوب',
+    analyzerMenuPath: 'Main Menu ➔ Setup ➔ Serial Port / Baud Rate (9600)',
+    setupSteps: [
+      '1. وصّل كابل السيريال (RS-232 to USB) خلف جهاز الأملاح وإلى منفذ USB في الحاسوب.',
+      '2. تأكد من شاشة الجهاز أن سرعة المنفذ (Baud Rate) مضبوطة على 9600.',
+      '3. اختر منفذ الـ COM أدناه وسيقوم النظام بقراءة نتائج (Na, K, Cl, Ca) تلقائياً فور طباعتها من الجهاز.',
+    ],
     defaultMappings: [
       { deviceTestCode: 'Na', deviceTestName: 'Sodium', testCatalogCode: 'NA', testCatalogName: 'Sodium (Na+)', unit: 'mmol/L' },
       { deviceTestCode: 'K', deviceTestName: 'Potassium', testCatalogCode: 'K', testCatalogName: 'Potassium (K+)', unit: 'mmol/L' },

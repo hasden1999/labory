@@ -15,7 +15,7 @@
 
 ## الملفات الأساسية (Key Files)
 - `page.tsx`: شاشة استقبال العينات وتسجيل الفحوصات.
-- `../../components/samples/AccessionModal.tsx`: استمارة تسجيل العينة واختيار الفحوصات.
+- `../../widgets/unified-workspace/`: كونسول الاستقبال الموحد (Unified Workspace) لإدخال المرضى واختيار الفحوصات.
 - `../../components/workspace/TechnicianCommandCenter.tsx`: لوحة العمل السريع للفنيين.
 
 </div>

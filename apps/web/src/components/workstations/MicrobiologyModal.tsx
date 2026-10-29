@@ -1,12 +1,26 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { X, Check, Sparkles, RotateCcw, Bug, ShieldAlert, Plus, Trash2, Activity, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  X,
+  Check,
+  Sparkles,
+  RotateCcw,
+  Bug,
+  ShieldAlert,
+  Search,
+  FileText,
+  CheckCircle2,
+  AlertTriangle,
+  FlaskConical,
+  Filter
+} from 'lucide-react';
 import { useToast } from '../Toast';
 
 export interface AntibioticSensitivityItem {
   antibiotic: string;
   diskContent: string;
+  category?: 'gram_negative' | 'gram_positive' | 'broad_spectrum';
   zoneMm?: number;
   interpretation: 'S' | 'I' | 'R' | '-';
 }
@@ -20,42 +34,98 @@ export interface MicrobiologyData {
   notes: string;
 }
 
-const DEFAULT_ANTIBIOTICS: { name: string; disk: string }[] = [
-  { name: 'Amikacin', disk: '30 ug' },
-  { name: 'Amoxicillin-Clavulanate', disk: '20/10 ug' },
-  { name: 'Ampicillin', disk: '10 ug' },
-  { name: 'Cefepime', disk: '30 ug' },
-  { name: 'Ceftriaxone', disk: '30 ug' },
-  { name: 'Ciprofloxacin', disk: '5 ug' },
-  { name: 'Colistin', disk: '10 ug' },
-  { name: 'Gentamicin', disk: '10 ug' },
-  { name: 'Imipenem', disk: '10 ug' },
-  { name: 'Levofloxacin', disk: '5 ug' },
-  { name: 'Meropenem', disk: '10 ug' },
-  { name: 'Nitrofurantoin', disk: '300 ug' },
-  { name: 'Piperacillin-Tazobactam', disk: '100/10 ug' },
-  { name: 'Trimethoprim-Sulfamethoxazole', disk: '1.25/23.75 ug' },
-  { name: 'Cefotaxime', disk: '30 ug' },
-  { name: 'Ceftazidime', disk: '30 ug' },
-  { name: 'Vancomycin', disk: '30 ug' },
-  { name: 'Linezolid', disk: '30 ug' },
-  { name: 'Doxycycline', disk: '30 ug' },
-  { name: 'Azithromycin', disk: '15 ug' },
+export const DEFAULT_ANTIBIOTICS: { name: string; disk: string; category: 'gram_negative' | 'gram_positive' | 'broad_spectrum' }[] = [
+  { name: 'Amikacin', disk: '30 ug', category: 'gram_negative' },
+  { name: 'Amoxicillin-Clavulanate', disk: '20/10 ug', category: 'broad_spectrum' },
+  { name: 'Ampicillin', disk: '10 ug', category: 'broad_spectrum' },
+  { name: 'Cefepime', disk: '30 ug', category: 'gram_negative' },
+  { name: 'Ceftriaxone', disk: '30 ug', category: 'broad_spectrum' },
+  { name: 'Cefotaxime', disk: '30 ug', category: 'gram_negative' },
+  { name: 'Ceftazidime', disk: '30 ug', category: 'gram_negative' },
+  { name: 'Ciprofloxacin', disk: '5 ug', category: 'broad_spectrum' },
+  { name: 'Colistin', disk: '10 ug', category: 'gram_negative' },
+  { name: 'Gentamicin', disk: '10 ug', category: 'broad_spectrum' },
+  { name: 'Imipenem', disk: '10 ug', category: 'broad_spectrum' },
+  { name: 'Meropenem', disk: '10 ug', category: 'broad_spectrum' },
+  { name: 'Levofloxacin', disk: '5 ug', category: 'broad_spectrum' },
+  { name: 'Nitrofurantoin', disk: '300 ug', category: 'gram_negative' },
+  { name: 'Piperacillin-Tazobactam', disk: '100/10 ug', category: 'broad_spectrum' },
+  { name: 'Trimethoprim-Sulfamethoxazole', disk: '1.25/23.75 ug', category: 'broad_spectrum' },
+  { name: 'Vancomycin', disk: '30 ug', category: 'gram_positive' },
+  { name: 'Linezolid', disk: '30 ug', category: 'gram_positive' },
+  { name: 'Doxycycline', disk: '30 ug', category: 'broad_spectrum' },
+  { name: 'Azithromycin', disk: '15 ug', category: 'broad_spectrum' },
+  { name: 'Clindamycin', disk: '2 ug', category: 'gram_positive' },
+  { name: 'Erythromycin', disk: '15 ug', category: 'gram_positive' },
 ];
 
 export const DEFAULT_MICROBIOLOGY_DATA: MicrobiologyData = {
   specimen: 'Clean Catch Midstream Urine',
   gramStain: 'Gram-negative bacilli (GNB), moderate pus cells',
   colonyCount: '> 100,000 CFU/mL (Significant bacteriuria)',
-  organism: 'Escherichia coli (ESBL-producing)',
+  organism: 'Escherichia coli',
   antibiogram: DEFAULT_ANTIBIOTICS.map(a => ({
     antibiotic: a.name,
     diskContent: a.disk,
+    category: a.category,
     zoneMm: undefined,
     interpretation: '-'
   })),
-  notes: 'Multidrug-resistant ESBL strain isolated. Sensitive to Carbapenems, Nitrofurantoin, and Aminoglycosides.'
+  notes: 'Isolate sensitive to Carbapenems, Nitrofurantoin, and Aminoglycosides.'
 };
+
+export const SPECIMEN_PILLS = [
+  'Clean Catch Midstream Urine',
+  'Wound Swab',
+  'Sputum',
+  'Blood Culture',
+  'Stool Culture',
+  'High Vaginal Swab (HVS)',
+  'Throat Swab',
+  'Ear Swab',
+  'Pus / Aspirate',
+  'Urethral Discharge'
+];
+
+export const GRAM_STAIN_PILLS = [
+  'Gram-negative bacilli (GNB)',
+  'Gram-positive cocci (GPC) in clusters',
+  'Gram-positive cocci (GPC) in pairs/chains',
+  'Gram-positive bacilli (GPB)',
+  'No microorganisms seen. Few pus cells.',
+  'Moderate pus cells, no bacteria seen'
+];
+
+export const COLONY_COUNT_PILLS = [
+  'No growth after 48 hours at 37°C',
+  '> 100,000 CFU/mL (Significant bacteriuria)',
+  '10,000 - 100,000 CFU/mL (Borderline)',
+  '< 10,000 CFU/mL (Non-significant)',
+  'Heavy growth (+++)',
+  'Moderate growth (++)',
+  'Scanty growth (+)'
+];
+
+export const ORGANISM_PILLS = [
+  'No Bacterial Growth (Sterile Culture)',
+  'Escherichia coli',
+  'Escherichia coli (ESBL-producing)',
+  'Klebsiella pneumoniae',
+  'Pseudomonas aeruginosa',
+  'Staphylococcus aureus',
+  'Staphylococcus aureus (MRSA)',
+  'Staphylococcus epidermidis',
+  'Proteus mirabilis',
+  'Enterococcus faecalis',
+  'Candida albicans'
+];
+
+export const NOTE_PILLS = [
+  'Sterile culture after 48 hours of incubation at 37°C.',
+  'Multidrug-resistant (MDR) strain. Recommend clinical correlation.',
+  'Sensitive to Carbapenems, Nitrofurantoin, and Aminoglycosides.',
+  'Repeat culture advised after 72 hours of antimicrobial therapy.'
+];
 
 export function serializeMicrobiology(data: MicrobiologyData): string {
   const parts: string[] = ['[MICROBIOLOGY & ANTIBIOGRAM REPORT]'];
@@ -90,6 +160,7 @@ export function parseMicrobiology(raw: string): MicrobiologyData {
     antibiogram: DEFAULT_ANTIBIOTICS.map(a => ({
       antibiotic: a.name,
       diskContent: a.disk,
+      category: a.category,
       zoneMm: undefined,
       interpretation: '-'
     }))
@@ -137,7 +208,7 @@ interface MicrobiologyModalProps {
   onClose: () => void;
   sample: any;
   initialValue?: string;
-  onSave: (serialized: string, isAbnormal: boolean) => Promise<void>;
+  onSave: (serialized: string, isAbnormal: boolean) => Promise<void> | void;
 }
 
 export default function MicrobiologyModal({
@@ -150,6 +221,8 @@ export default function MicrobiologyModal({
   const toast = useToast();
   const [data, setData] = useState<MicrobiologyData>(DEFAULT_MICROBIOLOGY_DATA);
   const [saving, setSaving] = useState(false);
+  const [antibioticFilter, setAntibioticFilter] = useState<'ALL' | 'GRAM_NEG' | 'GRAM_POS' | 'ACTIVE_ONLY'>('ALL');
+  const [antibioticSearch, setAntibioticSearch] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -161,6 +234,7 @@ export default function MicrobiologyModal({
           antibiogram: DEFAULT_ANTIBIOTICS.map(a => ({
             antibiotic: a.name,
             diskContent: a.disk,
+            category: a.category,
             zoneMm: undefined,
             interpretation: '-'
           }))
@@ -187,262 +261,840 @@ export default function MicrobiologyModal({
     });
   };
 
-  const handleQuickEsbl = () => {
-    const list: AntibioticSensitivityItem[] = [
-      { antibiotic: 'Amikacin', diskContent: '30 ug', zoneMm: 22, interpretation: 'S' },
-      { antibiotic: 'Amoxicillin-Clavulanate', diskContent: '20/10 ug', zoneMm: 12, interpretation: 'R' },
-      { antibiotic: 'Ampicillin', diskContent: '10 ug', zoneMm: 8, interpretation: 'R' },
-      { antibiotic: 'Cefepime', diskContent: '30 ug', zoneMm: 14, interpretation: 'R' },
-      { antibiotic: 'Ceftriaxone', diskContent: '30 ug', zoneMm: 10, interpretation: 'R' },
-      { antibiotic: 'Ciprofloxacin', diskContent: '5 ug', zoneMm: 13, interpretation: 'R' },
-      { antibiotic: 'Colistin', diskContent: '10 ug', zoneMm: 18, interpretation: 'S' },
-      { antibiotic: 'Gentamicin', diskContent: '10 ug', zoneMm: 19, interpretation: 'S' },
-      { antibiotic: 'Imipenem', diskContent: '10 ug', zoneMm: 26, interpretation: 'S' },
-      { antibiotic: 'Levofloxacin', diskContent: '5 ug', zoneMm: 14, interpretation: 'R' },
-      { antibiotic: 'Meropenem', diskContent: '10 ug', zoneMm: 28, interpretation: 'S' },
-      { antibiotic: 'Nitrofurantoin', diskContent: '300 ug', zoneMm: 20, interpretation: 'S' },
-      { antibiotic: 'Piperacillin-Tazobactam', diskContent: '100/10 ug', zoneMm: 21, interpretation: 'S' },
-      { antibiotic: 'Trimethoprim-Sulfamethoxazole', diskContent: '1.25/23.75 ug', zoneMm: 9, interpretation: 'R' },
-    ];
-
-    // Merge with remaining
-    const merged = DEFAULT_ANTIBIOTICS.map(a => {
-      const match = list.find(item => item.antibiotic === a.name);
-      if (match) return match;
-      return { antibiotic: a.name, diskContent: a.disk, zoneMm: undefined, interpretation: '-' as const };
-    });
-
-    setData({
-      specimen: 'Clean Catch Midstream Urine',
-      gramStain: 'Gram-negative bacilli (GNB), moderate pus cells',
-      colonyCount: '> 100,000 CFU/mL (Significant bacteriuria)',
-      organism: 'Escherichia coli (ESBL-producing)',
-      antibiogram: merged,
-      notes: 'Multidrug-resistant ESBL strain isolated. Sensitive to Carbapenems, Nitrofurantoin, and Aminoglycosides.'
-    });
-    toast.success('تم تطبيق فحص البكتيريا المقاومة (ESBL E. coli Preset)', 'تطبيق سريع');
+  // Clinical Quick Presets matching Urine/Stool style
+  const applyPreset = (presetName: 'STERILE' | 'ECOLI' | 'MRSA' | 'PSEUDOMONAS' | 'RESET') => {
+    if (presetName === 'STERILE' || presetName === 'RESET') {
+      setData({
+        specimen: 'Clean Catch Midstream Urine',
+        gramStain: 'No microorganisms seen. Few epithelial cells.',
+        colonyCount: 'No growth after 48 hours at 37°C',
+        organism: 'No Bacterial Growth (Sterile Culture)',
+        antibiogram: DEFAULT_ANTIBIOTICS.map(a => ({
+          antibiotic: a.name,
+          diskContent: a.disk,
+          category: a.category,
+          zoneMm: undefined,
+          interpretation: '-'
+        })),
+        notes: 'Negative aerobic culture. No significant bacteriuria detected.'
+      });
+      toast.success('تم تطبيق نتيجة زراعة سالبة / عقيمة (Sterile / No Growth)');
+    } else if (presetName === 'ECOLI') {
+      const list: Record<string, { interp: 'S' | 'I' | 'R'; zone: number }> = {
+        'Amikacin': { interp: 'S', zone: 22 },
+        'Amoxicillin-Clavulanate': { interp: 'R', zone: 12 },
+        'Ampicillin': { interp: 'R', zone: 8 },
+        'Cefepime': { interp: 'R', zone: 14 },
+        'Ceftriaxone': { interp: 'R', zone: 11 },
+        'Ciprofloxacin': { interp: 'R', zone: 13 },
+        'Colistin': { interp: 'S', zone: 18 },
+        'Gentamicin': { interp: 'S', zone: 19 },
+        'Imipenem': { interp: 'S', zone: 26 },
+        'Meropenem': { interp: 'S', zone: 28 },
+        'Nitrofurantoin': { interp: 'S', zone: 20 },
+        'Piperacillin-Tazobactam': { interp: 'S', zone: 21 },
+        'Trimethoprim-Sulfamethoxazole': { interp: 'R', zone: 10 },
+      };
+      setData(prev => ({
+        ...prev,
+        specimen: 'Clean Catch Midstream Urine',
+        gramStain: 'Gram-negative bacilli (GNB), moderate pus cells',
+        colonyCount: '> 100,000 CFU/mL (Significant bacteriuria)',
+        organism: 'Escherichia coli (ESBL-producing)',
+        antibiogram: prev.antibiogram.map(a => ({
+          ...a,
+          interpretation: list[a.antibiotic]?.interp || '-',
+          zoneMm: list[a.antibiotic]?.zone,
+        })),
+        notes: 'Multidrug-resistant ESBL strain isolated. Sensitive to Carbapenems, Nitrofurantoin, and Aminoglycosides.'
+      }));
+      toast.success('تم تطبيق نموذج عزل بكتيريا القولون (ESBL E. coli)');
+    } else if (presetName === 'MRSA') {
+      const list: Record<string, { interp: 'S' | 'I' | 'R'; zone: number }> = {
+        'Vancomycin': { interp: 'S', zone: 20 },
+        'Linezolid': { interp: 'S', zone: 24 },
+        'Doxycycline': { interp: 'S', zone: 22 },
+        'Trimethoprim-Sulfamethoxazole': { interp: 'S', zone: 20 },
+        'Ciprofloxacin': { interp: 'R', zone: 12 },
+        'Gentamicin': { interp: 'R', zone: 11 },
+        'Clindamycin': { interp: 'R', zone: 10 },
+        'Erythromycin': { interp: 'R', zone: 9 },
+        'Ampicillin': { interp: 'R', zone: 6 },
+        'Amoxicillin-Clavulanate': { interp: 'R', zone: 12 },
+      };
+      setData(prev => ({
+        ...prev,
+        specimen: 'Wound Swab / Pus',
+        gramStain: 'Gram-positive cocci (GPC) in clusters',
+        colonyCount: 'Heavy growth (+++)',
+        organism: 'Staphylococcus aureus (MRSA)',
+        antibiogram: prev.antibiogram.map(a => ({
+          ...a,
+          interpretation: list[a.antibiotic]?.interp || '-',
+          zoneMm: list[a.antibiotic]?.zone,
+        })),
+        notes: 'Methicillin-Resistant Staphylococcus aureus (MRSA) confirmed. Sensitive to Glycopeptides (Vancomycin) and Linezolid.'
+      }));
+      toast.success('تم تطبيق نموذج عزل المكورات العنقودية (MRSA)');
+    } else if (presetName === 'PSEUDOMONAS') {
+      const list: Record<string, { interp: 'S' | 'I' | 'R'; zone: number }> = {
+        'Amikacin': { interp: 'S', zone: 22 },
+        'Ceftazidime': { interp: 'S', zone: 20 },
+        'Cefepime': { interp: 'S', zone: 19 },
+        'Ciprofloxacin': { interp: 'S', zone: 24 },
+        'Colistin': { interp: 'S', zone: 18 },
+        'Gentamicin': { interp: 'I', zone: 15 },
+        'Imipenem': { interp: 'S', zone: 24 },
+        'Meropenem': { interp: 'S', zone: 25 },
+        'Piperacillin-Tazobactam': { interp: 'S', zone: 23 },
+        'Trimethoprim-Sulfamethoxazole': { interp: 'R', zone: 8 },
+        'Ampicillin': { interp: 'R', zone: 6 },
+      };
+      setData(prev => ({
+        ...prev,
+        specimen: 'Wound Swab / Sputum',
+        gramStain: 'Gram-negative bacilli (GNB), abundant pus cells',
+        colonyCount: 'Heavy growth (+++)',
+        organism: 'Pseudomonas aeruginosa',
+        antibiogram: prev.antibiogram.map(a => ({
+          ...a,
+          interpretation: list[a.antibiotic]?.interp || '-',
+          zoneMm: list[a.antibiotic]?.zone,
+        })),
+        notes: 'Pseudomonas aeruginosa isolated with typical pigment and odor. Antipseudomonal sensitivity tested.'
+      }));
+      toast.success('تم تطبيق نموذج عزل الزائفة الزنجارية (Pseudomonas)');
+    }
   };
 
-  const handleQuickNegative = () => {
-    setData({
-      specimen: 'Clean Catch Midstream Urine',
-      gramStain: 'No microorganisms seen. Few epithelial cells.',
-      colonyCount: 'No growth after 48 hours incubation at 37°C.',
-      organism: 'No Bacterial Growth (Sterile Culture)',
-      antibiogram: DEFAULT_ANTIBIOTICS.map(a => ({
-        antibiotic: a.name,
-        diskContent: a.disk,
-        zoneMm: undefined,
-        interpretation: '-'
-      })),
-      notes: 'Negative aerobic culture. No significant bacteriuria detected.'
-    });
-    toast.success('تم تطبيق نتيجة زراعة سالبة (No Growth / Sterile)', 'تطبيق سريع');
+  const handleSetAllSensitive = () => {
+    setData(prev => ({
+      ...prev,
+      antibiogram: prev.antibiogram.map(a => ({ ...a, interpretation: 'S' }))
+    }));
+    toast.info('تم تعيين كافة المضادات كـ حساس (Sensitive)');
   };
 
-  const isAbnormal = 
-    !data.organism.includes('No Bacterial Growth') && 
-    !data.colonyCount.includes('No growth');
+  const handleClearAllAntibiogram = () => {
+    setData(prev => ({
+      ...prev,
+      antibiogram: prev.antibiogram.map(a => ({ ...a, interpretation: '-', zoneMm: undefined }))
+    }));
+    toast.info('تم تفريغ مصفوفة المضادات');
+  };
+
+  const isAbnormal =
+    !data.organism.toLowerCase().includes('no bacterial growth') &&
+    !data.colonyCount.toLowerCase().includes('no growth') &&
+    !data.organism.toLowerCase().includes('sterile');
+
+  const filteredAntibiotics = useMemo(() => {
+    return data.antibiogram.map((item, originalIndex) => ({ item, originalIndex })).filter(({ item }) => {
+      if (antibioticSearch.trim()) {
+        const q = antibioticSearch.toLowerCase();
+        if (!item.antibiotic.toLowerCase().includes(q)) return false;
+      }
+      if (antibioticFilter === 'GRAM_NEG') return item.category === 'gram_negative' || item.category === 'broad_spectrum';
+      if (antibioticFilter === 'GRAM_POS') return item.category === 'gram_positive' || item.category === 'broad_spectrum';
+      if (antibioticFilter === 'ACTIVE_ONLY') return item.interpretation !== '-';
+      return true;
+    });
+  }, [data.antibiogram, antibioticFilter, antibioticSearch]);
+
+  const activeAntibioticsCount = data.antibiogram.filter(a => a.interpretation !== '-').length;
 
   const handleSave = async () => {
     try {
       setSaving(true);
       const serialized = serializeMicrobiology(data);
       await onSave(serialized, isAbnormal);
-      toast.success('تم حفظ تقرير المزرعة والحساسية بنجاح', 'تم الحفظ');
+      toast.success('تم حفظ تقرير المزرعة والحساسية بنجاح!');
       onClose();
     } catch (err: any) {
-      toast.error(err.message || 'فشل حفظ النتائج', 'خطأ');
+      toast.error(err.message || 'فشل حفظ النتائج');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-6xl max-h-[94vh] flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
-        
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-600 flex items-center justify-center font-bold">
-              <Bug className="w-5 h-5" />
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 99999,
+        background: 'rgba(15, 23, 42, 0.75)',
+        backdropFilter: 'blur(6px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+      }}
+      dir="rtl"
+    >
+      <div
+        style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '16px',
+          width: '100%',
+          maxWidth: '1220px',
+          maxHeight: '94vh',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 25px 60px -12px rgba(15, 23, 42, 0.4)',
+          overflow: 'hidden',
+          fontFamily: 'inherit',
+          color: 'var(--text-main)',
+        }}
+      >
+        {/* ========================================================
+            1. TOP CLINICAL HEADER BAR (Identical to Urine & Stool)
+           ======================================================== */}
+        <div
+          dir="ltr"
+          style={{
+            padding: '12px 18px',
+            borderBottom: '1px solid var(--border-color)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'var(--bg-card-subtle)',
+            gap: '12px',
+            flexWrap: 'wrap',
+          }}
+        >
+          {/* Patient Info */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                background: 'rgba(15, 118, 110, 0.15)',
+                color: 'var(--accent-teal)',
+                border: '1px solid var(--accent-teal)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Bug size={20} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black tracking-tight">محطة الميكروبيولوجي ومزرعة الحساسية (Microbiology & Antibiogram)</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
+                  {sample?.patient?.name || sample?.patientName || 'Patient'}
+                </span>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-main)',
+                    border: '1px solid var(--border-color)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontWeight: 700,
+                  }}
+                >
+                  Sample #{sample?.sampleNumber || sample?.id || ''}
+                </span>
                 {isAbnormal ? (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500/10 text-rose-600 border border-rose-200">
-                    <AlertTriangle size={12} /> عزل بكتيري موجب (Positive Culture)
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      background: '#fee2e2',
+                      color: '#b91c1c',
+                      border: '1px solid #f87171',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <AlertTriangle size={12} /> عزل بكتيري موجب
                   </span>
                 ) : (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-600 border border-emerald-200">
-                    <Check size={12} /> عينة عقيمة (Sterile / No Growth)
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      background: '#dcfce7',
+                      color: '#15803d',
+                      border: '1px solid #86efac',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <Check size={12} /> عينة عقيمة (No Growth)
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                المريض: <strong className="text-slate-700 dark:text-slate-200">{sample?.patient?.name || 'غير محدد'}</strong> | 
-                العينة: <strong className="text-slate-700 dark:text-slate-200">#{sample?.sampleNumber || sample?.id}</strong>
-              </p>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Microbiology & Antibiogram Workstation • فحص المزرعة والحساسية
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Quick Presets (1-Click) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>
+              نماذج جاهزة:
+            </span>
+
             <button
-              onClick={handleQuickNegative}
               type="button"
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 flex items-center gap-1.5 transition-all"
+              onClick={() => applyPreset('STERILE')}
+              style={{
+                fontSize: '11.5px',
+                padding: '5px 10px',
+                borderRadius: '6px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                border: '1px solid #10b981',
+                background: '#ecfdf5',
+                color: '#047857',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              عقيمة (No Growth)
+              <Sparkles size={13} />
+              عقيمة (Sterile)
             </button>
+
             <button
-              onClick={handleQuickEsbl}
               type="button"
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 flex items-center gap-1.5 transition-all"
+              onClick={() => applyPreset('ECOLI')}
+              style={{
+                fontSize: '11.5px',
+                padding: '5px 10px',
+                borderRadius: '6px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                border: '1px solid #f59e0b',
+                background: '#fffbeb',
+                color: '#b45309',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
             >
-              <ShieldAlert className="w-3.5 h-3.5" />
-              عزل ESBL E. coli
+              <ShieldAlert size={13} />
+              عزل E. coli
             </button>
+
             <button
+              type="button"
+              onClick={() => applyPreset('MRSA')}
+              style={{
+                fontSize: '11.5px',
+                padding: '5px 10px',
+                borderRadius: '6px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                border: '1px solid #ef4444',
+                background: '#fef2f2',
+                color: '#b91c1c',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              عزل MRSA
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyPreset('PSEUDOMONAS')}
+              style={{
+                fontSize: '11.5px',
+                padding: '5px 10px',
+                borderRadius: '6px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                border: '1px solid #8b5cf6',
+                background: '#f5f3ff',
+                color: '#6d28d9',
+              }}
+            >
+              Pseudomonas
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyPreset('RESET')}
+              title="إعادة ضبط الفورمة"
+              style={{
+                fontSize: '11px',
+                padding: '5px 8px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-input)',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <RotateCcw size={13} />
+            </button>
+
+            <button
+              type="button"
               onClick={onClose}
-              type="button"
-              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+              style={{
+                background: 'var(--bg-input)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-muted)',
+                borderRadius: '6px',
+                padding: '5px 8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
-              <X className="w-5 h-5" />
+              <X size={16} />
             </button>
           </div>
         </div>
 
-        {/* Form Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1 text-sm">
-          
-          {/* Top Panel: Specimen, Gram Stain, Colony Count, Organism */}
-          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-4">
-            <h3 className="font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 text-sm border-b border-slate-200 dark:border-slate-700 pb-2">
-              <span className="w-6 h-6 rounded-lg bg-teal-500/10 text-teal-600 flex items-center justify-center text-xs">1</span>
-              بيانات العينة والعزل البكتيري (Specimen & Bacterial Isolation)
-            </h3>
+        {/* ========================================================
+            2. MODAL BODY (Interactive Workspace & Pill Selectors)
+           ======================================================== */}
+        <div style={{ padding: '16px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Section 1: Isolation & Specimen Card */}
+          <div
+            style={{
+              background: 'var(--bg-card-subtle)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              padding: '14px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+              <FlaskConical size={16} color="var(--accent-teal)" />
+              <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>
+                1. بيانات العينة والعزل البكتيري (Specimen & Bacterial Isolation):
+              </strong>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
+              {/* Specimen */}
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">نوع ومصدر العينة (Specimen)</label>
+                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
+                  نوع ومصدر العينة (Specimen):
+                </label>
                 <input
                   type="text"
                   value={data.specimen}
                   onChange={e => setData({ ...data, specimen: e.target.value })}
-                  placeholder="Clean Catch Midstream Urine, Wound Swab..."
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  style={{
+                    width: '100%',
+                    height: '32px',
+                    padding: '0 8px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-main)',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    marginBottom: '6px',
+                    boxSizing: 'border-box',
+                  }}
+                  placeholder="Clean Catch Urine, Wound..."
                 />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                  {SPECIMEN_PILLS.slice(0, 5).map(pill => (
+                    <button
+                      key={pill}
+                      type="button"
+                      onClick={() => setData({ ...data, specimen: pill })}
+                      style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        border: data.specimen === pill ? '1px solid var(--accent-teal)' : '1px solid var(--border-color)',
+                        background: data.specimen === pill ? 'rgba(15, 118, 110, 0.15)' : 'var(--bg-input)',
+                        color: data.specimen === pill ? 'var(--accent-teal)' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {pill}
+                    </button>
+                  ))}
+                </div>
               </div>
 
+              {/* Gram Stain */}
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">صبغة غرام (Gram Stain)</label>
+                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
+                  صبغة غرام والمجهر (Gram Stain):
+                </label>
                 <input
                   type="text"
                   value={data.gramStain}
                   onChange={e => setData({ ...data, gramStain: e.target.value })}
-                  placeholder="Gram-negative bacilli (GNB)..."
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  style={{
+                    width: '100%',
+                    height: '32px',
+                    padding: '0 8px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-main)',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    marginBottom: '6px',
+                    boxSizing: 'border-box',
+                  }}
                 />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                  {GRAM_STAIN_PILLS.slice(0, 4).map(pill => (
+                    <button
+                      key={pill}
+                      type="button"
+                      onClick={() => setData({ ...data, gramStain: pill })}
+                      style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        border: data.gramStain === pill ? '1px solid var(--accent-teal)' : '1px solid var(--border-color)',
+                        background: data.gramStain === pill ? 'rgba(15, 118, 110, 0.15)' : 'var(--bg-input)',
+                        color: data.gramStain === pill ? 'var(--accent-teal)' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {pill}
+                    </button>
+                  ))}
+                </div>
               </div>
 
+              {/* Colony Count */}
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">عدد المستعمرات (Colony Count)</label>
+                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
+                  عدد المستعمرات (Colony Count):
+                </label>
                 <input
                   type="text"
                   value={data.colonyCount}
                   onChange={e => setData({ ...data, colonyCount: e.target.value })}
-                  placeholder="> 100,000 CFU/mL..."
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-xs"
+                  style={{
+                    width: '100%',
+                    height: '32px',
+                    padding: '0 8px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-main)',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    marginBottom: '6px',
+                    boxSizing: 'border-box',
+                  }}
                 />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                  {COLONY_COUNT_PILLS.slice(0, 4).map(pill => (
+                    <button
+                      key={pill}
+                      type="button"
+                      onClick={() => setData({ ...data, colonyCount: pill })}
+                      style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        border: data.colonyCount === pill ? '1px solid var(--accent-teal)' : '1px solid var(--border-color)',
+                        background: data.colonyCount === pill ? 'rgba(15, 118, 110, 0.15)' : 'var(--bg-input)',
+                        color: data.colonyCount === pill ? 'var(--accent-teal)' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {pill}
+                    </button>
+                  ))}
+                </div>
               </div>
 
+              {/* Isolated Organism */}
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">الميكروب المعزول (Isolated Organism)</label>
+                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
+                  الميكروب المعزول (Isolated Organism):
+                </label>
                 <input
                   type="text"
                   value={data.organism}
                   onChange={e => setData({ ...data, organism: e.target.value })}
-                  placeholder="Escherichia coli, Klebsiella..."
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-black text-xs text-rose-600 dark:text-rose-400"
+                  style={{
+                    width: '100%',
+                    height: '32px',
+                    padding: '0 8px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-input)',
+                    color: isAbnormal ? '#ef4444' : '#10b981',
+                    fontSize: '12.5px',
+                    fontWeight: 900,
+                    marginBottom: '6px',
+                    boxSizing: 'border-box',
+                  }}
                 />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                  {ORGANISM_PILLS.slice(0, 6).map(pill => (
+                    <button
+                      key={pill}
+                      type="button"
+                      onClick={() => setData({ ...data, organism: pill })}
+                      style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        border: data.organism === pill ? '1px solid var(--accent-teal)' : '1px solid var(--border-color)',
+                        background: data.organism === pill ? 'rgba(15, 118, 110, 0.15)' : 'var(--bg-input)',
+                        color: data.organism === pill ? 'var(--accent-teal)' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {pill}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Antibiogram Sensitivity Matrix (S / I / R) */}
-          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-              <h3 className="font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 text-sm">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/10 text-indigo-600 flex items-center justify-center text-xs">2</span>
-                مصفوفة حساسية المضادات الحيوية (Antibiogram Sensitivity Matrix)
-              </h3>
-              <span className="text-xs text-slate-500">
-                S = حساس (Sensitive) | I = متوسط (Intermediate) | R = مقاوم (Resistant)
-              </span>
+          {/* Section 2: Antibiogram Sensitivity Matrix */}
+          <div
+            style={{
+              background: 'var(--bg-card-subtle)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              padding: '14px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: '1px solid var(--border-color)',
+                paddingBottom: '10px',
+                marginBottom: '12px',
+                gap: '8px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Bug size={16} color="var(--accent-teal)" />
+                <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>
+                  2. مصفوفة حساسية المضادات الحيوية (Antibiogram Matrix):
+                </strong>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  ({activeAntibioticsCount} مضاد محدد)
+                </span>
+              </div>
+
+              {/* Antibiogram Controls */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                {/* Search */}
+                <div style={{ position: 'relative', width: '150px' }}>
+                  <input
+                    type="text"
+                    value={antibioticSearch}
+                    onChange={e => setAntibioticSearch(e.target.value)}
+                    placeholder="بحث مضاد..."
+                    style={{
+                      width: '100%',
+                      height: '28px',
+                      padding: '0 8px 0 24px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-input)',
+                      color: 'var(--text-main)',
+                      fontSize: '11px',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <Search size={12} style={{ position: 'absolute', right: '8px', top: '8px', color: 'var(--text-muted)' }} />
+                </div>
+
+                {/* Filter Pills */}
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {(['ALL', 'GRAM_NEG', 'GRAM_POS', 'ACTIVE_ONLY'] as const).map(f => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setAntibioticFilter(f)}
+                      style={{
+                        fontSize: '10.5px',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        border: antibioticFilter === f ? '1px solid var(--accent-teal)' : '1px solid var(--border-color)',
+                        background: antibioticFilter === f ? 'var(--accent-teal)' : 'var(--bg-input)',
+                        color: antibioticFilter === f ? '#fff' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {f === 'ALL' ? 'الكل' : f === 'GRAM_NEG' ? 'Gram -ve' : f === 'GRAM_POS' ? 'Gram +ve' : 'المحددة فقط'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Quick actions */}
+                <button
+                  type="button"
+                  onClick={handleSetAllSensitive}
+                  style={{
+                    fontSize: '10.5px',
+                    padding: '3px 8px',
+                    borderRadius: '4px',
+                    border: '1px solid #10b981',
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    color: '#059669',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                  }}
+                >
+                  الكل حساس (All S)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearAllAntibiogram}
+                  style={{
+                    fontSize: '10.5px',
+                    padding: '3px 8px',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                >
+                  تفريغ الكل
+                </button>
+              </div>
             </div>
 
-            {/* Responsive Antibiogram Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {data.antibiogram.map((item, idx) => {
+            {/* Antibiotics Matrix Grid */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: '8px',
+                maxHeight: '340px',
+                overflowY: 'auto',
+                padding: '2px',
+              }}
+            >
+              {filteredAntibiotics.map(({ item, originalIndex }) => {
                 return (
                   <div
-                    key={idx}
-                    className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm"
+                    key={item.antibiotic}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      background: item.interpretation !== '-' ? 'var(--bg-card)' : 'var(--bg-input)',
+                      border: item.interpretation !== '-' ? '1.5px solid var(--accent-teal)' : '1px solid var(--border-color)',
+                      transition: 'all 0.15s',
+                    }}
                   >
-                    <div className="flex-1 min-w-0 pr-2">
-                      <div className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate">
+                    <div style={{ flex: 1, minWidth: 0, paddingLeft: '8px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {item.antibiotic}
                       </div>
-                      <div className="text-[10px] text-slate-400">
-                        التركيز: {item.diskContent}
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                        {item.diskContent}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <div className="w-16">
-                        <input
-                          type="number"
-                          value={item.zoneMm !== undefined ? item.zoneMm : ''}
-                          onChange={e => setZone(idx, e.target.value ? parseInt(e.target.value) : undefined)}
-                          placeholder="Zone mm"
-                          className="w-full px-2 py-1 text-[11px] text-center border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 font-bold"
-                        />
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {/* Zone mm */}
+                      <input
+                        type="number"
+                        value={item.zoneMm ?? ''}
+                        onChange={e => setZone(originalIndex, e.target.value ? parseInt(e.target.value) : undefined)}
+                        placeholder="mm"
+                        style={{
+                          width: '44px',
+                          height: '24px',
+                          padding: '0 2px',
+                          textAlign: 'center',
+                          borderRadius: '4px',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-input)',
+                          color: 'var(--text-main)',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                        }}
+                      />
 
-                      <div className="flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                      {/* S / I / R / - pill group */}
+                      <div style={{ display: 'flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
                         <button
                           type="button"
-                          onClick={() => setInterpretation(idx, item.interpretation === 'S' ? '-' : 'S')}
-                          className={`px-2.5 py-1 text-xs font-black transition-all ${
-                            item.interpretation === 'S'
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-emerald-50'
-                          }`}
+                          onClick={() => setInterpretation(originalIndex, item.interpretation === 'S' ? '-' : 'S')}
+                          style={{
+                            padding: '3px 8px',
+                            fontSize: '11px',
+                            fontWeight: 900,
+                            cursor: 'pointer',
+                            border: 'none',
+                            background: item.interpretation === 'S' ? '#10b981' : 'var(--bg-input)',
+                            color: item.interpretation === 'S' ? '#ffffff' : 'var(--text-muted)',
+                            transition: 'all 0.1s',
+                          }}
+                          title="حساس (Sensitive)"
                         >
                           S
                         </button>
                         <button
                           type="button"
-                          onClick={() => setInterpretation(idx, item.interpretation === 'I' ? '-' : 'I')}
-                          className={`px-2.5 py-1 text-xs font-black transition-all border-x border-slate-200 dark:border-slate-700 ${
-                            item.interpretation === 'I'
-                              ? 'bg-amber-500 text-white'
-                              : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-amber-50'
-                          }`}
+                          onClick={() => setInterpretation(originalIndex, item.interpretation === 'I' ? '-' : 'I')}
+                          style={{
+                            padding: '3px 8px',
+                            fontSize: '11px',
+                            fontWeight: 900,
+                            cursor: 'pointer',
+                            borderLeft: '1px solid var(--border-color)',
+                            borderRight: '1px solid var(--border-color)',
+                            borderTop: 'none',
+                            borderBottom: 'none',
+                            background: item.interpretation === 'I' ? '#f59e0b' : 'var(--bg-input)',
+                            color: item.interpretation === 'I' ? '#ffffff' : 'var(--text-muted)',
+                            transition: 'all 0.1s',
+                          }}
+                          title="متوسط (Intermediate)"
                         >
                           I
                         </button>
                         <button
                           type="button"
-                          onClick={() => setInterpretation(idx, item.interpretation === 'R' ? '-' : 'R')}
-                          className={`px-2.5 py-1 text-xs font-black transition-all ${
-                            item.interpretation === 'R'
-                              ? 'bg-rose-600 text-white'
-                              : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-rose-50'
-                          }`}
+                          onClick={() => setInterpretation(originalIndex, item.interpretation === 'R' ? '-' : 'R')}
+                          style={{
+                            padding: '3px 8px',
+                            fontSize: '11px',
+                            fontWeight: 900,
+                            cursor: 'pointer',
+                            border: 'none',
+                            background: item.interpretation === 'R' ? '#ef4444' : 'var(--bg-input)',
+                            color: item.interpretation === 'R' ? '#ffffff' : 'var(--text-muted)',
+                            transition: 'all 0.1s',
+                          }}
+                          title="مقاوم (Resistant)"
                         >
                           R
                         </button>
@@ -454,48 +1106,129 @@ export default function MicrobiologyModal({
             </div>
           </div>
 
-          {/* Notes & Recommendations */}
-          <div>
-            <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
-              ملاحظات وتوصيات أخصائي الميكروبيولوجي (Microbiologist Notes & Comments)
+          {/* Section 3: Notes & Clinical Comments */}
+          <div
+            style={{
+              background: 'var(--bg-card-subtle)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              padding: '12px',
+            }}
+          >
+            <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
+              3. ملاحظات وتوصيات المختبر (Microbiologist Notes & Comments):
             </label>
             <textarea
               rows={2}
               value={data.notes}
               onChange={e => setData({ ...data, notes: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium"
-              placeholder="اكتب التوصيات العلاجية أو الملاحظات السريرية هنا..."
+              style={{
+                width: '100%',
+                padding: '6px 8px',
+                borderRadius: '6px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-input)',
+                color: 'var(--text-main)',
+                fontSize: '12px',
+                marginBottom: '6px',
+                boxSizing: 'border-box',
+                fontFamily: 'inherit',
+              }}
+              placeholder="اكتب التوصيات الطبية والملاحظات السريرية هنا..."
             />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+              {NOTE_PILLS.map(pill => (
+                <button
+                  key={pill}
+                  type="button"
+                  onClick={() => setData(prev => ({ ...prev, notes: prev.notes ? `${prev.notes} ${pill}` : pill }))}
+                  style={{
+                    fontSize: '10.5px',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                >
+                  + {pill}
+                </button>
+              ))}
+            </div>
           </div>
 
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 flex items-center justify-between">
-          <div className="text-xs text-slate-500">
-            الحالة عند الحفظ: <strong className={isAbnormal ? 'text-rose-600 font-bold' : 'text-emerald-600 font-bold'}>{isAbnormal ? 'عزل إيجابي (Positive Culture)' : 'عقيم (Sterile / No Growth)'}</strong>
+        {/* ========================================================
+            3. FOOTER (Actions & Status)
+           ======================================================== */}
+        <div
+          dir="ltr"
+          style={{
+            padding: '12px 18px',
+            borderTop: '1px solid var(--border-color)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'var(--bg-card-subtle)',
+            gap: '12px',
+          }}
+        >
+          {/* Status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+            <span style={{ color: 'var(--text-muted)' }}>Diagnostic Status:</span>
+            <strong style={{ color: isAbnormal ? '#ef4444' : '#10b981' }}>
+              {isAbnormal ? 'Positive Isolation (إيجابي)' : 'Sterile / No Growth (عقيم)'}
+            </strong>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Action buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              style={{
+                padding: '0 16px',
+                height: '36px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-input)',
+                color: 'var(--text-main)',
+                fontSize: '12.5px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
             >
               إلغاء
             </button>
+
             <button
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="px-5 py-2 rounded-xl text-xs font-black bg-teal-600 hover:bg-teal-700 text-white shadow-lg shadow-teal-500/20 flex items-center gap-1.5 transition-all disabled:opacity-50"
+              style={{
+                padding: '0 20px',
+                height: '36px',
+                borderRadius: '8px',
+                border: 'none',
+                background: '#0f766e',
+                color: '#ffffff',
+                fontSize: '13px',
+                fontWeight: 800,
+                cursor: saving ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(15, 118, 110, 0.3)',
+              }}
             >
-              <Check className="w-4 h-4" />
-              {saving ? 'جارٍ الحفظ...' : 'حفظ تقرير المزرعة (Save Microbiology)'}
+              <Check size={16} />
+              <span>{saving ? 'جارٍ الحفظ...' : 'حفظ وإدراج النتيجة'}</span>
             </button>
           </div>
         </div>
-
       </div>
     </div>
   );

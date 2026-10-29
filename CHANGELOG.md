@@ -2,6 +2,441 @@
 
 جميع التغييرات الموثقة هنا خضعت لاختبارات انحدار صارمة وتم فحصها لضمان استقرار النظام وبيانات المختبر الطبية بنسبة 100%.
 
+## [إصلاح أمني عاجل - المرحلة 0: الاحتواء] - 2026-10-28
+
+> إصلاحات كود فقط، بلا تغيير في مخطط قاعدة البيانات أو عقود الـ`API` العامة. لم تُشغَّل أي هجرة ولم تُعدَّل أي بيانات مختبر.
+
+- **المصادقة في خادم `Fastify`:**
+  - إزالة منح دور `OWNER` تلقائياً عند غياب التوكن أو فشل التحقق (كان يسمح بوصول إداري كامل بلا مصادقة).
+  - إرجاع `401` عند غياب ترويسة `Authorization` أو عند توكن غير صالح، وإرجاع `403` لغير المالك في `requireOwner`.
+  - إزالة سر `JWT` الثابت من الكود؛ يُقرأ من `JWT_SECRET`، ومع غيابه يُولَّد سر عشوائي مؤقت مع تحذير في السجل.
+- **`CORS` في خادم `Fastify`:** استبدال `origin: true` بقائمة أصول مسموحة (محلية افتراضياً) قابلة للتوسيع عبر `LABRYO_CORS_ORIGINS`.
+- **حارس النسخ الاحتياطي (`/api/backup`):**
+  - إلغاء الثقة بترويسات `x-forwarded-for` و`x-real-ip` القابلة للتحكم من العميل.
+  - إلزام `BACKUP_ADMIN_SECRET` لكل عملية؛ إرجاع `503` عند غيابه و`403` عند عدم تطابقه (سلوك `fail-closed`).
+- **الاقتران التلقائي بأجهزة الشبكة:** تعطيل `auto_pair` افتراضياً وإرجاع `403 DISABLED`، ولا يُفعَّل إلا بضبط `LABRYO_ALLOW_AUTO_PAIR=1` صراحةً. كما أصبح تحديد عنوان العميل من مقبس الاتصال فقط.
+- **سلامة النتائج السريرية:** إزالة الربط الاحتياطي بأحدث عينة (`store.samples[0]`) عند تعذّر مطابقة رقم العينة الوارد من الجهاز؛ تُرفض النتيجة بحالة `UNMATCHED_SAMPLE` وتُعاد بـ`422` بدل نسبها لمريض خاطئ. وطُبّق السلوك نفسه على مسار محاكاة الأجهزة.
+- **تحديثات سطح المكتب:** تعطيل التنزيل التلقائي (`autoUpdater.autoDownload = false`) بحيث لا يُنزَّل أي تحديث قبل موافقة صريحة من المشغّل.
+- **اختبار انحدار:** إضافة `tests/security/phase0_hardening.test.ts` (8/8 ناجح) يمنع التراجع عن أي من الحُرّاس أعلاه.
+
+## [إصلاح أمني - المرحلة 1: الجلسات والتدقيق والترخيص والأسرار وبيانات PHI] - 2026-10-29
+
+> ترقية أمنية على دفعات صغيرة. أُضيف جدول `Session` بشكل إضافي آمن (`CREATE TABLE IF NOT EXISTS`) ورُفع `CURRENT_SCHEMA_VERSION` إلى `144`، دون هجرة مدمّرة ودون تغيير أي عقد `API` عام. لم تُشغَّل أي عملية تعدّل بيانات المختبر.
+
+- **الجلسات الخادمية (`Session`) وإبطالها:**
+  - إضافة نموذج `Session` إلى مخططي `apps/server/prisma/schema.prisma` و`apps/web/prisma/schema.prisma`، وإنشاء الجدول والفهارس تلقائياً عند التهيئة في `apps/server/src/prisma.ts` و`apps/web/src/lib/prisma.ts`.
+  - أصبح رمز `JWT` يحمل معرّف جلسة (`sid`) وصلاحية زمنية، وكل طلب محمي يتحقق من وجود الجلسة في قاعدة البيانات ومن عدم إبطالها أو انتهائها قبل السماح بالمرور.
+  - تحديث `lastSeenAt` بحد أقصى مرة كل 5 دقائق لتقليل الكتابة، وإضافة `POST /auth/logout-all` لإبطال كل جلسات المستخدم.
+  - إبطال كل جلسات الموظف تلقائياً عند تعطيل حسابه أو تغيير كلمة مروره، وإبطال الجلسة الحالية عند تسجيل الخروج.
+- **التدقيق (`AuditLog`):**
+  - إضافة كاتب تدقيق موحّد `apps/server/src/utils/audit.ts` لا يُفشل العملية الأصلية عند تعذّر الكتابة.
+  - تسجيل `LOGIN` و`LOGOUT` و`LOGOUT_ALL` وتحديثات حسابات الموظفين مع معرّف المستخدم وعنوان `IP`.
+- **الترخيص غير المتماثل (`Ed25519`):**
+  - استبدال التوقيع المتماثل `HMAC` في `apps/web/src/lib/licensing.ts` و`apps/server/src/utils/licensing.ts` بالتحقق عبر المفتاح العام `Ed25519` للصيغة الجديدة `LIC2-<payload>.<signature>`.
+  - إضافة أداة مستقلة `scripts/license-keygen.mjs` (`init` / `sign` / `verify` / `migrate-legacy`) تولّد المفتاح الخاص خارج المستودع في `%USERPROFILE%\.labryo\keys` (أو `LABRYO_KEY_DIR`) ولا تُضمّن المفتاح الخاص في حزمة العميل.
+  - تعطيل توليد التراخيص من جهة العميل/الخادم؛ وأصبحت الصيغة القديمة `LIC-` مقبولة فقط عند `LABRYO_ALLOW_LEGACY_LICENSES=1` مع `LABRYO_LEGACY_LICENSE_SECRET` كفترة انتقال، مع أمر `migrate-legacy` لإعادة إصدار مفاتيح العملاء.
+  - ربط التجربة المجانية بـ`HWID` الفعلي بدل إعادة استخدام أي سجل `TRIAL` موجود، ومنع تجربة جديدة على جهاز آخر.
+  - إصلاح استعادة الترخيص من `SQLite` لتشمل مفاتيح `LIC2-` إلى جانب `LIC-`.
+- **الأسرار البيئية:**
+  - إضافة `LABRYO_LICENSE_PUBLIC_KEY` و`LABRYO_LEGACY_LICENSE_SECRET` و`LABRYO_ALLOW_LEGACY_LICENSES` و`JWT_SECRET` و`BACKUP_ADMIN_SECRET` إلى `.env` المحلي (غير المتتبَّع) دون طباعة أي قيمة.
+  - إضافة محمّل `.env` خفيف بلا مكتبات جديدة في `apps/server/src/env.ts` ليقرأ خادم `Fastify` الأسرار فعلياً، مع بقاء متغيرات البيئة الحقيقية ذات أولوية.
+  - الإبقاء على ختم التلاعب المحلي على السر التاريخي افتراضياً كي لا تُقفل النسخ القائمة؛ تدوير `LABRYO_TAMPER_SEAL_SECRET` يتطلب إعادة ختم متعمدة.
+- **بيانات المرضى (`PHI`) وسحبها من التتبع:**
+  - سحب 9 ملفات من فهرس `Git` فقط (`git rm --cached`) دون حذفها من القرص: `lab_store.json` و`clinical_templates.json` ونسخ `auto_snapshot` ضمن `apps/web/data` و`apps/desktop/engine`.
+  - إضافة أنماط تجاهل صريحة لملفات `lab_store*.json` و`clinical_templates.json` ونسخ النسخ الاحتياطي وملفات `*.tmp` و`network_devices.json` المحلية.
+  - **حماية مخرجات البناء:** استبعاد `apps/web/data` وقواعد `apps/server/prisma/*.db*` وملفات `.env` من تتبع ملفات `Next.js` عبر `outputFileTracingIgnores` (وهو المسار الوحيد الذي يطابق المسارات على `Windows`) مع إبقاء `outputFileTracingExcludes` لأنظمة `Linux/macOS`. النتيجة: `apps/web/.next/standalone` أصبح خالياً تماماً من `PHI` و`.env` (تحقق فعلي بعد بناء نظيف).
+  - **حماية حزمة المثبت:** إضافة خطوة تنظيف في `tools/build-standalone-installer.js` تحذف أي بقايا `lab_store*` و`clinical_templates.json` و`network_devices.json` و`.hwid_seal.json` و`backups` وقواعد `lab.db*` من `standalone` قبل كتابة قاعدة البيانات النظيفة.
+  - **ملاحظة:** إزالة الملفات من تاريخ `Git` بالكامل (history rewrite) لم تُنفَّذ بعد وتحتاج تأكيداً منفصلاً ونسخة مرآة وشجرة عمل نظيفة.
+- **إصلاح توكن الدخول في الواجهة:**
+  - توحيد مفتاح التخزين على `lab_token` و`lab_user` عبر `setAuthToken` بدل كتابة `auth_token` غير المقروء، مع إبقاء `user_role` للتوافق.
+- **الفحوصات:**
+  - `npx prisma generate` ناجح، `npm run typecheck` ناجح، `npm run lint:boundaries` بلا مخالفات (`258` ملفاً)، و`npm run build` ناجح.
+  - التحقق من مخرجات البناء: `apps/web/.next/standalone` خالٍ من `lab_store*` و`clinical_templates.json` و`auto_snapshot*` و`lab.db*` و`.env`.
+  - إضافة `tests/security/phase1_security.test.ts` (15/15 ناجح) واختبار `phase0` (8/8 ناجح).
+  - لم يُشغَّل `npm run test:golden` لأنه يعيد كتابة ملفات `tests/golden/artifacts/*.pdf` المعدَّلة مسبقاً.
+
+## [الإصدار 2.0.3] - 2026-10-28 (توحيد تجميع فحوصات السكري، زر حذف الفحص وتعديل الاسم بالكتالوج، وحزمة استقرار وسرعة النظام)
+- **إصلاح تقسيم وتجميع الفحوصات الطبية:**
+  - **توحيد باقة السكري وسكر الدم:** دمج كافة تحاليل السكر وسكر الدم (`FBS`, `HbA1c`, `RBS`, `OGTT`, `Insulin`, `C-Peptide`, `HOMA-IR`, `OGTT-CURVE`) في مجموعة سريرية موحدة في [`grouping.ts`](file:///d:/lab/packages/domain/src/grouping.ts).
+  - **حل تعارض المجموعات والأقسام القديمة:** إنشاء جسر دلالي يربط المجموعات القياسية بمجموعات قاعدة البيانات (مثل `grp-diabetes` مع `Diabetes profile`) بحيث تجتمع الفحوصات ذات المعرّفات القديمة والفحوصات الحديثة معاً في نفس القسم سواء في شبكة النتائج أو التقرير المطبوع وصور واتساب.
+  - **منع تصادم البادئات للأكواد الطبية:** استبدال فحص البادئات المفتوح `startsWith` بمطابقة حدود دقيقة لحل مشكلة دخول `CA125` و `CA19-9` في الكلى (لتشابهها مع الكالسيوم `CA`) ودخول `HBSAG` في صورة الدم (لتشابهها مع الهيموغلوبين `HB`) ودخول `TPHA` في وظائف الكبد (لتشابهها مع البروتين الكلي `TP`).
+  - **اختبارات وحدة:** كتابة اختبارات تحقق في [`grouping.test.ts`](file:///d:/lab/packages/domain/src/grouping.test.ts) واجتيازها بنجاح 100%.
+
+- **إضافات دليل الفحوصات والكتالوج:**
+  - **إضافة زر حذف الفحص 🗑️:** إضافة زر الحذف باللون الأحمر بجانب زر التعديل في [`settings/page.tsx`](file:///d:/lab/apps/web/src/app/settings/page.tsx) مع نافذة تأكيد للمستخدم وتطبيق الحذف الناعم (`active = false`) للحفاظ التام على السجلات والعينات التاريخية.
+  - **إتاحة تعديل اسم الفحص:** تفعيل إمكانية تحرير وتعديل اسم الفحص (`name`) مباشرة في وضع التعديل السريع مع التحقق من عدم تركه فارغاً.
+
+- **حزمة تحسينات الاستقرار والأداء:**
+  - **تدوير السجلات التلقائي (Log Rotation):** تطبيق حد أقصى لحجم ملف `engine.log` (أقل من 5 ميجابايت) في [`main.js`](file:///d:/lab/apps/desktop/main.js) لتدويره تلقائياً وتفادي تضخمه.
+  - **إسكات ومعالجة خطأ واتساب:** معالجة حلقة خطأ `Bad MAC` التكرارية في [`whatsappWebEngine.ts`](file:///d:/lab/apps/web/src/lib/whatsappWebEngine.ts) وإعادة تعيين بيانات الاعتماد التالفة لمنع استهلاك القرص الصلب.
+  - **استعادة 456 ميجابايت من القرص:** تنظيف وإزالة ملفات مثبتات التحديثات القديمة `Setup.exe` المتبقية في مجلد التنزيلات `downloads/` وتفعيل التنظيف الآلي في [`updateService.js`](file:///d:/lab/apps/desktop/services/updateService.js).
+  - **مزامنة أعمدة SQLite الناقصة:** ترقية رقم إصدار المخطط إلى 143 وإضافة الأعمدة الناقصة (`isActive`, `birthDate`, `crystals`, `logoUrl`) بأمان عبر `PRAGMA table_info` في [`prisma.ts`](file:///d:/lab/apps/web/src/lib/prisma.ts) لإنهاء أخطاء Prisma تماماً.
+
+- **إصلاح تجزئة فحوصات الكيمياء السريرية وإرسالها مجمعة بدقة عبر واتساب:**
+  - **توحيد جدول الفحوصات العامة في بطاقة تقرير واحدة:** إزالة شرط التجزئة الفردية القسرية `isSingleMode` من [`PrintBody.ts`](file:///d:/lab/apps/web/src/app/api/samples/%5Bid%5D/print/PrintBody.ts) الذي كان يعزل كل فحص عام غير دهني (مثل السكر التراكمي `HbA1c` أو سكر الصيام `FBS` أو وظائف الكلى `Urea`/`Creatinine`) في بطاقة منفصلة عن باقة دهون الدم (`Lipid Profile`).
+  - **التجميع السريري الصحيح:** إدراج كافة تحاليل الكيمياء السريرية والسكري والدهون والوظائف الحيوية في جدول تشخيصي واحد مصنف حسب الفئات الطبية (`Clinical Chemistry`, `Lipid Profile`, `Renal Function`, إلخ)، بحيث تُولد بطاقة وصورة واحدة فقط لجميع الفحوصات العامة، مع استمرار تقسيمها الطبيعي لصفحة ثانية فقط في حال تجاوز سعة الورقة A4.
+  - **الحفاظ التام على استقلالية الاستمارات التخصصية:** استمرار توليد صور منفصلة للاستمارات والمحطات التخصصية المستقلة ذات الهيكل السريري المخصص (صورة الدم الكاملة `CBC`، الإدرار `GUE`، الخروج `GSE`، السائل المنوي `SFA`، الحمل الرقمي `Bhcg`، ومخزون المبيض `AMH`).
+  - **حزم الاختبارات:** إضافة اختبار تكاملي مخصص [`test_whatsapp_combined_tests.ts`](file:///d:/lab/tests/integration/test_whatsapp_combined_tests.ts) وتأكيد توليد صورة واحدة مجمعة بنسبة 100% لفحصي `HbA1c` و `Lipid Profile`، واجتياز اختبار الصور المتعددة [`test_whatsapp_multi_images.ts`](file:///d:/lab/tests/integration/test_whatsapp_multi_images.ts) وكافة الفحوصات الذهبية 6/6.
+
+## [الإصدار 2.0.1] - 2026-10-27 (حزمة اختبارات End-to-End شاملة لكافة تفاصيل النظام باستخدام مهارة e2e)
+## [الإصدار 2.0.1] - 2026-10-27 (دمج النتائج السابقة بالنتيجة الحالية للمريض في نفس الفورمة وتضمينها بنفس الترتيب في رسائل وتقارير واتساب)
+- **دمج النتائج السابقة في نفس الفورمة التفاعلية والمطبوعة ورسائل واتساب:**
+  - **طبقة البيانات واسترجاع فحوصات الزيارات السابقة:** تحديث دالة `searchPatients` في [`serverStore.ts`](file:///d:/lab/apps/web/src/lib/serverStore.ts) و `GET /api/patients` في [`route.ts`](file:///d:/lab/apps/web/src/app/api/patients/route.ts) لتضمين مصفوفة الفحوصات ونتائجها ضمن `priorVisits` لتمكين واجهات الاستقبال والنتائج من التعرف الفوري على الفحوصات السابقة للمريض (مثل السكر التراكمي `HbA1c`).
+  - **كونسول الاستقبال الموحد والنتائج السريرية:** تحديث [`useUnifiedWorkspace.ts`](file:///d:/lab/apps/web/src/widgets/unified-workspace/model/useUnifiedWorkspace.ts) و [`ResultsGridPanel.tsx`](file:///d:/lab/apps/web/src/widgets/unified-workspace/ui/ResultsGridPanel.tsx) لإظهار شارة النتيجة السابقة البارزة مع تاريخ الفحص السابق تحت اسم الفحص، وإبقاء الفحوصات الجديدة (مثل اليوريا `Urea`) بدون سابقة.
+  - **فورمة التقرير المطبوع ومعاينة PDF:** تحديث [`PrintBody.ts`](file:///d:/lab/apps/web/src/app/api/samples/%5Bid%5D/print/PrintBody.ts) لإدراج عمود `PREVIOUS` تلقائياً عند وجود أي نتيجة سابقة للمريض، مع إظهار القيمة السابقة وتاريخها للسكر التراكمي، وشرطة `-` لليوريا، وتضمين العمود في [`LabContext.tsx`](file:///d:/lab/apps/web/src/components/LabContext.tsx) لمصمم الورق.
+  - **محرك رسائل الواتساب الطبية الذكية:** تطوير [`buildArabicWhatsAppClinicalMessage`](file:///d:/lab/apps/web/src/lib/orderHelpers.ts) ومسار الإرسال [`/api/whatsapp/send-result`](file:///d:/lab/apps/web/src/app/api/whatsapp/send-result/route.ts) لإدراج ملخص النتائج والتحاليل بالترتيب، شاملاً النتيجة الحالية والسابقة وتاريخها للفحوصات المعادة، والنتيجة الحالية للفحوصات الجديدة.
+
+- **إعداد وتطوير حزمة اختبارات e2e شاملة (10 أجنحة اختبارات في tests/e2e-specs):**
+  - بناء ملف التهيئة القياسي [`e2e.config.ts`](file:///d:/lab/e2e.config.ts) المعتمد على محرك `@e2e-dev/web`.
+  - جناح 01: كونسول الاستقبال ومساحة العمل الموحدة (تسجيل المرضى، تدقيق الهاتف العراقي، حساب الأعمار الدقيق، أنابيب التحاليل، الخصم المالي، النتائج السريعة، وتنبيهات القيم الحرجة Panic).
+  - جناح 02: محطات العمل الطبية المتخصصة (فحص الدم CBC وحساب المؤشرات، الكيمياء ودهون Friedewald وeGFR، الإدرار GUE، البراز GSE، الزرع والحساسية، السائل المنوي، الحمل الرقمي Bhcg، ومخزون المبيض AMH).
+  - جناح 03: سجل المرضى ودورة حياة العينات (البحث المتقدم، ملف المريض وتاريخ الزيارات، تتبع الحالات، رفض العينات وأسبابها، والإنذار السريري لتغير النتائج Delta Check).
+  - جناح 04: دليل التحاليل والأسعار والمعدلات الطبيعية (إضافة وتعديل التحاليل، تحديث الكاش اللحظي، ومحرر الشرائح المتعددة حسب العمر والجنس).
+  - جناح 05: الإدارة المالية وحركات الصندوق والديون والمصروفات (إدارة الورديات، سندات القبض والصرف المتسلسلة، تسوية الديون، وحساب نسب الأطباء المحيلين).
+  - جناح 06: أجهزة التحليل الطبية والمخزن (مطابقة أكواد ASTM/HL7، محاكاة استقبال النتائج على المنفذ 5000، تنبيهات نفاذ الكواشف وانتهاء الصلاحية).
+  - جناح 07: الربط الشبكي وإدارة الأجهزة المقترنة (الاقتران التلقائي لأجهزة LAN، فحص الاستجابة Ping، دليل التثبيت لـ Windows/Android/iOS، والبث اللحظي SSE).
+  - جناح 08: واتساب ويب والإرسال التلقائي (ربط الباركود، استبقاء الجلسة، توليد الصور متعددة البطاقات، وصياغة الرسائل المخصصة).
+  - جناح 09: مصمم الورق وإعدادات الطباعة (تخصيص الهوامش للترويسة الجاهزة، الشعار والهوية، استمارات العمل اليدوي Blank Forms، والتقارير ثنائية اللغة).
+  - جناح 10: التحقق الإلكتروني والأمان والترخيص (التحقق الخارجي بالباركود QR ومكافحة التزوير، فحص الجاهزية والصحة، والتحقق العتادي HWID).
+
+## [الإصدار 2.0.0] - 2026-10-26 (بناء النسخة الشاملة الموحدة `32-bit / 64-bit` المتوافقة مع جميع إصدارات ويندوز القديمة والحديثة، إرسال تقارير الفحوصات المتعددة كصور منفصلة عبر واتساب، والربط الشبكي السلس)
+- **0-أ0. تطوير فورمة فحص الحمل الرقمي (`Total β-HCG`)، إظهار كافة الشرائح المرجعية التفاعلية، تعريب الصفر (100% English Reference Range)، وإرسال كل تحليل كصورة مستقلة عبر واتساب:**
+  - **إعادة تصميم محطة عمل فحص الحمل الرقمي (`Total β-HCG`):** ترقية [`BhcgFormModal.tsx`](file:///d:/lab/apps/web/src/components/workstations/BhcgFormModal.tsx) وتصميم التقرير المطبوع في [`PrintBody.ts`](file:///d:/lab/apps/web/src/app/api/samples/%5Bid%5D/print/PrintBody.ts) إلى نمط محطات العمل السريرية (`Model B Clinical Workstation`) على غرار فحصي الإدرار والخروج، مع أزرار تعبئة قياسية سريعة (`Negative` / `Borderline` / `Positive`)، وجدول أسابيع الحمل التفاعلي (`LMP`) القابل للنقر لاختيار المدى وتعبئة النتيجة، وربط الفورمة في شاشة سجل المرضى [`patients/page.tsx`](file:///d:/lab/apps/web/src/app/patients/page.tsx).
+  - **إظهار جميع القيم المرجعية (`printScope = ALL`) والاختيار التفاعلي للمدى المطابق:** تعديل [`PrintBody.ts`](file:///d:/lab/apps/web/src/app/api/samples/%5Bid%5D/print/PrintBody.ts) لإظهار كافة الفئات والشرائح المرجعية المسجلة للفحص (مثل الشرائح الثلاث لفحص السكر التراكمي `HbA1c`) مع تمييز الشريحة المطابقة، وتحديث [`ResultsGridPanel.tsx`](file:///d:/lab/apps/web/src/widgets/unified-workspace/ui/ResultsGridPanel.tsx) و [`patients/page.tsx`](file:///d:/lab/apps/web/src/app/patients/page.tsx) لعرض جميع الشرائح كأزرار تفاعلية تُدرج نتيجة الفحص المطابقة فور النقر عليها.
+  - **منع ظهور أي كلمات عربية في حقل `Normal Range` بتقرير المريض:** إضافة المترجم السريري [`translateRefRangeToEnglish`](file:///d:/lab/apps/web/src/app/api/samples/%5Bid%5D/print/PrintBody.ts) لتحويل كافة التسميات العربية (`الرجال`، `النساء`، `أطفال`، `طبيعي`، `ما قبل السكري`، `مصاب بالسكري`، إلخ) إلى مصطلحات إنجليزية طبية قياسية (`Male`, `Female`, `Children`, `Normal`, `Pre-diabetic`, `Diabetic`) وتطهير جدول التقرير المطبوع من أي نص عربي.
+  - **إرسال كل تحليل على شكل صورة مستقلة عبر واتساب:** تحديث [`PrintBody.ts`](file:///d:/lab/apps/web/src/app/api/samples/%5Bid%5D/print/PrintBody.ts)، [`route.ts`](file:///d:/lab/apps/web/src/app/api/samples/%5Bid%5D/print/route.ts)، [`shareReportToWhatsApp.ts`](file:///d:/lab/apps/web/src/lib/shareReportToWhatsApp.ts)، [`main.js`](file:///d:/lab/apps/desktop/main.js)، و [`whatsappAutoPaste.ps1`](file:///d:/lab/apps/desktop/services/whatsappAutoPaste.ps1) لفصل كل تحليل في بطاقة مستقلة والتقاط وإرسال كل بطاقة كصورة مستقلة تماماً دون دمجها في صورة واحدة طويلة.
+- **0-أ. النسخة الشاملة الموحدة لجميع الأنظمة (`Universal 32/64-bit All-Windows Edition`) وإصلاح التثبيت والإقلاع الذاتي:**
+  - **دعم شامل لمعمارية `32-bit (x86/ia32)` و `64-bit (x64)` وويندوز `7 / 8 / 8.1 / 10 / 11`:** دمج Electron 22 (`ia32`) و Node.js v18.20.7 (`win-x86`) مع متغير `NODE_SKIP_PLATFORM_CHECK=1` وتحديد سقف ذاكرة `V8 Heap` عند `768MB` للأجهزة القديمة ذات رام `2GB`، وعزل استدعاءات محرك Prisma 64-bit في [`prisma.ts`](file:///d:/lab/apps/web/src/lib/prisma.ts) و [`sqliteSync.ts`](file:///d:/lab/apps/web/src/lib/sqliteSync.ts) على أنظمة `ia32` للعمل بسلاسة تامة عبر المخزن الذري المحلي دون أي انهيار.
+  - **معالجة مشكلة "عدم تعرف الجهاز على البرنامج أو تعذر التثبيت" عند الإرسال عبر واتساب وتيليجرام:** اعتماد اسم ملف موحد خالٍ من النقاط المتعددة والأقواس (`Labryo_LIMS_v2_Universal_All_Windows_32-64bit_Setup.exe`) لمنع قص امتداد `.exe` في واتساب وتيليجرام، وتضمين أيقونات التثبيت الرسمية (`app.ico`)، وتوحيد مسار التثبيت بالأحرف القياسية (`Labryo LIMS` / `LabryoLIMS.exe`) في [`electron-builder-legacy.json`](file:///d:/lab/apps/desktop/electron-builder-legacy.json) و [`installer-legacy.nsh`](file:///d:/lab/apps/desktop/installer-legacy.nsh) لمنع فشل التثبيت على الأنظمة ذات الترميز غير العربي.
+  - **القضاء الجذري على رسالة "تأخر استجابة المحرك المحلي" وفشل زر إعادة المحاولة:** تطوير معمارية الإقلاع والتشافي الذاتي في [`main.js`](file:///d:/lab/apps/desktop/main.js) و [`preload.js`](file:///d:/lab/apps/desktop/preload.js) لتشمل: التهيئة الذرية المتزامنة لقاعدة البيانات قبل تشغيل الخادم (`seedJsonDatabaseSync`)، وتأجيل إنشاء نافذة Chromium حتى جاهزية السيرفر لمنح `100%` من المعالج والقرص الصلب لمحرك البيانات على أقراص `HDD` القديمة، واختيار المنفذ التلقائي الذكي (`resolveAvailablePort` عبر المنافذ `8080, 8085, 8088, 8090, 8180, 3080`) في حال انشغال المنفذ `8080` ببرنامج خارجي، وإضافة ترويسات `CORS` في [`/health`](file:///d:/lab/apps/web/src/app/health/route.ts) و [`/ready`](file:///d:/lab/apps/web/src/app/ready/route.ts)، وربط زر إعادة المحاولة بقناة `IPC` (`server:retry-now`) وحلقة استرداد تلقائية تعيد تشغيل المحرك وتفتح النظام فوراً.
+- **0-ب. إصلاح ربط الهواتف والأجهزة الفرعية بالشبكة المحلية (LAN Auto-Pairing & Server Profile Sync & Install Guide):**
+  - **مزامنة اسم ومعلومات المختبر تلقائياً من السيرفر المركزي:** السماح للأجهزة المتصلة عبر الشبكة المحلية بجلب إعدادات وهوية المختبر (`GET /api/settings` و `labIdentity` في `/api/network/status`) من الحاسبة الرئيسية مباشرة، وإلغاء ظهور نافذة التهيئة الأولية (`LabOnboardingModal`) على الهواتف والأجهزة الفرعية المتصلة بنفس المختبر.
+  - **إزالة رسالة الانقطاع الخاطئة (غير متصل بالسيرفر المركزي):** دعم الاقتران التلقائي الفوري لأجهزة الشبكة المحلية (`auto_pair`) في [`networkDeviceManager.ts`](file:///d:/lab/apps/web/src/lib/networkDeviceManager.ts) والسماح بقناة البث اللحظي (`SSE`) عبر `/api/network/events` لأجهزة الشبكة المحلية مع فحص الوصول الفعلي للسيرفر عبر HTTP في [`NetworkSyncProvider.tsx`](file:///d:/lab/apps/web/src/components/NetworkSyncProvider.tsx) قبل إظهار أي تنبيه انقطاع.
+  - **إظهار زر وأيقونة تثبيت البرنامج دائماً على الهاتف والحاسوب الفرعي:** إظهار بطاقة وزر **"📲 تثبيت أيقونة البرنامج على الجهاز"** بشكل دائم وبارز في صفحة [`/connect`](file:///d:/lab/apps/web/src/app/connect/page.tsx) وفي الشريط العلوي [`ReceptionHeader.tsx`](file:///d:/lab/apps/web/src/widgets/unified-workspace/ui/ReceptionHeader.tsx) مع نافذة دليل بصري تفاعلي للهواتف (`Android Chrome` و `iOS Safari`) وتنزيل اختصار سطح المكتب لويندوز، وضمان نسخ ملفات `manifest.json` و `logo.png` و `sw.js` في حزمة المحرك المستقل.
+- **1. إرسال صور التقارير المتعددة كصور مستقلة ومنفصلة عبر واتساب (Multi-Image Report Delivery):**
+  - معالجة مشكلة دمج الفحوصات الطبية المختلفة (مثل الإدرار GUE مع الكيمياء السريرية والسكر) في صورة واحدة ممتدة طويلة جداً، حيث كان محرك Puppeteer يلتقط الصفحة بالكامل (`fullPage: true`).
+  - تطوير دالة `generateReportImages` في [`puppeteerImageGenerator.ts`](file:///d:/lab/apps/web/src/lib/puppeteerImageGenerator.ts) لأخذ لقطة مستقلة عالية الدقة (2x Retina) لكل بطاقة فحص منفصلة (`.report-card`).
+  - إضافة مسار API جديد [`/api/samples/[id]/images`](file:///d:/lab/apps/web/src/app/api/samples/%5Bid%5D/images/route.ts) وتحديث مسار [`/api/samples/[id]/image`](file:///d:/lab/apps/web/src/app/api/samples/%5Bid%5D/image/route.ts) لدعم استدعاء الصفحة برقمها `?page=N`.
+  - تحديث مسار الإرسال التلقائي [`/api/whatsapp/send-result`](file:///d:/lab/apps/web/src/app/api/whatsapp/send-result/route.ts) ومكتبة المشاركة [`shareReportToWhatsApp.ts`](file:///d:/lab/apps/web/src/lib/shareReportToWhatsApp.ts) لإرسال كل فحص/صفحة كصورة منفصلة مع ترقيم توضيحي (`📄 صورة 1 من 2`، `📄 صورة 2 من 2`) وفاصل زمني آمن لمنع حظر الرسائل.
+  - ترقية سكربت الأتمتة لويندوز [`whatsappAutoPaste.ps1`](file:///d:/lab/apps/desktop/services/whatsappAutoPaste.ps1) إلى v6.1 ومسار المشاركة لسطح المكتب [`/api/whatsapp/share-desktop`](file:///d:/lab/apps/web/src/app/api/whatsapp/share-desktop/route.ts) لدعم تمرير مصفوفة مسارات الصور في الحافظة (`FileDropList`) ولصقها مجمعة ومستقلة داخل تطبيق واتساب لسطح المكتب بنقرة واحدة.
+- **2. الربط الشبكي الكامل (Server-Client LAN) وتثبيت الحواسيب الفرعية:**
+  - تشغيل الخادم المركزي على `0.0.0.0:8080` مع فتح منافذ جدار حماية ويندوز (`TCP 8080` و `TCP 5000`) تلقائياً أثناء التثبيت.
+  - إتاحة تنزيل اختصار سطح المكتب الجاهز للحاسبات الفرعية بنقرة واحدة من لوحة إعدادات الشبكة ودليل الربط.
+- **2. محرك واتساب ويب المدمج (QR Code) والإرسال التلقائي:**
+  - دمج محرك واتساب ويب المباشر داخل بيئة الخادم المستقلة مع حفظ الجلسة محلياً في `data/whatsapp_auth` واستعادتها التلقائية عند الإقلاع.
+  - إضافة تبويب مسح الباركود في شاشة الإعدادات، وتفعيل الإرسال التلقائي لتقارير الفحوصات للمرضى فور اكتمال العينات وحفظها.
+- **3. معالج ربط الأجهزة الطبية المخبرية (ASTM E1381 / HL7):**
+  - جسر اتصال الأجهزة الطبية على المنفذ `5000` ومعالج إعداد الأجهزة خطوة بخطوة مع فحص الاتصال التلقائي وترحيل النتائج للكونسول السريري.
+- **4. إعادة التصميم الموحد فائق السلاسة (100vh Split-Screen Zero-Scroll):**
+  - توحيد شاشات النظام في واجهات منقسمة ثابتة لجميع الأقسام: سجل المرضى والنتائج، الصندوق والحسابات، الأجهزة والمخزون، والإعدادات ودليل التحاليل.
+- **5. نظام المعدلات الطبيعية المتقدمة المتعددة والخصم التلقائي للكواشف:**
+  - محرر شرائح المعدلات الطبيعية المخصصة (رجال / نساء / أطفال 0-18 سنة / قيم حرجة خطيرة Panic Values) والمحاكي السريري الحي.
+  - نظام الخصم التلقائي للكواشف المخبرية (Auto-Reagent Deduction) ومقارنة القراءات التاريخية (Delta Check).
+- **6. مطابقة المعاينة الحية مع الورقة المطبوعة بنسبة 100%:**
+  - التبديل الفوري للخطوط العربية في المعاينة الحية، الحفظ التلقائي الذكي، وإزالة البوادئ الإنجليزية المعلقة من الترويسات.
+
+
+## [الإصدار 1.5.16] - 2026-10-25 (ربط واتساب ويب بالباركود مع حفظ الجلسة الدائم والإرسال التلقائي للنتائج فور اكتمالها وحفظها)
+- **1. محرك واتساب ويب المدمج والجلسة الدائمة (`whatsappWebEngine.ts`):**
+  - بناء محرك اتصال واتساب ويب مدمج يعمل مباشرة داخل بيئة خادم البرنامج (`Next.js Node Runtime` على المنفذ `8080`) في [`whatsappWebEngine.ts`](file:///d:/lab/apps/web/src/lib/whatsappWebEngine.ts) مع حفظ الجلسة والمفاتيح محلياً في `data/whatsapp_auth` واستعادتها تلقائياً في الخلفية عند تشغيل البرنامج دون الحاجة لإعادة مسح الباركود.
+  - ربط مسارات [`/api/whatsapp/status`](file:///d:/lab/apps/web/src/app/api/whatsapp/status/route.ts)، [`/api/whatsapp/connect`](file:///d:/lab/apps/web/src/app/api/whatsapp/connect/route.ts)، [`/api/whatsapp/logout`](file:///d:/lab/apps/web/src/app/api/whatsapp/logout/route.ts)، [`/api/whatsapp/send-media`](file:///d:/lab/apps/web/src/app/api/whatsapp/send-media/route.ts)، و [`/api/whatsapp/send-result`](file:///d:/lab/apps/web/src/app/api/whatsapp/send-result/route.ts) بالمحرك المدمج مباشرة.
+- **2. بطاقة ربط واتساب بالباركود وتفعيل الإرسال التلقائي في الإعدادات (`settings/page.tsx`):**
+  - إضافة بطاقة مخصصة في تبويب إعدادات النظام في [`settings/page.tsx`](file:///d:/lab/apps/web/src/app/settings/page.tsx) مع زر وصول سريع في الشريط العلوي لعرض الباركود (`QR Code`) ومتابعة حالة الاتصال حياً كل 2.5 ثانية وعرض الرقم المرتبط وخيار إلغاء الربط.
+  - إضافة مفتاح تبديل (`Switch`) لتفعيل أو إيقاف **"الإرسال التلقائي عبر واتساب بعد حفظ النتيجة"** (`whatsappAutoSendEnabled`).
+- **3. الإرسال التلقائي الذكي في الخلفية فور اكتمال النتيجة وحفظها:**
+  - ربط حدث حفظ النتائج في كل من شاشة سجل المرضى والنتائج ([`patients/page.tsx`](file:///d:/lab/apps/web/src/app/patients/page.tsx)) والشاشة الرئيسية للكونسول السريري الموحد ([`UnifiedActionBar.tsx`](file:///d:/lab/apps/web/src/widgets/unified-workspace/ui/UnifiedActionBar.tsx)) بالدالة [`autoSendReportViaWhatsAppWeb`](file:///d:/lab/apps/web/src/lib/shareReportToWhatsApp.ts) لإرسال صورة/ملف التقرير الطبي المعتمد تلقائياً بالخلفية فور اكتمال جميع تحاليل العينة وحفظها.
+
+## [الإصدار 1.5.15] - 2026-10-25 (استرجاع نظام المعدلات الطبيعية المتقدمة المتعددة للرجال والنساء والأطفال والقيم الحرجة وتأكيد تفاعلها السريري)
+- **1. استرجاع وتكامل محرر المعدلات الطبيعية الكامل (`ReferenceRangesEditor`) في شاشة دليل التحاليل:**
+  - دمج المكون المتقدم [`ReferenceRangesEditor.tsx`](file:///d:/lab/apps/web/src/components/catalog/ReferenceRangesEditor.tsx) داخل نافذة منبثقة تفاعلية في [`settings/page.tsx`](file:///d:/lab/apps/web/src/app/settings/page.tsx).
+  - توفير القوالب السريعة بنقرة واحدة: `للجميع`، `رجال / نساء`، `رجال / نساء / أطفال` (0-18 سنة أطفال، 18+ رجال، 18+ نساء)، و `فحص وصفي / كيفي` (Negative).
+  - إتاحة التحكم الكامل في كل شريحة: تحديد الجنس (`M` / `F` / `any`)، والمدى العمري بالسنوات أو الشهور أو الأيام، والحدود الدنيا والعليا والوحدة، والقيم الحرجة الخطيرة (`criticalLow` و `criticalHigh`).
+  - توفير المحاكي السريري الحي التفاعلي لتجربة تصنيف أي نتيجة لأي عمر وجنس مباشرة داخل النافذة قبل الحفظ.
+- **2. تخصيص شرائح المعدل الطبيعي عند إنشاء تحليل جديد:**
+  - تزويد نافذة "+ إضافة تحليل جديد" في دليل التحاليل بإمكانية فتح محرر الشرائح المتقدم لتحديد فئات الرجال والنساء والأطفال فور إنشاء الفحص.
+- **3. شارات بصرية وزر وصول سريع في جدول التحاليل:**
+  - إضافة شارات دقيقة في عمود "المعدل الطبيعي": `🎯 مخصص (N فئات)` أو `🎯 رجال / نساء` لفتح المحرر بنقرة واحدة.
+  - إضافة زر مخصص `🎯 النسب` في عمود "تعديل سريع" لكل فحص في الكتالوج.
+- **4. التحقق السريري التام من تفاعل النتائج في شاشة العمل وتقارير الطباعة:**
+  - التحقق من تفاعل محرك التصنيف [`rangeClassification.ts`](file:///d:/lab/packages/domain/src/rangeClassification.ts) في [`ResultsGridPanel.tsx`](file:///d:/lab/apps/web/src/widgets/unified-workspace/ui/ResultsGridPanel.tsx) و [`PrintBody.ts`](file:///d:/lab/apps/web/src/app/api/samples/%5Bid%5D/print/PrintBody.ts).
+  - التأكد من مطابقة شريحة الذكر للرجل البالغ وشريحة الأنثى للمرأة وشريحة الأطفال للطفل، وتلوين مؤشرات الارتفاع والانخفاض (H ↑ / L ↓) وإظهار شارات الفئة المخصصة بدقة 100%.
+
+## [الإصدار 1.5.14] - 2026-10-25 (حزمة الإصلاحات الخمسة الشاملة: مطابقة المعاينة الحية مع الورقة المطبوعة، تبديل الخطوط الفوري، إرسال صورة النتيجة عبر واتساب، ربط الأجهزة الطبية وتعديل بيانات المريض)
+- **1. مطابقة المعاينة الحية مع الورقة المطبوعة بنسبة 100% وإصلاح الترويسة الداكنة:**
+  - معالجة عدم تطابق القالب بين المعاينة والطباعة عبر الربط ثنائي الاتجاه `TEMPLATE_TO_HEADER_STYLE_MAP` في [`PaperDesignerV2.tsx`](file:///d:/lab/apps/web/src/components/workspace/PaperDesignerV2.tsx).
+  - إزالة `!important` الذي كان يعطل تخصيص أحجام خطوط الأعمدة في [`route.ts`](file:///d:/lab/apps/web/src/app/api/samples/%5Bid%5D/print/route.ts) وربط `testNameFontSize` و `testNameFontWeight` و `resultValueFontSize` في [`PrintBody.ts`](file:///d:/lab/apps/web/src/app/api/samples/%5Bid%5D/print/PrintBody.ts).
+  - ضبط ألوان نصوص الترويسات الداكنة (`AZURE_WAVE`, `MODERN`) لتظهر باللون الأبيض الناصع بدلاً من الكحلي القاتم في [`PrintHeader.ts`](file:///d:/lab/apps/web/src/app/api/samples/%5Bid%5D/print/PrintHeader.ts).
+  - إضافة الحفظ التلقائي الذكي (`Debounced Auto-Save`) في مصمم الفورمة لضمان حفظ وتطبيق أي تعديل فوراً على السيرفر دون الحاجة للبحث عن زر الحفظ.
+- **2. تفعيل التغيير الفوري للخطوط العربية في المعاينة الحية وشريط القياس الموحد:**
+  - تحميل الخطوط المعتمدة (`Tajawal`, `Cairo`, `IBM Plex Sans Arabic`, `Almarai`, `Inter`) في [`layout.tsx`](file:///d:/lab/apps/web/src/app/layout.tsx).
+  - حقن قواعد التنسيق المحصورة `.live-paper-sheet` لتطبيق الخط المحدد فوراً على كافة عناوين وخلايا المعاينة الحية.
+  - إبراز الخطوط بنماذج حية داخل بطاقات الاختيار، وإضافة شريط التكبير العام السريع (`صغير / متوسط / كبير`).
+- **3. إصلاح إضافة وربط الأجهزة الطبية وقبول حقلي `brand` و `manufacturer`:**
+  - إرسال `brand` و `manufacturer` معاً في [`devices/page.tsx`](file:///d:/lab/apps/web/src/app/devices/page.tsx) وقبول أحدهما أو استنتاجه من اسم الجهاز في [`apps/web/src/app/api/devices/route.ts`](file:///d:/lab/apps/web/src/app/api/devices/route.ts) لمنع الخطأ الزائف (`اسم الجهاز والشركة المصنعة حقول إلزامية`).
+- **4. إصلاح خطأ 405 عند تعديل معلومات المريض:**
+  - دعم مسار `PUT` إلى جانب `PATCH` في [`apps/web/src/app/api/patients/[id]/route.ts`](file:///d:/lab/apps/web/src/app/api/patients/%5Bid%5D/route.ts) لتمكين الحفظ والتعديل الفوري من كافة الواجهات.
+- **5. إصلاح إرسال صورة نتيجة التقرير الطبي عبر واتساب سطح المكتب:**
+  - تحديث سكريبت الأتمتة المكتبي [`whatsappAutoPaste.ps1`](file:///d:/lab/apps/desktop/services/whatsappAutoPaste.ps1) لمنع استبدال الصورة بالنص داخل حافظة ويندوز والحفاظ على كائن الصورة في الذاكرة.
+  - تمرير الشرح النصي عبر بروتوكول `whatsapp://send?text=...` ليتم إرفاقه تلقائياً بالصورة الملصقة دون لمس شريط المهام في وضع ملء الشاشة.
+- **6. إصلاح ظهور قائمة دليل التحاليل والأسعار في شاشة الإعدادات الموحدة:**
+  - استخراج مصفوفة التحاليل بشكل سليم من كائن الاستجابة `res.tests` في [`settings/page.tsx`](file:///d:/lab/apps/web/src/app/settings/page.tsx) بعد أن كان الفحص الزائف `Array.isArray(res)` يفرغ القائمة.
+  - تفعيل التقديم الفوري من الكاش `catalogCache.getTests()` مع التحديث التلقائي من السيرفر، ودعم البحث بالاسم العربي والإنجليزي والكود، وإظهار المعدلات الطبيعية عبر الحقول المتعددة (`refRangeText`, `normalRange`, `referenceRange`).
+- **1. إصلاح خطأ 404 في المخزون والكواشف (`/inventory`) وإكمال مسارات الكادر والمصاريف:**
+  - بناء مسارات واجهة برمجة المخزون الكاملة في [`apps/web/src/app/api/inventory/`](file:///d:/lab/apps/web/src/app/api/inventory/route.ts) (`GET/POST /api/inventory`, `GET /api/inventory/alerts`, `PATCH/PUT/DELETE /api/inventory/[id]`, `POST /api/inventory/[id]/open`) مع دوال الإدارة المتكاملة في [`apps/web/src/lib/serverStore.ts`](file:///d:/lab/apps/web/src/lib/serverStore.ts).
+  - إضافة مسارات [`/api/expenses`](file:///d:/lab/apps/web/src/app/api/expenses/route.ts) و [`/api/staff`](file:///d:/lab/apps/web/src/app/api/staff/route.ts) لضمان عمل جميع الشاشات في وضع التشغيل المستقل (Standalone) بدون أي أخطاء `404`.
+- **2. إصلاح المعاينة الحية لحجم خط اسم المريض ومعلوماته ومنع الفتح التلقائي للمتصفح:**
+  - ربط إعدادات `patientNameFontSize` و `patientInfoFontSize` مباشرة بالمعاينة الحية على اليسار عبر جميع أنماط بطاقات المريض الـ 4 (`cards`, `compact`, `classic_box`, `grid`) في [`PaperDesignerV2.tsx`](file:///d:/lab/apps/web/src/components/workspace/PaperDesignerV2.tsx) ومطابقتها في محرك الطباعة [`PrintHeader.ts`](file:///d:/lab/apps/web/src/app/api/samples/%5Bid%5D/print/PrintHeader.ts).
+  - إزالة أوامر الفتح التلقائي للمتصفح الخارجي (`start http://localhost:8080`) من ملفات التشغيل [`launch-updated-lab.bat`](file:///d:/lab/launch-updated-lab.bat)، [`start-lab.bat`](file:///d:/lab/start-lab.bat)، و [`start-lab.ps1`](file:///d:/lab/start-lab.ps1).
+- **3. تفعيل الربط الشبكي الكامل (Server-Client LAN) والتثبيت السهل بدون خبرة تقنية:**
+  - تعديل عنوان الاستماع في [`apps/desktop/main.js`](file:///d:/lab/apps/desktop/main.js) من `127.0.0.1` إلى `0.0.0.0:8080` ليعمل الجهاز المثبت عليه البرنامج كخادم رئيسي (Server) تتصل به كافة الحاسبات الفرعية عبر الشبكة المحلية.
+  - إضافة قواعد فتح جدار الحماية التلقائية (`TCP 8080` للواجهة و `TCP 5000` للأجهزة الطبية) أثناء التثبيت في [`apps/desktop/installer.nsh`](file:///d:/lab/apps/desktop/installer.nsh).
+  - إضافة زر تنزيل اختصار سطح المكتب الجاهز للحاسبات الفرعية (`.url`) في [`NetworkSettingsPanel.tsx`](file:///d:/lab/apps/web/src/components/network/NetworkSettingsPanel.tsx) ودليل التثبيت والتحديث المبسط في [`settings/page.tsx`](file:///d:/lab/apps/web/src/app/settings/page.tsx).
+- **4. معالج ربط الأجهزة الطبية خطوة بخطوة لغير التقنيين:**
+  - تزويد قوالب الأجهزة في [`devicePresets.ts`](file:///d:/lab/apps/web/src/lib/devicePresets.ts) بنوع الكيبل (`cableTypeAr`) ومسار شاشة الجهاز (`analyzerMenuPath`) وخطوات الربط العربية المبسطة (`setupSteps`).
+  - تحديث شاشة [`devices/page.tsx`](file:///d:/lab/apps/web/src/app/devices/page.tsx) لعرض الـ IP الحي للسيرفر والمنفذ `5000` تلقائياً، ونافذة خطوات الربط المصورة خطوة بخطوة، وزر `"فحص الربط"` لإرسال نتيجة تجريبية حية بضغطة واحدة.
+- **5. إضافة الميزات السريرية والتشغيلية المعتمدة (1، 2، 3):**
+  - **الميزة 1 (الخصم التلقائي للكواشف `Auto-Reagent Deduction`):** ربط الفحوصات بأصناف المخزون عبر `catalogCode` في [`serverStore.ts`](file:///d:/lab/apps/web/src/lib/serverStore.ts) لخصم وحدة واحدة تلقائياً من العبوة المفتوحة عند تسجيل العينة وتوليد تنبيهات النواقص في [`inventory/page.tsx`](file:///d:/lab/apps/web/src/app/inventory/page.tsx).
+  - **الميزة 2 (تنبيه القيم الحرجة الخطيرة `Critical / Panic Value Alert`):** إضافة شريط تنبيه طبي عاجل وشارات تحذيرية نابضة (`🚨 قيمة حرجة خطيرة`) للنتائج ذات الخطر الحياتي (`PANIC_HIGH` / `PANIC_LOW`) في [`ResultsGridPanel.tsx`](file:///d:/lab/apps/web/src/widgets/unified-workspace/ui/ResultsGridPanel.tsx).
+  - **الميزة 3 (مقارنة القراءات التاريخية `Delta Check`):** جلب آخر نتيجة سابقة للمريض وتاريخها (`previousValue`, `previousDate`) تلقائياً وعرض شارة `📊 السابق: ...` بجانب حقل النتيجة في [`ResultsGridPanel.tsx`](file:///d:/lab/apps/web/src/widgets/unified-workspace/ui/ResultsGridPanel.tsx) وشاشة النتائج.
+- **6. إعادة التصميم الشاملة والمبسطة جداً (`Ultra-Simple Unified 100vh Split-Screen Redesign`) لجميع الأقسام:**
+  - تحويل الغلاف العام [`AppShell.tsx`](file:///d:/lab/apps/web/src/components/AppShell.tsx) والقائمة الجانبية [`ReceptionSidebar.tsx`](file:///d:/lab/apps/web/src/widgets/unified-workspace/ui/ReceptionSidebar.tsx) إلى شاشة واحدة ثابتة بدون تمرير للصفحة (`100vh Zero-Scroll`) تضم 5 أقسام رئيسية فقط: (`الشاشة الرئيسية`، `سجل المرضى والنتائج`، `الصندوق والحسابات`، `الأجهزة والمخزون`، `الإعدادات والتحاليل`).
+  - **سجل المرضى والنتائج الموحد ([`patients/page.tsx`](file:///d:/lab/apps/web/src/app/patients/page.tsx) وربط `/samples` و `/results`):** دمج كامل في شاشة مقسمة (`Master-Detail`) تعرض قائمة المرضى والعينات والبحث السريع يميناً، وجدول تعديل النتائج الفوري والفورمات التخصصية والطباعة وتسديد الحساب والواتساب يساراً.
+  - **الصندوق والحسابات الموحد ([`financials/page.tsx`](file:///d:/lab/apps/web/src/app/financials/page.tsx) وربط `/debts` و `/expenses` و `/doctors`):** شاشة محاسبية يومية واحدة تعرض كبسولات (`المقبوضات`، `المصاريف`، `صافي الصندوق`) مع لوحة الديون والأطباء يميناً وسجل حركات الصندوق والمصاريف يساراً.
+  - **الأجهزة والمخزون الموحد ([`devices/page.tsx`](file:///d:/lab/apps/web/src/app/devices/page.tsx) وربط `/inventory`):** شاشة مقسمة تعرض الأجهزة الطبية وخطوات الربط وفحص الاتصال يميناً، وجدول المخزون والكواشف المربوط بالخصم التلقائي يساراً.
+  - **الإعدادات والتحاليل الموحد ([`settings/page.tsx`](file:///d:/lab/apps/web/src/app/settings/page.tsx) وربط `/catalog` و `/staff` و `/license`):** شاشة واحدة بثلاثة تبويبات نظيفة (`تصميم الفورمات والورق` دون لمس `PaperDesignerV2` + `دليل التحاليل والأسعار` مع التعديل الفوري + `الشبكة والنسخ الاحتياطي والترخيص`).
+  - تسريع الأداء عبر تفعيل كاش الذاكرة الفوري (`SWR In-Memory Cache`) في [`apps/web/src/lib/api.ts`](file:///d:/lab/apps/web/src/lib/api.ts) ومنع تكرار حلقة فحص الكتالوج في [`serverStore.ts`](file:///d:/lab/apps/web/src/lib/serverStore.ts) عبر `__catalogHydrated`.
+
+## [الإصدار 1.5.12] - 2026-10-21 (إصلاح نظام التحديث التلقائي، منع تلف ملفات Program Files، وتثبيت الأيقونة الرسمية عبر التثبيت المرئي المعزز UAC)
+- **1. إلغاء التثبيت الصامت الفاشل وتفعيل التثبيت المرئي الرسمي المعزز بصلاحيات المدير:**
+  - تعديل `autoUpdater.quitAndInstall(false, true)` في [`apps/desktop/services/updateService.js`](file:///d:/lab/apps/desktop/services/updateService.js) لإطلاق معالج تثبيت ويندوز المرئي الرسمي بطلب صلاحيات المدير (UAC Administrator Elevation) فور نقر المستخدم على إعادة التشغيل، مما يقضي نهائياً على فشل الكتابة داخل `C:\Program Files` ومشكلة الأيقونة الفارغة وتوقف البرنامج عن الفتح.
+  - إيقاف التثبيت الصامت عند الإغلاق العادي `autoUpdater.autoInstallOnAppQuit = false` لضمان عدم تلف الملفات في الخلفية بدون علم الفني.
+- **2. تثبيت أيقونة التطبيق الرسمية الملونة داخل ترويسة ويندوز التنفيذية:**
+  - ربط مسار الأيقونة المعتمدة `"icon": "assets/app.ico"` في إعدادات بناء ويندوز داخل [`apps/desktop/package.json`](file:///d:/lab/apps/desktop/package.json) لمنع ظهور الأيقونة الافتراضية أو الفارغة على سطح المكتب وشريط المهام.
+
+## [الإصدار 1.5.11] - 2026-10-21 (حل مشكلة تجهيز صورة واتساب وتوليد التقارير محلياً بنظام Electron Offscreen Native Render واللصق الذاتي متعدد الصيغ)
+- **1. توليد صور التقارير الطبية محلياً بنظام Electron Native Capture دون أي اعتماد خارجي:**
+  - تفعيل معالج `report:generate-image` في [`apps/desktop/main.js`](file:///d:/lab/apps/desktop/main.js) لتوليد صورة التقرير مباشرة من نافذة خفية عبر `BrowserWindow.webContents.capturePage()` فور جاهزية الخطوط (`document.fonts.ready`) بسرعة فائقة (~40ms) وبدقة عالية دون الحاجة لمحرك Puppeteer الخارجي.
+  - ربط أولوية توليد الصور في [`apps/web/src/lib/shareReportToWhatsApp.ts`](file:///d:/lab/apps/web/src/lib/shareReportToWhatsApp.ts) عبر `electronDesktop.generateReportImage` للقضاء نهائياً على رسالة الخطأ الحمراء (`تعذر تجهيز صورة التقرير`).
+- **2. تحصين معالج مشاركة واتساب التفاعلي لسطح المكتب (`whatsapp:share-direct`):**
+  - حفظ صورة التقرير في ملف مؤقت دائم وتمرير المعاملات كاملة (`-ImagePath` و `-Phone` و `-CaptionFile`) إلى سكريبت الأتمتة المكتبي [`apps/desktop/services/whatsappAutoPaste.ps1`](file:///d:/lab/apps/desktop/services/whatsappAutoPaste.ps1).
+  - تثبيت الصورة في الحافظة التفاعلية لمحطة ويندوز (WinSta0/Default) بثلاث صيغ متزامنة (`Bitmap + PNG stream + FileDropList`) مع الانتقال الإجباري لنافذة واتساب ولصق الصورة والشرح وإرسالها بنقرة واحدة.
+- **3. دمج حزم Puppeteer الاحتياطية لمستخدمي الشبكة المحلية (LAN):**
+  - تحديث معالج الحزم المستقلة في [`tools/build-standalone-installer.js`](file:///d:/lab/tools/build-standalone-installer.js) لنسخ الحزم الاحتياطية لتوليد الصور لمتصفحات الشبكة المحلية.
+
+## [الإصدار 1.5.10] - 2026-10-21 (تفعيل التنقل التلقائي التتابعي بمفتاحي Enter و Shift بين حقول المريض واختيار الجنس وجدول النتائج)
+- **1. تفعيل التنقل التلقائي بمفتاح Enter عبر كافة حقول المريض دون إهمال الجنس:**
+  - برمجة مستمعات الأحداث `onKeyDown` في [`PatientCardPanel.tsx`](file:///d:/lab/apps/web/src/widgets/unified-workspace/ui/PatientCardPanel.tsx) لتوفير تنقل تلقائي سلس: الاسم ⬅️ العمر ⬅️ الجنس (أنثى/ذكر) ⬅️ الهاتف ⬅️ الملاحظات ⬅️ القفز المباشر لأول فحص في جدول النتائج بمفتاح `Enter`.
+  - تحصين حقل الجنس (Gender): دعم التبديل التفاعلي بالأسهم (ArrowLeft/ArrowRight) أو المسافة (Space) أو الأرقام (`1` لأنثى و `2` لذكر)، والتأكيد والانتقال التلقائي للهاتف بضغطة `Enter` لمنع إهمال الجنس الإلزامي.
+- **2. اكتمال ربط مسار التنقل التتابعي السريع بمفتاح Shift (`useShiftNavigation.ts`):**
+  - تفعيل وسم `data-shift-nav="patient"` لكافة حقول تسجيل المريض الأساسية وأزرار الجنس في [`apps/web/src/widgets/unified-workspace/ui/PatientCardPanel.tsx`](file:///d:/lab/apps/web/src/widgets/unified-workspace/ui/PatientCardPanel.tsx).
+  - تفعيل وسم `data-shift-nav="result"` لكافة حقول إدخال النتائج في [`apps/web/src/widgets/unified-workspace/ui/ResultsGridPanel.tsx`](file:///d:/lab/apps/web/src/widgets/unified-workspace/ui/ResultsGridPanel.tsx) مع دعم مفتاح `Enter` على القوائم المنسدلة للنتائج النوعية.
+  - تفعيل وسم `data-shift-nav="save-btn"` على زر الحفظ السريع (F9) في [`apps/web/src/widgets/unified-workspace/ui/UnifiedActionBar.tsx`](file:///d:/lab/apps/web/src/widgets/unified-workspace/ui/UnifiedActionBar.tsx).
+- **3. تحصين خطاف التنقل واختبارات E2E الشاملة:**
+  - دعم وسوم `select[data-shift-nav]` والتحقق الآمن من دالة `scrollIntoView` في [`apps/web/src/widgets/unified-workspace/lib/useShiftNavigation.ts`](file:///d:/lab/apps/web/src/widgets/unified-workspace/lib/useShiftNavigation.ts).
+  - إضافة وتحديث اختبار التحقق التتابعي الكامل `TC-T1-27c` في [`tests/e2e/unified-workspace.test.ts`](file:///d:/lab/tests/e2e/unified-workspace.test.ts) يثبت تسلسل التنقل من حقول المريض مروراً بالجنس إلى حقول النتائج ثم زر الحفظ والعودة الدائرية للمريض بنجاح تام 49/49 واجتياز 6/6 اختبارات ذهبية.
+
+## [الإصدار 1.5.9] - 2026-10-19 (تحديث إصلاحي عاجل: معالجة توقف الإقلاع عند "جاري إقلاع محرك النظام المحلي" بعد التحديث الأخير وإصلاح ترتيب خطافات React في شريط التنقل)
+- **1. إصلاح توقف إقلاع محرك النظام المحلي في [`apps/desktop/main.js`](file:///d:/lab/apps/desktop/main.js):**
+  - نقل دالة تحرير المنفذ `freePortIfOccupied` من داخل جسم الدالة `killBackendProcess` إلى النطاق العام للملف لمنع خطأ `ReferenceError: freePortIfOccupied is not defined` الذي كان يوقف تشغيل `ensureServerStarted()` قبل إقلاع خادم `node.exe`.
+  - استبدال تمرير كائن `WriteStream` غير المفتوح متزامناً (`fd: null`) مباشرة في مصفوفة `stdio` لدالة `spawn` بـ `stdio: ['ignore', 'pipe', 'pipe']` مع ربط `stdout` و `stderr` بملف `logs/engine.log` بأمان لمنع خطأ `ERR_INVALID_ARG_VALUE`.
+  - إضافة حماية `try / catch` وآلية استشفاء ذاتي (`Self-Healing Respawn`) داخل `startAndLoadApp` لضمان إعادة تشغيل الخادم المحلي تلقائياً في حال تعثره أثناء الإقلاع.
+- **2. إصلاح ترتيب خطافات React (Rules of Hooks) في [`apps/web/src/components/AppShell.tsx`](file:///d:/lab/apps/web/src/components/AppShell.tsx):**
+  - نقل الإرجاع الشرطي المبكر للصفحة الرئيسية (`if (pathname === '/')`) إلى ما بعد استدعاء كافة الخطافات (`useRouter`, `useTheme`, `useLab`, `useState`, `useRef`, `useEffect`) لمنع خطأ `Rendered more hooks than during the previous render` عند التنقل بين الشاشة الرئيسية وبقية أقسام النظام.
+- **3. تعزيز موثوقية رفع التحديثات وبوابة فحص الدخان:**
+  - رفع مهلة بوابة فحص الدخان الآلي (`runSmokeTestGate`) إلى `45000ms` في [`tools/build-standalone-installer.js`](file:///d:/lab/tools/build-standalone-installer.js) و [`tools/build-legacy-installer.js`](file:///d:/lab/tools/build-legacy-installer.js) لتفادي التأخير الناتج عن فحص Windows Defender الفوري بعد نسخ الملفات.
+  - إضافة إعادة المحاولة التلقائية (`Auto-Retry` حتى 5 محاولات مع تنظيف الأصول الجزئية) عند انقطاع الاتصال (`ECONNRESET`) في [`tools/deploy/publish_desktop_release.js`](file:///d:/lab/tools/deploy/publish_desktop_release.js).
+
+## [الإصدار 1.5.8] - 2026-10-19 (حزمة التطويرات السريرية والتشغيلية الـ 11 الشاملة: الفترة التجريبية 48 ساعة، لصق التفعيل بالزر الأيمن، إيقاف الفتح التلقائي للفورمات، توحيد تصميم Culture ومصفوفة الحساسية، منع تشوه الشاشة، التحديث الصامت، تعريب الأقسام، التحكم بحجم خط المريض، اتجاه إدخال النتائج LTR، مشاركة صور واتساب المباشرة، وتعديل الأسعار من الشاشة الرئيسية)
+- **1. الفترة التجريبية (48 ساعة بعد التثبيت):**
+  - الحفاظ على بيانات `existingLicense` أثناء المزامنة الدورية وتفريغ الذاكرة في `serverStore.ts` لمنع تصفير التجربة بعد دقيقتين أو 3 دقائق.
+  - فحص نافذة الـ 48 ساعة بدقة في `apps/web/src/app/api/license/status/route.ts` لضمان عمل البرنامج مجاناً لمدة يومين كاملين قبل طلب التفعيل.
+- **2. لصق كود التفعيل وقائمة السياق:**
+  - تفعيل قائمة كليك يمين أصلية في سطح المكتب (`apps/desktop/main.js`) تضم أوامر النسخ، اللصق، التراجع، وتحديد الكل باللغة العربية.
+  - إضافة زر "📋 لصق الكود" المباشر في `TrialLockGuard.tsx` و `license/page.tsx` لقراءة الكود من الحافظة بضغطة واحدة.
+- **3. إيقاف الفتح التلقائي للفورمات الجاهزة عند الاختيار:**
+  - إيقاف `onOpenSpecialModal` التلقائي عند اختيار فحص ذي فورمة خاصة من الكتالوج في `CatalogCartPanel.tsx`، وتقتصر الفتحة على النقر اليدوي من جدول النتائج.
+- **4. توحيد تصميم الفورمات الجاهزة (Microbiology / Culture):**
+  - إعادة بناء `MicrobiologyModal.tsx` بنفس فلسفة وأناقة `UrineFormModal` و `GseModal`: أزرار الانتقاء السريع (Pill Selectors) للعينات وصبغة غرام والمستعمرات، مصفوفة حساسية المضادات الحيوية مع البحث والفلترة حسب الغرام، أزرار النماذج السريعة (Sterile, E. coli, MRSA, Pseudomonas)، ودعم كامل لمتغيرات الثيم.
+- **5. منع تشوه الشاشة واختفاء أسماء التحاليل:**
+  - رفع الحد الأدنى لعرض الكتالوج `minWidth: '340px'` واسم الفحص `minWidth: '120px'` في `CatalogCartPanel.tsx`، وضبط استجابة عرض `ResultsGridPanel` و `PatientCardPanel` لمنع انضغاط أو اختفاء أسماء التحاليل في مختلف الشاشات.
+- **6. إشعارات وآلية التحديث التلقائي الصامت (Silent Background Update):**
+  - إظهار شريط إشعار التحديث `<UpdateNotificationBanner />` في جميع شاشات وأقسام البرنامج بما فيها الشاشة الرئيسية `/` في `AppShell.tsx`.
+  - تفعيل التثبيت الصامت تماماً بدون معالج تثبيت أو نوافذ منبثقة عبر `autoUpdater.quitAndInstall(true, true)` في `updateService.js`.
+- **7. تعريب واجهات وأقسام البرنامج:**
+  - تعريب شريط التنقل العلوي `AppShell.tsx`، والشريط الجانبي للاستقبال `ReceptionSidebar.tsx`، وبطاقة المريض `PatientCardPanel.tsx`، وشريط الإجراءات السفلي `UnifiedActionBar.tsx` (حفظ، طباعة التقرير، واتساب، باركود، مريض جديد، والإجمالي بالدينار العراقي).
+- **8. التحكم بحجم خط اسم المريض ومعلوماته:**
+  - إضافة خياري `patientNameFontSize` و `patientInfoFontSize` إلى `LabProfile` في `LabContext.tsx`، وأشرطة تحكم تفاعلية في `PaperDesignerV2.tsx` داخل قسم تحديد حجم الخط لكل عنصر، وربطهما في طباعة التقارير داخل `renderPatientMetaBox` في `PrintHeader.ts`.
+- **9. اتجاه إدخال النتائج (LTR):**
+  - تطبيق `dir="ltr"` على لوحة إدخال النتائج فقط `ResultsGridPanel.tsx` ليظهر اسم التحليل يساراً، والنتيجة وسطاً، والوحدة والمعدل الطبيعي يميناً، مع بقاء كافة عناصر الواجهة الأخرى بمحاذاة عربية (RTL).
+- **10. إرسال النتائج وصور التقرير عبر واتساب:**
+  - دعم تصدير صورة التقرير الطبي بصيغة PNG عبر `/api/samples/[id]/image?format=png` لضمان توافق الحافظة.
+  - ربط معالج المشاركة السريعة `shareToWhatsApp` وتوجيه المحادثة مباشرة إلى رقم هاتف المريض في واتساب ولصق صورة التقرير تلقائياً عبر الحافظة بحيث يكتفي المستخدم بالضغط على إرسال (Enter) في `UnifiedActionBar.tsx` و `WhatsAppFormsModal.tsx`.
+- **11. تعديل أسعار التحاليل من الشاشة الرئيسية مباشرة:**
+  - إتاحة النقر المباشر على سعر الفحص في الكتالوج بالشاشة الرئيسية `CatalogCartPanel.tsx` مع حقل إدخال وزري "حفظ" و "إلغاء"، وحفظ السعر فوراً في قاعدة البيانات وتحديث الذاكرة وسلة الطلب عبر `updateCatalogTestPrice`.
+- **12. معالجة إقلاع مثبت النسخة القديمة (Legacy Edition - Windows 7/8/10 32-bit):**
+  - إزالة معامل `--disable-software-rasterizer` الذي كان يعطل الرندرة البرمجية لـ Chromium بالكامل عند تعطيل GPU في Windows 7 ويجمد النافذة.
+  - رفع مهلة فحص TCP المحلي من 40ms إلى 250ms مع مسار احتياطي للتحقق المباشر من مسار `/ready` لتفادي ظهور شاشة "تأخر استجابة المحرك المحلي" على الأجهزة البطيئة.
+  - تحرير المنفذ 8080 تلقائياً بأوامر `netstat` و `taskkill` الأصلية المتوافقة مع كافة إصدارات ويندوز لمنع تعارض العمليات السابقة.
+  - إضافة تسجيل كامل ومستمر لمخرجات محرك Node.js في ملف `logs/engine.log`، وإعادة بناء وحزم النسخة القديمة v1.5.7 وتحديث الملف على سطح المكتب مع بصمة SHA-256.
+
+## [الإصدار 1.5.7] - 2026-10-17 (الحزمة السريرية الخماسية: ضبط طباعة الدهون، إزالة التعليقات النصية، 5 فورمات تخصصية جديدة، المطابقة الديناميكية للقيم الطبيعية، وتوحيد 14 نمط ترويسة بالاسم)
+- **1. منع ظهور الفحوصات الإضافية غير المطلوبة في الطباعة والواتساب + فتح الإدخال اليدوي المباشر:**
+  - إزالة الحقن التلقائي للفحوصات الافتراضية غير المطلوبة (`Non-HDL`, `TC/HDL Ratio`, `LDL/HDL Ratio`, `VLDL`) من `PrintBody.ts` ومن رسائل الواتساب في `results/page.tsx` بحيث يُطبع فقط ما طلبه المستخدم وأدخله فعلياً.
+  - فتح الإدخال اليدوي المباشر لحقول الفحوصات المحسوبة (`LDL`, `VLDL`, `eGFR`) في `ResultsGridPanel.tsx` بدون قفل (`disabled`)، مع التفعيل التلقائي لـ `isDirectOverride` في `useUnifiedWorkspace.ts` عند الكتابة اليدوية والعودة للحساب التلقائي عند تفريغ الحقل.
+- **2. إزالة كافة التعليقات النصية بجانب النتائج والاكتفاء باللون والأسهم:**
+  - إيقاف توليد وعرض النصوص التوصيفية بجانب النتائج (`مرتفع عن (...)`، `منخفض عن (...)`، `ضمن (...)`، `قريب`، `calculated`، `▲ High`، `▼ Low`) في كلٍ من الواجهة (`ResultsGridPanel.tsx`, `results/page.tsx`) والتقارير المطبوعة (`PrintBody.ts`).
+  - الاكتفاء فقط بتغيير لون النتيجة والأسهم القياسية (`↑` للمرتفع، `↓` للمنخفض) عند وجود قيم غير طبيعية.
+- **3. ضبط مصنّف الفورمات، إثراء الكتالوج (325 فحصاً)، وإطلاق 5 فورمات عمل وطباعة تخصصية جديدة:**
+  - ضبط دوال `isGueTest` و `isGseTest` و `isSfaTest` في `testClassifier.ts` لمنع الفحوصات المفردة (مثل `HP-AG` جرثومة المعدة بالخروج، `FOBT` الدم الخفي، `U-PROT-24H` بروتين إدرار 24 ساعة، وفحوصات السموم) من فتح فورمة الإدرار أو الخروج الكاملة بالخطأ.
+  - إضافة 12 فحصاً سريرياً جديداً إلى الكتالوج (`catalogData.ts`) وبناء مكون الفورمات التخصصية الموحد `ClinicalFormWorkstationModal.tsx` مع قوالب طباعة A4 مستقلة في `PrintBody.ts` لـ 5 فورمات جديدة:
+    1. `BLOOD_FILM` (فحص مسحة الدم المحيطية `Peripheral Blood Smear Morphology`).
+    2. `BODY_FLUID` (تحليل سوائل الجسم: `CSF` السائل الشوكي، `Pleural` الجنبي، `Ascitic` الاستسقاء، `Synovial` المفصلي).
+    3. `STONE_ANALYSIS` (تحليل حصى الكلى والمسالك البولية الفيزيائي والكيميائي).
+    4. `COAG_PROFILE` (ملف تخثر الدم الشامل `PT / Control / ISI / INR / aPTT / BT / CT` مع حساب `INR` تلقائياً).
+    5. `OGTT_CURVE` (منحنى تحمل السكر الفموي المتسلسل في الدم والإدرار مع مخطط بياني `SVG` مدمج).
+- **4. المطابقة الديناميكية لحالة المريض التشخيصية في عمود `Reference Range` بناءً على النتيجة وتعديلات الكتالوج:**
+  - تطوير `resolveDynamicReferenceRange` في `rangeClassification.ts` و `resolveReferenceRange` في `orderHelpers.ts` و `PrintBody.ts` لمطابقة قيمة نتيجة المريض المدخلة مع الشرائح التشخيصية المتعددة في الكتالوج (سواء بدون قيد جنس/عمر `sex: 'any'` كما في `HbA1c` أو ضمن نفس الفئة):
+    - عند إدخال `4` في `HbA1c` ➔ يظهر في عمود `REFERENCE RANGE`: `Non-diabetic (4 - 5.6)`.
+    - عند إدخال `6` في `HbA1c` ➔ يظهر في عمود `REFERENCE RANGE`: `Pre-diabetic (5.7 - 6.4)` مع تلوين النتيجة والسهم `6 ↑`.
+    - عند إدخال `8` في `HbA1c` ➔ يظهر في عمود `REFERENCE RANGE`: `Diabetic (>= 6.5)` مع تلوين النتيجة والسهم `8 ↑`.
+  - ربط مسار الطباعة `/api/samples/[id]/print/route.ts` بأحدث تعريفات الكتالوج الحية لينعكس أي تعديل يجريه المستخدم في الكتالوج فوراً على الشاشة والطباعة.
+- **5. حذف معرض القوالب المصور وتوحيد 14 نمط ترويسة بالاسم فقط مع استجابة فورية 100% في المعاينة والطباعة:**
+  - إزالة تبويب وبطاقات معرض القوالب (`TEMPLATES` / `PRESETS`) من `PaperDesignerV2.tsx`.
+  - تصفية الترويسات المكررة وإدراج 14 نمط ترويسة مميزاً بالاسم فقط داخل `نمط الترويسة (Header Style)` (`default`, `regal_box`, `dual_wing`, `gradient_banner`, `minimal_pure`, `compact_strip`, `gold_frame`, `smart_digital`, `accredited_badge`, `bauhaus_grid`, `aurora_wave`, `executive_dark`, `vertical_accent`, `glass_capsule`)، وربطها بالكامل في المعاينة الحية `PaperDesignerV2.tsx` ومحرك الطباعة `PrintHeader.ts`.
+
+## [الإصدار 1.5.6] - 2026-10-16 (حزمة التعديلات السريرية السبعة الشاملة: تقسيم الصفحات، الخيارات الكيفية، تحسس الفئات، وأعمار الرضع)
+- **1. تقسيم صفحات A4 المتعددة للفحوصات الكثيرة (Multi-Page A4 Pagination):**
+  - خوارزمية ذكية لاحتساب أوزان صفوف الفحوصات وترويسات الأقسام والمعدلات الطبيعية متعددة الأسطر مع مراعاة كثافة الجدول (`tableRowSpacing`).
+  - تقسيم تلقائي للفحوصات الكثيرة (25-30 فحصاً أو أكثر) إلى صفحات A4 متتالية ونظيفة، مع تكرار كامل للترويسة الطبية وصندوق بيانات المريض وترويسة الجدول وشارة الترقيم `Page X of Y` في كل صفحة لضمان عدم تشوه أو اقتطاع أي نتيجة.
+  - تطبيق فواصل الصفحات الصارمة `page-break` في كل من المعاينة الحية والطباعة الفيزيائية.
+- **2. الخيارات السريعة للنتائج النصية والكيفية (Qualitative Test Options Engine):**
+  - محرك ذكي (`qualitativeResultOptions.ts`) للتعرف التلقائي على الفحوصات الكيفية (فصائل الدم ABO/Rh، الأمصال والفيروسات، عيارات التراص Widal و Brucella، وشرائط الفحص السريع).
+  - إظهار أزرار اختيار سريعة لكبسولات `Negative` و `Positive` وقوائم منسدلة تفاعلية مباشرة داخل خلية النتيجة في شاشات الاستقبال والنتائج، مع الاحتفاظ بإمكانية الكتابة اليدوية الحرة.
+- **3. التحكم في حجم خط الفورمات السريرية الجاهزة (Specialized Forms Font Size Control):**
+  - إضافة شريط تحكم مخصص في مصمم النماذج `PaperDesignerV2` يتيح تكبير أو تصغير خط الفورمات الجاهزة (GUE, GSE, SFA, CBC, AMH, BHCG) بمدى يتراوح من `10px` إلى `18px`.
+  - تطبيق المقياس فوراً في مصمم التقارير ومحرك الطباعة مع توسيع أبعاد الصناديق لتظل النصوص واضحة وسهلة القراءة.
+- **4. طباعة وتوثيق عمر المريض بالشهور والأيام (Patient Age Months & Days):**
+  - دعم كامل لأعمار الرضع وحديثي الولادة بالشهور والأيام (`ageMonths`, `ageDays`) في `ageUtils.ts` وحفظها واسترجاعها في قاعدة البيانات.
+  - طباعة الأعمار بدقة فائقة باللغتين الإنجليزية والعربية (مثل `5 Months 12 Days` أو `12 Days`) بدلاً من ظهور شرطة فارغة أو حساب صفري.
+- **5. التحسس الدقيق للمعدلات الطبيعية وفئات المريض وعزل Bidi (Custom Category Sensing & Bidi Isolation):**
+  - تحسس الشرائح التشخيصية المخصصة (مثل `طبيعي: 70 - 140` وشرائح ما قبل السكري والسكري أو الثلث الحملي) واستخراج ملخص حالة المريض السريرية (`patientStateSummary`).
+  - حل مشكلة الانقلاب ثنائي الاتجاه (Bidi) عبر عزل النصوص والأرقام بتقنية `unicode-bidi: isolate`، مما يضمن عرض وطباعة `طبيعي: 70 - 140` باتجاهها الصحيح دون أن تنقلب إلى `140 - 70 : طبيعي`.
+- **6. الفورمة الفارغة بكامل الترويسة والنموذج المعتمد (Blank Form Full Lab Layout):**
+  - إعادة كتابة مسار طباعة الفورمة الفارغة (`/api/templates/blank/print/route.ts`) ليعتمد القالب الرسمي المعتمد للمختبر (من بين 20 قالباً)، شاملاً الترويسة الرقمية الكاملة، وصندوق المريض، وجدول الفحوصات الرسمي، والعلامة المائية، وتذييل التقرير مع التواقيع والأختام.
+- **7. الحفظ التلقائي الصامت عند نقر طباعة التقرير (Auto-Save on Print Report Click):**
+  - تمكين زر طباعة التقرير فور إدخال اسم المريض والفحوصات، وتنفيذ الحفظ التلقائي الصامت ومزامنة النتائج لحظياً قبل فتح المعاينة دون إظهار أي تنبيه تحذيري يربك سير العمل.
+- **8. وضوح وتباين خطوط التنبيهات الحمراء وأشرطة التحذير السريرية (High-Contrast Alert Strips):**
+  - حل مشكلة بهتان نصوص التنبيهات الحمراء في شريط القفزة الحادة (`Delta Check Breach`) وشريط العينات المرفوضة (`ISO 15189`) وأشرطة فحص الحدود الحرجة (`Panic`) والتحذيرات في الكتالوج.
+  - إضافة متغيرات الثيم السريرية عالية التباين (`--alert-danger-bg`, `--alert-danger-title`, `--alert-danger-text`, `--alert-warning-bg`, `--alert-warning-title`) لضمان قراءة النصوص والتحذيرات بلون داكن وبارز (`#991b1b` / `#b91c1c`) ومقروء بنسبة 100% في الثيم الفاتح والوردي الساطع في الثيم المظلم.
+- **الفحوصات وضمان الجودة:**
+  - إنشاء حزمة اختبارات تكاملية شاملة (`tests/integration/test_seven_modifications.ts`) واجتياز **18/18 فحصاً بنجاح 100%**.
+  - اجتياز جميع الاختبارات الذهبية 6/6 بدون أي انحدار، وفحص الأنواع (0 أخطاء)، وفحص الحدود المعمارية FSD (0 انتهاكات).
+
+## [الإصدار 1.5.5] - 2026-10-16 (تفعيل الثيم المظلم الكامل في الواجهة الرئيسية للاستقبال والتشخيص)
+- **دعم الثيم المظلم في الواجهة الرئيسية (`UnifiedWorkspace`):**
+  - استبدال كافة الألوان البيضاء والفاتحة الثابتة (`#ffffff`، `#eef2f5`، `#14202b`، `#d9e1e8`) في شريحة الاستقبال الموحدة (`UnifiedWorkspace`، `ReceptionSidebar`، `ReceptionHeader`، `PatientCardPanel`، `CatalogCartPanel`، `ResultsGridPanel`، `UnifiedActionBar`) بمتغيرات الثيم القياسية (`var(--bg-primary)`، `var(--bg-card)`، `var(--bg-input)`، `var(--text-main)`، `var(--text-muted)`، `var(--border-color)`).
+  - ضمان التبديل اللحظي والسلس بين الثيم الفاتح والثيم المظلم (`Soft Slate Navy Pro`) في الواجهة الرئيسية تماماً كبقية أقسام البرنامج مع الحفاظ على وضوح مؤشرات الفحوصات (`H ↑` / `L ↓`) والباقات والأنابيب.
+
+## [الإصدار 1.5.4] - 2026-10-16 (تفاعل أنماط الترويسة وتأطير الاسم في المعاينة الحية والفورمة الفارغة بدون خطوط)
+- **التفاعل الفوري لأنماط الترويسة وتأطير الاسم في المعاينة والطباعة (Dynamic Header & Name Style Interactivity):**
+  - ربط أزرار نمط الترويسة الستة (`regal_box`، `dual_wing`، `gradient_banner`، `minimal_pure`، `compact_strip`، `default`) في مصمم الليجو مباشرة مع مكون المعاينة الحية للورقة A4، بحيث يتغير شكل الترويسة فور النقر على أي نمط.
+  - تعميم تفاعل **نمط وتأطير الاسم** (`DEFAULT` كلاسيكي، `BOLD` عريض بارز، `MODERN_BADGE` شارة حديثة، `ELEGANT_BORDER` إطار رسمي) ومحاذاة وحجم ولون الاسم عبر **جميع أنماط الترويسات الستة** في المعاينة الحية (`renderStyledLabName` في `PaperDesignerV2.tsx`) وفي محرك الطباعة (`getLabNameStyleCss` في `PrintHeader.ts`)، وإضافة أزرار سريعة لنمط وتأطير الاسم مباشرة داخل مصمم الليجو في التبويب الأول إلى جانب التبويب الثالث.
+  - التحويل التلقائي لنمط الرأس إلى الوضع الرقمي (`DIGITAL`) وتفعيل إظهار اسم المختبر عند اختيار أي نمط ترويسة أو نمط تأطير اسم لضمان ظهور التفاعل فوراً في المعاينة.
+  - إعادة بناء ومزامنة حزم المحرك المستقل (`standalone`) وإعادة تشغيل خادم التطبيق على المنفذ `8080` لتنعكس كافة التحديثات فوراً في الواجهة المفتوحة.
+- **الفورمة الفارغة القابلة للطباعة بدون خطوط نهائياً (100% Unlined Printable Blank Canvas):**
+  - إزالة كافة الخطوط الأفقية والتسطير المنقط وجداول الكتابة اليدوية من مسار طباعة الفورمة الفارغة (`/api/templates/blank/print/route.ts`) وتحويلها إلى كانفاس أبيض نقي ومفتوح مخصص لإرفاق الفحوصات والتقارير أو التوقيع المباشر بدون خطوط.
+  - إلغاء التسطير المنقط من حقول بيانات المريض في الفورمة الفارغة.
+  - تحديث وضع محاكاة الفورمة الفارغة في `PaperDesignerV2` ليعرض مساحة نقية بدون أي جداول أو خطوط منقطة مع زر مباشر لطباعة الفورمة الفارغة A4 بدون خطوط.
+- **التوافقية وفحوصات الانحدار:**
+  - اجتياز اختبارات الانحدار الذهبية 6/6 وفحص الأنواع `typecheck` (0 أخطاء) وفحص الحدود المعمارية FSD (0 انتهاكات).
+
+## [الإصدار 1.5.3] - 2026-10-16 (الترتيب السريري الذكي للفحوصات وقائمة الأكثر استخداماً ذاتية التعلم)
+- **الترتيب السريري الذكي للفحوصات في صدارة الأقسام (Clinical Prioritization by Importance):**
+  - ترتيب الفحوصات الطبية الأساسية والحيوية (وفق القائمة العراقية والدولية للفحوصات الأساسية EDL) لتتصدر تلقائياً واجهة الكتالوج في كل تخصص بمجرد فتح القسم.
+  - في قسم الكيمياء الحيوية (Biochemistry): ظهور السكر الصائم (`FBS`)، اليوريا (`UREA`)، السكر التراكمي (`HBA1C`)، الكرياتينين (`CREAT`)، الكولسترول والدهون الثلاثية (`CHOL`, `TG`, `HDL`, `LDL`)، إنزيمات الكبد (`GPT/ALT`, `GOT/AST`)، وحامض اليوريك (`URIC`) في صدارة القائمة مباشرة.
+  - تصحيح خوارزمية تصنيف الأقسام السريرية (`normalizeCategory`) لتعطي الأولوية لفحوصات الكيمياء والدهون ووظائف الأعضاء وتمنع تداخلها مع فحوصات أمراض الدم العامة.
+  - دعم قاموس المرادفات الطبية (`CODE_ALIASES`) لربط الأكواد البديلة تلقائياً بأولويات الترتيب السريري (`ALT/GPT`، `AST/GOT`، `UREA/BUN`، إلخ).
+- **القائمة الذكية ذاتية التعلم للفحوصات الأكثر استخداماً (Auto-Learned Most Used Tests):**
+  - إضافة تبويب "الأكثر استخداماً" الذكي مع شارة `تلقائي` مميزة وتوضيح معيار الترتيب السريري.
+  - احتساب تكرار طلب الفحوصات الفعلي في المختبر ديناميكياً من واقع قاعدة البيانات وسجل العينات السابق (`/api/tests/route.ts`).
+  - التعلم المستمر واللحظي من اختيارات واستخدامات الفني وموظف الاستقبال وحفظها محلياً (`recordTestUsage` و `labryo_test_frequencies`).
+  - خوارزمية فرز مزدوجة ومرنة تدمج التكرار الفعلي مع الأهمية السريرية لضمان تصدر الفحوصات الأكثر طلباً للمختبر فوراً بدون أي تكرار للفحوصات.
+- **التوافقية والفحوصات:**
+  - اجتياز اختبارات الانحدار الذهبية 6/6 واختبارات E2E والـ typecheck (0 أخطاء) وفحص حدود FSD (0 انتهاكات).
+
+## [الإصدار 1.5.2] - 2026-10-16 (معرض الثيمات السريرية الشامل 20 قالباً وباني القوالب بنمط الليجو مع المحاكاة الحية واستخراج ألوان الهوية)
+- **معرض القوالب الطبية الجاهزة (20 Clinical Themes Gallery):**
+  - إضافة 20 قالباً طبياً سريرياً متكاملاً موزعاً على 6 فئات رئيسية (`ROYAL`، `INTERNATIONAL`، `MODERN`، `COMPACT`، `SPECIALIZED`، `STATIONERY`).
+  - تضمين وصف سريري وصورة باليت وتناسق كامل لكل قالب ليناسب كافة أذواق واستخدامات المختبرات بدون أي حاجة لخبرة في التصميم.
+- **باني القوالب السريع بنمط قطع الليجو (Modular Lego Section Swapper):**
+  - إمكانية التبديل المستقل لأي قسم في ورقة التقرير: شكل الترويسة (Header Style)، نمط صندوق بيانات المريض (Patient Demographics: Grid، Cards، Compact، Classic Box)، نمط جدول النتائج (Table Style: Clean Lines، Zebra، Grid، Compact)، وعلامات التوثيق والأمان (Security & Badges).
+- **الاستخراج الذكي لألوان الهوية المخبرية (Smart Brand Color Extractor):**
+  - استخراج تلقائي لحظي لألوان الهوية المخبرية من ملف الشعار المرفوع أو الملتقط بالكاميرا باستخدام HTML5 Canvas وتقديم باليت فورية بنقرة واحدة.
+  - إضافة 12 باليت طبية متناسقة جاهزة تشمل وضع طابعة الليزر أبيض وأسود 100% لتوفير الأحبار.
+- **محاكي الورقة الحية (Interactive A4 Simulation Modes):**
+  - إضافة مفتاح تبديل أوضاع المحاكاة أعلى الورقة: `عادي (5 فحوصات)`، `كثيف (25+ فحصاً مع CBC ووظائف الكلى والكبد والدهون)`، و `فورمة فارغة مخططة للكتابة اليدوية`.
+  - دعم خلفية الورق المروّس المخصص كصورة بدقة عالية مع ضبط الهوامش بالمليمتر.
+- **تطابق محرك الطباعة مع المعاينة 100%:**
+  - تحديث `PrintHeader.ts` و `route.ts` مع دعم أنماط `BAGHDAD_ROYAL_DUAL` و `ACADEMIC_HOSPITAL` و `MAYO_EXECUTIVE` وأنماط الجداول `tableStyle`.
+  - اجتياز اختبارات الانحدار الذهبية 6/6 بنجاح تام وخلو التقارير من أي نصوص عربية خارج البيانات الحرة، و0 أخطاء في فحص الأنواع وفحص الحدود المعمارية FSD.
+
+## [الإصدار 1.5.1] - 2026-10-15 (حصر باقات التحاليل بالباقات الرسمية الـ 5 ودعم إضافة باقات مخصصة يدوياً)
+- **حصر باقات النظام وحذف الباقات الزائدة:**
+  - تنظيف قاعدة البيانات `lab.db` ومستودعات البيانات `lab_store.json` و `INITIAL_PANELS` وحصر الباقات في الـ 5 المعتمدة بالصورة: `Lipid` (دهون الدم وصحة القلب)، `Kidney` (وظائف الكلى والأملاح الشاملة)، `Liver` (وظائف الكبد والمرارة الكاملة)، `Diabetes` (متابعة مرضى السكري)، و `Thyroid` (الغدة الدرقية الكاملة).
+  - حذف 23 باقة قديمة غير مطابقة وإعادة تنظيم الأكواد والفحوصات لكل باقة لتطابق الفحوصات الفعلية بدقة.
+- **إضافة باقات يدوية مخصصة (Custom Diagnostic Packages):**
+  - دعم إضافة باقات مخصصة جديدة من اختيار المستخدم عبر زر تفاعلي `+ إضافة باقة` ومودال سريع وسهل مباشرة من شريط باقات شاشة الاستقبال `CatalogCartPanel`.
+  - إمكانية تحديد اسم الباقة، تحديد سعرها مع حساب تلقائي لمجموع أسعار الفحوصات، واختيار الفحوصات مع شريط بحث سريع.
+  - إظهار الباقات المخصصة الجديدة كأزرار سريعة جنباً إلى جنب مع الباقات الرسمية الـ 5 في شاشة الاستقبال.
+  - النقر على أي باقة مخصصة يضيف كافة فحوصاتها إلى السلة فوراً، مع إمكانية حذف الباقة المخصصة بزر حذف سريع عند التمرير.
+  - التحديث اللحظي لجميع الباقات عبر `catalogCache` ومزامنتها التلقائية مع قاعدة البيانات.
+- **معالجة وحماية الفحوصات من التكرار (Strict Deduplication & Atomic Updates):**
+  - حل مشكلة تكرار الفحوصات عند النقر على الباقات المخصصة أو الرسمية: إعادة بناء `applyPanel` و `applyBundle` لتعمل كعمليات ذرية (Atomic Batch) تجمع المعرفات والأكواد الفريدة في Sets قبل الإضافة.
+  - تعزيز `addTestToCart` ومحددات الفحوصات بمنع التكرار المزدوج اللحظي داخل دالة التحديث `setSelectedTests((prev) => ...)` لضمان عدم تكرار أي فحص (مثل اليوريا أو غيرها) نهائياً حتى في حال تكرار النقر أو تكرار استدعاء الباقة.
+- **الفحوصات الشاملة والتوافقية:**
+  - اجتياز اختبارات الانحدار الذهبية 6/6 وفحص الأنواع 0 أخطاء وفحص FSD وحدود المعمارية 0 انتهاكات واختبارات E2E الشاملة 170/170 وبناء Next.js بنجاح تام.
+
+## [الإصدار 1.5.0] - 2026-10-15 (معمارية الاتصال الشبكي الموحدة - السيرفر المركزي وأجهزة PWA العميلة)
+- **إعادة بناء قسم الاتصال الشبكي (Centralized LAN & PWA Architecture):**
+  - اعتماد السيرفر المركزي كمصدر حقيقة وحيد للبيانات والـ backend دون تخزين دائم على الأجهزة الأخرى.
+  - إطلاق محرك البث اللحظي الخفيف `SSE` (`/api/network/events`) مع Ring Buffer لآخر 100 حدث لضمان استئناف التحديثات الفائتة فور إعادة الاتصال عبر `Last-Event-ID`.
+  - بث تغييرات السجلات فقط (`SAMPLE`, `PATIENT`, `RESULT`) في أقل من 50ms وتحديث شاشات العمل تلقائياً بدون إعادة تحميل الصفحة.
+- **أمان واقتران الأجهزة (Device Pairing Security):**
+  - منع أي جهاز شبكي غير مقترن من القراءة أو الكتابة وتوجيهه تلقائياً إلى صفحة الاقتران.
+  - توليد رمز اقتران مؤقت (6 أرقام مثل `482-915`) لكل جهاز جديد لاعتماده من شاشة السيرفر بواسطة المدير.
+  - إصدار توكن مشفر دائم للجهاز المقترن وحفظه محلياً في `localStorage` مع كوكيز التوثيق.
+- **صفحة الربط والتثبيت PWA (`/connect`):**
+  - صفحة متجاوبة تتضمن عنوان الخادم المباشر، رمز QR بدقة عالية، زر تثبيت التطبيق PWA، وتحميل اختصار ويندوز المباشر `.url`.
+  - أدلة إرشادية مصورة ومبسطة لكل نظام تشغيل (Windows, Android, iOS).
+- **واجهة الاتصال الشبكي المتكاملة بـ 4 تبويبات:**
+  - `حالة السيرفر`: عرض العنوان، المنفذ `8080`، وقت التشغيل، عدد الأجهزة المتصلة، وتنبيه تثبيت الـ IP من الراوتر، والتشغيل التلقائي مع الويندوز.
+  - `ربط جهاز`: رمز الـ QR والرابط المباشر وقائمة طلبات الاقتران المعلقة مع أزرار القبول والرفض.
+  - `الأجهزة المتصلة`: جدول تفاعلي للأجهزة المقترنة يعرض الاسم، الـ IP، المنصة، زمن الاستجابة، وحظر وفصل وحذف الجهاز.
+  - `التشخيص`: قياس زمن الاستجابة الفعلي بالمللي ثانية، زر اختبار بث حدث تجريبي، وسجل مباشر لأحداث الاتصال والاقتران.
+- **حماية ثبات الاتصال (Offline Stability Guard):**
+  - هوك `useNetworkSync` مع إعادة اتصال بتأخير تصاعدي وشريط عائم أحمر عند انقطاع الاتصال مع تجميد أزرار التعديل والحفظ لمنع التضارب.
+  - اجتياز اختبارات التكامل 10/10 والاختبارات الذهبية 6/6 وفحص الأنواع 0 أخطاء بنجاح تام.
+
+## [الإصدار 1.4.9] - 2026-10-14 (استوديو تصميم الفورمات المرن وقوالب المختبرات الهندية المتطورة)
+- **إطلاق معيار المختبرات الهندية التشخيصية الفائقة (Indian Diagnostic Reference Standard):**
+  - إضافة قوالب ترويسات سريرية مستوحاة من كبرى المختبرات الهندية المعتمدة (Dr Lal PathLabs & Metropolis Healthcare):
+    - `INDIAN_DUAL_WING` (الجناح المزدوج المتطور - ترويسة متناظرة مع ختم الاعتماد المركزي).
+    - `METROPOLIS_TEAL` (الميتروبوليس السريري - تدرج فيروزي تخصصي مع خلايا شريطية مدمجة).
+    - `REGAL_GOLD_FRAME` (الإطار الزمردي والذهبي الملكي الاستشاري).
+    - `MINIMAL_PURE_LINE` (الخط التشخيصي النقي موفر الأحبار).
+    - `COMPACT_MICRO_STRIP` (الشريط فائق الكثافة لاستيعاب أكثر من 35 فحصاً بالصفحة).
+  - دعم شبكة بيانات المريض السريرية الثلاثية (3-Row Demographics Grid) المتضمنة باركود العينة المرجعي SID والتواريخ الثلاثية (سحب العينة، التسجيل، وإصدار التقرير).
+- **أيقونات وشعارات التخصص المخبري السريرية (Lab Emblems & Specialty Icons):**
+  - دعم 6 أيقونات تخصصية بدقة متجهات SVG عالية الوضوح: المجهر الطبي (Microscope)، أنابيب الفحص الكيميائي (Test Tubes)، الحمض النووي (DNA Helix)، شارة الاعتماد والجودة (ISO Quality Badge)، قطرة الدم (Blood Drop)، وبدون أيقونة.
+  - إمكانية التحكم بموضع ظهور الأيقونة: في زاوية الترويسة، بجوار الشعار الرئيسي، كعلامة مائية بالخلفية، أو في كلا الموضعين.
+- **تخصيص الألوان المتقدم وتنسيق الأعمدة والمعدلات:**
+  - إضافة التحكم باللون الثانوي واللمسات التزيينية (`secondaryColor`) بجانب اللون الأساسي.
+  - توفير 6 باقات ألوان تشخيصية متناسقة جاهزة للتطبيق الفوري بنقرة واحدة.
+  - إضافة عمود تقنية وطريقة الفحص (`method`: Method / Technology) إلى خيارات أعمدة جدول الفحوصات `tableColumns` متوافقاً مع معايير الأرشفة العالمية.
+  - إضافة شريط الرسم البياني الملون للمعدلات الطبيعية المرئية (`showRangeBar`).
+  - التحديث المباشر للمعاينة الحية A4 ومحرك الطباعة `PrintHeader.ts` ومسار الطباعة الرسمي `route.ts`.
+  - اجتياز اختبارات الانحدار الذهبية 6/6 بنجاح تام، وفحص الأنواع `typecheck` 0 أخطاء، وفحص الحدود المعمارية `lint:boundaries` 0 انتهاكات.
+
 ## [الإصدار 1.4.8] - 2026-10-13 (محطات العمل السريرية التخصصية - فورمات AMH و Total β-HCG المخصصة)
 - **محطة عمل فحص هرمون AMH (Anti-Müllerian Hormone / مخزون المبيض):**
   - إنشاء نافذة تفاعلية مخصصة `AmhFormModal` تتيح إدخال نتيجة الفحص، تحديد الأسلوب/الجهاز (VIDAS Autoanalyzer وغيره)، مع مطابقة عمرية تلقائية لمدى الخصوبة وتحديد المؤشرات (H/L/Normal).

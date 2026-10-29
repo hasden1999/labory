@@ -107,4 +107,101 @@ describe('groupTests - Pure clinical grouping engine', () => {
 
     expect(res.sections.some(s => s.isOther)).toBe(false);
   });
+
+  it('unifies all diabetes tests (FBS, HbA1c, Insulin, C-Peptide, HOMA-IR) into a single Diabetes profile group in canonical mode', () => {
+    const diabetesTests = [
+      { id: 't-fbs', code: 'FBS', name: 'Fasting Blood Sugar', specialtyId: 'db-spec-chem', groupId: 'db-grp-diabetes' },
+      { id: 't-hba1c', code: 'HBA1C', name: 'Glycated Hemoglobin', specialtyId: 'db-spec-chem', groupId: 'db-grp-diabetes' },
+      { id: 't-rbs', code: 'RBS', name: 'Random Blood Sugar', specialtyId: 'db-spec-chem', groupId: 'db-grp-diabetes' },
+      { id: 't-ins', code: 'INSULIN', name: 'Fasting Insulin', specialtyId: null, groupId: null },
+      { id: 't-cpep', code: 'CPEPTIDE', name: 'C-Peptide', specialtyId: null, groupId: null },
+      { id: 't-homair', code: 'HOMA-IR', name: 'HOMA-IR Index', specialtyId: null, groupId: null },
+    ];
+
+    const res = groupTests(diabetesTests, 'specialty');
+    expect(res.style).toBe('specialty');
+
+    const chemSection = res.sections.find(s => s.id === 'spec-chemistry');
+    expect(chemSection).toBeDefined();
+
+    const diabetesGroup = chemSection!.groups.find(g => g.id === 'grp-diabetes');
+    expect(diabetesGroup).toBeDefined();
+    expect(diabetesGroup!.nameEn).toContain('Diabetes');
+
+    // All 6 tests must be unified inside grp-diabetes!
+    const groupTestCodes = diabetesGroup!.tests.map((t: any) => t.code);
+    expect(groupTestCodes).toEqual(['FBS', 'HBA1C', 'RBS', 'INSULIN', 'CPEPTIDE', 'HOMA-IR']);
+
+    // None should fall into directTests or Other Tests
+    expect(chemSection!.directTests.length).toBe(0);
+    expect(res.sections.some(s => s.isOther)).toBe(false);
+  });
+
+  it('unifies diabetes tests under database custom specialties and groups', () => {
+    const dbSpecialties = [
+      { id: 'cmupz-chem', nameEn: 'Biochemistry', nameAr: 'الكيمياء الحيوية', sortOrder: 1 },
+    ];
+    const dbGroups = [
+      { id: 'cmupz-diab', specialtyId: 'cmupz-chem', nameEn: 'Diabetes profile', nameAr: 'فحوصات السكري', sortOrder: 1 },
+      { id: 'cmupz-rft', specialtyId: 'cmupz-chem', nameEn: 'Renal function test (RFT)', nameAr: 'وظائف الكلى', sortOrder: 2 },
+    ];
+
+    const mixedTests = [
+      { id: 't1', code: 'FBS', name: 'Fasting Blood Sugar', specialtyId: 'cmupz-chem', groupId: 'cmupz-diab' },
+      { id: 't2', code: 'HBA1C', name: 'HbA1c', specialtyId: 'cmupz-chem', groupId: 'cmupz-diab' },
+      // Tests with no custom IDs:
+      { id: 't3', code: 'INSULIN', name: 'Insulin', specialtyId: null, groupId: null },
+      { id: 't4', code: 'CPEPTIDE', name: 'C-Peptide', specialtyId: null, groupId: null },
+    ];
+
+    const res = groupTests(mixedTests, 'specialty', {
+      specialties: dbSpecialties,
+      groups: dbGroups,
+    });
+
+    const chemSec = res.sections.find(s => s.id === 'cmupz-chem');
+    expect(chemSec).toBeDefined();
+
+    const diabGrp = chemSec!.groups.find(g => g.id === 'cmupz-diab');
+    expect(diabGrp).toBeDefined();
+    expect(diabGrp!.tests.map((t: any) => t.code)).toEqual(['FBS', 'HBA1C', 'INSULIN', 'CPEPTIDE']);
+    expect(res.sections.some(s => s.isOther)).toBe(false);
+  });
+
+  it('avoids prefix collision false positives for CA125, HBSAG, TPHA, KARYOTYPE', () => {
+    const collisionTests = [
+      { id: 't-ca125', code: 'CA125', name: 'Cancer Antigen 125' },
+      { id: 't-ca199', code: 'CA19-9', name: 'Carbohydrate Antigen 19-9' },
+      { id: 't-hbsag', code: 'HBSAG', name: 'Hepatitis B Surface Antigen' },
+      { id: 't-tpha', code: 'TPHA', name: 'Treponema Pallidum Hemagglutination' },
+      { id: 't-calc', code: 'CA', name: 'Calcium' },
+      { id: 't-hb', code: 'HB', name: 'Hemoglobin' },
+      { id: 't-tp', code: 'TP', name: 'Total Protein' },
+    ];
+
+    const res = groupTests(collisionTests, 'specialty');
+
+    const tumorSec = res.sections.find(s => s.id === 'spec-tumor');
+    expect(tumorSec).toBeDefined();
+    const tumorCodes = tumorSec!.allTests.map((t: any) => t.code);
+    expect(tumorCodes).toContain('CA125');
+    expect(tumorCodes).toContain('CA19-9');
+
+    const immunoSec = res.sections.find(s => s.id === 'spec-immunology');
+    expect(immunoSec).toBeDefined();
+    const immunoCodes = immunoSec!.allTests.map((t: any) => t.code);
+    expect(immunoCodes).toContain('HBSAG');
+    expect(immunoCodes).toContain('TPHA');
+
+    const chemSec = res.sections.find(s => s.id === 'spec-chemistry');
+    expect(chemSec).toBeDefined();
+    const chemCodes = chemSec!.allTests.map((t: any) => t.code);
+    expect(chemCodes).toContain('CA');
+    expect(chemCodes).toContain('TP');
+
+    const hemSec = res.sections.find(s => s.id === 'spec-hematology');
+    expect(hemSec).toBeDefined();
+    const hemCodes = hemSec!.allTests.map((t: any) => t.code);
+    expect(hemCodes).toContain('HB');
+  });
 });

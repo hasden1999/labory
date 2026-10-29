@@ -1,6 +1,6 @@
 {
   "name": "@lab-manager/desktop",
-  "version": "1.4.0",
+  "version": "2.0.3",
   "description": "نظام إدارة المختبرات الطبية المتكامل - النسخة المكتبية الرسمية",
   "author": "Lab Manager Team",
   "main": "main.js",
@@ -23,6 +23,7 @@
       "output": "dist"
     },
     "win": {
+      "icon": "assets/app.ico",
       "target": [
         "nsis",
         "portable"
@@ -30,7 +31,7 @@
     },
     "nsis": {
       "oneClick": false,
-      "perMachine": false,
+      "perMachine": true,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
@@ -44,7 +45,10 @@
       "assets/**/*"
     ],
     "compression": "maximum",
-    "electronLanguages": ["ar", "en-US"],
+    "electronLanguages": [
+      "ar",
+      "en-US"
+    ],
     "extraResources": [
       {
         "from": "engine",

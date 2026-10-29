@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { apiRequest } from '../lib/api';
 
 export interface LabProfile {
@@ -16,9 +16,14 @@ export interface LabProfile {
   address: string;
   phone: string;
   reportHeader: string;
-  reportFooter: string;
-  reportTemplate: 'CLASSIC' | 'MODERN' | 'EXECUTIVE' | 'COMPACT' | 'SPECIALIZED' | 'PREPRINTED' | 'BLANK_WHITE';
+  reportFooter?: string;
+  reportTemplate: 'AZURE_WAVE' | 'EMERALD_WAVE' | 'INDIGO_WAVE' | 'ROYAL_CLASSIC' | 'CLINICAL_FRAME' | 'EXECUTIVE_LUXURY' | 'COMPACT_GRID' | 'MONOCHROME_LASER' | 'CBC_DIAGNOSTIC' | 'MULTI_SECTION' | 'MINIMAL_CLEAN' | 'CLASSIC' | 'MODERN' | 'EXECUTIVE' | 'COMPACT' | 'SPECIALIZED' | 'BLACK_WHITE' | 'BLANK_WHITE' | 'PREPRINTED' | string;
+  headerHeightScale?: number;
+  headerPaddingY?: number;
   headerMode?: 'DIGITAL' | 'PREPRINTED';
+  customLetterheadUrl?: string;
+  useLetterheadBackground?: boolean;
+  letterheadMode?: 'PREPRINTED' | 'DIGITAL_BACKGROUND';
   topMarginMm?: number;
   bottomMarginMm?: number;
   leftMarginMm?: number;
@@ -71,6 +76,10 @@ export interface LabProfile {
   resultValueFontSize?: number;
   unitFontSize?: number;
   refRangeFontSize?: number;
+  specialFormFontSize?: number;
+  print_special_form_font_size?: number;
+  patientNameFontSize?: number;
+  patientInfoFontSize?: number;
   testNameFontWeight?: 'normal' | 'bold';
   resultValueFontWeight?: 'normal' | 'bold';
   tableColumns?: FormTableColumn[];
@@ -84,10 +93,19 @@ export interface LabProfile {
   tableZebraStriping?: boolean;
   tableRowSpacing?: 'COMPACT' | 'COMFORTABLE' | 'RELAXED';
   printRangeScope?: 'ALL' | 'APPLICABLE_ONLY';
+
+  // Flexible Clinical Design Architecture (Indian Diagnostic Standard & Emblems)
+  labEmblem?: 'microscope' | 'tubes' | 'dna' | 'badge' | 'blood' | 'none';
+  emblemPlacement?: 'header_corner' | 'with_logo' | 'watermark' | 'both';
+  secondaryColor?: string;
+  showRangeBar?: boolean;
+  patientLayout?: 'grid' | 'cards' | 'compact' | 'classic_box';
+  headerStyle?: 'dual_wing' | 'gradient_banner' | 'minimal_pure' | 'regal_box' | 'compact_strip' | 'gold_frame' | 'smart_digital' | 'accredited_badge' | 'bauhaus_grid' | 'aurora_wave' | 'executive_dark' | 'vertical_accent' | 'glass_capsule' | 'default' | string;
+  tableStyle?: 'zebra' | 'grid' | 'clean_lines' | 'compact';
 }
 
 export interface FormTableColumn {
-  id: 'testName' | 'result' | 'unit' | 'refRange' | 'notes';
+  id: 'testName' | 'result' | 'previous' | 'unit' | 'refRange' | 'notes' | 'method';
   label: string;
   visible: boolean;
   align: 'left' | 'center' | 'right';
@@ -96,8 +114,10 @@ export interface FormTableColumn {
 export const DEFAULT_TABLE_COLUMNS: FormTableColumn[] = [
   { id: 'testName', label: 'INVESTIGATION (اسم التحليل)', visible: true, align: 'left' },
   { id: 'result', label: 'RESULT (النتيجة)', visible: true, align: 'left' },
+  { id: 'previous', label: 'PREVIOUS (النتيجة السابقة)', visible: true, align: 'left' },
   { id: 'unit', label: 'UNIT (الوحدة)', visible: true, align: 'left' },
   { id: 'refRange', label: 'REFERENCE RANGE (المعدل الطبيعي)', visible: true, align: 'left' },
+  { id: 'method', label: 'METHOD (طريقة الفحص والتقنية)', visible: false, align: 'left' },
   { id: 'notes', label: 'NOTES (الملاحظات السريرية)', visible: false, align: 'left' },
 ];
 
@@ -117,6 +137,9 @@ const DEFAULT_LAB_PROFILE: LabProfile = {
   reportFooter: 'هذا التقرير تم إخراجه وتدقيقه إلكترونياً، ويعتبر معتمداً رسمياً ومطابقاً لمواصفات الجودة المخبرية.',
   reportTemplate: 'CLASSIC',
   headerMode: 'DIGITAL',
+  customLetterheadUrl: '',
+  useLetterheadBackground: false,
+  letterheadMode: 'PREPRINTED',
   topMarginMm: 15,
   bottomMarginMm: 15,
   leftMarginMm: 12,
@@ -168,6 +191,15 @@ const DEFAULT_LAB_PROFILE: LabProfile = {
   tableRowBorders: true,
   tableZebraStriping: false,
   tableRowSpacing: 'COMFORTABLE',
+
+  // Flexible Clinical Defaults
+  labEmblem: 'microscope',
+  emblemPlacement: 'header_corner',
+  secondaryColor: '#0077b6',
+  showRangeBar: false,
+  patientLayout: 'grid',
+  headerStyle: 'default',
+  tableStyle: 'clean_lines',
 };
 
 interface LabContextType {
@@ -194,63 +226,101 @@ export function LabProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // 1. Check local storage first
-    let localConfigured = false;
+    const isClientDevice =
+      typeof window !== 'undefined' &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1' &&
+      window.location.hostname !== '[::1]';
+
+    // 1. Check local storage first (only as initial placeholder before server sync)
+    let localConfigured = isClientDevice;
     try {
       const savedProfile = localStorage.getItem('lab_profile_settings');
       const setupCompleted = localStorage.getItem('lab_setup_completed') === 'true';
       if (savedProfile) {
         const parsed = JSON.parse(savedProfile);
-        localConfigured = Boolean(parsed.isConfigured || setupCompleted || (parsed.labName && parsed.labName.trim().length > 0));
+        localConfigured = Boolean(
+          isClientDevice ||
+          parsed.isConfigured ||
+          setupCompleted ||
+          (parsed.labName && parsed.labName.trim().length > 0)
+        );
         setLabProfile({ ...DEFAULT_LAB_PROFILE, ...parsed, isConfigured: localConfigured });
-      } else if (setupCompleted) {
+      } else if (setupCompleted || isClientDevice) {
         localConfigured = true;
       }
     } catch (e) {
       console.warn('Could not read lab profile from localStorage:', e);
     }
 
+    const syncFromServer = () => {
+      fetch('/api/settings', { cache: 'no-store' })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((remote) => {
+          if (remote) {
+            const isConfig = Boolean(
+              isClientDevice ||
+              remote.isConfigured === true ||
+              localConfigured ||
+              (typeof window !== 'undefined' && localStorage.getItem('lab_setup_completed') === 'true') ||
+              (remote.labName && remote.labName.trim().length > 0) ||
+              (remote.doctorName && remote.doctorName.trim().length > 0)
+            );
+
+            if (isConfig && typeof window !== 'undefined') {
+              try {
+                localStorage.setItem('lab_setup_completed', 'true');
+              } catch (e) {}
+            }
+
+            setLabProfile((prev) => {
+              const merged: LabProfile = {
+                ...prev,
+                ...remote,
+                isConfigured: isConfig,
+                tableColumns:
+                  remote.tableColumns && Array.isArray(remote.tableColumns) && remote.tableColumns.length > 0
+                    ? remote.tableColumns
+                    : prev.tableColumns || DEFAULT_TABLE_COLUMNS,
+              };
+              try {
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('lab_profile_settings', JSON.stringify(merged));
+                }
+              } catch {}
+              return merged;
+            });
+
+            // Auto open Onboarding Setup Wizard ONLY on main server PC if not yet configured
+            if (!isConfig && !isClientDevice) {
+              setShowSetupModal(true);
+            } else if (isClientDevice) {
+              setShowSetupModal(false);
+            }
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          setIsInitialized(true);
+        });
+    };
+
     // 2. Sync from backend settings API
-    apiRequest('/settings')
-      .then((remote) => {
-        if (remote) {
-          const isConfig = Boolean(
-            remote.isConfigured === true ||
-            localConfigured ||
-            (typeof window !== 'undefined' && localStorage.getItem('lab_setup_completed') === 'true') ||
-            (remote.labName && remote.labName.trim().length > 0)
-          );
-          
-          if (isConfig && typeof window !== 'undefined') {
-            try {
-              localStorage.setItem('lab_setup_completed', 'true');
-            } catch (e) {}
-          }
-          
-          setLabProfile((prev) => {
-            const merged: LabProfile = {
-              ...prev,
-              ...remote,
-              isConfigured: isConfig,
-              tableColumns: (remote.tableColumns && Array.isArray(remote.tableColumns) && remote.tableColumns.length > 0)
-                ? remote.tableColumns
-                : (prev.tableColumns || DEFAULT_TABLE_COLUMNS),
-            };
-            return merged;
-          });
+    syncFromServer();
 
-          // Auto open Onboarding Setup Wizard if not yet configured!
-          if (!isConfig) {
-            setShowSetupModal(true);
-          }
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        setIsInitialized(true);
-      });
+    // 3. Re-sync automatically when server settings update via SSE or after device pairing
+    const handleSettingEvent = () => syncFromServer();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('labryo:setting', handleSettingEvent);
+      window.addEventListener('labryo:device-paired', handleSettingEvent);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('labryo:setting', handleSettingEvent);
+        window.removeEventListener('labryo:device-paired', handleSettingEvent);
+      }
+    };
   }, []);
-
 
   const updateLabProfile = async (newFields: Partial<LabProfile>, syncRemote = true) => {
     const updated: LabProfile = {
@@ -304,17 +374,17 @@ export function LabProvider({ children }: { children: React.ReactNode }) {
 
   const openSetupWizard = () => setShowSetupModal(true);
 
+  const value = useMemo(() => ({
+    labProfile,
+    updateLabProfile,
+    showSetupModal,
+    setShowSetupModal,
+    openSetupWizard,
+    dismissSetupWizard,
+  }), [labProfile, showSetupModal]);
+
   return (
-    <LabContext.Provider
-      value={{
-        labProfile,
-        updateLabProfile,
-        showSetupModal,
-        setShowSetupModal,
-        openSetupWizard,
-        dismissSetupWizard,
-      }}
-    >
+    <LabContext.Provider value={value}>
       {children}
     </LabContext.Provider>
   );

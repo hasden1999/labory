@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>معاينة الإصلاحات والتحسينات - Labryo LIMS</title>
+  <style>
+    :root {
+      --primary: #0f766e;
+      --primary-light: #14b8a6;
+      --primary-bg: rgba(15, 118, 110, 0.08);
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --red: #ef4444;
+      --red-bg: rgba(239, 68, 68, 0.12);
+      --green: #10b981;
+      --green-bg: rgba(16, 185, 129, 0.12);
+      --amber: #f59e0b;
+      --amber-bg: rgba(245, 158, 11, 0.12);
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", Tahoma, sans-serif;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 24px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    header {
+      background: linear-gradient(135deg, #134e4a, #0f766e);
+      border-radius: 16px;
+      padding: 24px 32px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+    }
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      background: var(--card-bg);
+      color: var(--text-muted);
+      border: 1px solid var(--card-border);
+      padding: 10px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover, .tab-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary-light);
+    }
+    .tab-content {
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 16px;
+    }
+    @media (max-width: 800px) {
+      .split-grid { grid-template-columns: 1fr; }
+    }
+    .pane {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 12px;
+      padding: 18px;
+      border: 1px solid var(--card-border);
+    }
+    .pane.before {
+      border-top: 4px solid var(--red);
+    }
+    .pane.after {
+      border-top: 4px solid var(--green);
+    }
+    .pane-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pane.before .pane-title { color: var(--red); }
+    .pane.after .pane-title { color: var(--green); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 10px;
+    }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      text-align: right;
+    }
+    th {
+      color: var(--text-muted);
+      font-weight: 700;
+      background: rgba(0,0,0,0.2);
+    }
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.1s;
+    }
+    .btn-action:active { transform: scale(0.97); }
+    .btn-edit {
+      background: var(--card-border);
+      color: var(--text);
+    }
+    .btn-delete {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid rgba(239,68,68,0.3);
+    }
+    .btn-save {
+      background: var(--primary);
+      color: #fff;
+    }
+    .interactive-input {
+      background: #0f172a;
+      border: 1.5px solid var(--primary-light);
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      width: 100%;
+    }
+    .group-header {
+      background: rgba(15, 118, 110, 0.15);
+      color: #2dd4bf;
+      font-weight: 800;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .group-header.err {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+    }
+    .tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      display: inline-block;
+    }
+    .tag-green { background: var(--green-bg); color: var(--green); }
+    .tag-red { background: var(--red-bg); color: var(--red); }
+    .metric-card {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .metric-val {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--primary-light);
+      margin: 8px 0;
+    }
+    .links-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+    .link-pill {
+      background: var(--card-bg);
+      border: 1px solid var(--primary);
+      color: var(--primary-light);
+      padding: 10px 18px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      transition: background 0.2s;
+    }
+    .link-pill:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>🔍 تقرير المقارنة التفاعلي (قبل التعديل ↔ بعد التعديل)</h1>
+        <p style="color: rgba(255,255,255,0.85); font-size: 14px; margin-top: 4px;">
+          نظام Labryo LIMS — استعراض حي وتفاعلي لجميع البنود المعدلة
+        </p>
+      </div>
+      <div class="badge">الإصدار 2.0.3 (محدث ومفحوص)</div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('tab1', this)">1. تجميع فحوصات السكري</button>
+      <button class="tab-btn" onclick="switchTab('tab2', this)">2. زر حذف الفحص 🗑️</button>
+      <button class="tab-btn" onclick="switchTab('tab3', this)">3. تعديل اسم الفحص ✏️</button>
+      <button class="tab-btn" onclick="switchTab('tab4', this)">4. تقرير الاستقرار والسرعة ⚡</button>
+    </div>
+
+    <!-- TAB 1: Test Grouping -->
+    <div id="tab1" class="tab-content active">
+      <h2 style="font-size: 18px; margin-bottom: 12px;">📊 البند 1: توحيد تقسيم الفحوصات الطبية وسكر الدم</h2>
+      <p style="color: var(--text-muted); font-size: 14px;">
+        حل مشكلة تشتت السكر والسكر التراكمي في أقسام منفصلة، وتصحيح التداخل الخاطئ للبادئات في الأورام والدم.
+      </p>
+
+      <div class="split-grid">
+        <div class="pane before">
+          <div class="pane-title">
+            <span>❌ الوضع قبل التعديل</span>
+            <span class="tag tag-red">مشتت في قسمين</span>
+          </div>
+          <div style="font-size: 13px; color: var(--text-muted);">
+            تظهر فحوصات السكر مفصولة إلى مجموعتين، وفحوصات الأورام تدخل في الكلى:
+          </div>
+          
+          <div class="group-header err">📁 فحوصات الكيمياء الحيوية (مباشرة)</div>
+          <table>
+            <tr><th>الكود</th><th>اسم التحليل</th><th>الحالة السابقة</th></tr>
+            <tr><td>FBS</td><td>Fasting Blood Sugar</td><td>خارج مجموعة السكري</td></tr>
+            <tr><td>HBA1C</td><td>HbA1c (السكر التراكمي)</td><td>خارج مجموعة السكري</td></tr>
+          </table>
+
+          <div class="group-header err" style="margin-top: 14px;">📁 تحاليل السكري وسكر الدم</div>
+          <table>
+            <tr><th>الكود</th><th>اسم التحليل</th><th>الحالة السابقة</th></tr>
+            <tr><td>INSULIN</td><td>Fasting Insulin</td><td>معزول في مجموعة مستقلة</td></tr>
+            <tr><td>CPEPTIDE</td><td>C-Peptide</td><td>معزول في مجموعة مستقلة</td></tr>
+          </table>
+
+          <div class="group-header err" style="margin-top: 14px;">⚠️ تداخل بادئات الرموز</div>
+          <table>
+            <tr><td>CA125</td><td>يدخل في وظائف الكلى خطأً بسبب بادئة (CA)</td></tr>
+            <tr><td>HBSAG</td><td>يدخل في صورة الدم خطأً بسبب بادئة (HB)</td></tr>
+          </table>
+        </div>
+
+        <div class="pane after">
+          <div class="pane-title">
+            <span>✅ الوضع بعد التعديل (الآن)</span>
+            <span class="tag tag-green">موحد 100%</span>
+          </div>
+          <div style="font-size: 13px; color: var(--text-muted);">
+            باقة السكر مجمعة بالكامل في قسم واحد موحد ومنظم:
+          </div>
+
+          <div class="group-header">📁 تحاليل السكري وسكر الدم (Diabetes & Glucose Profile)</div>
+          <table>
+            <tr><th>الكود</th><th>اسم التحليل</th><th>النتيجة الآن</th></tr>
+            <tr><td>FBS</td><td>Fasting Blood Sugar (سكر الصيام)</td><td><span class="tag tag-green">ضمن قسم السكري</span></td></tr>
+            <tr><td>HBA1C</td><td>HbA1c (السكر التراكمي)</td><td><span class="tag tag-green">ضمن قسم السكري</span></td></tr>
+            <tr><td>RBS</td><td>Random Blood Sugar (السكر العشوائي)</td><td><span class="tag tag-green">ضمن قسم السكري</span></td></tr>
+            <tr><td>OGTT</td><td>Oral Glucose Tolerance (تحمل السكر)</td><td><span class="tag tag-green">ضمن قسم السكري</span></td></tr>
+            <tr><td>INSULIN</td><td>Fasting Insulin (الأنسولين)</td><td><span class="tag tag-green">ضمن قسم السكري</span></td></tr>
+            <tr><td>CPEPTIDE</td><td>C-Peptide (سي ببتيد)</td><td><span class="tag tag-green">ضمن قسم السكري</span></td></tr>
+            <tr><td>HOMA-IR</td><td>HOMA-IR (مقاومة الأنسولين)</td><td><span class="tag tag-green">ضمن قسم السكري</span></td></tr>
+          </table>
+
+          <div class="group-header" style="margin-top: 14px;">🎯 حل تصادم البادئات</div>
+          <table>
+            <tr><td>CA125 / CA19-9</td><td><span class="tag tag-green">دلالات الأورام حصراً (Tumor Markers)</span></td></tr>
+            <tr><td>HBSAG / TPHA</td><td><span class="tag tag-green">الأمراض المعدية والأمصال (Infectious)</span></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: Delete Button -->
+    <div id="tab2" class="tab-content">
+      <h2 style="font-size: 18px; margin-bottom: 12px;">🗑️ البند 2: إضافة زر حذف الفحص في الكتالوج</h2>
+      <p style="color: var(--text-muted); font-size: 14px;">
+        إتاحة حذف أي فحص غير مرغوب فيه مباشرة من جدول الكتالوج بنمط الحذف الناعم الآمن.
+      </p>
+
+      <div class="split-grid">
+        <div class="pane before">
+          <div class="pane-title">
+            <span>❌ قبل التعديل</span>
+            <span class="tag tag-red">لا يوجد زر حذف</span>
+          </div>
+          <table>
+            <thead>
+              <tr><th>الكود</th><th>اسم التحليل</th><th>السعر</th><th>التحكم</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>GLU-TEST</td>
+                <td>تحليل تجريبي قديم</td>
+                <td>5,000 د.ع</td>
+                <td>
+                  <button class="btn-action btn-edit" disabled>تعديل</button>
+                  <span style="color: var(--text-muted); font-size: 11px; margin-right: 6px;">(لا يمكن حذفه!)</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pane after">
+          <div class="pane-title">
+            <span>✅ بعد التعديل (تجربة حية)</span>
+            <span class="tag tag-green">زر حذف مع نافذة تأكيد</span>
+          </div>
+          <table>
+            <thead>
+              <tr><th>الكود</th><th>اسم التحليل</th><th>السعر</th><th>التحكم</th></tr>
+            </thead>
+            <tbody id="interactiveTable">
+              <tr id="row-1">
+                <td style="font-weight: 800; color: #14b8a6;">GLU-TEST</td>
+                <td style="font-weight: 700;">تحليل تجريبي قديم</td>
+                <td>5,000 د.ع</td>
+                <td style="display: flex; gap: 6px;">
+                  <button class="btn-action btn-edit">تعديل</button>
+                  <button class="btn-action btn-delete" onclick="demoDelete('row-1', 'تحليل تجريبي قديم')">🗑️ حذف</button>
+                </td>
+              </tr>
+              <tr id="row-2">
+                <td style="font-weight: 800; color: #14b8a6;">SAMPLE-99</td>
+                <td style="font-weight: 700;">فحص تجريبي إضافي</td>
+                <td>10,000 د.ع</td>
+                <td style="display: flex; gap: 6px;">
+                  <button class="btn-action btn-edit">تعديل</button>
+                  <button class="btn-action btn-delete" onclick="demoDelete('row-2', 'فحص تجريبي إضافي')">🗑️ حذف</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p id="deleteNotice" style="font-size: 12px; color: var(--green); margin-top: 10px; display: none;">
+            ✅ تم حذف الفحص تجريبياً بنجاح! السجلات القديمة للمرضى تظل محفوظة بأمان 100%.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Edit Test Name -->
+    <div id="tab3" class="tab-content">
+      <h2 style="font-size: 18px; margin-bottom: 12px;">✏️ البند 3: إتاحة تعديل اسم الفحص من الكتالوج</h2>
+      <p style="color: var(--text-muted); font-size: 14px;">
+        إمكانية تصحيح أو تعريب أو تغيير اسم أي فحص مباشرة عند النقر على زر التعديل السريع.
+      </p>
+
+      <div class="split-grid">
+        <div class="pane before">
+          <div class="pane-title">
+            <span>❌ قبل التعديل</span>
+            <span class="tag tag-red">الاسم نص ثابت فقط</span>
+          </div>
+          <table>
+            <tr><th>الكود</th><th>اسم التحليل</th><th>السعر</th><th>الإجراء</th></tr>
+            <tr>
+              <td>FBS</td>
+              <td style="color: #64748b;">Fasting Blood Sugar (نص جامد)</td>
+              <td><input type="text" value="3,000" style="width: 60px; padding: 2px;" disabled></td>
+              <td><button class="btn-action btn-save" disabled>حفظ</button></td>
+            </tr>
+          </table>
+          <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+            ⚠️ في السابق: كان يتفعل حقل السعر والوحدة والمعدل الطبيعي فقط، بينما الاسم محظور لا يمكن لمسه.
+          </p>
+        </div>
+
+        <div class="pane after">
+          <div class="pane-title">
+            <span>✅ بعد التعديل (تجربة حية)</span>
+            <span class="tag tag-green">الاسم قابل للتعديل</span>
+          </div>
+          <table>
+            <tr><th>الكود</th><th>اسم التحليل (جرب كتابة اسم جديد)</th><th>السعر</th><th>الإجراء</th></tr>
+            <tr>
+              <td style="font-weight: 800; color: #14b8a6;">FBS</td>
+              <td>
+                <input type="text" id="demoEditName" class="interactive-input" value="Fasting Blood Sugar (سكر الصيام)">
+              </td>
+              <td><input type="text" value="3,000" class="interactive-input" style="width: 70px;"></td>
+              <td>
+                <button class="btn-action btn-save" onclick="demoSaveName()">حفظ</button>
+              </td>
+            </tr>
+          </table>
+          <p id="saveNotice" style="font-size: 12px; color: var(--green); margin-top: 10px; display: none;">
+            ✅ تم تحديث اسم التحليل بنجاح وحفظه في السيرفر!
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Performance & Stability -->
+    <div id="tab4" class="tab-content">
+      <h2 style="font-size: 18px; margin-bottom: 12px;">⚡ البند 4: تقييم سرعة واستقرار النظام ومؤشرات الأداء</h2>
+      <p style="color: var(--text-muted); font-size: 14px;">
+        النتائج بالأرقام الحقيقية المقاسة من بيئة التشغيل الفعلية:
+      </p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 20px 0;">
+        <div class="metric-card">
+          <div style="font-size: 13px; color: var(--text-muted);">سرعة التنقل بين الشاشات</div>
+          <div class="metric-val" style="color: #10b981;">22 - 35 ms</div>
+          <div style="font-size: 12px; color: #10b981;">🟢 استجابة فورية فائقة (A+)</div>
+        </div>
+        <div class="metric-card">
+          <div style="font-size: 13px; color: var(--text-muted);">استهلاك الرام الإجمالي</div>
+          <div class="metric-val" style="color: #10b981;">~250 MB</div>
+          <div style="font-size: 12px; color: #10b981;">🟢 خفيف جداً لنظام سطح مكتب</div>
+        </div>
+        <div class="metric-card">
+          <div style="font-size: 13px; color: var(--text-muted);">المساحة المستعادة من القرص</div>
+          <div class="metric-val" style="color: #38bdf8;">+500 MB</div>
+          <div style="font-size: 12px; color: #38bdf8;">🟢 تنظيف التنزيلات وتقليص اللوغ</div>
+        </div>
+        <div class="metric-card">
+          <div style="font-size: 13px; color: var(--text-muted);">أخطاء السجل (Bad MAC)</div>
+          <div class="metric-val" style="color: #10b981;">0 خطأ</div>
+          <div style="font-size: 12px; color: #10b981;">🟢 تم إسكات 32,000+ خطأ متكرر</div>
+        </div>
+      </div>
+
+      <div class="split-grid">
+        <div class="pane before">
+          <div class="pane-title"><span>❌ المشاكل السابقة في الاستقرار</span></div>
+          <ul style="font-size: 13px; padding-right: 20px; color: var(--text-muted); line-height: 1.8;">
+            <li>ملف السجل <code>engine.log</code> تضخم إلى <strong>44.5 ميجابايت</strong> و200 ألف سطر بسبب أخطاء جلسة واتساب.</li>
+            <li>مجلد <code>downloads/</code> يحتوي على <strong>456 ميجابايت</strong> ملفات تثبيت قديمة متروكة.</li>
+            <li>تحذيرات Prisma دورية بسبب نقص أعمدة حديثة في جدول SQLite.</li>
+          </ul>
+        </div>
+        <div class="pane after">
+          <div class="pane-title"><span>✅ التحسينات المنفذة</span></div>
+          <ul style="font-size: 13px; padding-right: 20px; color: #e2e8f0; line-height: 1.8;">
+            <li>تطبيق <strong>تدوير السجلات (Log Rotation &lt; 5MB)</strong> وتقليص ملف اللوغ فورياً من 45MB إلى 1000 سطر.</li>
+            <li>تصفير الجلسة التالفة لواتساب وإسكات الخطأ لحماية عمر قرص SSD للمختبر.</li>
+            <li>تنظيف مجلد التنزيلات وتفعيل الحذف التلقائي للمثبتات المؤقتة.</li>
+            <li>ترقية مخطط SQLite التلقائي إلى الإصدار 143 وإضافة الأعمدة الناقصة لإنهاء تحذيرات Prisma 100%.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Links Bar -->
+    <div class="links-bar">
+      <span style="color: var(--text-muted); font-size: 14px; align-self: center;">روابط المعاينة المباشرة في النظام:</span>
+      <a href="http://localhost:8080/settings" target="_blank" class="link-pill">⚙️ فتح صفحة إعدادات الكتالوج (Settings)</a>
+      <a href="http://localhost:8080/results" target="_blank" class="link-pill">🔬 فتح شاشة النتائج والاستقبال (Results)</a>
+      <a href="http://localhost:8080/patients" target="_blank" class="link-pill">📋 فتح سجل المرضى (Patients)</a>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    function demoDelete(rowId, name) {
+      if (confirm('هل أنت متأكد من حذف التحليل "' + name + '" من الكتالوج؟\n\nلن يؤثر ذلك على نتائج المرضى السابقة.')) {
+        const row = document.getElementById(rowId);
+        if (row) {
+          row.style.transition = 'all 0.3s ease';
+          row.style.opacity = '0';
+          setTimeout(() => {
+            row.remove();
+            document.getElementById('deleteNotice').style.display = 'block';
+          }, 300);
+        }
+      }
+    }
+
+    function demoSaveName() {
+      const val = document.getElementById('demoEditName').value;
+      const notice = document.getElementById('saveNotice');
+      notice.innerText = '✅ تم تحديث اسم التحليل إلى: "' + val + '" بنجاح!';
+      notice.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

@@ -24,6 +24,25 @@ function getSystemBrowserPath(): string | undefined {
   return undefined;
 }
 
+let _prewarmedBrowser: any = null;
+export function preWarmPuppeteer(delayMs = 4000) {
+  setTimeout(async () => {
+    try {
+      const puppeteer = (await import('puppeteer')).default;
+      const execPath = getSystemBrowserPath();
+      const launchOptions: any = {
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+      };
+      if (execPath) launchOptions.executablePath = execPath;
+      _prewarmedBrowser = await puppeteer.launch(launchOptions);
+      console.log('⚡ [Puppeteer] Background pre-warm complete — instant first-print ready.');
+    } catch (e) {
+      // Non-fatal background pre-warm
+    }
+  }, delayMs);
+}
+
 export interface ReportData {
   labName: string;
   labAddress?: string | null;
@@ -244,6 +263,8 @@ export async function generateSampleReportPDF(data: ReportData): Promise<Buffer>
     </html>
   `;
 
+  const isBench = process.env.LABRYO_STARTUP_BENCHMARK === '1' || process.env.DEBUG_STARTUP_BENCHMARK === '1';
+  const t0 = isBench ? process.hrtime.bigint() : 0n;
   const puppeteer = (await import('puppeteer')).default;
   const execPath = getSystemBrowserPath();
   const launchOptions: any = {
@@ -258,7 +279,15 @@ export async function generateSampleReportPDF(data: ReportData): Promise<Buffer>
   if (execPath) {
     launchOptions.executablePath = execPath;
   }
-  const browser = await puppeteer.launch(launchOptions);
+  let browser = _prewarmedBrowser && _prewarmedBrowser.connected ? _prewarmedBrowser : null;
+  const isDedicated = !browser;
+  if (!browser) {
+    browser = await puppeteer.launch(launchOptions);
+  }
+  if (isBench) {
+    const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+    console.log(`⏱️ [BENCHMARK] Puppeteer: ${ms.toFixed(2)}ms`);
+  }
 
   try {
     const page = await browser.newPage();
@@ -269,8 +298,11 @@ export async function generateSampleReportPDF(data: ReportData): Promise<Buffer>
       printBackground: true,
       margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
     });
+    await page.close().catch(() => {});
     return Buffer.from(pdfBuffer);
   } finally {
-    await browser.close().catch(() => {});
+    if (isDedicated && browser) {
+      await browser.close().catch(() => {});
+    }
   }
 }

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getStore, addSample } from '../../../lib/serverStore';
+import { getStore, addSample, enrichSamplesWithDeltaCheck } from '../../../lib/serverStore';
 
 export async function GET(request: Request) {
   const store = getStore();
-  let samples = [...(store.samples || [])];
+  let samples = enrichSamplesWithDeltaCheck([...(store.samples || [])]);
 
   const { searchParams } = new URL(request.url);
   const patientId = searchParams.get('patientId');

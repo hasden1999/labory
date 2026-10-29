@@ -2,1141 +2,1029 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { apiRequest } from '../../lib/api';
 import { useToast } from '../../components/Toast';
-import ConfirmModal from '../../components/ConfirmModal';
-import Link from 'next/link';
+import { useLab } from '../../components/LabContext';
+import { DEVICE_PRESETS, DevicePreset } from '../../lib/devicePresets';
 import {
   Cpu,
+  Package,
   Plus,
-  Activity,
-  Zap,
+  Search,
   Trash2,
-  Edit3,
-  Layers,
-  RefreshCw,
-  Copy,
-  Check,
-  Terminal,
-  Download,
   X,
-  FileText,
-  Sparkles,
-  TestTube,
-  AlertTriangle,
-  Barcode,
-  Radio,
-  Sliders,
-  ExternalLink,
-  ShieldCheck,
+  RefreshCw,
+  HelpCircle,
+  Zap,
   CheckCircle2,
-  ChevronRight,
-  FlaskConical,
-  Eye,
-  CheckCheck
+  AlertTriangle,
+  Wifi,
 } from 'lucide-react';
-import { toEnglishDigits, formatEnglishDate, formatEnglishTime, formatEnglishDateTime } from '../../lib/formatters';
+import { toEnglishDigits, formatEnglishDate } from '../../lib/formatters';
 
-
-export default function DevicesPage() {
+function UnifiedDevicesInventoryView() {
   const toast = useToast();
+  const { labProfile } = useLab();
+  const currency = labProfile?.currency || 'د.ع';
+
+  // Devices State
   const [devices, setDevices] = useState<any[]>([]);
-  const [presets, setPresets] = useState<any[]>([]);
-  const [catalogTests, setCatalogTests] = useState<any[]>([]);
-  const [incomingResults, setIncomingResults] = useState<any[]>([]);
-  const [samples, setSamples] = useState<any[]>([]);
+  const [serverIp, setServerIp] = useState<string>('192.168.1.100');
+  const [listenerPort, setListenerPort] = useState<number>(5000);
+  const [simulatingId, setSimulatingId] = useState<string | null>(null);
+  const [guideDevice, setGuideDevice] = useState<{ name: string; preset?: DevicePreset } | null>(null);
+
+  // Add Device Modal State
+  const [showAddDeviceModal, setShowAddDeviceModal] = useState(false);
+  const [selectedPresetId, setSelectedPresetId] = useState<string>(DEVICE_PRESETS[0]?.id || '');
+  const [devName, setDevName] = useState<string>(`${DEVICE_PRESETS[0]?.brand || ''} ${DEVICE_PRESETS[0]?.model || ''}`.trim());
+  const [devProtocol, setDevProtocol] = useState<string>(DEVICE_PRESETS[0]?.protocol || 'HL7');
+  const [devConnType, setDevConnType] = useState<string>(DEVICE_PRESETS[0]?.connectionType || 'TCP_SERVER');
+  const [devPort, setDevPort] = useState<string>('5000');
+  const [savingDevice, setSavingDevice] = useState(false);
+
+  // Inventory State
+  const [items, setItems] = useState<any[]>([]);
+  const [alerts, setAlerts] = useState<any>({ expiredCount: 0, expiringSoonCount: 0, lowStockCount: 0 });
+  const [invFilter, setInvFilter] = useState<'ALL' | 'LOW' | 'EXPIRED'>('ALL');
+  const [invSearch, setInvSearch] = useState('');
+
+  // Add Inventory Item Modal State
+  const [showAddItemModal, setShowAddItemModal] = useState(false);
+  const [itemName, setItemName] = useState('');
+  const [catalogCode, setCatalogCode] = useState('');
+  const [category, setCategory] = useState<'REAGENT' | 'KIT' | 'CONSUMABLE' | 'CONTROL'>('REAGENT');
+  const [quantity, setQuantity] = useState('');
+  const [reorderThreshold, setReorderThreshold] = useState('5');
+  const [costPerUnit, setCostPerUnit] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [savingItem, setSavingItem] = useState(false);
+
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'devices' | 'feed' | 'agent'>('devices');
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Modals
-  const [showDeviceModal, setShowDeviceModal] = useState(false);
-  const [showMappingModal, setShowMappingModal] = useState(false);
-  const [showLogsModal, setShowLogsModal] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [deleteDeviceId, setDeleteDeviceId] = useState<string | null>(null);
-
-  // Selected for inspection
-  const [selectedDevice, setSelectedDevice] = useState<any | null>(null);
-  const [selectedPendingResult, setSelectedPendingResult] = useState<any | null>(null);
-
-  // Device Form States
-  const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
-  const [selectedPresetId, setSelectedPresetId] = useState('');
-  const [name, setName] = useState('');
-  const [brand, setBrand] = useState('Mindray');
-  const [model, setModel] = useState('');
-  const [category, setCategory] = useState('CBC');
-  const [connectionType, setConnectionType] = useState('TCP_IP');
-  const [protocol, setProtocol] = useState('HL7_V2');
-  const [ipAddress, setIpAddress] = useState('192.168.1.100');
-  const [port, setPort] = useState('5100');
-  const [comPort, setComPort] = useState('COM1');
-  const [baudRate, setBaudRate] = useState('9600');
-  const [autoMatchSample, setAutoMatchSample] = useState(true);
-  const [notes, setNotes] = useState('');
-
-  // Mapping Form States
-  const [newDeviceCode, setNewDeviceCode] = useState('');
-  const [newDeviceName, setNewDeviceName] = useState('');
-  const [newCatalogId, setNewCatalogId] = useState('');
-  const [newUnit, setNewUnit] = useState('');
-  const [newMultiplier, setNewMultiplier] = useState('1.0');
-
-  // Manual Assign Form States
-  const [assignSampleId, setAssignSampleId] = useState('');
-  const [assignTestCatalogId, setAssignTestCatalogId] = useState('');
-
-  // Fetch all initial data
-  const fetchData = async () => {
+  const loadAll = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const [devRes, preRes, catRes, incRes, sampRes] = await Promise.all([
-        apiRequest('/devices').catch(() => ({ devices: [] })),
-        apiRequest('/devices/presets').catch(() => ({ presets: [] })),
-        apiRequest('/tests').catch(() => ({ tests: [] })),
-        apiRequest('/devices/incoming-results?limit=50').catch(() => ({ results: [] })),
-        apiRequest('/samples?status=ALL').catch(() => []),
+      const [devRes, invRes, alertsRes] = await Promise.all([
+        apiRequest('/devices').catch(() => []),
+        apiRequest('/inventory').catch(() => []),
+        apiRequest('/inventory/alerts').catch(() => ({ expiredCount: 0, expiringSoonCount: 0, lowStockCount: 0 })),
       ]);
 
-      const loadedDevices = devRes.devices || [];
-      const loadedSamples = Array.isArray(sampRes) ? sampRes : sampRes.samples || [];
+      if (Array.isArray(devRes)) {
+        setDevices(devRes);
+      } else if (devRes && typeof devRes === 'object') {
+        setDevices(Array.isArray(devRes.devices) ? devRes.devices : []);
+        if (devRes.serverIp) setServerIp(devRes.serverIp);
+        if (devRes.listenerPort) setListenerPort(Number(devRes.listenerPort));
+      }
 
-      setDevices(loadedDevices);
-      setPresets(preRes.presets || []);
-      setCatalogTests(catRes.tests || []);
-      setIncomingResults(incRes.results || []);
-      setSamples(loadedSamples);
+      setItems(Array.isArray(invRes) ? invRes : []);
+      setAlerts(alertsRes || { expiredCount: 0, expiringSoonCount: 0, lowStockCount: 0 });
     } catch (err: any) {
-      toast.error(err.message || 'فشل في تحميل بيانات الأجهزة');
+      toast.error(err.message || 'تعذر تحميل بيانات الأجهزة والمخزون');
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
-    fetchData();
-    // Auto-refresh feed every 10 seconds
-    const interval = setInterval(() => {
-      apiRequest('/devices/incoming-results?limit=50')
-        .then((res) => {
-          if (res.results) setIncomingResults(res.results);
-        })
-        .catch(() => {});
-    }, 10000);
-    return () => clearInterval(interval);
-  }, []);
+    loadAll();
+  }, [loadAll]);
 
-  // Preset Selection Handler
-  const handlePresetChange = (presetId: string) => {
+  const activePreset = useMemo(
+    () => DEVICE_PRESETS.find((p) => p.id === selectedPresetId),
+    [selectedPresetId]
+  );
+
+  const handleSelectPreset = (presetId: string) => {
     setSelectedPresetId(presetId);
-    if (!presetId) return;
-    const p = presets.find((item) => item.id === presetId);
-    if (p) {
-      setName(p.model);
-      setBrand(p.brand);
-      setModel(p.model);
-      setCategory(p.category);
-      setConnectionType(p.connectionType);
-      setProtocol(p.protocol);
-      if (p.defaultPort) setPort(String(p.defaultPort));
-      if (p.defaultBaudRate) setBaudRate(String(p.defaultBaudRate));
+    const preset = DEVICE_PRESETS.find((p) => p.id === presetId);
+    if (preset) {
+      setDevName(`${preset.brand} ${preset.model}`);
+      setDevProtocol(preset.protocol);
+      setDevConnType(preset.connectionType);
     }
   };
 
-  // Open Create Modal
-  const handleOpenCreate = () => {
-    setEditingDeviceId(null);
-    setSelectedPresetId('');
-    setName('');
-    setBrand('Mindray');
-    setModel('');
-    setCategory('CBC');
-    setConnectionType('TCP_IP');
-    setProtocol('HL7_V2');
-    setIpAddress('192.168.1.100');
-    setPort('5100');
-    setComPort('COM1');
-    setBaudRate('9600');
-    setAutoMatchSample(true);
-    setNotes('');
-    setShowDeviceModal(true);
-  };
-
-  // Open Edit Modal
-  const handleOpenEdit = (dev: any) => {
-    setEditingDeviceId(dev.id);
-    setSelectedPresetId('');
-    setName(dev.name);
-    setBrand(dev.brand);
-    setModel(dev.model);
-    setCategory(dev.category);
-    setConnectionType(dev.connectionType);
-    setProtocol(dev.protocol);
-    setIpAddress(dev.ipAddress || '192.168.1.100');
-    setPort(String(dev.port || 5100));
-    setComPort(dev.comPort || 'COM1');
-    setBaudRate(String(dev.baudRate || 9600));
-    setAutoMatchSample(dev.autoMatchSample);
-    setNotes(dev.notes || '');
-    setShowDeviceModal(true);
-  };
-
-  // Save Device
   const handleSaveDevice = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !brand.trim()) {
-      toast.error('يرجى ملء اسم الجهاز والشركة المصنعة');
+    if (!devName.trim()) {
+      toast.warning('يرجى إدخال اسم الجهاز الطبي');
       return;
     }
-
+    setSavingDevice(true);
     try {
-      const payload = {
-        name,
-        brand,
-        model: model || name,
+      const preset = DEVICE_PRESETS.find((p) => p.id === selectedPresetId);
+      const resolvedBrand = preset?.brand || devName.trim().split(' ')[0] || 'Generic';
+      await apiRequest('/devices', 'POST', {
+        name: devName.trim(),
+        brand: resolvedBrand,
+        manufacturer: resolvedBrand,
+        model: preset?.model || devName.trim(),
+        category: preset?.category || 'General',
+        protocol: devProtocol,
+        connectionType: devConnType,
+        port: Number(toEnglishDigits(devPort)) || 5000,
+        active: true,
+        mappings: preset?.defaultMappings || [],
+      });
+      toast.success('تمت إضافة الجهاز الطبي وربط الكودات القياسية بنجاح');
+      setShowAddDeviceModal(false);
+      await loadAll();
+    } catch (err: any) {
+      toast.error(err.message || 'تعذر إضافة الجهاز');
+    } finally {
+      setSavingDevice(false);
+    }
+  };
+
+  const handleDeleteDevice = async (id: string) => {
+    try {
+      await apiRequest(`/devices/${id}`, 'DELETE');
+      toast.success('تم حذف الجهاز الطبي');
+      await loadAll();
+    } catch (err: any) {
+      toast.error(err.message || 'تعذر حذف الجهاز');
+    }
+  };
+
+  const handleTestConnection = async (device: any) => {
+    setSimulatingId(device.id);
+    try {
+      const firstCode = device.mappings?.[0]?.analyzerCode || 'WBC';
+      await apiRequest('/devices/ingest', 'POST', {
+        deviceId: device.id,
+        sampleBarcode: '2031',
+        results: [{ testCode: firstCode, value: '7.4', unit: '10^3/uL', flag: 'N' }],
+      });
+      toast.success(`نجح اتصال وفحص الجهاز (${device.name}) وتم استقبال قراءة تجريبية حية!`, 'نجاح فحص الربط');
+      await loadAll();
+    } catch (err: any) {
+      toast.error(err.message || 'فشل إرسال القراءة التجريبية');
+    } finally {
+      setSimulatingId(null);
+    }
+  };
+
+  const handleOpenGuideForDevice = (device: any) => {
+    const matchedPreset = DEVICE_PRESETS.find(
+      (p) =>
+        `${p.brand} ${p.model}`.toLowerCase() === (device.name || '').toLowerCase() ||
+        (device.model && p.model.toLowerCase() === String(device.model).toLowerCase()) ||
+        (device.name || '').toLowerCase().includes(p.brand.toLowerCase())
+    );
+    setGuideDevice({ name: device.name, preset: matchedPreset || DEVICE_PRESETS[0] });
+  };
+
+  const handleSaveInventoryItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!itemName.trim() || !quantity) {
+      toast.warning('يرجى إدخال اسم الكاشف والكمية');
+      return;
+    }
+    setSavingItem(true);
+    try {
+      await apiRequest('/inventory', 'POST', {
+        name: itemName.trim(),
+        catalogCode: catalogCode.trim() || undefined,
         category,
-        connectionType,
-        protocol,
-        ipAddress: connectionType === 'TCP_IP' ? ipAddress : null,
-        port: connectionType === 'TCP_IP' ? Number(port) : null,
-        comPort: connectionType === 'SERIAL_PORT' ? comPort : null,
-        baudRate: connectionType === 'SERIAL_PORT' ? Number(baudRate) : null,
-        autoMatchSample,
-        notes,
-        presetId: selectedPresetId || undefined,
-      };
-
-      if (editingDeviceId) {
-        await apiRequest(`/devices/${editingDeviceId}`, 'PUT', payload);
-        toast.success('تم تحديث إعدادات الجهاز بنجاح');
-      } else {
-        await apiRequest('/devices', 'POST', payload);
-        toast.success('تمت إضافة الجهاز وربط الفحوصات التلقائية بنجاح');
-      }
-
-      setShowDeviceModal(false);
-      fetchData();
-    } catch (err: any) {
-      toast.error(err.message || 'حدث خطأ أثناء حفظ الجهاز');
-    }
-  };
-
-  // Delete Device
-  const handleDeleteDevice = async () => {
-    if (!deleteDeviceId) return;
-    try {
-      await apiRequest(`/devices/${deleteDeviceId}`, 'DELETE');
-      toast.success('تم حذف الجهاز بنجاح');
-      setDeleteDeviceId(null);
-      fetchData();
-    } catch (err: any) {
-      toast.error(err.message || 'فشل حذف الجهاز');
-    }
-  };
-
-  // Open Mapping Modal for a device
-  const handleOpenMappings = async (dev: any) => {
-    try {
-      const res = await apiRequest(`/devices/${dev.id}`);
-      setSelectedDevice(res.device);
-      setNewDeviceCode('');
-      setNewDeviceName('');
-      setNewCatalogId(catalogTests[0]?.id || '');
-      setNewUnit('');
-      setNewMultiplier('1.0');
-      setShowMappingModal(true);
-    } catch (err: any) {
-      toast.error('فشل تحميل تفاصيل الجهاز');
-    }
-  };
-
-  // Add / Save Mapping
-  const handleAddMapping = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedDevice || !newDeviceCode.trim() || !newCatalogId) {
-      toast.error('يرجى تحديد كود فحص الجهاز والفحص المقابل في النظام');
-      return;
-    }
-
-    try {
-      await apiRequest(`/devices/${selectedDevice.id}/mappings`, 'POST', {
-        deviceTestCode: newDeviceCode.trim().toUpperCase(),
-        deviceTestName: newDeviceName.trim() || newDeviceCode.trim(),
-        testCatalogId: newCatalogId,
-        unit: newUnit.trim() || undefined,
-        multiplier: parseFloat(newMultiplier) || 1.0,
+        unit: 'عبوة',
+        quantity: Number(toEnglishDigits(quantity)) || 1,
+        reorderThreshold: Number(toEnglishDigits(reorderThreshold)) || 3,
+        costPerUnit: Number(toEnglishDigits(costPerUnit)) || 0,
+        expiryDate: expiryDate || undefined,
       });
-
-      toast.success('تم حفظ ربط الفحص بنجاح');
-      const res = await apiRequest(`/devices/${selectedDevice.id}`);
-      setSelectedDevice(res.device);
-      setNewDeviceCode('');
-      setNewDeviceName('');
-      setNewUnit('');
-      setNewMultiplier('1.0');
-      fetchData();
+      toast.success('تمت إضافة الكاشف للمخزون وتفعيل الخصم التلقائي بنجاح');
+      setShowAddItemModal(false);
+      setItemName('');
+      setCatalogCode('');
+      setQuantity('');
+      setCostPerUnit('');
+      await loadAll();
     } catch (err: any) {
-      toast.error(err.message || 'فشل حفظ الربط');
+      toast.error(err.message || 'تعذر حفظ الكاشف');
+    } finally {
+      setSavingItem(false);
     }
   };
 
-  // Delete Mapping
-  const handleDeleteMapping = async (mappingId: string) => {
-    if (!selectedDevice) return;
+  const handleOpenVial = async (id: string) => {
     try {
-      await apiRequest(`/devices/${selectedDevice.id}/mappings/${mappingId}`, 'DELETE');
-      toast.success('تم حذف الربط');
-      const res = await apiRequest(`/devices/${selectedDevice.id}`);
-      setSelectedDevice(res.device);
-      fetchData();
+      await apiRequest(`/inventory/${id}/open`, 'POST');
+      toast.success('تم فتح عبوة جديدة وتجهيز الفحوصات للخصم التلقائي');
+      await loadAll();
     } catch (err: any) {
-      toast.error(err.message || 'فشل الحذف');
+      toast.error(err.message || 'تعذر فتح العبوة');
     }
   };
 
-  // Open Logs Modal
-  const handleOpenLogs = async (dev: any) => {
+  const handleDeleteInventoryItem = async (id: string) => {
     try {
-      const res = await apiRequest(`/devices/${dev.id}`);
-      setSelectedDevice(res.device);
-      setShowLogsModal(true);
+      await apiRequest(`/inventory/${id}`, 'DELETE');
+      toast.success('تم حذف المادة من المخزون');
+      await loadAll();
     } catch (err: any) {
-      toast.error('فشل تحميل السجلات');
+      toast.error(err.message || 'تعذر حذف المادة');
     }
   };
 
-  // Copy API Token
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedKey(text);
-    toast.info('تم نسخ رمز الربط (Pairing API Key)');
-    setTimeout(() => setCopiedKey(null), 2500);
-  };
-
-  // Open Assign Modal for Pending Result
-  const handleOpenAssign = (item: any) => {
-    setSelectedPendingResult(item);
-    setAssignSampleId(samples[0]?.id || '');
-    setAssignTestCatalogId(catalogTests[0]?.id || '');
-    setShowAssignModal(true);
-  };
-
-  // Execute Manual Assign
-  const handleSaveAssign = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPendingResult || !assignSampleId || !assignTestCatalogId) return;
-
-    try {
-      await apiRequest(`/devices/incoming-results/${selectedPendingResult.id}/apply`, 'POST', {
-        sampleId: assignSampleId,
-        testCatalogId: assignTestCatalogId,
-      });
-
-      toast.success('تم إسناد وتطبيق النتيجة على العينة بنجاح');
-      setShowAssignModal(false);
-      fetchData();
-    } catch (err: any) {
-      toast.error(err.message || 'فشل إسناد النتيجة');
-    }
-  };
+  const filteredItems = useMemo(() => {
+    const q = invSearch.toLowerCase().trim();
+    const now = new Date();
+    return items.filter((item) => {
+      const isLow = Number(item.quantity) <= Number(item.reorderThreshold || 3);
+      const isExpired = item.expiryDate ? new Date(item.expiryDate) <= now : false;
+      if (invFilter === 'LOW' && !isLow) return false;
+      if (invFilter === 'EXPIRED' && !isExpired) return false;
+      if (!q) return true;
+      return (
+        (item.name || '').toLowerCase().includes(q) ||
+        (item.catalogCode || '').toLowerCase().includes(q)
+      );
+    });
+  }, [items, invFilter, invSearch]);
 
   return (
-    <>
-      <div style={{ padding: '16px 20px' }}>
-        {/* Page Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-          <div>
+    <div
+      dir="rtl"
+      style={{
+        height: '100%',
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: 'var(--bg-primary)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* 1. Compact Top Header Bar (48px) */}
+      <header
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 16px 4px 16px',
+          backgroundColor: 'var(--bg-primary)',
+          flexShrink: 0,
+        }}
+      >
+        {/* Left Action Pill Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            onClick={() => setShowAddDeviceModal(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '7px 16px',
+              backgroundColor: '#0284c7',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              boxShadow: '0 2px 5px rgba(2, 132, 199, 0.25)',
+            }}
+          >
+            <Plus size={16} />
+            <span>إضافة جهاز طبي</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowAddItemModal(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '7px 16px',
+              backgroundColor: '#0f766e',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              boxShadow: '0 2px 5px rgba(15, 118, 110, 0.25)',
+            }}
+          >
+            <Package size={15} />
+            <span>إضافة كاشف للمخزون</span>
+          </button>
+        </div>
+
+        {/* Right Info Pills (Server IP & Port 5000 + Stock Alerts) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 14px',
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid #0f766e',
+              borderRadius: '9px',
+              fontSize: '12.5px',
+              fontWeight: 700,
+            }}
+          >
+            <Wifi size={15} color="#0f766e" />
+            <span style={{ color: 'var(--text-muted)' }}>عنوان السيرفر للأجهزة:</span>
+            <strong dir="ltr" style={{ color: '#0f766e', fontSize: '13.5px' }}>
+              {serverIp} : {listenerPort}
+            </strong>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 14px',
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '9px',
+              fontSize: '12.5px',
+              fontWeight: 700,
+            }}
+          >
+            <AlertTriangle size={15} color="#f59e0b" />
+            <span style={{ color: 'var(--text-muted)' }}>نواقص الكواشف:</span>
+            <strong style={{ color: alerts.lowStockCount > 0 ? '#dc2626' : '#16a34a', fontSize: '14px' }}>
+              {alerts.lowStockCount || 0}
+            </strong>
+          </div>
+
+          <button
+            type="button"
+            onClick={loadAll}
+            title="تحديث البيانات"
+            style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              backgroundColor: 'var(--bg-card)',
+              color: 'var(--text-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <RefreshCw size={15} />
+          </button>
+        </div>
+      </header>
+
+      {/* 2. Split Workspace (Right: Medical Analyzers | Left: Inventory & Auto-Deducted Reagents) */}
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'row',
+          gap: '12px',
+          padding: '10px 16px 14px 16px',
+          overflow: 'hidden',
+          minHeight: 0,
+        }}
+      >
+        {/* RIGHT PANEL: Connected Medical Analyzers (~400px) */}
+        <section
+          style={{
+            width: '400px',
+            minWidth: '400px',
+            height: '100%',
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '12px',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxShadow: 'var(--shadow-card)',
+          }}
+        >
+          <div
+            style={{
+              padding: '12px 14px',
+              borderBottom: '1px solid var(--border-subtle)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexShrink: 0,
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(6, 182, 212, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-cyan)' }}>
-                <Cpu size={24} />
-              </div>
-              <div>
-                <h1 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                  ربط أجهزة المختبر والتحليلات الآلية (LIS Device Hub)
-                </h1>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-                  إدارة الربط الإلكتروني المباشر مع أجهزة صورة الدم والكيمياء والهرمونات وتنزيل النتائج بالعينة تلقائياً عبر بروتوكولات ASTM و HL7
-                </p>
-              </div>
+              <Cpu size={17} color="#0284c7" />
+              <span style={{ fontSize: '14px', fontWeight: 900, color: 'var(--text-main)' }}>
+                الأجهزة الطبية المربوطة ({devices.length})
+              </span>
             </div>
+            <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 600 }}>
+              استقبال تلقائي للنتائج
+            </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={fetchData} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <RefreshCw size={14} className={loading ? 'spin' : ''} />
-              <span>تحديث</span>
-            </button>
-            <button
-              onClick={handleOpenCreate}
-              className="btn-primary"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)' }}
-            >
-              <Plus size={16} />
-              <span>إضافة جهاز جديد</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Quick Tabs */}
-        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-color)', marginBottom: '16px', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setActiveTab('devices')}
+          <div
             style={{
-              padding: '9px 18px',
-              background: activeTab === 'devices' ? 'rgba(6, 182, 212, 0.12)' : 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'devices' ? '3px solid var(--accent-cyan)' : '3px solid transparent',
-              color: activeTab === 'devices' ? 'var(--accent-cyan)' : 'var(--text-muted)',
-              fontWeight: activeTab === 'devices' ? 800 : 500,
-              fontSize: '13px',
-              cursor: 'pointer',
+              flex: 1,
+              overflowY: 'auto',
+              padding: '10px',
               display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              borderRadius: '6px 6px 0 0',
+              flexDirection: 'column',
+              gap: '8px',
             }}
           >
-            <Cpu size={16} />
-            <span>الأجهزة المعرفة ({devices.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('feed')}
-            style={{
-              padding: '9px 18px',
-              background: activeTab === 'feed' ? 'rgba(6, 182, 212, 0.12)' : 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'feed' ? '3px solid var(--accent-cyan)' : '3px solid transparent',
-              color: activeTab === 'feed' ? 'var(--accent-cyan)' : 'var(--text-muted)',
-              fontWeight: activeTab === 'feed' ? 800 : 500,
-              fontSize: '13px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              borderRadius: '6px 6px 0 0',
-            }}
-          >
-            <Zap size={16} />
-            <span>بث النتائج الواردة المباشر ({incomingResults.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('agent')}
-            style={{
-              padding: '9px 18px',
-              background: activeTab === 'agent' ? 'rgba(6, 182, 212, 0.12)' : 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'agent' ? '3px solid var(--accent-cyan)' : '3px solid transparent',
-              color: activeTab === 'agent' ? 'var(--accent-cyan)' : 'var(--text-muted)',
-              fontWeight: activeTab === 'agent' ? 800 : 500,
-              fontSize: '13px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              borderRadius: '6px 6px 0 0',
-            }}
-          >
-            <Terminal size={16} />
-            <span>الوسيط المحلي (LIS Local Agent)</span>
-          </button>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* TAB 1: REGISTERED DEVICES LIST                                           */}
-        {/* ========================================================================= */}
-        {activeTab === 'devices' && (
-          <div>
             {devices.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 20px', background: 'var(--bg-card)', border: '1px dashed var(--border-color)', borderRadius: '12px' }}>
-                <Cpu size={48} color="var(--text-dim)" style={{ marginBottom: '12px' }} />
-                <h3 style={{ fontSize: '16px', color: 'var(--text-main)', marginBottom: '6px' }}>لم يتم ربط أي جهاز حتى الآن</h3>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '440px', margin: '0 auto 16px auto' }}>
-                  يمكنك إضافة أجهزة صورة الدم (CBC)، الكيمياء السريرية، الهرمونات، وأجهزة الأملاح بخطوات بسيطة واختيار نوع الجهاز من القوالب الجاهزة.
-                </p>
-                <button onClick={handleOpenCreate} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <Plus size={16} />
-                  <span>إضافة أول جهاز</span>
-                </button>
+              <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                لا توجد أجهزة طبية مضافة بعد. اضغط على «إضافة جهاز طبي» بالأعلى.
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '14px' }}>
-                {devices.map((dev) => {
-                  const isOnline = dev.status === 'ONLINE';
-                  return (
-                    <div
-                      key={dev.id}
+              devices.map((dev) => (
+                <div
+                  key={dev.id}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-card)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                        <span
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '999px',
+                            backgroundColor: dev.active !== false ? '#10b981' : '#94a3b8',
+                          }}
+                        />
+                        <span style={{ fontSize: '14px', fontWeight: 900, color: 'var(--text-main)' }}>{dev.name}</span>
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '2px' }}>
+                        البروتوكول: {dev.protocol || 'HL7'} • المنفذ: {dev.port || 5000} • ({dev.mappings?.length || 0} فحص مربوط)
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteDevice(dev.id)}
+                      title="حذف الجهاز"
+                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+
+                  {/* Easy Non-Tech Action Buttons */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenGuideForDevice(dev)}
                       style={{
-                        background: 'var(--bg-card)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '12px',
-                        padding: '16px',
+                        flex: 1,
+                        padding: '7px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid #bae6fd',
+                        backgroundColor: '#f0f9ff',
+                        color: '#0369a1',
+                        fontSize: '12px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
                         display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: '12px',
-                        position: 'relative',
-                        transition: 'all 0.2s ease',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
                       }}
                     >
-                      {/* Card Header */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                            <strong style={{ fontSize: '15px', color: 'var(--text-main)' }}>{dev.name}</strong>
-                            <span
-                              style={{
-                                padding: '2px 8px',
-                                borderRadius: '12px',
-                                fontSize: '10px',
-                                fontWeight: 700,
-                                background: isOnline ? 'rgba(34, 197, 94, 0.15)' : 'rgba(148, 163, 184, 0.15)',
-                                color: isOnline ? '#4ade80' : 'var(--text-muted)',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                              }}
-                            >
-                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isOnline ? '#22c55e' : '#94a3b8' }}></span>
-                              {isOnline ? 'متصل (Online)' : 'غير متصل (Offline)'}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'flex', gap: '8px' }}>
-                            <span>🏭 {dev.brand}</span>
-                            <span>🏷️ {dev.model}</span>
-                            <span>🧪 {dev.category}</span>
-                          </div>
-                        </div>
+                      <HelpCircle size={14} />
+                      <span>خطوات الربط بالتفصيل</span>
+                    </button>
 
-                        <div style={{ display: 'flex', gap: '4px' }}>
-                          <button onClick={() => handleOpenEdit(dev)} className="btn-icon" title="تعديل الجهاز">
-                            <Edit3 size={14} />
-                          </button>
-                          <button onClick={() => setDeleteDeviceId(dev.id)} className="btn-icon" title="حذف الجهاز" style={{ color: '#f87171' }}>
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Connection Details Box */}
-                      <div style={{ background: 'var(--bg-input)', padding: '10px 12px', borderRadius: '8px', fontSize: '11.5px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ color: 'var(--text-muted)' }}>نوع الاتصال:</span>
-                          <strong style={{ color: 'var(--accent-cyan)' }}>
-                            {dev.connectionType === 'TCP_IP' ? `🌐 شبكة LAN (Port: ${dev.port})` : dev.connectionType === 'SERIAL_PORT' ? `🔌 سيريال (${dev.comPort} - ${dev.baudRate})` : '📁 مراقب مجلد'}
-                          </strong>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ color: 'var(--text-muted)' }}>البروتوكول:</span>
-                          <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{dev.protocol}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ color: 'var(--text-muted)' }}>المطابقة التلقائية:</span>
-                          <span style={{ color: dev.autoMatchSample ? '#4ade80' : '#f87171', fontWeight: 700 }}>
-                            {dev.autoMatchSample ? '⚡ مفعّلة (تنزيل فوري)' : 'يدوية'}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px', borderTop: '1px solid var(--border-color)', marginTop: '2px' }}>
-                          <span style={{ color: 'var(--text-muted)' }}>رمز الإقران (API Key):</span>
-                          <button
-                            onClick={() => copyToClipboard(dev.apiKey)}
-                            style={{ background: 'transparent', border: 'none', color: 'var(--accent-cyan)', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', padding: 0 }}
-                          >
-                            {copiedKey === dev.apiKey ? <Check size={12} color="#4ade80" /> : <Copy size={12} />}
-                            <code>{dev.apiKey?.substring(0, 12)}...</code>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Card Stats */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', padding: '0 4px' }}>
-                        <span>🔗 الفحوصات المربوطة: <strong style={{ color: 'var(--text-main)' }}>{dev.mappings?.length || 0}</strong></span>
-                        <span>⏱️ آخر إشارة: <strong style={{ color: 'var(--text-main)' }}>{dev.lastCommunication ? formatEnglishTime(dev.lastCommunication) : 'لا يوجد'}</strong></span>
-                      </div>
-
-                      {/* Card Actions */}
-                      <div style={{ display: 'flex', gap: '6px', paddingTop: '4px', borderTop: '1px solid var(--border-color)' }}>
-                        <button
-                          onClick={() => handleOpenMappings(dev)}
-                          className="btn-secondary"
-                          style={{ flex: 1, padding: '6px 8px', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
-                        >
-                          <Layers size={13} color="var(--accent-cyan)" />
-                          <span>ربط الفحوصات ({dev.mappings?.length || 0})</span>
-                        </button>
-                        <button
-                          onClick={() => handleOpenLogs(dev)}
-                          className="btn-icon"
-                          title="عرض سجل الرسائل الخام"
-                          style={{ padding: '6px' }}
-                        >
-                          <FileText size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* TAB 2: INCOMING RESULTS FEED                                             */}
-        {/* ========================================================================= */}
-        {activeTab === 'feed' && (
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Activity size={16} color="var(--accent-cyan)" />
-                <strong style={{ fontSize: '13.5px', color: 'var(--text-main)' }}>سجل النتائج الواردة من الأجهزة لحظة بلحظة</strong>
-              </div>
-              <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>يتم التحديث تلقائياً كل 10 ثوانٍ ⚡</span>
-            </div>
-
-            {incomingResults.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                <p>لا توجد نتائج واردة حتى الآن. عند قيام أي جهاز بفحص عينة ستظهر النتائج هنا فوراً.</p>
-              </div>
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'right' }}>
-                  <thead>
-                    <tr style={{ background: 'var(--bg-input)', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>
-                      <th style={{ padding: '10px 14px' }}>الوقت</th>
-                      <th style={{ padding: '10px 14px' }}>الجهاز</th>
-                      <th style={{ padding: '10px 14px' }}>رقم العينة</th>
-                      <th style={{ padding: '10px 14px' }}>الفحص</th>
-                      <th style={{ padding: '10px 14px' }}>النتيجة</th>
-                      <th style={{ padding: '10px 14px' }}>الوحدة</th>
-                      <th style={{ padding: '10px 14px' }}>الحالة</th>
-                      <th style={{ padding: '10px 14px' }}>إجراء</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {incomingResults.map((item) => {
-                      const isApplied = item.status === 'APPLIED';
-                      return (
-                        <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                          <td style={{ padding: '10px 14px', color: 'var(--text-muted)', fontSize: '11px' }}>
-                            {formatEnglishTime(item.createdAt || item.receivedAt || Date.now())}
-                          </td>
-                          <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-main)' }}>
-                            {item.deviceName || item.device?.name || 'جهاز خارجي'}
-                          </td>
-                          <td style={{ padding: '10px 14px' }}>
-                            <span style={{ padding: '2px 8px', borderRadius: '4px', background: 'rgba(6, 182, 212, 0.15)', color: 'var(--accent-cyan)', fontWeight: 800 }}>
-                              #{toEnglishDigits(item.sampleNumber || item.sampleBarcode) || 'غير محدد'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '10px 14px', fontWeight: 600 }}>
-                            {item.testName || item.testCode}
-                            <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginRight: '4px' }}>({item.testCode})</span>
-                          </td>
-                          <td style={{ padding: '10px 14px', fontWeight: 800, fontSize: '13px', color: item.isCritical ? '#f87171' : item.isAbnormal ? '#fbbf24' : '#fff' }}>
-                            {item.value || item.resultValue}
-                            {item.isCritical && <span style={{ marginRight: '4px', color: '#f87171' }}>⚠️ حرج</span>}
-                          </td>
-                          <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{item.unit || '-'}</td>
-                          <td style={{ padding: '10px 14px' }}>
-                            <span
-                              style={{
-                                padding: '2px 8px',
-                                borderRadius: '10px',
-                                fontSize: '10px',
-                                fontWeight: 700,
-                                background: isApplied ? 'rgba(34, 197, 94, 0.15)' : 'rgba(234, 179, 8, 0.15)',
-                                color: isApplied ? '#4ade80' : '#facc15',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                              }}
-                            >
-                              {isApplied ? (
-                                <>
-                                  <Check size={11} />
-                                  <span>نزل بالعينة</span>
-                                </>
-                              ) : (
-                                <span>⏳ معلق</span>
-                              )}
-                            </span>
-                          </td>
-                          <td style={{ padding: '10px 14px' }}>
-                            {!isApplied && (
-                              <button
-                                onClick={() => handleOpenAssign(item)}
-                                className="btn-secondary"
-                                style={{ padding: '3px 8px', fontSize: '11px' }}
-                              >
-                                إسناد لعينة
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* TAB 3: LOCAL AGENT GUIDE & DOWNLOAD                                      */}
-        {/* ========================================================================= */}
-        {activeTab === 'agent' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '16px' }}>
-            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                <Terminal size={20} color="var(--accent-cyan)" />
-                <h3 style={{ fontSize: '15px', color: 'var(--text-main)', margin: 0 }}>ما هو الوسيط المحلي (LIS Local Agent)؟</h3>
-              </div>
-              <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '14px' }}>
-                الوسيط المحلي هو برنامج خفيف يعمل في خلفية أي حاسوب داخل المختبر. يتصل بالأجهزة المحلية عبر منافذ السيريال (RS232/COM) أو شبكة المختبر الداخلية (LAN)، ويقوم برفع النتائج مشفرة فور صدورها إلى منصة المختبر السحابية لتظهر على الفور أمام الفنيين.
-              </p>
-
-              <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', fontSize: '12px', marginBottom: '14px' }}>
-                <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>خطوات التشغيل السريع:</strong>
-                <ol style={{ paddingRight: '18px', margin: 0, color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <li>أضف جهاز المختبر في النظام واحصل على <strong>رمز الإقران (API Key)</strong>.</li>
-                  <li>وصل كابل السيريال أو كابل الشبكة بين الجهاز وحاسوب المختبر.</li>
-                  <li>شغّل الوسيط المحلي بضغطة زر؛ وسيقوم باستقبال النتائج وتنزيلها تلقائياً.</li>
-                </ol>
-              </div>
-
-              <a
-                href="/api/devices/agent-code"
-                target="_blank"
-                download="lis-agent.js"
-                className="btn-primary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
-              >
-                <Download size={15} />
-                <span>تحميل ملف كود الوسيط المحلي (lis-agent.js)</span>
-              </a>
-            </div>
-
-            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                <Sparkles size={20} color="#fbbf24" />
-                <h3 style={{ fontSize: '15px', color: 'var(--text-main)', margin: 0 }}>الأجهزة والبروتوكولات المدعومة مسبقاً</h3>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '340px', overflowY: 'auto' }}>
-                {presets.map((p) => (
-                  <div key={p.id} style={{ background: 'var(--bg-input)', padding: '8px 10px', borderRadius: '6px', fontSize: '11.5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <strong style={{ color: 'var(--text-main)', display: 'block' }}>{p.brand} {p.model}</strong>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>{p.arabicDescription}</span>
-                    </div>
-                    <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(6, 182, 212, 0.15)', color: 'var(--accent-cyan)', fontWeight: 700, fontSize: '10px' }}>
-                      {p.protocol}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* MODALS                                                                    */}
-        {/* ========================================================================= */}
-
-        {/* MODAL 1: ADD / EDIT DEVICE */}
-        {showDeviceModal && (
-          <div className="modal-overlay" onClick={() => setShowDeviceModal(false)}>
-            <div className="modal-content" style={{ maxWidth: '620px' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Cpu size={20} color="var(--accent-cyan)" />
-                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                    {editingDeviceId ? 'تعديل إعدادات الجهاز' : 'إضافة جهاز مختبر جديد'}
-                  </h3>
-                </div>
-                <button onClick={() => setShowDeviceModal(false)} className="btn-icon">
-                  <X size={16} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveDevice} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {!editingDeviceId && (
-                  <div style={{ background: 'rgba(6, 182, 212, 0.08)', border: '1px solid rgba(6, 182, 212, 0.3)', padding: '10px 12px', borderRadius: '8px' }}>
-                    <label style={{ fontSize: '11.5px', color: 'var(--accent-cyan)', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-                      اختر من قوالب الأجهزة الجاهزة (تلقائي الربط):
-                    </label>
-                    <select value={selectedPresetId} onChange={(e) => handlePresetChange(e.target.value)} className="input-field">
-                      <option value="">-- جهاز مخصص / إدخال يدوي --</option>
-                      {presets.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.brand} {p.model} ({p.category}) - {p.protocol}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>اسم الجهاز التعريفي بالمختبر *</label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="مثال: Mindray BC-5000 (CBC)"
-                      className="input-field"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>الشركة المصنعة (Brand) *</label>
-                    <input
-                      type="text"
-                      value={brand}
-                      onChange={(e) => setBrand(e.target.value)}
-                      placeholder="Mindray, Sysmex, Roche..."
-                      className="input-field"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>الموديل (Model)</label>
-                    <input
-                      type="text"
-                      value={model}
-                      onChange={(e) => setModel(e.target.value)}
-                      placeholder="BC-5000, Cobas c311..."
-                      className="input-field"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>تصنيف التحاليل</label>
-                    <select value={category} onChange={(e) => setCategory(e.target.value)} className="input-field">
-                      <option value="CBC">صورة الدم الكاملة (CBC / Hematology)</option>
-                      <option value="CHEMISTRY">الكيمياء السريرية (Chemistry)</option>
-                      <option value="IMMUNOLOGY">هرمونات ومناعة (Immunology / Hormones)</option>
-                      <option value="ELECTROLYTES">أملاح وشوارد الدم (Electrolytes)</option>
-                      <option value="URINE">تحليل الإدرار الآلي (Urine Analyzer)</option>
-                      <option value="OTHER">تحاليل أخرى (Other)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>طريقة الاتصال</label>
-                    <select value={connectionType} onChange={(e) => setConnectionType(e.target.value)} className="input-field">
-                      <option value="TCP_IP">🌐 شبكة LAN (TCP/IP Socket)</option>
-                      <option value="SERIAL_PORT">🔌 كابل سيريال (RS-232 / USB COM)</option>
-                      <option value="FILE_WATCHER">📁 مراقب مجلد مشترك (File Drop)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>بروتوكول البيانات</label>
-                    <select value={protocol} onChange={(e) => setProtocol(e.target.value)} className="input-field">
-                      <option value="HL7_V2">HL7 v2.x (ORU^R01)</option>
-                      <option value="ASTM_1394">ASTM 1381 / 1394 (Standard)</option>
-                      <option value="CSV_DELIMITED">ملف CSV / نصوص مفصولة</option>
-                      <option value="CUSTOM_TEXT">نصي مخصص (Custom Delimited)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {connectionType === 'TCP_IP' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
-                    <div>
-                      <label style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>عنوان IP للجهاز أو السيرفر</label>
-                      <input
-                        type="text"
-                        value={ipAddress}
-                        onChange={(e) => setIpAddress(e.target.value)}
-                        placeholder="192.168.1.100"
-                        className="input-field"
-                      />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>منفذ الشبكة (Port)</label>
-                      <input
-                        type="number"
-                        value={port}
-                        onChange={(e) => setPort(e.target.value)}
-                        placeholder="5100"
-                        className="input-field"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {connectionType === 'SERIAL_PORT' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div>
-                      <label style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>منفذ السيريال (COM Port)</label>
-                      <input
-                        type="text"
-                        value={comPort}
-                        onChange={(e) => setComPort(e.target.value)}
-                        placeholder="COM1, COM2..."
-                        className="input-field"
-                      />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>معدل الباود (BaudRate)</label>
-                      <select value={baudRate} onChange={(e) => setBaudRate(e.target.value)} className="input-field">
-                        <option value="9600">9600</option>
-                        <option value="19200">19200</option>
-                        <option value="38400">38400</option>
-                        <option value="115200">115200</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}>
-                  <input
-                    type="checkbox"
-                    id="autoMatch"
-                    checked={autoMatchSample}
-                    onChange={(e) => setAutoMatchSample(e.target.checked)}
-                    style={{ width: '16px', height: '16px', accentColor: 'var(--accent-cyan)' }}
-                  />
-                  <label htmlFor="autoMatch" style={{ fontSize: '12px', color: 'var(--text-main)', cursor: 'pointer' }}>
-                    <strong>تنزيل النتائج فورياً وتلقائياً</strong> عند تطابق رقم العينة (Sample ID / Barcode)
-                  </label>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
-                  <button type="button" onClick={() => setShowDeviceModal(false)} className="btn-secondary">
-                    إلغاء
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    {editingDeviceId ? 'حفظ التعديلات' : 'إضافة الجهاز'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL 2: TEST CODE MAPPINGS */}
-        {showMappingModal && selectedDevice && (
-          <div className="modal-overlay" onClick={() => setShowMappingModal(false)}>
-            <div className="modal-content" style={{ maxWidth: '720px' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
-                <div>
-                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                    🔗 جدول مطابقة الفحوصات: {selectedDevice.name}
-                  </h3>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    ربط الرموز التي يرسلها الجهاز بالفحوصات المعرفة في كتالوج المختبر
-                  </span>
-                </div>
-                <button onClick={() => setShowMappingModal(false)} className="btn-icon">
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Add New Mapping Form */}
-              <form onSubmit={handleAddMapping} style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '8px', marginBottom: '14px' }}>
-                <strong style={{ fontSize: '12px', color: 'var(--accent-cyan)', display: 'block', marginBottom: '8px' }}>
-                  + إضافة ربط فحص جديد:
-                </strong>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr 60px auto', gap: '8px', alignItems: 'flex-end' }}>
-                  <div>
-                    <label style={{ fontSize: '10.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>كود الجهاز (e.g. WBC)</label>
-                    <input
-                      type="text"
-                      value={newDeviceCode}
-                      onChange={(e) => setNewDeviceCode(e.target.value)}
-                      placeholder="WBC, GLU, CREA..."
-                      className="input-field"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '10.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>الفحص المقابل بالنظام</label>
-                    <select
-                      value={newCatalogId}
-                      onChange={(e) => setNewCatalogId(e.target.value)}
-                      className="input-field"
-                      required
+                    <button
+                      type="button"
+                      onClick={() => handleTestConnection(dev)}
+                      disabled={simulatingId === dev.id}
+                      style={{
+                        padding: '7px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #bbf7d0',
+                        backgroundColor: '#f0fdf4',
+                        color: '#15803d',
+                        fontSize: '12px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                      }}
                     >
-                      {catalogTests.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name} ({t.code}) - {t.category}
-                        </option>
-                      ))}
-                    </select>
+                      <Zap size={14} />
+                      <span>{simulatingId === dev.id ? 'جاري الفحص...' : 'فحص الربط'}</span>
+                    </button>
                   </div>
-                  <div>
-                    <label style={{ fontSize: '10.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>الوحدة</label>
-                    <input
-                      type="text"
-                      value={newUnit}
-                      onChange={(e) => setNewUnit(e.target.value)}
-                      placeholder="10^3/uL"
-                      className="input-field"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '10.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>المعامل</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={newMultiplier}
-                      onChange={(e) => setNewMultiplier(e.target.value)}
-                      className="input-field"
-                    />
-                  </div>
-                  <button type="submit" className="btn-primary" style={{ padding: '8px 12px', fontSize: '12px' }}>
-                    حفظ الربط
-                  </button>
                 </div>
-              </form>
+              ))
+            )}
+          </div>
+        </section>
 
-              {/* Existing Mappings Table */}
-              <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'right' }}>
-                  <thead>
-                    <tr style={{ background: 'var(--bg-input)', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>
-                      <th style={{ padding: '8px 10px' }}>كود الجهاز</th>
-                      <th style={{ padding: '8px 10px' }}>الفحص المرتبط في النظام</th>
-                      <th style={{ padding: '8px 10px' }}>التصنيف</th>
-                      <th style={{ padding: '8px 10px' }}>الوحدة</th>
-                      <th style={{ padding: '8px 10px' }}>معامل التحويل</th>
-                      <th style={{ padding: '8px 10px', textAlign: 'center' }}>حذف</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(selectedDevice.mappings || []).map((m: any) => (
-                      <tr key={m.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '8px 10px', fontWeight: 700, color: 'var(--accent-cyan)' }}>{m.deviceTestCode}</td>
-                        <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text-main)' }}>{m.testCatalogName || m.testCatalog?.name || m.testCatalogCode || 'غير معروف'}</td>
-                        <td style={{ padding: '8px 10px', color: 'var(--text-muted)' }}>{m.testCatalog?.category || '-'}</td>
-                        <td style={{ padding: '8px 10px', color: 'var(--text-muted)' }}>{m.unit || m.testCatalog?.unit || '-'}</td>
-                        <td style={{ padding: '8px 10px' }}>{m.multiplier || 1.0}</td>
-                        <td style={{ padding: '8px 10px', textAlign: 'center' }}>
-                          <button onClick={() => handleDeleteMapping(m.id)} className="btn-icon" style={{ color: '#f87171' }}>
-                            <Trash2 size={13} />
-                          </button>
+        {/* LEFT PANEL: Inventory & Reagents Table (Flexible) */}
+        <section
+          style={{
+            flex: 1,
+            height: '100%',
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '12px',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxShadow: 'var(--shadow-card)',
+            minWidth: 0,
+          }}
+        >
+          {/* Top Filter Bar */}
+          <div
+            style={{
+              padding: '12px 16px',
+              borderBottom: '1px solid var(--border-subtle)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '14.5px', fontWeight: 900, color: 'var(--text-main)', marginLeft: '8px' }}>
+                المخزون والكواشف الطبية
+              </span>
+              {[
+                { id: 'ALL', label: `الكل (${items.length})` },
+                { id: 'LOW', label: `نواقص الرصيد (${alerts.lowStockCount || 0})` },
+                { id: 'EXPIRED', label: `منتهية الصلاحية (${alerts.expiredCount || 0})` },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setInvFilter(f.id as any)}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '999px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    border: invFilter === f.id ? '1.5px solid #0f766e' : '1px solid var(--border-color)',
+                    backgroundColor: invFilter === f.id ? 'rgba(15, 118, 110, 0.1)' : 'var(--bg-input)',
+                    color: invFilter === f.id ? '#0f766e' : 'var(--text-muted)',
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ position: 'relative', width: '230px' }}>
+              <Search
+                size={15}
+                color="var(--text-muted)"
+                style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }}
+              />
+              <input
+                type="text"
+                value={invSearch}
+                onChange={(e) => setInvSearch(e.target.value)}
+                placeholder="بحث عن كاشف أو كود تحليل..."
+                style={{
+                  width: '100%',
+                  height: '34px',
+                  padding: '0 10px 0 30px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-input)',
+                  color: 'var(--text-main)',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Scrollable Inventory Table */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 14px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '12px' }}>
+                  <th style={{ textAlign: 'right', padding: '10px 8px', fontWeight: 700 }}>اسم الكاشف / المادة</th>
+                  <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700 }}>الربط التلقائي بالتحليل</th>
+                  <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700 }}>العبوات المتبقية</th>
+                  <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700 }}>الصلاحية</th>
+                  <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700 }}>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      جاري تحميل المخزون...
+                    </td>
+                  </tr>
+                ) : filteredItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      لا توجد مواد مطابقة في المخزون
+                    </td>
+                  </tr>
+                ) : (
+                  filteredItems.map((item) => {
+                    const isLow = Number(item.quantity) <= Number(item.reorderThreshold || 3);
+                    return (
+                      <tr key={item.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                        <td style={{ padding: '10px 8px' }}>
+                          <div style={{ fontWeight: 800, color: 'var(--text-main)' }}>{item.name}</div>
+                          <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                            التكلفة: {Number(item.costPerUnit || 0).toLocaleString()} {currency}
+                          </div>
+                        </td>
+
+                        <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                          {item.catalogCode ? (
+                            <span
+                              style={{
+                                padding: '3px 10px',
+                                borderRadius: '999px',
+                                fontSize: '11.5px',
+                                fontWeight: 800,
+                                backgroundColor: '#f0fdf4',
+                                color: '#15803d',
+                                border: '1px solid #bbf7d0',
+                              }}
+                            >
+                              🔗 يخصم مع #{item.catalogCode}
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)', fontSize: '11.5px' }}>يدوي</span>
+                          )}
+                        </td>
+
+                        <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                          <span
+                            style={{
+                              fontWeight: 900,
+                              fontSize: '14px',
+                              color: isLow ? '#dc2626' : 'var(--text-main)',
+                            }}
+                          >
+                            {item.quantity} {item.unit || 'عبوة'}
+                          </span>
+                          {isLow && (
+                            <span
+                              style={{
+                                display: 'block',
+                                fontSize: '10.5px',
+                                fontWeight: 800,
+                                color: '#dc2626',
+                              }}
+                            >
+                              ⚠️ رصيد منخفض
+                            </span>
+                          )}
+                        </td>
+
+                        <td style={{ padding: '10px 8px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          {item.expiryDate ? formatEnglishDate(item.expiryDate) : 'مفتوح'}
+                        </td>
+
+                        <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenVial(item.id)}
+                              style={{
+                                padding: '5px 10px',
+                                borderRadius: '6px',
+                                border: '1px solid #0f766e',
+                                backgroundColor: 'rgba(15, 118, 110, 0.08)',
+                                color: '#0f766e',
+                                fontSize: '11.5px',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              فتح عبوة
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteInventoryItem(item.id)}
+                              style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL 3: RAW LOGS INSPECTOR */}
-        {showLogsModal && selectedDevice && (
-          <div className="modal-overlay" onClick={() => setShowLogsModal(false)}>
-            <div className="modal-content" style={{ maxWidth: '680px' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
-                <div>
-                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                    📜 سجل الرسائل الخام (Raw Logs): {selectedDevice.name}
-                  </h3>
-                </div>
-                <button onClick={() => setShowLogsModal(false)} className="btn-icon">
-                  <X size={16} />
-                </button>
-              </div>
-
-              <div style={{ maxHeight: '360px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {(selectedDevice.logs || []).length === 0 ? (
-                  <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>لا توجد رسائل مسجلة بعد.</p>
-                ) : (
-                  (selectedDevice.logs || []).map((log: any) => (
-                    <div key={log.id} style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '8px 10px', fontSize: '11px', fontFamily: 'monospace' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                        <span style={{ color: log.direction === 'INBOUND' ? '#4ade80' : '#f87171' }}>● {log.direction}</span>
-                        <span>{formatEnglishDateTime(log.createdAt)}</span>
-                      </div>
-                      <div style={{ color: '#e2e8f0', marginBottom: '4px' }}>{log.summary}</div>
-                      <pre style={{ margin: 0, whiteSpace: 'pre-wrap', color: 'var(--accent-cyan)' }}>{log.rawPayload}</pre>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
-              </div>
-            </div>
+              </tbody>
+            </table>
           </div>
-        )}
-
-        {/* MODAL 4: MANUAL ASSIGN PENDING RESULT */}
-        {showAssignModal && selectedPendingResult && (
-          <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
-            <div className="modal-content" style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                  إسناد النتيجة المعلقة لعينة
-                </h3>
-                <button onClick={() => setShowAssignModal(false)} className="btn-icon">
-                  <X size={16} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveAssign} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ background: 'var(--bg-input)', padding: '10px', borderRadius: '6px', fontSize: '12px' }}>
-                  <div>كود الفحص المستلم: <strong>{selectedPendingResult.testCode}</strong></div>
-                  <div>القيمة المستلمة: <strong style={{ color: 'var(--accent-cyan)' }}>{selectedPendingResult.value} {selectedPendingResult.unit}</strong></div>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>اختر العينة والمريض:</label>
-                  <select value={assignSampleId} onChange={(e) => setAssignSampleId(e.target.value)} className="input-field" required>
-                    {samples.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        عينة #{s.sampleNumber} - {s.patient?.name || 'غير معروف'} ({s.status})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>اختر الفحص من الكتالوج:</label>
-                  <select value={assignTestCatalogId} onChange={(e) => setAssignTestCatalogId(e.target.value)} className="input-field" required>
-                    {catalogTests.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} {t.code ? `(${t.code})` : ''} - {t.category}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                  <button type="button" onClick={() => setShowAssignModal(false)} className="btn-secondary">
-                    إلغاء
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    تطبيق النتيجة
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* DELETE CONFIRMATION */}
-        <ConfirmModal
-          isOpen={!!deleteDeviceId}
-          title="حذف جهاز المختبر"
-          message="هل أنت متأكد من حذف هذا الجهاز وكافة روابط الفحوصات المرتبطة به؟"
-          confirmText="نعم، احذف الجهاز"
-          cancelText="إلغاء"
-          type="danger"
-          onConfirm={handleDeleteDevice}
-          onCancel={() => setDeleteDeviceId(null)}
-        />
+        </section>
       </div>
-    </>
+
+      {/* Add Device Modal with Built-in Step-by-Step Guide */}
+      {showAddDeviceModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '16px',
+          }}
+        >
+          <form
+            onSubmit={handleSaveDevice}
+            style={{
+              width: '620px',
+              maxWidth: '95vw',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: '14px',
+              border: '1px solid var(--border-color)',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900 }}>إضافة وربط جهاز طبي خطوة بخطوة</h3>
+              <button type="button" onClick={() => setShowAddDeviceModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 800, marginBottom: '6px' }}>
+                1. اختر موديل الجهاز الطبي من القائمة الجاهزة:
+              </label>
+              <select
+                value={selectedPresetId}
+                onChange={(e) => handleSelectPreset(e.target.value)}
+                style={{
+                  width: '100%',
+                  height: '40px',
+                  padding: '0 12px',
+                  borderRadius: '8px',
+                  border: '1.5px solid #0284c7',
+                  backgroundColor: 'var(--bg-input)',
+                  fontSize: '13.5px',
+                  fontWeight: 800,
+                }}
+              >
+                {DEVICE_PRESETS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.brand} {p.model} ({p.category} - {p.protocol})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Step-by-Step Guide Box for the Selected Analyzer */}
+            {activePreset && (
+              <div
+                style={{
+                  backgroundColor: '#f0f9ff',
+                  border: '1px solid #bae6fd',
+                  borderRadius: '10px',
+                  padding: '14px',
+                  color: '#0c4a6e',
+                }}
+              >
+                <div style={{ fontWeight: 900, fontSize: '13.5px', marginBottom: '8px' }}>
+                  📋 طريقة ربط جهاز ({activePreset.brand} {activePreset.model}) بدون فني:
+                </div>
+                <div style={{ fontSize: '12.5px', marginBottom: '6px' }}>
+                  <strong>• نوع الكيبل:</strong> {activePreset.cableTypeAr || 'كيبل شبكة LAN عادي (RJ45)'}
+                </div>
+                <div style={{ fontSize: '12.5px', marginBottom: '8px' }}>
+                  <strong>• مكان الإعداد في شاشة الجهاز:</strong> <code dir="ltr">{activePreset.analyzerMenuPath || 'Setup > Host / LIS'}</code>
+                </div>
+                <ol style={{ margin: '0', paddingRight: '18px', fontSize: '12.5px', lineHeight: 1.7 }}>
+                  {(activePreset.setupSteps || []).map((step, i) => (
+                    <li key={i} style={{ fontWeight: 700 }}>
+                      {step}
+                    </li>
+                  ))}
+                  <li style={{ fontWeight: 900, color: '#0f766e' }}>
+                    اكتب في شاشة الجهاز عنوان السيرفر (<span dir="ltr">{serverIp}</span>) والمنفذ (<span dir="ltr">{listenerPort}</span>).
+                  </li>
+                </ol>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>الاسم المعروض في المختبر</label>
+                <input
+                  type="text"
+                  value={devName}
+                  onChange={(e) => setDevName(e.target.value)}
+                  style={{ width: '100%', height: '38px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ width: '130px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>رقم المنفذ (Port)</label>
+                <input
+                  type="text"
+                  value={devPort}
+                  onChange={(e) => setDevPort(e.target.value)}
+                  style={{ width: '100%', height: '38px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+              <button type="button" onClick={() => setShowAddDeviceModal(false)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                إلغاء
+              </button>
+              <button type="submit" disabled={savingDevice} style={{ padding: '8px 22px', borderRadius: '8px', border: 'none', background: '#0284c7', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                {savingDevice ? 'جاري الإضافة...' : 'تثبيت الجهاز وتفعيل الاستماع'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Per-Device Connection Guide Modal */}
+      {guideDevice && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 110,
+            padding: '16px',
+          }}
+        >
+          <div
+            style={{
+              width: '540px',
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: '14px',
+              border: '1px solid var(--border-color)',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900 }}>خطوات ربط جهاز ({guideDevice.name})</h3>
+              <button type="button" onClick={() => setGuideDevice(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+            <div style={{ padding: '12px', borderRadius: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: '13px', fontWeight: 800, color: '#166534' }}>
+              🌐 عنوان حاسوب المختبر (Host IP): <span dir="ltr">{serverIp}</span> | المنفذ (Port): <span dir="ltr">{listenerPort}</span>
+            </div>
+            <div style={{ fontSize: '13px', lineHeight: 1.8 }}>
+              <div><strong>• نوع التوصيل:</strong> {guideDevice.preset?.cableTypeAr || 'كيبل شبكة LAN عادي'}</div>
+              <div><strong>• مسار الشاشة في الجهاز:</strong> <code dir="ltr">{guideDevice.preset?.analyzerMenuPath}</code></div>
+              <ol style={{ marginTop: '8px', paddingRight: '18px' }}>
+                {(guideDevice.preset?.setupSteps || []).map((st, idx) => (
+                  <li key={idx} style={{ fontWeight: 700, marginBottom: '4px' }}>{st}</li>
+                ))}
+              </ol>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button type="button" onClick={() => setGuideDevice(null)} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: '#0f766e', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                تم، واضح
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Inventory Reagent Modal */}
+      {showAddItemModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+          }}
+        >
+          <form
+            onSubmit={handleSaveInventoryItem}
+            style={{
+              width: '420px',
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: '14px',
+              border: '1px solid var(--border-color)',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900 }}>إضافة كاشف أو مستلزم للمخزون</h3>
+              <button type="button" onClick={() => setShowAddItemModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>اسم الكاشف / المادة</label>
+              <input
+                type="text"
+                value={itemName}
+                onChange={(e) => setItemName(e.target.value)}
+                placeholder="مثال: Glucose Reagent Kit"
+                style={{ width: '100%', height: '38px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>
+                كود التحليل المربوط بالخصم التلقائي (اختياري)
+              </label>
+              <input
+                type="text"
+                value={catalogCode}
+                onChange={(e) => setCatalogCode(e.target.value)}
+                placeholder="مثال: GLU أو CBC أو CRP"
+                style={{ width: '100%', height: '38px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>الكمية المتوفرة</label>
+                <input
+                  type="text"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  placeholder="10"
+                  style={{ width: '100%', height: '38px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>سعر التكلفة ({currency})</label>
+                <input
+                  type="text"
+                  value={costPerUnit}
+                  onChange={(e) => setCostPerUnit(e.target.value)}
+                  placeholder="25000"
+                  style={{ width: '100%', height: '38px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>تاريخ الصلاحية</label>
+              <input
+                type="date"
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                style={{ width: '100%', height: '38px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+              <button type="button" onClick={() => setShowAddItemModal(false)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                إلغاء
+              </button>
+              <button type="submit" disabled={savingItem} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: '#0f766e', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
+                {savingItem ? 'جاري الحفظ...' : 'حفظ في المخزون'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
   );
+}
+
+export default function DevicesPage() {
+  return <UnifiedDevicesInventoryView />;
 }

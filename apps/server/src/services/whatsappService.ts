@@ -88,20 +88,36 @@ class WhatsAppService {
   private connectedUser: { id: string; name?: string } | null = null;
   private isInitializing: boolean = false;
   private reconnectTimer: NodeJS.Timeout | null = null;
+  private reconnectAttempts: number = 0;
+  private hasCheckedSession: boolean = false;
 
   constructor() {
-    this.checkExistingSession();
+    // Heavy Baileys socket initialization deferred to background after UI is ready or on-demand
   }
 
-  private checkExistingSession() {
+  public checkExistingSession() {
+    if (this.hasCheckedSession) return;
+    this.hasCheckedSession = true;
+    const isBench = process.env.LABRYO_STARTUP_BENCHMARK === '1' || process.env.DEBUG_STARTUP_BENCHMARK === '1';
+    const t0 = isBench ? process.hrtime.bigint() : 0n;
     try {
       const authDir = getWhatsAppAuthDir();
       const credsPath = path.join(authDir, 'creds.json');
       if (fs.existsSync(credsPath)) {
         console.log('[WhatsAppService] Existing session detected, auto-initiating socket...');
-        this.initSocket().catch((err) => {
+        this.initSocket().then(() => {
+          if (isBench) {
+            const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+            console.log(`⏱️ [BENCHMARK] واتساب (Baileys): ${ms.toFixed(2)}ms`);
+          }
+        }).catch((err) => {
           console.error('[WhatsAppService] Auto-init failed:', err?.message);
         });
+      } else {
+        if (isBench) {
+          const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+          console.log(`⏱️ [BENCHMARK] واتساب (Baileys): ${ms.toFixed(2)}ms (no session)`);
+        }
       }
     } catch (err) {
       console.error('[WhatsAppService] checkExistingSession error:', err);
@@ -166,6 +182,7 @@ class WhatsAppService {
         if (connection === 'open') {
           this.status = 'CONNECTED';
           this.qrDataUrl = null;
+          this.reconnectAttempts = 0;
           const rawId = sock.user?.id || '';
           const cleanId = rawId.split(':')[0].split('@')[0];
           this.connectedUser = {
@@ -181,16 +198,19 @@ class WhatsAppService {
           console.log(`⚠️ [WhatsAppService] Connection closed. Status: ${statusCode}, LoggedOut: ${isLoggedOut}`);
 
           if (isLoggedOut) {
+            this.reconnectAttempts = 0;
             await this.logout();
           } else {
             this.status = 'DISCONNECTED';
             this.sock = null;
+            const delay = Math.min(30000, 4000 * Math.pow(1.5, this.reconnectAttempts || 0));
+            this.reconnectAttempts = (this.reconnectAttempts || 0) + 1;
             this.reconnectTimer = setTimeout(() => {
-              console.log('[WhatsAppService] Attempting reconnection...');
+              console.log(`[WhatsAppService] Attempting reconnection (delay: ${Math.round(delay)}ms, attempt: ${this.reconnectAttempts})...`);
               this.initSocket().catch((e) => {
                 console.error('[WhatsAppService] Reconnect error:', e?.message);
               });
-            }, 4000);
+            }, delay);
           }
         }
       });
@@ -206,6 +226,9 @@ class WhatsAppService {
   }
 
   public getStatus(): WhatsAppServiceStatus {
+    if (!this.hasCheckedSession && !this.sock) {
+      this.checkExistingSession();
+    }
     return {
       connected: this.status === 'CONNECTED',
       status: this.status,
@@ -235,6 +258,7 @@ class WhatsAppService {
     this.status = 'DISCONNECTED';
     this.qrDataUrl = null;
     this.connectedUser = null;
+    this.reconnectAttempts = 0;
 
     // Purge local credentials safely
     const authDir = getWhatsAppAuthDir();

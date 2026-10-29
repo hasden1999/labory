@@ -50,6 +50,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   return NextResponse.json(updated);
 }
 
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
+  return PATCH(request, { params });
+}
+
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const success = deletePatient(params.id);
   if (!success) {

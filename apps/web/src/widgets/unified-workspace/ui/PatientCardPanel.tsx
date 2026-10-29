@@ -4,18 +4,16 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Search,
   X,
-  Repeat,
-  Flame,
-  RotateCcw,
-  History,
-  TestTube2,
+  Plus,
+  Stethoscope,
+  Check,
+  FolderOpen,
+  FileText,
 } from 'lucide-react';
-import { UnifiedWorkspaceReturn, UnifiedTubeBadge } from '../model/types';
-import ReferringDoctorSelect from '../../../components/common/ReferringDoctorSelect';
+import { UnifiedWorkspaceReturn } from '../model/types';
 import { apiRequest } from '../../../lib/api';
 import { toEnglishDigits } from '../../../lib/formatters';
 import { useToast } from '../../../components/Toast';
-import { useLab } from '../../../components/LabContext';
 import { normalizeAgeToBirthDate } from '@lab-manager/domain';
 
 interface PatientCardPanelProps {
@@ -35,8 +33,6 @@ function cleanSearch(text: string): string {
 
 export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
   const toast = useToast();
-  const { labProfile } = useLab();
-  const currency = labProfile?.currency || 'IQD';
 
   const {
     patient,
@@ -46,20 +42,35 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
     setAgeDays,
     setBirthDate,
     selectExistingPatient,
-    resetPatient,
     tubeBadges,
-    addTestToCart,
-    catalogTests,
+    doctors,
   } = workspace;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [isLoadingSearch, setIsLoadingSearch] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const suggestionsBoxRef = useRef<HTMLDivElement>(null);
+  const yearsInputRef = useRef<HTMLInputElement>(null);
+  const monthsInputRef = useRef<HTMLInputElement>(null);
+  const daysInputRef = useRef<HTMLInputElement>(null);
+  const femaleBtnRef = useRef<HTMLButtonElement>(null);
+  const maleBtnRef = useRef<HTMLButtonElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const notesInputRef = useRef<HTMLInputElement>(null);
 
+  // Doctor selector & Quick-Add modal state
+  const [isDoctorOpen, setIsDoctorOpen] = useState(false);
+  const [doctorSearch, setDoctorSearch] = useState('');
+  const [showQuickAddDoctor, setShowQuickAddDoctor] = useState(false);
+  const [newDoctorName, setNewDoctorName] = useState('');
+  const [newDoctorPhone, setNewDoctorPhone] = useState('');
+  const [isSavingDoctor, setIsSavingDoctor] = useState(false);
+  const [showPastVisitsModal, setShowPastVisitsModal] = useState(false);
+  const doctorDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Autocomplete patient search
   useEffect(() => {
     const q = searchQuery.trim();
     if (!q || q.length < 2) {
@@ -70,7 +81,6 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
     }
 
     const timer = setTimeout(async () => {
-      setIsLoadingSearch(true);
       try {
         const res = await apiRequest(`/patients/search?q=${encodeURIComponent(q)}`);
         if (Array.isArray(res) && res.length > 0) {
@@ -92,15 +102,14 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
           setShowSuggestions(false);
         }
       } catch (err) {
-        console.warn('[PatientCardPanel] Patient autocomplete search error:', err);
-      } finally {
-        setIsLoadingSearch(false);
+        console.warn('[PatientCardPanel] Patient search error:', err);
       }
     }, 220);
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Click outside listener for suggestions & doctor dropdown
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -110,6 +119,12 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
         !searchInputRef.current.contains(e.target as Node)
       ) {
         setShowSuggestions(false);
+      }
+      if (
+        doctorDropdownRef.current &&
+        !doctorDropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsDoctorOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -128,258 +143,284 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
   );
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showSuggestions || suggestions.length === 0) return;
+    if (showSuggestions && suggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev + 1) % suggestions.length);
+        return;
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
+        return;
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (highlightedIndex >= 0 && suggestions[highlightedIndex]) {
+          handleSelectPatient(suggestions[highlightedIndex]);
+          return;
+        }
+      } else if (e.key === 'Escape') {
+        setShowSuggestions(false);
+        return;
+      }
+    }
 
-    if (e.key === 'ArrowDown') {
+    if (e.key === 'Enter') {
       e.preventDefault();
-      setHighlightedIndex((prev) => (prev + 1) % suggestions.length);
-    } else if (e.key === 'ArrowUp') {
+      setShowSuggestions(false);
+      yearsInputRef.current?.focus();
+      yearsInputRef.current?.select();
+    }
+  };
+
+  const handleYearsKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
       e.preventDefault();
-      setHighlightedIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
+      if (patient.gender === 'MALE') {
+        maleBtnRef.current?.focus();
+      } else {
+        femaleBtnRef.current?.focus();
+      }
+    }
+  };
+
+  const handleMonthsKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      daysInputRef.current?.focus();
+      daysInputRef.current?.select();
+    }
+  };
+
+  const handleDaysKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (patient.gender === 'MALE') {
+        maleBtnRef.current?.focus();
+      } else {
+        femaleBtnRef.current?.focus();
+      }
+    }
+  };
+
+  const handleGenderKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === 'ArrowLeft' || e.key === '2' || e.key.toLowerCase() === 'm' || e.key === 'ذ') {
+      e.preventDefault();
+      updatePatientField('gender', 'MALE');
+      maleBtnRef.current?.focus();
+    } else if (e.key === 'ArrowRight' || e.key === '1' || e.key.toLowerCase() === 'f' || e.key === 'أ') {
+      e.preventDefault();
+      updatePatientField('gender', 'FEMALE');
+      femaleBtnRef.current?.focus();
+    } else if (e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      if (patient.gender === 'FEMALE') {
+        updatePatientField('gender', 'MALE');
+        maleBtnRef.current?.focus();
+      } else {
+        updatePatientField('gender', 'FEMALE');
+        femaleBtnRef.current?.focus();
+      }
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (highlightedIndex >= 0 && suggestions[highlightedIndex]) {
-        handleSelectPatient(suggestions[highlightedIndex]);
-      }
-    } else if (e.key === 'Escape') {
-      setShowSuggestions(false);
-    }
-  };
-
-  const handleRepeatLastTests = async () => {
-    if (!patient.id) return;
-    try {
-      const pastSamples = await apiRequest(`/samples?patientId=${patient.id}&limit=1`);
-      if (Array.isArray(pastSamples) && pastSamples.length > 0) {
-        const lastSample = pastSamples[0];
-        const sampleTests = lastSample.tests || [];
-        if (sampleTests.length > 0) {
-          let addedCount = 0;
-          sampleTests.forEach((st: any) => {
-            const catalogItem = catalogTests.find(
-              (ct) => ct.id === st.testId || ct.id === st.test?.id || ct.code === st.test?.code
-            );
-            if (catalogItem) {
-              addTestToCart(catalogItem);
-              addedCount++;
-            }
-          });
-          toast.success(`Added ${addedCount} tests from patient's previous visit`);
+      if (!patient.gender) {
+        if (document.activeElement === maleBtnRef.current) {
+          updatePatientField('gender', 'MALE');
+        } else {
+          updatePatientField('gender', 'FEMALE');
         }
       }
-    } catch (err) {
-      console.warn('[PatientCardPanel] Error fetching past tests:', err);
+      phoneInputRef.current?.focus();
+      phoneInputRef.current?.select();
     }
   };
 
+  const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      notesInputRef.current?.focus();
+      notesInputRef.current?.select();
+    }
+  };
+
+  const handleNotesKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const firstResult = document.querySelector<HTMLElement>(
+        'input[data-shift-nav="result"], select[data-shift-nav="result"], button[data-shift-nav="result"]'
+      );
+      if (firstResult) {
+        firstResult.focus();
+        if (firstResult instanceof HTMLInputElement) {
+          firstResult.select();
+        }
+        if (typeof firstResult.scrollIntoView === 'function') {
+          firstResult.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }
+    }
+  };
+
+  // Age input handlers with boundary validation
   const handleYearsChange = (valStr: string) => {
     const clean = toEnglishDigits(valStr).replace(/[^0-9]/g, '');
-    const num = clean === '' ? '' : parseInt(clean, 10);
+    const num = clean === '' ? '' : Math.min(130, parseInt(clean, 10));
     setAgeYears(num);
-    const res = normalizeAgeToBirthDate({
-      years: num === '' ? undefined : num,
-      months: patient.ageMonths === '' ? undefined : patient.ageMonths,
-      days: patient.ageDays === '' ? undefined : patient.ageDays,
-    });
-    if (res?.birthDate && !isNaN(res.birthDate.getTime())) {
-      setBirthDate(res.birthDate.toISOString().split('T')[0]);
-    }
   };
 
   const handleMonthsChange = (valStr: string) => {
     const clean = toEnglishDigits(valStr).replace(/[^0-9]/g, '');
-    const num = clean === '' ? '' : Math.min(11, parseInt(clean, 10));
+    // When years is filled, months must be 0-11
+    const maxMonths = patient.ageYears !== '' ? 11 : 120;
+    const num = clean === '' ? '' : Math.min(maxMonths, parseInt(clean, 10));
     setAgeMonths(num);
-    const res = normalizeAgeToBirthDate({
-      years: patient.ageYears === '' ? undefined : patient.ageYears,
-      months: num === '' ? undefined : num,
-      days: patient.ageDays === '' ? undefined : patient.ageDays,
-    });
-    if (res?.birthDate && !isNaN(res.birthDate.getTime())) {
-      setBirthDate(res.birthDate.toISOString().split('T')[0]);
-    }
   };
 
   const handleDaysChange = (valStr: string) => {
     const clean = toEnglishDigits(valStr).replace(/[^0-9]/g, '');
-    const num = clean === '' ? '' : Math.min(30, parseInt(clean, 10));
+    // When months is filled, days must be 0-30
+    const maxDays = patient.ageMonths !== '' ? 30 : 365;
+    const num = clean === '' ? '' : Math.min(maxDays, parseInt(clean, 10));
     setAgeDays(num);
-    const res = normalizeAgeToBirthDate({
-      years: patient.ageYears === '' ? undefined : patient.ageYears,
-      months: patient.ageMonths === '' ? undefined : patient.ageMonths,
-      days: num === '' ? undefined : num,
-    });
-    if (res?.birthDate && !isNaN(res.birthDate.getTime())) {
-      setBirthDate(res.birthDate.toISOString().split('T')[0]);
+  };
+
+  // Quick Add Doctor
+  const handleSaveQuickDoctor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDoctorName.trim()) {
+      toast.warning('Doctor name is required');
+      return;
+    }
+
+    setIsSavingDoctor(true);
+    try {
+      const created = await apiRequest('/doctors', 'POST', {
+        name: newDoctorName.trim(),
+        phone: newDoctorPhone.trim() || undefined,
+        isActive: true,
+      });
+
+      if (workspace.addDoctorDirectly) {
+        workspace.addDoctorDirectly(created);
+      }
+      updatePatientField('doctorId', created.id);
+      setShowQuickAddDoctor(false);
+      setNewDoctorName('');
+      setNewDoctorPhone('');
+      toast.success(`تمت إضافة واختيار الطبيب: ${created.name}`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to add doctor');
+    } finally {
+      setIsSavingDoctor(false);
     }
   };
 
+  const selectedDoctorObj = doctors.find((d) => d.id === patient.doctorId);
+
+  const filteredDoctors = doctors.filter((d) => {
+    if (!doctorSearch.trim()) return true;
+    const q = doctorSearch.toLowerCase().trim();
+    return (
+      d.name.toLowerCase().includes(q) ||
+      (d.specialty && d.specialty.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <div
-      dir="ltr"
+      dir="rtl"
       style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '16px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
+        width: 'clamp(280px, 22vw, 312px)',
+        minWidth: '280px',
+        maxWidth: '312px',
+        flexShrink: 0,
+        backgroundColor: 'var(--bg-card)',
+        borderRadius: '12px',
+        border: '1px solid var(--border-color)',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        padding: '14px',
+        padding: '16px',
         boxSizing: 'border-box',
         overflow: 'hidden',
         position: 'relative',
+        userSelect: 'none',
+        transition: 'background-color 0.15s ease, border-color 0.15s ease',
       }}
     >
-      {/* 1. Header: Patient Demographics */}
+      {/* 1. Header: Patient Panel Title */}
       <div
         style={{
           flexShrink: 0,
+          borderBottom: '1px solid var(--border-color)',
+          paddingBottom: '10px',
+          marginBottom: '12px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderBottom: '1px solid #f1f5f9',
-          paddingBottom: '8px',
-          marginBottom: '6px',
         }}
       >
-        <div style={{ width: '65px', display: 'flex', justifyContent: 'flex-start' }}>
-          <button
-            type="button"
-            onClick={() => updatePatientField('isUrgent', !patient.isUrgent)}
-            style={{
-              padding: '2px 8px',
-              borderRadius: '9999px',
-              fontSize: '10px',
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              backgroundColor: patient.isUrgent ? '#ef4444' : '#f1f5f9',
-              color: patient.isUrgent ? '#ffffff' : '#64748b',
-              border: patient.isUrgent ? '1px solid #dc2626' : '1px solid #e2e8f0',
-            }}
-            title="تبديل حالة الطوارئ (STAT)"
-          >
-            <Flame size={11} />
-            <span>{patient.isUrgent ? 'طارئ STAT' : 'عادي'}</span>
-          </button>
-        </div>
-
         <h2
           style={{
             fontSize: '15px',
-            fontWeight: 900,
-            color: '#0f172a',
+            fontWeight: 800,
+            color: 'var(--text-main)',
             margin: 0,
-            textAlign: 'center',
-            flex: 1,
           }}
         >
-          تسجيل بيانات المريض
+          بيانات المريض
         </h2>
-
-        <div style={{ width: '65px', display: 'flex', justifyContent: 'flex-end' }}>
-          <button
-            type="button"
-            onClick={() => {
-              resetPatient();
-              toast.info('تمت إعادة تعيين النموذج (F1)');
-            }}
+        {patient.visitCount ? (
+          <span
             style={{
-              background: 'none',
-              border: 'none',
-              color: '#94a3b8',
-              cursor: 'pointer',
-              padding: '3px',
-              display: 'flex',
-              alignItems: 'center',
+              fontSize: '11px',
+              fontWeight: 800,
+              padding: '2px 8px',
+              borderRadius: '999px',
+              backgroundColor: patient.visitCount > 1 ? 'rgba(15, 118, 110, 0.12)' : 'var(--bg-input)',
+              color: patient.visitCount > 1 ? '#0f766e' : 'var(--text-muted)',
+              border: '1px solid var(--border-color)',
             }}
-            title="إعادة تعيين النموذج لمريض جديد (F1)"
           >
-            <RotateCcw size={14} />
-          </button>
-        </div>
+            🏥 {patient.visitCount} {patient.visitCount === 1 ? 'زيارة' : 'زيارات'}
+          </span>
+        ) : null}
       </div>
 
-      {/* Patient History Badge if previous patient */}
-      {patient.id && (
-        <div
-          style={{
-            flexShrink: 0,
-            marginBottom: '6px',
-            padding: '5px 10px',
-            borderRadius: '8px',
-            background: '#f0fdfa',
-            border: '1px solid #99f6e4',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: '11px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <History size={13} color="#0d9488" />
-            <span style={{ fontWeight: 800, color: '#0f172a' }}>
-              مريض مسجل: <strong style={{ color: '#0d9488' }}>{patient.visitCount || 1} زيارات</strong>
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={handleRepeatLastTests}
-            style={{
-              fontSize: '10px',
-              fontWeight: 800,
-              backgroundColor: '#0d9488',
-              color: '#ffffff',
-              padding: '2px 7px',
-              borderRadius: '5px',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
-            <Repeat size={10} />
-            <span>تكرار الفحوصات</span>
-          </button>
-        </div>
-      )}
-
-      {/* 2. Main Form Fields Container (Fits cleanly in 100vh) */}
+      {/* 2. Main Patient Input Fields */}
       <div
         style={{
           flex: 1,
           minHeight: 0,
+          overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-around',
-          gap: '8px',
+          gap: '12px',
+          paddingLeft: '2px',
+          paddingRight: '2px',
         }}
       >
-        {/* Field 1: Patient Full Name (dir="auto") */}
+        {/* Field 1: Full name */}
         <div style={{ position: 'relative' }}>
           <label
             style={{
-              fontSize: '12px',
+              fontSize: '13px',
               fontWeight: 800,
-              color: '#475569',
+              color: 'var(--text-main)',
               display: 'block',
-              marginBottom: '3px',
+              marginBottom: '5px',
               textAlign: 'right',
             }}
           >
-            اسم المريض الثلاثي
+            <span style={{ color: 'var(--color-danger)', marginLeft: '3px' }}>*</span>
+            الاسم الكامل
           </label>
           <div style={{ position: 'relative' }}>
             <input
+              ref={searchInputRef}
               type="text"
               name="patientName"
-              placeholder="مثال: حيدر عبد الحسين"
+              placeholder="الاسم الثلاثي للمريض..."
               value={patient.name}
               dir="auto"
               data-shift-nav="patient"
@@ -393,15 +434,15 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
               onKeyDown={handleSearchKeyDown}
               style={{
                 width: '100%',
-                height: '34px',
-                padding: '0 10px',
+                height: '38px',
+                padding: '0 12px',
                 textAlign: 'right',
-                fontSize: '13px',
-                fontWeight: 700,
+                fontSize: '15px',
+                fontWeight: 600,
                 borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff',
-                color: '#0f172a',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-input)',
+                color: 'var(--text-main)',
                 outline: 'none',
                 boxSizing: 'border-box',
               }}
@@ -416,22 +457,22 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
                 }}
                 style={{
                   position: 'absolute',
-                  left: '8px',
+                  left: '10px',
                   top: '50%',
                   transform: 'translateY(-50%)',
                   background: 'none',
                   border: 'none',
-                  color: '#94a3b8',
+                  color: 'var(--text-muted)',
                   cursor: 'pointer',
                   padding: '2px',
                 }}
               >
-                <X size={14} />
+                <X size={15} />
               </button>
             )}
           </div>
 
-          {/* Autocomplete Dropdown Popover */}
+          {/* Autocomplete Dropdown */}
           {showSuggestions && suggestions.length > 0 && (
             <div
               ref={suggestionsBoxRef}
@@ -440,12 +481,12 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
                 top: 'calc(100% + 4px)',
                 left: 0,
                 right: 0,
-                maxHeight: '190px',
+                maxHeight: '180px',
                 overflowY: 'auto',
-                backgroundColor: '#ffffff',
-                border: '1px solid #cbd5e1',
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
                 borderRadius: '8px',
-                boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
                 zIndex: 1050,
               }}
             >
@@ -454,284 +495,519 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
                   key={sug.id || idx}
                   onClick={() => handleSelectPatient(sug)}
                   style={{
-                    padding: '8px 10px',
-                    fontSize: '12px',
+                    padding: '8px 12px',
+                    fontSize: '13px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    backgroundColor: highlightedIndex === idx ? 'rgba(13, 148, 136, 0.1)' : '#ffffff',
-                    borderBottom: '1px solid #f1f5f9',
+                    backgroundColor: highlightedIndex === idx ? 'var(--bg-card-hover)' : 'var(--bg-card)',
+                    borderBottom: '1px solid var(--border-subtle)',
                   }}
                   onMouseEnter={() => setHighlightedIndex(idx)}
                 >
                   <div>
-                    <div style={{ fontWeight: 800, color: '#0f172a' }} dir="auto">{sug.name}</div>
-                    <div style={{ fontSize: '10px', color: '#64748b' }}>
-                      {sug.phone ? `📱 ${sug.phone}` : ''} {sug.age ? `• العمر: ${sug.age}` : ''}
+                    <div style={{ fontWeight: 800, color: 'var(--text-main)' }} dir="auto">
+                      {sug.name}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      {sug.phone ? `هاتف: ${sug.phone} ` : ''}
+                      {sug.age ? `• عمر: ${sug.age}` : ''}
+                      {sug.visitCount ? ` • الزيارات: ${sug.visitCount}` : ''}
                     </div>
                   </div>
-                  {sug.outstandingDebt > 0 && (
+                  {sug.visitCount && sug.visitCount > 1 ? (
                     <span
                       style={{
-                        fontSize: '9.5px',
+                        fontSize: '10.5px',
                         fontWeight: 800,
-                        padding: '1px 5px',
-                        borderRadius: '4px',
-                        backgroundColor: '#fee2e2',
-                        color: '#dc2626',
+                        backgroundColor: 'rgba(15, 118, 110, 0.1)',
+                        color: '#0f766e',
+                        padding: '1px 6px',
+                        borderRadius: '999px',
                       }}
                     >
-                      دين سابق: {Number(sug.outstandingDebt).toLocaleString('en-US')} {currency}
+                      {sug.visitCount} زيارات
                     </span>
-                  )}
+                  ) : null}
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Field 2: Clinical Age Input */}
-        <div>
-          <label
-            style={{
-              fontSize: '12px',
-              fontWeight: 800,
-              color: '#475569',
-              display: 'block',
-              marginBottom: '3px',
-              textAlign: 'right',
-            }}
-          >
-            العمر السريري (سنة / شهر / يوم)
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
-            {/* Years */}
-            <input
-              type="text"
-              placeholder="سنة"
-              value={patient.ageYears === '' ? '' : patient.ageYears}
-              data-shift-nav="patient"
-              onChange={(e) => handleYearsChange(e.target.value)}
-              style={{
-                width: '100%',
-                height: '34px',
-                textAlign: 'center',
-                fontSize: '12.5px',
-                fontWeight: 700,
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff',
-                color: '#0f172a',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-
-            {/* Months */}
-            <input
-              type="text"
-              placeholder="شهر"
-              value={patient.ageMonths === '' ? '' : patient.ageMonths}
-              onChange={(e) => handleMonthsChange(e.target.value)}
-              style={{
-                width: '100%',
-                height: '34px',
-                textAlign: 'center',
-                fontSize: '12.5px',
-                fontWeight: 700,
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff',
-                color: '#0f172a',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-
-            {/* Days */}
-            <input
-              type="text"
-              placeholder="يوم"
-              value={patient.ageDays === '' ? '' : patient.ageDays}
-              onChange={(e) => handleDaysChange(e.target.value)}
-              style={{
-                width: '100%',
-                height: '34px',
-                textAlign: 'center',
-                fontSize: '12.5px',
-                fontWeight: 700,
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff',
-                color: '#0f172a',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Field 3: Biological Gender */}
-        <div>
-          <label
-            style={{
-              fontSize: '12px',
-              fontWeight: 800,
-              color: '#475569',
-              display: 'block',
-              marginBottom: '3px',
-              textAlign: 'right',
-            }}
-          >
-            الجنس
-          </label>
+        {/* Returning patient banner if visits > 0 */}
+        {patient.id && (patient.visitCount || 0) > 0 && (
           <div
             style={{
+              backgroundColor: 'rgba(15, 118, 110, 0.08)',
+              border: '1px solid rgba(15, 118, 110, 0.25)',
+              borderRadius: '8px',
+              padding: '6px 10px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              padding: '2px',
-              borderRadius: '9999px',
-              backgroundColor: '#f1f5f9',
-              border: '1px solid #e2e8f0',
-              maxWidth: '220px',
-              margin: '0 auto',
+              justifyContent: 'space-between',
+              fontSize: '11.5px',
             }}
           >
-            <button
-              type="button"
-              onClick={() => updatePatientField('gender', 'MALE')}
-              style={{
-                flex: 1,
-                padding: '5px 14px',
-                fontSize: '12px',
-                fontWeight: 800,
-                borderRadius: '9999px',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                backgroundColor: patient.gender === 'MALE' ? '#334155' : 'transparent',
-                color: patient.gender === 'MALE' ? '#ffffff' : '#64748b',
-                boxShadow: patient.gender === 'MALE' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-              }}
-            >
-              ذكر
-            </button>
-            <button
-              type="button"
-              onClick={() => updatePatientField('gender', 'FEMALE')}
-              style={{
-                flex: 1,
-                padding: '5px 14px',
-                fontSize: '12px',
-                fontWeight: 800,
-                borderRadius: '9999px',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                backgroundColor: patient.gender === 'FEMALE' ? '#334155' : 'transparent',
-                color: patient.gender === 'FEMALE' ? '#ffffff' : '#64748b',
-                boxShadow: patient.gender === 'FEMALE' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-              }}
-            >
-              أنثى
-            </button>
+            <span style={{ fontWeight: 800, color: '#0f766e', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <FolderOpen size={13} />
+              <span>مريض سابق ({patient.visitCount} {patient.visitCount === 1 ? 'زيارة' : 'زيارات'})</span>
+            </span>
+            {patient.priorVisits && patient.priorVisits.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowPastVisitsModal(true)}
+                style={{
+                  background: '#0f766e',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '2px 8px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                التحاليل السابقة
+              </button>
+            )}
           </div>
-        </div>
+        )}
 
-        {/* Field 4: Phone Number */}
+        {/* Field 2: Age (3 fields side by side: years, months, days) */}
         <div>
           <label
             style={{
-              fontSize: '12px',
+              fontSize: '13px',
               fontWeight: 800,
-              color: '#475569',
+              color: 'var(--text-main)',
               display: 'block',
-              marginBottom: '3px',
+              marginBottom: '5px',
+              textAlign: 'right',
+            }}
+          >
+            <span style={{ color: 'var(--color-danger)', marginLeft: '3px' }}>*</span>
+            العمر
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+            {/* Years (Rightmost in RTL) */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                height: '38px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-input)',
+                padding: '0 8px',
+                boxSizing: 'border-box',
+              }}
+            >
+              <input
+                ref={yearsInputRef}
+                type="text"
+                data-shift-nav="patient"
+                value={patient.ageYears === '' ? '' : patient.ageYears}
+                placeholder="0"
+                onChange={(e) => handleYearsChange(e.target.value)}
+                onKeyDown={handleYearsKeyDown}
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '15px',
+                  fontWeight: 700,
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-main)',
+                  textAlign: 'center',
+                }}
+              />
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginRight: '4px' }}>
+                سنة
+              </span>
+            </div>
+
+            {/* Months (Middle in RTL) */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                height: '38px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-input)',
+                padding: '0 8px',
+                boxSizing: 'border-box',
+              }}
+            >
+              <input
+                ref={monthsInputRef}
+                type="text"
+                data-shift-nav="patient"
+                value={patient.ageMonths === '' ? '' : patient.ageMonths}
+                placeholder="0"
+                onChange={(e) => handleMonthsChange(e.target.value)}
+                onKeyDown={handleMonthsKeyDown}
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '15px',
+                  fontWeight: 700,
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-main)',
+                  textAlign: 'center',
+                }}
+              />
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginRight: '4px' }}>
+                شهر
+              </span>
+            </div>
+
+            {/* Days (Leftmost in RTL) */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                height: '38px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-input)',
+                padding: '0 8px',
+                boxSizing: 'border-box',
+              }}
+            >
+              <input
+                ref={daysInputRef}
+                type="text"
+                data-shift-nav="patient"
+                value={patient.ageDays === '' ? '' : patient.ageDays}
+                placeholder="0"
+                onChange={(e) => handleDaysChange(e.target.value)}
+                onKeyDown={handleDaysKeyDown}
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '15px',
+                  fontWeight: 700,
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-main)',
+                  textAlign: 'center',
+                }}
+              />
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginRight: '4px' }}>
+                يوم
+              </span>
+            </div>
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'right' }}>
+            للبالغين: السنوات فقط. للرضع: الأشهر أو الأيام
+          </div>
+        </div>
+
+        {/* Field 3: Sex (Female / Male, NO default, required) */}
+        <div>
+          <label
+            style={{
+              fontSize: '13px',
+              fontWeight: 800,
+              color: 'var(--text-main)',
+              display: 'block',
+              marginBottom: '5px',
+              textAlign: 'right',
+            }}
+          >
+            <span style={{ color: 'var(--color-danger)', marginLeft: '3px' }}>*</span>
+            الجنس
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <button
+              ref={femaleBtnRef}
+              type="button"
+              data-shift-nav="patient"
+              onClick={() => updatePatientField('gender', 'FEMALE')}
+              onKeyDown={handleGenderKeyDown}
+              style={{
+                height: '38px',
+                borderRadius: '8px',
+                border: patient.gender === 'FEMALE' ? '1.5px solid #0f766e' : '1px solid var(--border-color)',
+                backgroundColor: patient.gender === 'FEMALE' ? '#0f766e' : 'var(--bg-input)',
+                color: patient.gender === 'FEMALE' ? '#ffffff' : 'var(--text-main)',
+                fontSize: '14.5px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                transition: 'all 0.12s ease',
+                outline: 'none',
+              }}
+              onFocus={(e) => { e.currentTarget.style.boxShadow = '0 0 0 2.5px rgba(15, 118, 110, 0.4)'; }}
+              onBlur={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
+            >
+              <span>أنثى</span>
+              {patient.gender === 'FEMALE' && <Check size={16} strokeWidth={2.5} />}
+            </button>
+
+            <button
+              ref={maleBtnRef}
+              type="button"
+              data-shift-nav="patient"
+              onClick={() => updatePatientField('gender', 'MALE')}
+              onKeyDown={handleGenderKeyDown}
+              style={{
+                height: '38px',
+                borderRadius: '8px',
+                border: patient.gender === 'MALE' ? '1.5px solid #0f766e' : '1px solid var(--border-color)',
+                backgroundColor: patient.gender === 'MALE' ? '#0f766e' : 'var(--bg-input)',
+                color: patient.gender === 'MALE' ? '#ffffff' : 'var(--text-main)',
+                fontSize: '14.5px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                transition: 'all 0.12s ease',
+                outline: 'none',
+              }}
+              onFocus={(e) => { e.currentTarget.style.boxShadow = '0 0 0 2.5px rgba(15, 118, 110, 0.4)'; }}
+              onBlur={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
+            >
+              <span>ذكر</span>
+              {patient.gender === 'MALE' && <Check size={16} strokeWidth={2.5} />}
+            </button>
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'right' }}>
+            حدد الجنس (تعتمد عليه المعدلات الطبيعية في التقرير)
+          </div>
+        </div>
+
+        {/* Field 4: Phone */}
+        <div>
+          <label
+            style={{
+              fontSize: '13px',
+              fontWeight: 800,
+              color: 'var(--text-main)',
+              display: 'block',
+              marginBottom: '5px',
               textAlign: 'right',
             }}
           >
             رقم الهاتف
           </label>
           <input
+            ref={phoneInputRef}
             type="text"
-            placeholder="مثال: 07701234567"
-            value={patient.phone}
             data-shift-nav="patient"
+            placeholder="07701234567"
+            value={patient.phone}
             onChange={(e) => updatePatientField('phone', toEnglishDigits(e.target.value))}
+            onKeyDown={handlePhoneKeyDown}
             style={{
               width: '100%',
-              height: '34px',
-              padding: '0 10px',
-              textAlign: 'left',
-              fontSize: '13px',
-              fontWeight: 700,
+              height: '38px',
+              padding: '0 12px',
+              fontSize: '14.5px',
+              fontWeight: 600,
               borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              color: '#0f172a',
+              border: '1px solid var(--border-color)',
+              backgroundColor: 'var(--bg-input)',
+              color: 'var(--text-main)',
               outline: 'none',
               direction: 'ltr',
+              textAlign: 'left',
               boxSizing: 'border-box',
             }}
           />
         </div>
 
-        {/* Field 5: Referring Doctor */}
-        <div>
+        {/* Field 5: Referring doctor */}
+        <div ref={doctorDropdownRef} style={{ position: 'relative' }}>
           <label
             style={{
-              fontSize: '12px',
+              fontSize: '13px',
               fontWeight: 800,
-              color: '#475569',
+              color: 'var(--text-main)',
               display: 'block',
-              marginBottom: '3px',
+              marginBottom: '5px',
               textAlign: 'right',
             }}
           >
-            الطبيب المحيل
+            الطبيب المعالج
           </label>
-          <ReferringDoctorSelect
-            value={patient.doctorId}
-            onChange={(docId) => updatePatientField('doctorId', docId)}
-            placeholder="اختر أو ابحث عن الطبيب المحول..."
-            className="text-right text-xs font-bold"
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Quick Add Doctor '+' button */}
+            <button
+              type="button"
+              onClick={() => setShowQuickAddDoctor(true)}
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-input)',
+                color: 'var(--accent-teal)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+                transition: 'all 0.12s ease',
+              }}
+              title="إضافة طبيب جديد"
+            >
+              <Plus size={18} />
+            </button>
+
+            {/* Doctor Combobox Trigger */}
+            <div
+              onClick={() => setIsDoctorOpen(!isDoctorOpen)}
+              style={{
+                flex: 1,
+                height: '38px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-input)',
+                padding: '0 12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                boxSizing: 'border-box',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '14px',
+                  fontWeight: selectedDoctorObj ? 800 : 500,
+                  color: selectedDoctorObj ? 'var(--text-main)' : 'var(--text-muted)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {selectedDoctorObj ? selectedDoctorObj.name : 'ابحث أو اختر طبيباً...'}
+              </span>
+              <Search size={16} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+            </div>
+          </div>
+
+          {/* Doctor Dropdown Menu */}
+          {isDoctorOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 4px)',
+                left: 0,
+                right: 0,
+                maxHeight: '200px',
+                overflowY: 'auto',
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+                zIndex: 1050,
+              }}
+            >
+              <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)' }}>
+                <input
+                  type="text"
+                  placeholder="ابحث باسم الطبيب..."
+                  value={doctorSearch}
+                  onChange={(e) => setDoctorSearch(e.target.value)}
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: '13px',
+                    backgroundColor: 'transparent',
+                    color: 'var(--text-main)',
+                  }}
+                />
+              </div>
+
+              {/* Clear option */}
+              <div
+                onClick={() => {
+                  updatePatientField('doctorId', null);
+                  setIsDoctorOpen(false);
+                }}
+                style={{
+                  padding: '8px 12px',
+                  fontSize: '12.5px',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  borderBottom: '1px dashed var(--border-subtle)',
+                }}
+              >
+                بدون طبيب (مراجعة مباشرة)
+              </div>
+
+              {filteredDoctors.map((doc) => (
+                <div
+                  key={doc.id}
+                  onClick={() => {
+                    updatePatientField('doctorId', doc.id);
+                    setIsDoctorOpen(false);
+                  }}
+                  style={{
+                    padding: '8px 12px',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    backgroundColor: patient.doctorId === doc.id ? 'var(--bg-card-hover)' : 'var(--bg-card)',
+                    borderBottom: '1px solid var(--border-subtle)',
+                  }}
+                >
+                  <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{doc.name}</span>
+                  {patient.doctorId === doc.id && <Check size={14} color="var(--accent-teal)" />}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Field 6: Clinical Notes (dir="auto") */}
+        {/* Field 6: Notes or address */}
         <div>
           <label
             style={{
-              fontSize: '12px',
+              fontSize: '13px',
               fontWeight: 800,
-              color: '#475569',
+              color: 'var(--text-main)',
               display: 'block',
-              marginBottom: '3px',
+              marginBottom: '5px',
               textAlign: 'right',
             }}
           >
-            ملاحظات سريرية / العنوان
+            العنوان أو الملاحظات
           </label>
           <input
+            ref={notesInputRef}
             type="text"
-            placeholder="ملاحظات أو عنوان المريض..."
+            data-shift-nav="patient"
+            placeholder="اختياري..."
             value={patient.notes}
             dir="auto"
-            data-shift-nav="patient"
             onChange={(e) => updatePatientField('notes', e.target.value)}
+            onKeyDown={handleNotesKeyDown}
             style={{
               width: '100%',
-              height: '34px',
-              padding: '0 10px',
-              textAlign: 'right',
-              fontSize: '12.5px',
-              fontWeight: 600,
+              height: '38px',
+              padding: '0 12px',
+              fontSize: '14px',
+              fontWeight: 500,
               borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              color: '#0f172a',
+              border: '1px solid var(--border-color)',
+              backgroundColor: 'var(--bg-input)',
+              color: 'var(--text-main)',
               outline: 'none',
               boxSizing: 'border-box',
             }}
@@ -739,131 +1015,363 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
         </div>
       </div>
 
-      {/* 3. Field 7 (Bottom): Sample Tube Badges */}
+      {/* 3. Bottom Section: Tubes to draw */}
       <div
         style={{
           flexShrink: 0,
-          paddingTop: '8px',
-          borderTop: '1px solid #f1f5f9',
-          marginTop: '6px',
+          borderTop: '1px solid var(--border-color)',
+          paddingTop: '12px',
+          marginTop: '10px',
         }}
       >
-        <label
+        <div
           style={{
-            fontSize: '11.5px',
+            fontSize: '13px',
             fontWeight: 800,
-            color: '#475569',
-            display: 'block',
-            marginBottom: '6px',
+            color: 'var(--text-main)',
+            marginBottom: '8px',
             textAlign: 'right',
           }}
         >
           أنابيب السحب المطلوبة
-        </label>
+        </div>
+
+        {tubeBadges.length === 0 ? (
+          <div
+            style={{
+              border: '1.5px dashed var(--border-color)',
+              borderRadius: '8px',
+              padding: '14px',
+              textAlign: 'center',
+              color: 'var(--text-muted)',
+              fontSize: '12.5px',
+              fontWeight: 500,
+            }}
+          >
+            تظهر أنابيب السحب المطلوبة هنا فور اختيار الفحوصات
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+            }}
+          >
+            {tubeBadges.map((badge) => (
+              <div
+                key={badge.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  backgroundColor: 'var(--bg-card-subtle)',
+                  border: '1px solid var(--border-color)',
+                  fontSize: '13px',
+                }}
+              >
+                {/* Tube Type and Color Dot (Right side in RTL) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div
+                    style={{
+                      width: '10px',
+                      height: '10px',
+                      borderRadius: '9999px',
+                      backgroundColor: badge.dotColor || badge.color,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>
+                    {badge.name}
+                  </span>
+                  <span
+                    style={{
+                      fontWeight: 800,
+                      color: 'var(--accent-teal)',
+                      backgroundColor: 'rgba(20, 184, 166, 0.14)',
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                    }}
+                  >
+                    {badge.count}
+                  </span>
+                </div>
+
+                {/* Member Test Codes (Left side in RTL) */}
+                <span
+                  dir="ltr"
+                  style={{
+                    fontSize: '12px',
+                    color: 'var(--text-muted)',
+                    fontWeight: 600,
+                    maxWidth: '140px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    direction: 'ltr',
+                    unicodeBidi: 'isolate',
+                  }}
+                >
+                  {badge.testCodes && badge.testCodes.length > 0
+                    ? badge.testCodes.join(', ')
+                    : badge.testNames.join(', ')}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 4. Quick Add Doctor Modal */}
+      {showQuickAddDoctor && (
         <div
           style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backdropFilter: 'blur(4px)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'flex-start',
-            gap: '8px',
-            flexWrap: 'wrap',
-            minHeight: '28px',
+            justifyContent: 'center',
+            zIndex: 2000,
           }}
+          onClick={() => setShowQuickAddDoctor(false)}
         >
-          {tubeBadges.length === 0 ? (
-            <>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '3px 12px',
-                  borderRadius: '9999px',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  backgroundColor: '#7c3aed',
-                  color: '#ffffff',
-                }}
+          <div
+            style={{
+              width: '380px',
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.35)',
+              padding: '20px',
+              boxSizing: 'border-box',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '16px',
+                borderBottom: '1px solid var(--border-subtle)',
+                paddingBottom: '10px',
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
+                Add Referring Doctor
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowQuickAddDoctor(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
               >
-                <TestTube2 size={12} />
-                <span>EDTA</span>
-              </span>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '3px 12px',
-                  borderRadius: '9999px',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  backgroundColor: '#d97706',
-                  color: '#ffffff',
-                }}
-              >
-                <TestTube2 size={12} />
-                <span>SST</span>
-              </span>
-            </>
-          ) : (
-            tubeBadges.map((badge: UnifiedTubeBadge) => {
-              const isPurple = badge.name.toUpperCase().includes('EDTA') || badge.id === 'edta';
-              const isAmber = badge.name.toUpperCase().includes('SST') || badge.name.toUpperCase().includes('SERUM') || badge.id === 'sst';
-              const isBlue = badge.name.toUpperCase().includes('CITRATE') || badge.id === 'citrate';
+                <X size={18} />
+              </button>
+            </div>
 
-              const bgColor = isPurple
-                ? '#7c3aed'
-                : isAmber
-                ? '#d97706'
-                : isBlue
-                ? '#0284c7'
-                : '#0d9488';
-
-              const shortName = isPurple
-                ? 'EDTA'
-                : isAmber
-                ? 'SST'
-                : isBlue
-                ? 'Citrate'
-                : 'Container';
-
-              return (
-                <span
-                  key={badge.id}
+            <form onSubmit={handleSaveQuickDoctor} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
+                  Doctor full name *
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Dr. Ahmed Al-Taie"
+                  value={newDoctorName}
+                  onChange={(e) => setNewDoctorName(e.target.value)}
+                  autoFocus
+                  required
                   style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    padding: '3px 12px',
-                    borderRadius: '9999px',
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    backgroundColor: bgColor,
-                    color: '#ffffff',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                    width: '100%',
+                    height: '36px',
+                    padding: '0 10px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-input)',
+                    color: 'var(--text-main)',
+                    outline: 'none',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
                   }}
-                  title={`${badge.name}: ${badge.testNames.join(', ')} (${badge.count})`}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
+                  Phone number (optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="0770..."
+                  value={newDoctorPhone}
+                  onChange={(e) => setNewDoctorPhone(e.target.value)}
+                  style={{
+                    width: '100%',
+                    height: '36px',
+                    padding: '0 10px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-input)',
+                    color: 'var(--text-main)',
+                    outline: 'none',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowQuickAddDoctor(false)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-input)',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                  }}
                 >
-                  <TestTube2 size={12} />
-                  <span>{shortName}</span>
-                  {badge.count > 1 && (
-                    <span
-                      style={{
-                        fontSize: '9.5px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                        padding: '1px 5px',
-                        borderRadius: '9999px',
-                      }}
-                    >
-                      {badge.count}
-                    </span>
-                  )}
-                </span>
-              );
-            })
-          )}
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingDoctor}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: '#0f766e',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    fontWeight: 800,
+                    cursor: isSavingDoctor ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {isSavingDoctor ? 'Saving...' : 'Save & Select'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Patient Past Visits Modal */}
+      {showPastVisitsModal && (
+        <div
+          dir="rtl"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px',
+            backdropFilter: 'blur(3px)',
+          }}
+          onClick={() => setShowPastVisitsModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '540px',
+              maxHeight: '85vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: '14px 18px',
+                borderBottom: '1px solid var(--border-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: 'rgba(15, 118, 110, 0.08)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FolderOpen size={18} color="#0f766e" />
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: 'var(--text-main)' }}>
+                  ملف المريض: {patient.name} ({patient.visitCount} زيارات سابقة)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPastVisitsModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  padding: '4px',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {(patient.priorVisits || []).map((v: any, idx: number) => (
+                <div
+                  key={v.id || idx}
+                  style={{
+                    backgroundColor: 'var(--bg-input)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '10px',
+                    padding: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: 800, fontSize: '13px', color: '#0f766e' }}>
+                      عينة #{v.sampleNumber}
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      {v.createdAt ? new Date(v.createdAt).toLocaleDateString('en-GB') : ''}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {(v.tests || []).map((t: any, tidx: number) => (
+                      <span
+                        key={tidx}
+                        style={{
+                          fontSize: '11.5px',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          backgroundColor: 'var(--bg-card)',
+                          border: '1px solid var(--border-color)',
+                          color: t.isAbnormal ? '#dc2626' : 'var(--text-main)',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {t.name || t.code}: <span dir="ltr">{t.resultValue || '-'}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

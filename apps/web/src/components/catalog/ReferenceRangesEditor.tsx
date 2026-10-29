@@ -28,6 +28,7 @@ export interface ReferenceRangeItem {
   sourceUrl?: string | null;
   isUserEdited?: boolean;
   sortOrder?: number;
+  valueType?: 'numeric' | 'text';
 }
 
 interface ReferenceRangesEditorProps {
@@ -68,11 +69,29 @@ export default function ReferenceRangesEditor({
   const [selectedManualIndex, setSelectedManualIndex] = useState<number>(0);
 
   // Template Handlers
-  const handleApplyTemplate = (type: 'all' | 'mf' | 'mfc') => {
+  const handleApplyTemplate = (type: 'all' | 'mf' | 'mfc' | 'qualitative') => {
     const timestamp = Date.now();
     let newRanges: ReferenceRangeItem[] = [];
 
-    if (type === 'all') {
+    if (type === 'qualitative') {
+      newRanges = [
+        {
+          id: `rr_qual_${timestamp}`,
+          label: 'للجميع',
+          sex: 'any',
+          ageMin: 0,
+          ageMax: null,
+          ageUnit: 'years',
+          low: null,
+          high: null,
+          text: 'Negative',
+          valueType: 'text',
+          unit: unit || null,
+          isUserEdited: true,
+          sortOrder: 0,
+        },
+      ];
+    } else if (type === 'all') {
       newRanges = [
         {
           id: `rr_all_${timestamp}`,
@@ -296,10 +315,19 @@ export default function ReferenceRangesEditor({
 
     const val = parseFloat(simResult);
     if (isNaN(val)) {
+      if (simMatchedRange?.text) {
+        const cleanResult = simResult.trim().toLowerCase();
+        const cleanRef = simMatchedRange.text.trim().toLowerCase();
+        if (cleanResult === cleanRef || cleanRef.includes(cleanResult) || cleanResult.includes(cleanRef)) {
+          return { flag: 'NORMAL', status: 'NORMAL', text: 'طبيعي / متطابق مع المدى (Normal)' };
+        } else if ((cleanResult.includes('pos') && cleanRef.includes('neg')) || (cleanResult.includes('react') && cleanRef.includes('non'))) {
+          return { flag: 'HIGH', status: 'ABNORMAL', text: 'إيجابي / غير طبيعي (Abnormal)' };
+        }
+      }
       return { flag: 'TEXT', status: 'TEXT', text: 'قيمة وصفية' };
     }
 
-    if (!simMatchedRange || (simMatchedRange.low == null && simMatchedRange.high == null)) {
+    if (!simMatchedRange || (simMatchedRange.low == null && simMatchedRange.high == null && !simMatchedRange.text)) {
       return { flag: 'NONE', status: 'NO_RANGE', text: 'لا يوجد مدى محدد' };
     }
 
@@ -400,6 +428,22 @@ export default function ReferenceRangesEditor({
           >
             رجال / نساء / أطفال
           </button>
+          <button
+            type="button"
+            onClick={() => handleApplyTemplate('qualitative')}
+            className="btn-secondary"
+            style={{
+              fontSize: '11.5px',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontWeight: 700,
+              backgroundColor: 'rgba(16, 185, 129, 0.12)',
+              color: '#10b981',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+            }}
+          >
+            فحص وصفي (Negative للجميع)
+          </button>
         </div>
       </div>
 
@@ -415,11 +459,11 @@ export default function ReferenceRangesEditor({
         >
           <thead>
             <tr style={{ color: 'var(--text-muted, #94a3b8)', borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.1))' }}>
-              <th style={{ padding: '6px 8px', fontWeight: 700, width: '22%' }}>الفئة</th>
-              <th style={{ padding: '6px 8px', fontWeight: 700, width: '18%' }}>الجنس</th>
-              <th style={{ padding: '6px 8px', fontWeight: 700, width: '28%' }}>العمر (من - إلى)</th>
-              <th style={{ padding: '6px 8px', fontWeight: 700, width: '14%' }}>الحد الأدنى</th>
-              <th style={{ padding: '6px 8px', fontWeight: 700, width: '14%' }}>الحد الأعلى</th>
+              <th style={{ padding: '6px 8px', fontWeight: 700, width: '20%' }}>الفئة</th>
+              <th style={{ padding: '6px 8px', fontWeight: 700, width: '15%' }}>الجنس</th>
+              <th style={{ padding: '6px 8px', fontWeight: 700, width: '22%' }}>العمر (من - إلى)</th>
+              <th style={{ padding: '6px 8px', fontWeight: 700, width: '14%' }}>نوع القيمة</th>
+              <th style={{ padding: '6px 8px', fontWeight: 700, width: '25%' }}>المدى المرجعي / القيمة</th>
               <th style={{ padding: '6px 4px', width: '4%' }}></th>
             </tr>
           </thead>
@@ -518,30 +562,130 @@ export default function ReferenceRangesEditor({
                     </div>
                   </td>
 
-                  {/* Low Bound */}
+                  {/* Value Type Toggle (Numeric vs Text) */}
                   <td style={{ padding: '6px 4px' }}>
-                    <input
-                      type="number"
-                      step="any"
-                      value={row.low != null ? row.low : ''}
-                      onChange={(e) => handleUpdateRow(idx, 'low', e.target.value !== '' ? Number(e.target.value) : null)}
-                      placeholder="الأدنى"
-                      className="input-control"
-                      style={{ fontSize: '11.5px', padding: '4px 6px', height: '32px' }}
-                    />
+                    {(() => {
+                      const isTextType = row.valueType === 'text' || (Boolean(row.text) && row.low == null && row.high == null);
+                      return (
+                        <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color, #cbd5e1)' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...ranges];
+                              updated[idx] = {
+                                ...updated[idx],
+                                valueType: 'numeric',
+                                text: null,
+                                isUserEdited: true,
+                              };
+                              onChange(updated);
+                            }}
+                            style={{
+                              padding: '3px 8px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              border: 'none',
+                              cursor: 'pointer',
+                              background: !isTextType ? 'var(--accent-cyan, #0284c7)' : 'transparent',
+                              color: !isTextType ? '#ffffff' : 'var(--text-muted, #64748b)',
+                            }}
+                          >
+                            رقمي
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...ranges];
+                              updated[idx] = {
+                                ...updated[idx],
+                                valueType: 'text',
+                                low: null,
+                                high: null,
+                                text: updated[idx].text || 'Negative',
+                                isUserEdited: true,
+                              };
+                              onChange(updated);
+                            }}
+                            style={{
+                              padding: '3px 8px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              border: 'none',
+                              cursor: 'pointer',
+                              background: isTextType ? 'var(--accent-cyan, #0284c7)' : 'transparent',
+                              color: isTextType ? '#ffffff' : 'var(--text-muted, #64748b)',
+                            }}
+                          >
+                            نصي
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </td>
 
-                  {/* High Bound */}
+                  {/* Reference Value (Numeric Low/High OR Qualitative Text with Quick Badges) */}
                   <td style={{ padding: '6px 4px' }}>
-                    <input
-                      type="number"
-                      step="any"
-                      value={row.high != null ? row.high : ''}
-                      onChange={(e) => handleUpdateRow(idx, 'high', e.target.value !== '' ? Number(e.target.value) : null)}
-                      placeholder="الأعلى"
-                      className="input-control"
-                      style={{ fontSize: '11.5px', padding: '4px 6px', height: '32px' }}
-                    />
+                    {(() => {
+                      const isTextType = row.valueType === 'text' || (Boolean(row.text) && row.low == null && row.high == null);
+                      if (isTextType) {
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <input
+                              type="text"
+                              value={row.text || ''}
+                              onChange={(e) => handleUpdateRow(idx, 'text', e.target.value)}
+                              placeholder="مثال: Negative أو Positive"
+                              className="input-control"
+                              style={{ fontSize: '11.5px', padding: '4px 8px', height: '32px' }}
+                            />
+                            {/* Quick Qualitative Value Chips */}
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                              {['Negative', 'Positive', 'Non-Reactive', 'Normal'].map((preset) => (
+                                <button
+                                  key={preset}
+                                  type="button"
+                                  onClick={() => handleUpdateRow(idx, 'text', preset)}
+                                  style={{
+                                    fontSize: '9.5px',
+                                    fontWeight: 700,
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(2, 132, 199, 0.25)',
+                                    background: row.text === preset ? 'rgba(2, 132, 199, 0.2)' : 'rgba(0,0,0,0.03)',
+                                    color: row.text === preset ? 'var(--accent-cyan, #0284c7)' : 'var(--text-muted, #64748b)',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  {preset}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+                          <input
+                            type="number"
+                            step="any"
+                            value={row.low != null ? row.low : ''}
+                            onChange={(e) => handleUpdateRow(idx, 'low', e.target.value !== '' ? Number(e.target.value) : null)}
+                            placeholder="الأدنى"
+                            className="input-control"
+                            style={{ fontSize: '11.5px', padding: '4px 6px', height: '32px' }}
+                          />
+                          <input
+                            type="number"
+                            step="any"
+                            value={row.high != null ? row.high : ''}
+                            onChange={(e) => handleUpdateRow(idx, 'high', e.target.value !== '' ? Number(e.target.value) : null)}
+                            placeholder="الأعلى"
+                            className="input-control"
+                            style={{ fontSize: '11.5px', padding: '4px 6px', height: '32px' }}
+                          />
+                        </div>
+                      );
+                    })()}
                   </td>
 
                   {/* Delete Button */}
@@ -599,35 +743,36 @@ export default function ReferenceRangesEditor({
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          padding: '8px 12px',
-          borderRadius: '6px',
-          fontSize: '11.5px',
-          fontWeight: 700,
+          padding: '10px 14px',
+          borderRadius: '8px',
+          fontSize: '12px',
+          fontWeight: 800,
           background:
             validation.type === 'success'
               ? 'rgba(16, 185, 129, 0.12)'
               : validation.type === 'warning'
-              ? 'rgba(245, 158, 11, 0.12)'
+              ? 'var(--alert-warning-bg, #fffbeb)'
               : 'rgba(6, 182, 212, 0.12)',
           color:
             validation.type === 'success'
+              ? '#047857'
+              : validation.type === 'warning'
+              ? 'var(--alert-warning-title, #92400e)'
+              : '#0e7490',
+          border: `1.5px solid ${
+            validation.type === 'success'
               ? '#10b981'
               : validation.type === 'warning'
-              ? '#f59e0b'
-              : '#06b6d4',
-          border: `1px solid ${
-            validation.type === 'success'
-              ? 'rgba(16, 185, 129, 0.25)'
-              : validation.type === 'warning'
-              ? 'rgba(245, 158, 11, 0.25)'
-              : 'rgba(6, 182, 212, 0.25)'
+              ? 'var(--alert-warning-border, #f59e0b)'
+              : '#06b6d4'
           }`,
+          boxShadow: validation.type === 'warning' ? '0 2px 6px rgba(217, 119, 6, 0.1)' : 'none',
         }}
       >
-        {validation.type === 'success' && <CheckCircle2 size={16} />}
-        {validation.type === 'warning' && <AlertTriangle size={16} />}
-        {validation.type === 'info' && <Info size={16} />}
-        <span>{validation.message}</span>
+        {validation.type === 'success' && <CheckCircle2 size={17} />}
+        {validation.type === 'warning' && <AlertTriangle size={17} />}
+        {validation.type === 'info' && <Info size={17} />}
+        <span style={{ fontWeight: 800 }}>{validation.message}</span>
       </div>
 
       {/* Panic / Critical Limits (Optional Collapsible/Compact Row) */}
@@ -637,17 +782,18 @@ export default function ReferenceRangesEditor({
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            padding: '8px 10px',
-            background: 'rgba(239, 68, 68, 0.06)',
-            borderRadius: '6px',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
+            padding: '10px 14px',
+            background: 'var(--alert-danger-bg, #fef2f2)',
+            borderRadius: '8px',
+            border: '1.5px solid var(--alert-danger-border, #f87171)',
+            boxShadow: '0 2px 6px rgba(220, 38, 38, 0.08)',
           }}
         >
-          <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--accent-rose, #ef4444)', minWidth: '120px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 900, color: 'var(--alert-danger-title, #991b1b)', minWidth: '130px' }}>
             الحدود الحرجة (Panic):
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>أقل من:</span>
+            <span style={{ fontSize: '11.5px', color: 'var(--alert-danger-text, #b91c1c)', fontWeight: 700 }}>أقل من:</span>
             <input
               type="number"
               step="any"
@@ -655,11 +801,11 @@ export default function ReferenceRangesEditor({
               onChange={(e) => onCriticalChange(e.target.value, String(criticalHigh ?? ''))}
               placeholder="حرج منخفض"
               className="input-control"
-              style={{ width: '90px', fontSize: '11px', padding: '3px 6px', height: '28px', color: '#ef4444' }}
+              style={{ width: '90px', fontSize: '12px', fontWeight: 800, padding: '3px 8px', height: '28px', color: '#991b1b', borderColor: '#f87171' }}
             />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>أعلى من:</span>
+            <span style={{ fontSize: '11.5px', color: 'var(--alert-danger-text, #b91c1c)', fontWeight: 700 }}>أعلى من:</span>
             <input
               type="number"
               step="any"
@@ -667,7 +813,7 @@ export default function ReferenceRangesEditor({
               onChange={(e) => onCriticalChange(String(criticalLow ?? ''), e.target.value)}
               placeholder="حرج مرتفع"
               className="input-control"
-              style={{ width: '90px', fontSize: '11px', padding: '3px 6px', height: '28px', color: '#ef4444' }}
+              style={{ width: '90px', fontSize: '12px', fontWeight: 800, padding: '3px 8px', height: '28px', color: '#991b1b', borderColor: '#f87171' }}
             />
           </div>
         </div>
@@ -865,13 +1011,14 @@ export default function ReferenceRangesEditor({
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '2px',
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    background: 'rgba(239, 68, 68, 0.15)',
-                    color: '#ef4444',
+                    gap: '3px',
+                    padding: '3px 9px',
+                    borderRadius: '5px',
+                    background: 'var(--alert-danger-bg, #fef2f2)',
+                    border: '1px solid var(--alert-danger-border, #f87171)',
+                    color: 'var(--alert-danger-title, #991b1b)',
                     fontSize: '11px',
-                    fontWeight: 800,
+                    fontWeight: 900,
                   }}
                 >
                   <ArrowUp size={12} /> مرتفع (H)
@@ -882,13 +1029,14 @@ export default function ReferenceRangesEditor({
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '2px',
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    background: 'rgba(6, 182, 212, 0.15)',
-                    color: '#06b6d4',
+                    gap: '3px',
+                    padding: '3px 9px',
+                    borderRadius: '5px',
+                    background: 'rgba(2, 132, 199, 0.12)',
+                    border: '1px solid #38bdf8',
+                    color: '#0284c7',
                     fontSize: '11px',
-                    fontWeight: 800,
+                    fontWeight: 900,
                   }}
                 >
                   <ArrowDown size={12} /> منخفض (L)

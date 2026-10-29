@@ -1,5 +1,5 @@
 import { LIPID_CATALOG_IDS, LIPID_CATALOG_CODES } from './clinicalIntelligence';
-import { isAgeWithinRange, formatClinicalAge } from '@lab-manager/domain';
+import { isAgeWithinRange, formatClinicalAge, resolveDynamicReferenceRange } from '@lab-manager/domain';
 
 /** Normalize Iraqi phone to wa.me format: 07xxxxxxxxx -> 9647xxxxxxxxx */
 export function normalizeIraqiPhone(raw?: string | null): string {
@@ -91,6 +91,8 @@ export interface WaTestLine {
   name: string;
   value: string;
   unit: string;
+  refRange?: string;
+  flag?: string;
   previous?: { value: string; date: string };
 }
 
@@ -109,14 +111,60 @@ export function buildWhatsAppMessage(opts: {
     ``,
   ];
   for (const l of lines) {
-    // No H/L flags per spec — plain value + unit
-    let row = `${l.name}: ${l.value}${l.unit && l.unit !== '-' ? ` ${l.unit}` : ''}`;
+    let flagSuffix = '';
+    if (l.flag === 'HIGH' || l.flag === 'H') {
+      flagSuffix = ' [H ↑]';
+    } else if (l.flag === 'LOW' || l.flag === 'L') {
+      flagSuffix = ' [L ↓]';
+    }
+    let row = `${l.name}: ${l.value}${l.unit && l.unit !== '-' ? ` ${l.unit}` : ''}${flagSuffix}`;
     if (l.previous) {
       row += ` (Previous: ${l.previous.value} on ${l.previous.date})`;
     }
     parts.push(`- ${row}`);
   }
   parts.push(``, `Wishing you good health!`);
+  return parts.join('\n');
+}
+
+export function buildArabicWhatsAppClinicalMessage(opts: {
+  labName: string;
+  patientName: string;
+  date?: string;
+  sampleNumber: number | string;
+  lines: WaTestLine[];
+}): string {
+  const { labName, patientName, sampleNumber, lines } = opts;
+  const parts = [
+    `السلام عليكم ورحمة الله وبركاته`,
+    `الأخ/الأخت الفاضل(ة): ${patientName}`,
+    `يسر (${labName}) إعلامكم بصدور نتائج تحاليلكم الطبية المعتمدة للعينة رقم (#${sampleNumber}).`,
+    ``,
+  ];
+
+  if (lines.length > 0) {
+    parts.push(`📋 ملخص النتائج والتحاليل:`);
+    for (const l of lines) {
+      let flagSuffix = '';
+      if (l.flag === 'HIGH' || l.flag === 'H' || l.flag === 'PANIC_HIGH') {
+        flagSuffix = ' [مرتفع H ↑]';
+      } else if (l.flag === 'LOW' || l.flag === 'L' || l.flag === 'PANIC_LOW') {
+        flagSuffix = ' [منخفض L ↓]';
+      }
+
+      const unitStr = l.unit && l.unit !== '-' ? ` ${l.unit}` : '';
+      let row = `• ${l.name}: ${l.value}${unitStr}${flagSuffix}`;
+      if (l.previous && l.previous.value && String(l.previous.value).trim() !== '') {
+        const prevDateStr = l.previous.date ? ` بتاريخ ${l.previous.date}` : '';
+        row += `\n  (النتيجة السابقة: ${l.previous.value}${unitStr}${prevDateStr})`;
+      }
+      parts.push(row);
+    }
+    parts.push(``);
+  }
+
+  parts.push(`مرفق لكم طياً التقرير الطبي المعتمد 📄.`);
+  parts.push(`نتمنى لكم دوام الصحة والعافية!`);
   return parts.join('\n');
 }
 
@@ -176,92 +224,83 @@ export function getLipidUnit(sampleTests: any[]): string {
 }
 
 export interface MatchedRefRangeResult {
+  low: number | null;
+  high: number | null;
+  text: string | null;
+  matchedLabel?: string | null;
   rangeText: string;
   isSpecificMatch: boolean;
   matchedRange?: any;
 }
 
 /**
- * Item 5: Auto-select reference range matching patient's sex and age on result date.
- * If nothing matches, returns all ranges or fallback.
+ * Item 5: Auto-select reference range matching patient's sex, age on result date, and dynamic diagnostic bracket for resultValue.
+ * Supports both positional parameters:
+ *   resolveReferenceRange(test, gender, age, birthDate, referenceDate, resultValue)
+ * and options object as 4th argument:
+ *   resolveReferenceRange(test, gender, age, { birthDate, targetDate, resultValue }, resultValue)
  */
 export function resolveReferenceRange(
   test: any,
-  patientGender?: string | null,
-  patientAge?: number | string | null,
-  options?: { birthDate?: string | Date | null; targetDate?: string | Date | null }
+  gender?: string | null,
+  age?: number | string | null,
+  birthDate?:
+    | string
+    | Date
+    | null
+    | {
+        birthDate?: string | Date | null;
+        targetDate?: string | Date | null;
+        referenceDate?: string | Date | null;
+        resultValue?: string | number | null;
+      },
+  referenceDate?: string | Date | null,
+  resultValue?: string | number | null
 ): MatchedRefRangeResult {
-  const fallback = test?.refRangeText || 
-    (test?.refRangeLow != null && test?.refRangeHigh != null 
-      ? `${test.refRangeLow} - ${test.refRangeHigh}` 
-      : (test?.refRangeLow != null ? `>= ${test.refRangeLow}` : test?.refRangeHigh != null ? `<= ${test.refRangeHigh}` : '-'));
+  let actualBirthDate: string | Date | null | undefined = undefined;
+  let actualTargetDate: string | Date | null | undefined = referenceDate;
+  let actualResultValue: string | number | null | undefined = resultValue;
 
-  const ranges: any[] = test?.referenceRanges || [];
-  if (!ranges || ranges.length === 0) {
-    return { rangeText: fallback, isSpecificMatch: false };
+  if (birthDate && typeof birthDate === 'object' && !(birthDate instanceof Date)) {
+    actualBirthDate = birthDate.birthDate;
+    actualTargetDate = birthDate.targetDate ?? birthDate.referenceDate ?? referenceDate;
+    actualResultValue =
+      birthDate.resultValue !== undefined ? birthDate.resultValue : resultValue;
+  } else {
+    actualBirthDate = birthDate as string | Date | null | undefined;
   }
 
-  // Normalize patient gender to 'M' or 'F'
-  let pSex: 'M' | 'F' | null = null;
-  if (patientGender) {
-    const g = String(patientGender).trim().toUpperCase();
-    if (g === 'MALE' || g === 'M' || g === 'ذكر') pSex = 'M';
-    else if (g === 'FEMALE' || g === 'F' || g === 'أنثى') pSex = 'F';
-  }
+  const resolved = resolveDynamicReferenceRange(
+    test,
+    {
+      gender,
+      age,
+      birthDate: actualBirthDate,
+      targetDate: actualTargetDate,
+    },
+    actualResultValue
+  );
 
-  // Filter matching ranges
-  const matching = ranges.filter((r) => {
-    // Check Sex
-    if (r.sex && r.sex !== 'any') {
-      if (!pSex || r.sex.toUpperCase() !== pSex) return false;
-    }
+  const fallbackText =
+    resolved.text ||
+    test?.refRangeText ||
+    (resolved.low != null && resolved.high != null
+      ? `${resolved.low} - ${resolved.high}`
+      : resolved.low != null
+        ? `>= ${resolved.low}`
+        : resolved.high != null
+          ? `< ${resolved.high}`
+          : '-');
 
-    // Check Age with day-level precision if birthDate or legacy age is available
-    const hasBirthDate = options?.birthDate != null;
-    const hasLegacyAge = patientAge !== undefined && patientAge !== null && patientAge !== '';
-    if (hasBirthDate || hasLegacyAge) {
-      const match = isAgeWithinRange(
-        r,
-        { birthDate: options?.birthDate, age: patientAge },
-        options?.targetDate ? new Date(options.targetDate) : undefined
-      );
-      if (!match) return false;
-    }
-    return true;
-  });
-
-  // If match found
-  if (matching.length > 0) {
-    // Sort to pick the most specific match (prioritize matching sex != 'any', then matching age bounds)
-    const sorted = [...matching].sort((a, b) => {
-      const aSpecificSex = a.sex && a.sex !== 'any' ? 1 : 0;
-      const bSpecificSex = b.sex && b.sex !== 'any' ? 1 : 0;
-      if (bSpecificSex !== aSpecificSex) return bSpecificSex - aSpecificSex;
-      const aHasAge = (a.ageMin != null || a.ageMax != null) ? 1 : 0;
-      const bHasAge = (b.ageMin != null || b.ageMax != null) ? 1 : 0;
-      return bHasAge - aHasAge;
-    });
-
-    const chosen = sorted[0];
-    const text = chosen.text || (chosen.low != null && chosen.high != null 
-      ? `${chosen.low} - ${chosen.high}` 
-      : (chosen.low != null ? `>= ${chosen.low}` : chosen.high != null ? `<= ${chosen.high}` : ''));
-    const isGeneralLabel = !chosen.label || chosen.label.includes('جميع') || chosen.label.includes('عام') || chosen.label === 'المعدل العام';
-    const displayText = isGeneralLabel ? text : (chosen.label ? `${chosen.label}: ${text}` : text);
-    return { rangeText: displayText || fallback, isSpecificMatch: true, matchedRange: chosen };
-  }
-
-  // If nothing matched, format all ranges
-  const allText = ranges
-    .map((r) => {
-      const t = r.text || (r.low != null && r.high != null 
-        ? `${r.low} - ${r.high}` 
-        : (r.low != null ? `>= ${r.low}` : r.high != null ? `<= ${r.high}` : ''));
-      return r.label ? `${r.label}: ${t}` : t;
-    })
-    .filter(Boolean)
-    .join(' | ');
-
-  return { rangeText: allText || fallback, isSpecificMatch: false };
+  return {
+    low: resolved.low,
+    high: resolved.high,
+    text: resolved.text ?? (fallbackText !== '-' ? fallbackText : null),
+    matchedLabel: resolved.matchedLabel,
+    rangeText: fallbackText,
+    isSpecificMatch: Boolean(resolved.matchedBracket),
+    matchedRange: resolved.matchedBracket ?? undefined,
+  };
 }
+
 

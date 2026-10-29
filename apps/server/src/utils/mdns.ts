@@ -2,20 +2,32 @@ import { Bonjour } from 'bonjour-service';
 import os from 'os';
 
 export function startMDNS(port: number) {
+  const isBench = process.env.LABRYO_STARTUP_BENCHMARK === '1' || process.env.DEBUG_STARTUP_BENCHMARK === '1';
+  const t0 = isBench ? process.hrtime.bigint() : 0n;
   // Desktop-only default: no LAN broadcast unless explicitly enabled
   if (process.env.LABRYO_ENABLE_MDNS !== '1') {
+    if (isBench) {
+      const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+      console.log(`⏱️ [BENCHMARK] mDNS: ${ms.toFixed(2)}ms (disabled)`);
+    }
     console.log('mDNS broadcast disabled (Desktop-only mode). Set LABRYO_ENABLE_MDNS=1 to enable LAN discovery.');
     return;
   }
   try {
     const instance = new Bonjour();
+    const webPort = 8080;
     instance.publish({
-      name: 'LabManagerServer',
+      name: 'LabryoServer',
+      host: 'labryo.local',
       type: 'http',
-      port: port,
-      txt: { name: 'Lab Manager Offline Server' },
+      port: webPort,
+      txt: { name: 'Labryo Clinical LIMS LAN Server' },
     });
-    console.log(`mDNS service broadcasted: http://labmanager.local:${port}`);
+    if (isBench) {
+      const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+      console.log(`⏱️ [BENCHMARK] mDNS: ${ms.toFixed(2)}ms`);
+    }
+    console.log(`mDNS service broadcasted: http://labryo.local:${webPort}`);
   } catch (err) {
     console.error('Failed to initialize mDNS broadcast:', err);
   }

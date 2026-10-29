@@ -24,15 +24,23 @@ export function deriveTubeBadges(tests: UnifiedCartItem[]): UnifiedTubeBadge[] {
   const containerCodes = new Set(['GUE', 'MALB', 'URINE-PROT', 'BENCE-JONES', 'GSE', 'FOBT', 'HP-AG', 'STOOL-CULTURE', 'SFA', 'SEMEN']);
   const serumSpecificCodes = new Set(['FER', 'IRON', 'TIBC']);
 
+  const edtaCodesList: string[] = [];
+  const citrateCodesList: string[] = [];
+  const sstCodesList: string[] = [];
+  const containerCodesList: string[] = [];
+
   for (const test of tests) {
     const rawCode = (test.code || test.id || '').toUpperCase().trim();
     const name = test.name || rawCode;
     const sampleType = (test.sampleType || '').toLowerCase();
+    const tubeType = (test.tubeType || '').toLowerCase();
     const category = (test.category || '').toLowerCase();
-    const combinedText = `${rawCode} ${name} ${sampleType} ${category}`.toLowerCase();
+    const combinedText = `${rawCode} ${name} ${sampleType} ${tubeType} ${category}`.toLowerCase();
+    const displayCode = test.code || name;
 
     // 1. Citrate (Blue #0284c7)
     if (
+      tubeType.includes('citrate') ||
       citrateCodes.has(rawCode) ||
       sampleType.includes('citrate') ||
       sampleType.includes('سترات') ||
@@ -44,11 +52,14 @@ export function deriveTubeBadges(tests: UnifiedCartItem[]): UnifiedTubeBadge[] {
       combinedText.includes('ptt')
     ) {
       citrateTests.push(name);
+      citrateCodesList.push(displayCode);
       continue;
     }
 
-    // 2. Sterile Container (Emerald #059669)
+    // 2. Sterile Container (Urine cup / Stool cup)
     if (
+      tubeType.includes('urine') ||
+      tubeType.includes('container') ||
       containerCodes.has(rawCode) ||
       sampleType.includes('إدرار') ||
       sampleType.includes('ادرار') ||
@@ -67,6 +78,7 @@ export function deriveTubeBadges(tests: UnifiedCartItem[]): UnifiedTubeBadge[] {
       combinedText.includes('sfa')
     ) {
       containerTests.push(name);
+      containerCodesList.push(displayCode);
       continue;
     }
 
@@ -76,17 +88,19 @@ export function deriveTubeBadges(tests: UnifiedCartItem[]): UnifiedTubeBadge[] {
     const isHematologyCat = category.includes('أمراض الدم') || category.includes('hematology');
 
     if (
-      (isEdtaCode || hasEdtaText || isHematologyCat) &&
+      (tubeType.includes('edta') || isEdtaCode || hasEdtaText || isHematologyCat) &&
       !serumSpecificCodes.has(rawCode) &&
       !combinedText.includes('iron') &&
       !combinedText.includes('ferritin')
     ) {
       edtaTests.push(name);
+      edtaCodesList.push(displayCode);
       continue;
     }
 
-    // 4. Default: SST / Serum Gel (Yellow #d97706)
+    // 4. Default: SST / Serum Gel (Yellow / Gold #d28a00)
     sstTests.push(name);
+    sstCodesList.push(displayCode);
   }
 
   const badges: UnifiedTubeBadge[] = [];
@@ -94,52 +108,56 @@ export function deriveTubeBadges(tests: UnifiedCartItem[]): UnifiedTubeBadge[] {
   if (edtaTests.length > 0) {
     badges.push({
       id: 'edta',
-      name: 'EDTA (بنفسجي)',
-      tubeType: 'EDTA دم كامل',
+      name: 'EDTA',
+      tubeType: 'EDTA',
       color: '#7c3aed',
       bg: 'rgba(124, 58, 237, 0.12)',
       dotColor: '#7c3aed',
-      count: edtaTests.length,
+      count: 1,
       testNames: edtaTests,
+      testCodes: edtaCodesList,
+    });
+  }
+
+  if (sstTests.length > 0) {
+    badges.push({
+      id: 'serum',
+      name: 'SST',
+      tubeType: 'SST',
+      color: '#d28a00',
+      bg: 'rgba(210, 138, 0, 0.12)',
+      dotColor: '#d28a00',
+      count: 1,
+      testNames: sstTests,
+      testCodes: sstCodesList,
     });
   }
 
   if (citrateTests.length > 0) {
     badges.push({
       id: 'citrate',
-      name: 'Citrate (أزرق)',
-      tubeType: 'سترات Citrate',
+      name: 'Citrate',
+      tubeType: 'Citrate',
       color: '#0284c7',
       bg: 'rgba(2, 132, 199, 0.12)',
       dotColor: '#0284c7',
-      count: citrateTests.length,
+      count: 1,
       testNames: citrateTests,
-    });
-  }
-
-  if (sstTests.length > 0) {
-    badges.push({
-      id: 'sst',
-      name: 'SST (أصفر)',
-      tubeType: 'سيروم جل SST',
-      color: '#d97706',
-      bg: 'rgba(217, 119, 6, 0.12)',
-      dotColor: '#d97706',
-      count: sstTests.length,
-      testNames: sstTests,
+      testCodes: citrateCodesList,
     });
   }
 
   if (containerTests.length > 0) {
     badges.push({
-      id: 'container',
-      name: 'عبوة معقمة (إدرار/خروج)',
-      tubeType: 'عبوة فحص معقمة',
-      color: '#059669',
-      bg: 'rgba(5, 150, 105, 0.12)',
-      dotColor: '#059669',
-      count: containerTests.length,
+      id: 'urine',
+      name: 'Urine cup',
+      tubeType: 'Urine cup',
+      color: '#f59e0b',
+      bg: 'rgba(245, 158, 11, 0.12)',
+      dotColor: '#f59e0b',
+      count: 1,
       testNames: containerTests,
+      testCodes: containerCodesList,
     });
   }
 

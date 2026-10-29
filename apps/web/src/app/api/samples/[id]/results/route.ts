@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getStore, saveStoreToFile } from '../../../../../lib/serverStore';
 import { syncSampleToSqlite } from '../../../../../lib/sqliteSync';
+import { broadcastEvent } from '../../../../../lib/networkDeviceManager';
 
 async function handleSaveResults(request: Request, params: { id: string }) {
   let body: any;
@@ -178,12 +179,26 @@ async function handleSaveResults(request: Request, params: { id: string }) {
     }
   }
 
-  if (body.markReady !== false) {
-    sample.status = 'READY';
-  }
 
+  // Check completeness of results in sample
+  const allTestsComplete =
+    sample.tests.length > 0 &&
+    sample.tests.every(
+      (t: any) => t.resultValue !== undefined && t.resultValue !== null && String(t.resultValue).trim() !== ''
+    );
+
+  if (body.status === 'COMPLETED' || allTestsComplete) {
+    sample.status = 'COMPLETED';
+  } else if (body.status) {
+    sample.status = body.status;
+  } else if (sample.tests.some((t: any) => t.resultValue !== undefined && t.resultValue !== null && String(t.resultValue).trim() !== '')) {
+    sample.status = 'IN_PROGRESS';
+  } else if (body.markReady !== false) {
+    sample.status = 'COMPLETED';
+  }
   saveStoreToFile();
   syncSampleToSqlite(sample).catch(err => console.warn('[SqliteSync] Results sync error:', err?.message));
+  broadcastEvent('RESULT', 'UPDATE', sample.id, { sampleNumber: sample.sampleNumber, status: sample.status });
 
   return NextResponse.json(sample);
 }

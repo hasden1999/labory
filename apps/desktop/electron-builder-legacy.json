@@ -1,0 +1,73 @@
+{
+  "appId": "com.labryo.lims.legacy",
+  "productName": "Labryo LIMS",
+  "executableName": "LabryoLIMS",
+  "electronVersion": "22.3.27",
+  "nodeGypRebuild": false,
+  "directories": {
+    "output": "dist-legacy"
+  },
+  "win": {
+    "icon": "assets/app.ico",
+    "executableName": "LabryoLIMS",
+    "artifactName": "Labryo_LIMS_v2_Universal_All_Windows_32-64bit_Setup.${ext}",
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "ia32"
+        ]
+      }
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowElevation": true,
+    "allowToChangeInstallationDirectory": true,
+    "installerIcon": "assets/app.ico",
+    "uninstallerIcon": "assets/app.ico",
+    "installerHeaderIcon": "assets/app.ico",
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Labryo LIMS - نظام لابريو للمختبرات",
+    "runAfterFinish": true,
+    "deleteAppDataOnUninstall": false,
+    "include": "installer-legacy.nsh"
+  },
+  "files": [
+    "main.js",
+    "preload.js",
+    "services/**/*",
+    "assets/**/*"
+  ],
+  "compression": "maximum",
+  "electronLanguages": [
+    "ar",
+    "en-US"
+  ],
+  "extraResources": [
+    {
+      "from": "engine-legacy",
+      "to": "engine",
+      "filter": [
+        "**/*",
+        "!**/*.map",
+        "!**/*.md",
+        "!**/*.tsbuildinfo",
+        "!**/*.so.node",
+        "!**/.cache/**",
+        "!**/*.bak",
+        "!**/auto_snapshot_*"
+      ]
+    }
+  ],
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "hasden1999",
+      "repo": "lab-releases",
+      "channel": "legacy"
+    }
+  ]
+}

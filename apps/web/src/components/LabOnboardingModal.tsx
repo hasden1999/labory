@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { useLab } from './LabContext';
+import { useLab, LabProfile } from './LabContext';
 import { useToast } from './Toast';
 import { Building2, Sparkles, CheckCircle2, Layout, Phone, MapPin, UserCheck, Printer, ShieldCheck, FileText, X, ArrowLeft, TestTube, Zap } from 'lucide-react';
 
@@ -18,7 +18,7 @@ export default function LabOnboardingModal() {
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [address, setAddress] = useState('');
   const [currency, setCurrency] = useState('د.ع');
-  const [reportTemplate, setReportTemplate] = useState<'CLASSIC' | 'MODERN' | 'EXECUTIVE' | 'COMPACT' | 'SPECIALIZED' | 'PREPRINTED' | 'BLANK_WHITE'>('CLASSIC');
+  const [reportTemplate, setReportTemplate] = useState<LabProfile['reportTemplate']>('CLASSIC');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -36,7 +36,15 @@ export default function LabOnboardingModal() {
   }, [labProfile, showSetupModal]);
 
   const pathname = usePathname();
-  if (!showSetupModal || pathname?.startsWith('/verify')) return null;
+  if (
+    !showSetupModal ||
+    pathname?.startsWith('/verify') ||
+    pathname?.startsWith('/connect') ||
+    pathname === '/ready' ||
+    pathname === '/health'
+  ) {
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

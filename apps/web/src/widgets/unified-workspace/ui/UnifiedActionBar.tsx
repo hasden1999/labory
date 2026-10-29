@@ -1,20 +1,20 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  RotateCcw,
-  Barcode,
+  Save,
   Printer,
   Send,
+  Barcode,
+  UserPlus,
   Loader2,
   CheckCircle2,
-  AlertCircle,
-  HelpCircle,
 } from 'lucide-react';
 import { UnifiedWorkspaceReturn } from '../model/types';
 import { useToast } from '../../../components/Toast';
 import { useLab } from '../../../components/LabContext';
 import { apiRequest } from '../../../lib/api';
+import { shareReportToWhatsApp, autoSendReportViaWhatsAppWeb } from '../../../lib/shareReportToWhatsApp';
 import {
   normalizeIraqiPhone,
   buildWhatsAppMessage,
@@ -29,14 +29,6 @@ export interface UnifiedActionBarProps {
   style?: React.CSSProperties;
 }
 
-/**
- * UnifiedActionBar (English LTR Clinical Pro Max Design System)
- * Bottom floating action bar providing ergonomic keyboard shortcuts:
- * - F1: New Patient (Reset form & focus on patient name)
- * - F2: Print Barcode (Direct thermal sticker 50x25mm printing)
- * - F9: Save & Print PDF (Save sample & results, open /api/samples/[id]/print)
- * - F10: Send WhatsApp (Direct patient report notification via wa.me/964...)
- */
 export default function UnifiedActionBar({
   workspace,
   onSavedSample,
@@ -48,72 +40,63 @@ export default function UnifiedActionBar({
   const [savedSample, setSavedSample] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // --------------------------------------------------------------------------
-  // WhatsApp Validation & Guards
-  // --------------------------------------------------------------------------
-  const normalizedPhone = normalizeIraqiPhone(workspace.patient.phone);
-  const hasPhone = Boolean(normalizedPhone);
-  const hasTests = workspace.selectedTests.length > 0;
+  const { patient, selectedTests, results, invoice } = workspace;
 
-  // Format tests and results map for canonical completeness check
+  // --------------------------------------------------------------------------
+  // Validation States
+  // --------------------------------------------------------------------------
+  const hasName = Boolean(patient.name && patient.name.trim().length > 0);
+  const hasAge = Boolean(
+    patient.ageYears !== '' ||
+      patient.ageMonths !== '' ||
+      patient.ageDays !== '' ||
+      patient.birthDate
+  );
+  const hasSex = patient.gender === 'MALE' || patient.gender === 'FEMALE';
+  const hasTests = selectedTests.length > 0;
+
+  // Save is enabled ONLY with name + age + sex + at least 1 test
+  const canSave = hasName && hasAge && hasSex && hasTests && !isProcessing;
+
+  // Calculate completeness for WhatsApp
   const resultsMap: Record<string, { resultValue: string }> = {};
-  Object.entries(workspace.results).forEach(([id, r]) => {
+  Object.entries(results).forEach(([id, r]) => {
     resultsMap[id] = { resultValue: r.value };
   });
 
-  const sampleTestsForCheck = workspace.selectedTests.map((t) => ({
+  const sampleTestsForCheck = selectedTests.map((t) => ({
     id: t.id,
     test: t,
-    resultValue: workspace.results[t.id]?.value || '',
+    resultValue: results[t.id]?.value || '',
   }));
 
-  const isComplete = hasTests && isOrderComplete(sampleTestsForCheck, resultsMap);
-  const canSendWhatsApp = hasPhone && isComplete;
+  const completedCount = selectedTests.filter((t) => {
+    const val = results[t.id]?.value;
+    return val !== undefined && val !== null && String(val).trim() !== '';
+  }).length;
+  const remainingCount = selectedTests.length - completedCount;
+  const isComplete = hasTests && remainingCount === 0 && isOrderComplete(sampleTestsForCheck, resultsMap);
 
-  let whatsAppTooltip = '';
-  if (!hasPhone) {
-    whatsAppTooltip = 'يرجى إدخال رقم هاتف المريض لتفعيل إرسال الواتساب';
-  } else if (!hasTests) {
-    whatsAppTooltip = 'يرجى اختيار الفحوصات وإدخال النتائج لتفعيل إرسال الواتساب';
-  } else if (!isComplete) {
-    whatsAppTooltip = 'الفحوصات غير مكتملة: أدخل جميع النتائج قبل الإرسال عبر الواتساب';
-  } else {
-    whatsAppTooltip = 'إرسال التقرير الطبي المعتمد إلى واتساب المريض (F10)';
-  }
+  const normalizedPhone = normalizeIraqiPhone(patient.phone);
+  const hasPhone = Boolean(normalizedPhone);
+
+  // WhatsApp enabled only when ALL results are complete and phone exists
+  const canWhatsApp = hasTests && isComplete && hasPhone && !isProcessing;
+
+  // Print enabled once an order is saved OR ready to be saved
+  const canPrint = (Boolean(savedSample?.id) || canSave) && !isProcessing;
 
   // --------------------------------------------------------------------------
-  // Action Handlers
+  // Actions
   // --------------------------------------------------------------------------
 
-  // F1: New Patient (Reset form & focus on patient name)
-  const handleF1NewPatient = useCallback(() => {
-    workspace.resetPatient();
-    setSavedSample(null);
-
-    // Auto-focus patient name input
-    setTimeout(() => {
-      const nameInput = document.querySelector(
-        'input[name="patientName"], input[placeholder*="Patient Full Name"], input[placeholder*="Haider"]'
-      ) as HTMLInputElement | null;
-      if (nameInput) {
-        nameInput.focus();
-      }
-    }, 40);
-
-    toast.info('Workspace reset for new patient (F1)');
-  }, [workspace, toast]);
-
-  // Execute Save Sample (Zero Discount Core)
-  const executeSaveSample = useCallback(async () => {
-    const { patient, selectedTests, results, invoice } = workspace;
-
-    if (!patient.name.trim()) {
-      toast.warning('Patient name is required to save sample');
-      return null;
-    }
-
-    if (selectedTests.length === 0) {
-      toast.warning('Please select at least one test to save sample');
+  // Save Order (F9)
+  const handleSave = useCallback(async () => {
+    if (!canSave) {
+      if (!hasName) toast.warning('اسم المريض مطلوب');
+      else if (!hasAge) toast.warning('عمر المريض مطلوب');
+      else if (!hasSex) toast.warning('جنس المريض مطلوب لتحديد المعدلات الطبيعية');
+      else if (!hasTests) toast.warning('يرجى اختيار فحص واحد على الأقل للحفظ');
       return null;
     }
 
@@ -121,7 +104,6 @@ export default function UnifiedActionBar({
     workspace.setIsSaving(true);
 
     try {
-      // 1. Post Sample creation (Zero Discount System: discount = 0)
       const payload: any = {
         patientId: patient.id || undefined,
         patientName: patient.name.trim(),
@@ -135,6 +117,7 @@ export default function UnifiedActionBar({
         doctorId: patient.doctorId || undefined,
         isUrgent: patient.isUrgent,
         tests: selectedTests.map((t) => t.id),
+        testIds: selectedTests.map((t) => t.id),
         discount: 0,
         discountPercent: 0,
         priceTotal: invoice.netTotal,
@@ -145,62 +128,216 @@ export default function UnifiedActionBar({
       };
 
       const result = await apiRequest('/samples', 'POST', payload);
-      setSavedSample(result);
-      if (onSavedSample) onSavedSample(result);
+      let finalSample = result;
 
-      // 2. Persist any entered results to sampleTest rows
+      // Persist results if any were entered
       if (result?.id && result.tests && Array.isArray(result.tests)) {
         const resultsPayload = result.tests.map((st: any) => {
           const testId = st.testId || st.test?.id;
-          const entered = results[testId];
+          const testCode = (st.test?.code || '').toUpperCase().trim();
+          const entered = results[testId] || (testCode ? Object.values(results).find((r) => (r.testCode || '').toUpperCase().trim() === testCode) : undefined);
+          const selTest = selectedTests.find((t) => t.id === testId || (testCode && (t.code || '').toUpperCase().trim() === testCode));
+          const prevVal = (selTest as any)?.previousValue;
+          const prevDate = (selTest as any)?.previousDate;
           return {
             sampleTestId: st.id,
+            testId: st.testId,
+            testCode: st.test?.code,
             resultValue: entered ? entered.value : '',
             isAbnormal: entered ? entered.status === 'HIGH' || entered.status === 'LOW' || entered.status === 'PANIC' : false,
             interpretation: entered ? entered.status : 'Normal',
+            previousValue: prevVal,
+            previousDate: prevDate,
+            includePrevious: Boolean(prevVal),
           };
         });
 
         if (resultsPayload.length > 0) {
           try {
-            await apiRequest(`/samples/${result.id}/results`, 'PUT', {
+            const updated = await apiRequest(`/samples/${result.id}/results`, 'PUT', {
               results: resultsPayload,
               tests: resultsPayload,
-              status: isComplete ? 'READY' : 'PENDING',
+              status: isComplete ? 'COMPLETED' : 'IN_PROGRESS',
               markReady: isComplete,
             });
+            if (updated && updated.id) {
+              finalSample = updated;
+            }
           } catch (resErr) {
-            console.warn('Silent results update notice:', resErr);
+            console.warn('Results sync note:', resErr);
           }
         }
       }
 
+      setSavedSample(finalSample);
+      if (onSavedSample) onSavedSample(finalSample);
+
+      toast.success(`تم حفظ الطلب #${result.sampleNumber || result.id} بنجاح (F9)`);
+
+      // Auto-send via linked WhatsApp Web if enabled and all results are complete
+      if (isComplete && labProfile?.whatsappAutoSendEnabled && hasPhone) {
+        const currentLabName = labProfile?.labName || 'مختبر لابريو للتحليلات الطبية';
+        const caption = `مرحباً ${patient.name}، يسر (${currentLabName}) إرفاق نتائج تحاليلكم الطبية المعتمدة للعينة رقم (#${result.sampleNumber || result.id}). نتمنى لكم دوام الصحة والعافية.`;
+        toast.info('جارٍ إرسال النتيجة تلقائياً عبر واتساب ويب المربوط...');
+        autoSendReportViaWhatsAppWeb({
+          sampleId: result.id,
+          phone: normalizedPhone,
+          caption,
+        }).then((waRes) => {
+          if (waRes.ok) {
+            toast.success(waRes.message, 'واتساب التلقائي');
+          } else {
+            toast.warning(waRes.message, 'واتساب التلقائي');
+          }
+        });
+      }
+
       return result;
     } catch (err: any) {
-      toast.error(err.message || 'Failed to save sample');
+      toast.error(err.message || 'فشل حفظ الطلب');
       return null;
     } finally {
       setIsProcessing(false);
       workspace.setIsSaving(false);
     }
-  }, [workspace, isComplete, onSavedSample, toast]);
+  }, [
+    canSave,
+    hasName,
+    hasAge,
+    hasSex,
+    hasTests,
+    patient,
+    selectedTests,
+    results,
+    invoice,
+    isComplete,
+    hasPhone,
+    normalizedPhone,
+    labProfile,
+    onSavedSample,
+    toast,
+    workspace,
+  ]);
 
-  // F2: Print Barcode (Direct thermal sticker 50x25mm printing)
-  const handleF2PrintBarcode = useCallback(async () => {
-    let targetSample = savedSample;
-
-    if (!targetSample?.id) {
-      if (!workspace.patient.name.trim() || workspace.selectedTests.length === 0) {
-        toast.warning('Please enter patient name and select tests to print barcode sticker (F2)');
+  // Print Report (F10) - Auto-saves silently if not yet saved, then immediately prints
+  const handlePrint = useCallback(async () => {
+    let target = savedSample;
+    if (!target?.id) {
+      if (!canSave) {
+        if (!hasName) toast.warning('يرجى إدخال اسم المريض أولاً');
+        else if (!hasAge) toast.warning('يرجى إدخال عمر المريض');
+        else if (!hasSex) toast.warning('يرجى تحديد جنس المريض');
+        else if (!hasTests) toast.warning('يرجى اختيار فحص واحد على الأقل');
         return;
       }
-      targetSample = await executeSaveSample();
+      target = await handleSave();
+      if (!target?.id) return;
+    } else {
+      // If already saved, sync any latest entered results before printing
+      try {
+        if (target.tests && Array.isArray(target.tests)) {
+          const resultsPayload = target.tests.map((st: any) => {
+            const testId = st.testId || st.test?.id;
+            const testCode = (st.test?.code || '').toUpperCase().trim();
+            const entered = results[testId] || (testCode ? Object.values(results).find((r) => (r.testCode || '').toUpperCase().trim() === testCode) : undefined);
+            return {
+              sampleTestId: st.id,
+              testId: st.testId,
+              testCode: st.test?.code,
+              resultValue: entered ? entered.value : '',
+              isAbnormal: entered ? entered.status === 'HIGH' || entered.status === 'LOW' || entered.status === 'PANIC' : false,
+              interpretation: entered ? entered.status : 'Normal',
+            };
+          }).filter((r: any) => r.resultValue !== '');
+          if (resultsPayload.length > 0) {
+            await apiRequest(`/samples/${target.id}/results`, 'PUT', {
+              results: resultsPayload,
+              tests: resultsPayload,
+              status: isComplete ? 'COMPLETED' : 'IN_PROGRESS',
+              markReady: isComplete,
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to auto-sync latest results before print:', err);
+      }
+    }
+    const printUrl = `/api/samples/${target.id}/print`;
+    window.open(printUrl, '_blank');
+  }, [savedSample, canSave, hasName, hasAge, hasSex, hasTests, handleSave, results, isComplete, toast]);
+
+  // Send WhatsApp (F8)
+  const handleWhatsApp = useCallback(async () => {
+    if (!canWhatsApp) {
+      if (!hasPhone) {
+        toast.warning('رقم هاتف المريض مطلوب للإرسال عبر واتساب');
+      } else if (!isComplete) {
+        toast.warning(`لا يمكن إرسال واتساب: يتبقى ${remainingCount} فحص بدون نتيجة`);
+      }
+      return;
     }
 
-    if (!targetSample?.id) return;
+    let target = savedSample;
+    if (!target?.id) {
+      target = await handleSave();
+    }
+    if (!target?.id) return;
 
     try {
-      const printUrl = `/api/samples/${targetSample.id}/barcode?autoprint=true`;
+      const formattedLines = selectedTests.map((t) => {
+        const entered = results[t.id];
+        return {
+          name: t.name,
+          value: entered ? entered.value : '',
+          unit: t.unit || '',
+          refRange: entered?.refRangeText || t.refRangeText || '',
+          flag: entered?.status || 'NORMAL',
+        };
+      });
+
+      const currentLabName = labProfile?.labName || 'مختبر لابريو للتحليلات الطبية';
+      const caption = `مرحباً ${patient.name}، يسر ${currentLabName} إرفاق نتائج فحصكم رقم (#${target.sampleNumber || target.id}). نتمنى لكم دوام الصحة والعافية.`;
+
+      // Unified share: desktop app (image + caption auto-paste) or browser fallback
+      toast.info('جاري تجهيز صورة التقرير وفتح واتساب لمحادثة المريض...');
+      const shareResult = await shareReportToWhatsApp({ sampleId: target.id, phone: normalizedPhone, caption });
+      if (shareResult.ok) {
+        toast.success(shareResult.message);
+      } else {
+        toast.error(shareResult.message, 'واتساب');
+      }
+    } catch (err: any) {
+      toast.error('فشل في فتح واتساب');
+    }
+  }, [
+    canWhatsApp,
+    hasPhone,
+    isComplete,
+    remainingCount,
+    savedSample,
+    handleSave,
+    selectedTests,
+    results,
+    patient.name,
+    labProfile,
+    normalizedPhone,
+    toast,
+  ]);
+
+  // Barcode (F2)
+  const handleBarcode = useCallback(async () => {
+    let target = savedSample;
+    if (!target?.id) {
+      if (!canSave) {
+        toast.warning('يرجى إكمال بيانات المريض وحفظه لطباعة الباركود');
+        return;
+      }
+      target = await handleSave();
+    }
+    if (!target?.id) return;
+
+    try {
+      const printUrl = `/api/samples/${target.id}/barcode?autoprint=true`;
       const printIframe = document.createElement('iframe');
       printIframe.style.position = 'fixed';
       printIframe.style.left = '-9999px';
@@ -218,249 +355,354 @@ export default function UnifiedActionBar({
         } catch (e) {}
       }, 30000);
 
-      toast.success(`Printing thermal barcode sticker 50x25mm for Sample #${targetSample.sampleNumber || ''} (F2)`);
-    } catch (printErr) {
-      console.error('Barcode print error:', printErr);
-      window.open(`/api/samples/${targetSample.id}/barcode?autoprint=true`, '_blank');
+      toast.success(`جارٍ طباعة الباركود للعينة #${target.sampleNumber || ''} (F2)`);
+    } catch (e) {
+      window.open(`/api/samples/${target.id}/barcode?autoprint=true`, '_blank');
     }
-  }, [savedSample, workspace.patient.name, workspace.selectedTests.length, executeSaveSample, toast]);
+  }, [savedSample, canSave, handleSave, toast]);
 
-  // F9: Save & Print PDF (Save sample & results, open /api/samples/[id]/print)
-  const handleF9SaveAndPrint = useCallback(async () => {
-    const saved = await executeSaveSample();
-    if (!saved?.id) return;
-
-    try {
-      const printUrl = `/api/samples/${saved.id}/print`;
-      window.open(printUrl, '_blank');
-      toast.success(`Sample #${saved.sampleNumber || ''} saved and clinical PDF preview opened (F9)`);
-    } catch (err) {
-      console.error('Print PDF preview error:', err);
-    }
-  }, [executeSaveSample, toast]);
-
-  // F10: Send WhatsApp
-  const handleF10SendWhatsApp = useCallback(async () => {
-    if (!canSendWhatsApp) {
-      toast.warning(whatsAppTooltip);
-      return;
+  // New Patient (F1)
+  const handleNewPatient = useCallback(() => {
+    const hasUnsaved = (hasName || hasTests) && !savedSample;
+    if (hasUnsaved) {
+      const confirmed = window.confirm('هل تريد إلغاء البيانات الحالية غير المحفوظة والبدء بمريض جديد؟');
+      if (!confirmed) return;
     }
 
-    let targetSample = savedSample;
-    if (!targetSample?.id) {
-      targetSample = await executeSaveSample();
-    }
+    workspace.resetPatient();
+    setSavedSample(null);
 
-    if (!targetSample?.id) return;
+    // Focus patient name input
+    setTimeout(() => {
+      const nameInput = document.querySelector('input[name="patientName"]') as HTMLInputElement | null;
+      if (nameInput) nameInput.focus();
+    }, 50);
 
-    try {
-      const formattedLines = workspace.selectedTests.map((t) => {
-        const entered = workspace.results[t.id];
-        return {
-          name: t.name,
-          value: entered ? entered.value : '',
-          unit: t.unit || '',
-        };
-      });
-
-      const message = buildWhatsAppMessage({
-        labName: labProfile?.labName || 'Laboratory',
-        patientName: workspace.patient.name,
-        date: new Date().toISOString().split('T')[0],
-        sampleNumber: String(targetSample.sampleNumber || ''),
-        lines: formattedLines,
-      });
-
-      const waLink = buildWaLink(workspace.patient.phone, message);
-      if (waLink) {
-        window.open(waLink, '_blank');
-        toast.success('WhatsApp link opened for report dispatch (F10)');
-      } else {
-        toast.warning('Invalid patient phone number format');
-      }
-    } catch (err: any) {
-      toast.error('Failed to construct WhatsApp message');
-    }
-  }, [canSendWhatsApp, savedSample, workspace, labProfile, whatsAppTooltip, executeSaveSample, toast]);
+    toast.info('جاهز لإدخال مريض جديد (F1)');
+  }, [hasName, hasTests, savedSample, workspace, toast]);
 
   // --------------------------------------------------------------------------
-  // Keyboard Shortcut Listeners (F1, F2, F9, F10)
+  // Keyboard Shortcuts Listener (F1, F2, F8, F9, F10)
   // --------------------------------------------------------------------------
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F1') {
+      if (e.key === 'F9') {
         e.preventDefault();
-        handleF1NewPatient();
-      } else if (e.key === 'F2') {
-        e.preventDefault();
-        handleF2PrintBarcode();
-      } else if (e.key === 'F9') {
-        e.preventDefault();
-        handleF9SaveAndPrint();
+        handleSave();
       } else if (e.key === 'F10') {
         e.preventDefault();
-        if (canSendWhatsApp) {
-          handleF10SendWhatsApp();
-        } else {
-          toast.warning(whatsAppTooltip);
-        }
+        handlePrint();
+      } else if (e.key === 'F8') {
+        e.preventDefault();
+        handleWhatsApp();
+      } else if (e.key === 'F2') {
+        e.preventDefault();
+        handleBarcode();
+      } else if (e.key === 'F1') {
+        e.preventDefault();
+        handleNewPatient();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleF1NewPatient, handleF2PrintBarcode, handleF9SaveAndPrint, handleF10SendWhatsApp, canSendWhatsApp, whatsAppTooltip, toast]);
+  }, [handleSave, handlePrint, handleWhatsApp, handleBarcode, handleNewPatient]);
+
+  // Synchronize Top Header Actions (New Patient, Print, WhatsApp, Barcode)
+  useEffect(() => {
+    const handleLabryoAction = (e: any) => {
+      const action = e.detail?.action;
+      if (action === 'new-patient') {
+        handleNewPatient();
+      } else if (action === 'print') {
+        handlePrint();
+      } else if (action === 'whatsapp') {
+        handleWhatsApp();
+      } else if (action === 'barcode') {
+        handleBarcode();
+      } else if (action === 'save') {
+        handleSave();
+      }
+    };
+
+    window.addEventListener('labryo-action', handleLabryoAction);
+    return () => window.removeEventListener('labryo-action', handleLabryoAction);
+  }, [handleNewPatient, handlePrint, handleWhatsApp, handleBarcode, handleSave]);
 
   return (
     <div
-      dir="ltr"
-      className={className}
       style={{
-        position: 'fixed',
-        bottom: '12px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 50,
-        backgroundColor: '#ffffff',
-        borderRadius: '9999px',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-        border: '1px solid #cbd5e1',
-        padding: '6px 18px',
+        height: '56px',
+        backgroundColor: 'var(--bg-card)',
+        borderTop: '1px solid var(--border-color)',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: '10px',
+        justifyContent: 'space-between',
+        padding: '0 16px',
+        boxSizing: 'border-box',
+        flexShrink: 0,
+        zIndex: 20,
+        transition: 'background-color 0.15s ease, border-color 0.15s ease',
         ...style,
       }}
     >
-      {/* 1. New Patient (F1) */}
-      <button
-        type="button"
-        onClick={handleF1NewPatient}
-        style={{
-          padding: '7px 14px',
-          borderRadius: '9999px',
-          fontSize: '12px',
-          fontWeight: 800,
-          backgroundColor: '#f1f5f9',
-          color: '#1e293b',
-          border: '1px solid #cbd5e1',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          transition: 'all 0.15s ease',
-        }}
-        title="F1: مسح النموذج وبدء مريض جديد"
-      >
-        <RotateCcw size={13} color="#64748b" />
-        <span>مريض جديد (F1)</span>
-      </button>
-
-      {/* 2. Print Barcode (F2) */}
-      <button
-        type="button"
-        onClick={handleF2PrintBarcode}
-        disabled={isProcessing}
-        style={{
-          padding: '7px 14px',
-          borderRadius: '9999px',
-          fontSize: '12px',
-          fontWeight: 800,
-          backgroundColor: '#ffffff',
-          color: '#334155',
-          border: '1px solid #cbd5e1',
-          cursor: isProcessing ? 'not-allowed' : 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          transition: 'all 0.15s ease',
-        }}
-        title="F2: طباعة لاصق باركود حراري للأنابيب 50x25mm"
-      >
-        <Barcode size={14} color="#64748b" />
-        <span>طباعة باركود (F2)</span>
-      </button>
-
-      {/* 3. Send WhatsApp (F10) */}
-      <button
-        type="button"
-        onClick={handleF10SendWhatsApp}
-        disabled={!canSendWhatsApp || isProcessing}
-        style={{
-          padding: '7px 14px',
-          borderRadius: '9999px',
-          fontSize: '12px',
-          fontWeight: 800,
-          backgroundColor: canSendWhatsApp ? '#10b981' : '#f1f5f9',
-          color: canSendWhatsApp ? '#ffffff' : '#94a3b8',
-          border: canSendWhatsApp ? 'none' : '1px solid #e2e8f0',
-          cursor: canSendWhatsApp && !isProcessing ? 'pointer' : 'not-allowed',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          opacity: canSendWhatsApp ? 1 : 0.6,
-          transition: 'all 0.15s ease',
-        }}
-        title={whatsAppTooltip}
-      >
-        <Send size={13} />
-        <span>إرسال واتساب (F10)</span>
-      </button>
-
-      {/* 4. Save & Print PDF (F9) */}
-      <button
-        type="button"
-        data-shift-nav="save-btn"
-        onClick={handleF9SaveAndPrint}
-        disabled={isProcessing || workspace.isSaving}
-        style={{
-          padding: '7px 20px',
-          borderRadius: '9999px',
-          fontSize: '12.5px',
-          fontWeight: 900,
-          backgroundColor: '#0d9488',
-          color: '#ffffff',
-          border: 'none',
-          cursor: isProcessing || workspace.isSaving ? 'not-allowed' : 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          opacity: isProcessing || workspace.isSaving ? 0.7 : 1,
-          boxShadow: '0 2px 8px rgba(13, 148, 136, 0.35)',
-          transition: 'all 0.15s ease',
-        }}
-        title="F9: حفظ بيانات العينة والنتائج وإصدار التقرير الطبي للطباعة"
-      >
-        {isProcessing || workspace.isSaving ? (
-          <Loader2 size={14} className="animate-spin" />
-        ) : (
-          <Printer size={14} />
-        )}
-        <span>حفظ وطباعة النتيجة (F9)</span>
-      </button>
-
-      {/* Sample Number Badge if saved */}
-      {savedSample?.sampleNumber && (
-        <span
+      {/* 1. Right to Left Actions (In RTL layout: Save is rightmost) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {/* Save (F9) Primary Teal */}
+        <button
+          type="button"
+          data-shift-nav="save-btn"
+          onClick={handleSave}
+          disabled={!canSave}
           style={{
-            fontSize: '11px',
-            fontWeight: 800,
-            padding: '3px 8px',
-            borderRadius: '9999px',
-            backgroundColor: '#f0fdfa',
-            color: '#0d9488',
-            border: '1px solid #99f6e4',
-            display: 'inline-flex',
+            height: '38px',
+            padding: '0 18px',
+            backgroundColor: canSave ? '#0f766e' : 'var(--border-color)',
+            color: canSave ? '#ffffff' : 'var(--text-dim)',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '13.5px',
+            fontWeight: 700,
+            cursor: canSave ? 'pointer' : 'not-allowed',
+            display: 'flex',
             alignItems: 'center',
-            gap: '4px',
-            marginLeft: '4px',
+            gap: '8px',
+            transition: 'background-color 0.15s ease',
           }}
         >
-          <CheckCircle2 size={13} />
-          <span>#{savedSample.sampleNumber}</span>
-        </span>
-      )}
+          {isProcessing ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+          <span>حفظ</span>
+          <span
+            style={{
+              fontSize: '11px',
+              backgroundColor: canSave ? '#0b5f58' : 'var(--bg-card-subtle)',
+              color: canSave ? '#ffffff' : 'var(--text-dim)',
+              padding: '1px 5px',
+              borderRadius: '4px',
+              direction: 'ltr',
+              unicodeBidi: 'isolate',
+            }}
+          >
+            F9
+          </span>
+        </button>
+
+        {/* Print report (F10) */}
+        <button
+          type="button"
+          onClick={handlePrint}
+          disabled={!canPrint}
+          style={{
+            height: '38px',
+            padding: '0 14px',
+            backgroundColor: canPrint ? 'var(--bg-input)' : 'var(--bg-card-subtle)',
+            color: canPrint ? 'var(--text-main)' : 'var(--text-dim)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: canPrint ? 'pointer' : 'not-allowed',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Printer size={15} />
+          <span>طباعة التقرير</span>
+          <span
+            style={{
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              backgroundColor: 'var(--bg-card-hover)',
+              padding: '1px 5px',
+              borderRadius: '4px',
+              direction: 'ltr',
+              unicodeBidi: 'isolate',
+            }}
+          >
+            F10
+          </span>
+        </button>
+
+        {/* WhatsApp (F8) */}
+        <button
+          type="button"
+          onClick={handleWhatsApp}
+          disabled={!canWhatsApp}
+          title={
+            !hasPhone
+              ? 'أدخل رقم هاتف المريض للإرسال عبر واتساب'
+              : !isComplete
+              ? `يتبقى ${remainingCount} فحص بدون نتيجة`
+              : 'إرسال عبر واتساب'
+          }
+          style={{
+            height: '38px',
+            padding: '0 14px',
+            backgroundColor: canWhatsApp ? 'var(--bg-input)' : 'var(--bg-card-subtle)',
+            color: canWhatsApp ? 'var(--text-main)' : 'var(--text-dim)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: canWhatsApp ? 'pointer' : 'not-allowed',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Send size={15} />
+          <span>واتساب</span>
+          {!isComplete && hasTests && (
+            <span style={{ fontSize: '11px', color: 'var(--color-warning)', fontWeight: 500 }}>
+              (متبقي {remainingCount})
+            </span>
+          )}
+          <span
+            style={{
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              backgroundColor: 'var(--bg-card-hover)',
+              padding: '1px 5px',
+              borderRadius: '4px',
+              direction: 'ltr',
+              unicodeBidi: 'isolate',
+            }}
+          >
+            F8
+          </span>
+        </button>
+
+        {/* Barcode (F2) */}
+        <button
+          type="button"
+          onClick={handleBarcode}
+          style={{
+            height: '38px',
+            padding: '0 12px',
+            backgroundColor: 'var(--bg-input)',
+            color: 'var(--text-main)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Barcode size={15} />
+          <span>باركود</span>
+          <span
+            style={{
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              backgroundColor: 'var(--bg-card-hover)',
+              padding: '1px 5px',
+              borderRadius: '4px',
+              direction: 'ltr',
+              unicodeBidi: 'isolate',
+            }}
+          >
+            F2
+          </span>
+        </button>
+
+        {/* New patient (F1) */}
+        <button
+          type="button"
+          onClick={handleNewPatient}
+          style={{
+            height: '38px',
+            padding: '0 12px',
+            backgroundColor: 'var(--bg-input)',
+            color: 'var(--text-main)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <UserPlus size={15} />
+          <span>مريض جديد</span>
+          <span
+            style={{
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              backgroundColor: 'var(--bg-card-hover)',
+              padding: '1px 5px',
+              borderRadius: '4px',
+              direction: 'ltr',
+              unicodeBidi: 'isolate',
+            }}
+          >
+            F1
+          </span>
+        </button>
+      </div>
+
+      {/* 2. Middle & Left Side: Status + Test Count + Total */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        {/* Real Status Indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px' }}>
+          {savedSample ? (
+            <span style={{ color: 'var(--accent-teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <CheckCircle2 size={14} color="var(--accent-teal)" />
+              تم الحفظ على هذا الجهاز (#{savedSample.sampleNumber || savedSample.id})
+            </span>
+          ) : isProcessing ? (
+            <span style={{ color: 'var(--text-muted)' }}>جارٍ حفظ الطلب...</span>
+          ) : (
+            <span style={{ color: 'var(--text-muted)' }}>جاهز</span>
+          )}
+        </div>
+
+        {/* Test Count */}
+        <div
+          style={{
+            fontSize: '13px',
+            fontWeight: 600,
+            color: 'var(--text-muted)',
+          }}
+        >
+          {selectedTests.length} فحص
+        </div>
+
+        {/* Total (Leftmost, LTR isolate, zero discount) */}
+        <div
+          dir="ltr"
+          style={{
+            fontSize: '16px',
+            fontWeight: 800,
+            color: 'var(--text-main)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            direction: 'ltr',
+            unicodeBidi: 'isolate',
+          }}
+        >
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>الإجمالي:</span>
+          <span
+            style={{
+              color: 'var(--accent-teal)',
+              direction: 'ltr',
+              unicodeBidi: 'isolate',
+            }}
+          >
+            {invoice.netTotal.toLocaleString()} د.ع
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

@@ -9,7 +9,7 @@ export interface UnifiedPatientState {
   id: string | null;
   name: string;
   phone: string;
-  gender: 'MALE' | 'FEMALE';
+  gender: 'MALE' | 'FEMALE' | null;
   ageYears: number | '';
   ageMonths: number | '';
   ageDays: number | '';
@@ -22,6 +22,7 @@ export interface UnifiedPatientState {
   outstandingDebt?: number;
   lastTestIds?: string[];
   lastTestNames?: string[];
+  priorVisits?: any[];
 }
 
 export interface UnifiedCartItem {
@@ -32,6 +33,7 @@ export interface UnifiedCartItem {
   category: string;
   price: number;
   sampleType?: string;
+  tubeType?: string | null;
   gender?: string;
   unit?: string;
   refRangeLow?: number | null;
@@ -39,6 +41,10 @@ export interface UnifiedCartItem {
   refRangeText?: string | null;
   referenceRanges?: any[];
   isCalculated?: boolean;
+  panelId?: string;
+  panelName?: string;
+  panelPrice?: number;
+  originalPrice?: number;
 }
 
 export type UnifiedResultStatus = 'NORMAL' | 'HIGH' | 'LOW' | 'PANIC' | 'NONE';
@@ -55,6 +61,8 @@ export interface UnifiedResultItem {
   arrow?: '↑' | '↓' | '';
   isCalculated: boolean;
   isDirectOverride: boolean;
+  previousValue?: string | null;
+  previousDate?: string | null;
   sampleTestId?: string;
   formulaKey?: 'LDL' | 'VLDL' | 'NON_HDL' | 'TC_HDL' | 'LDL_HDL' | 'EGFR' | null;
   invalidReason?: string;
@@ -79,6 +87,7 @@ export interface UnifiedTubeBadge {
   dotColor: string;
   count: number;
   testNames: string[];
+  testCodes?: string[];
 }
 
 export interface UnifiedWorkspaceReturn {
@@ -104,11 +113,19 @@ export interface UnifiedWorkspaceReturn {
   selectedCategory: string;
   setSelectedCategory: (cat: string) => void;
   filteredCatalog: any[];
+  categoryCounts?: Record<string, number>;
+  frequencyMap?: Record<string, number>;
+  recordTestUsage?: (testId: string, testCode?: string) => void;
   applyBundle: (bundleKey: string) => void;
+  customPanels?: any[];
+  applyPanel?: (panel: any) => number;
+  refreshPanels?: () => Promise<void>;
+  updateCatalogTestPrice?: (testId: string, newPrice: number) => Promise<boolean>;
 
   // Results & Formulas
   results: Record<string, UnifiedResultItem>;
   updateResultValue: (testId: string, value: string, isDirectOverride?: boolean) => void;
+  toggleDirectOverride?: (testId: string) => void;
   directLdlOverride: number | null;
   setDirectLdlOverride: (override: number | null) => void;
 
@@ -122,6 +139,7 @@ export interface UnifiedWorkspaceReturn {
 
   // General Helpers
   doctors: any[];
+  addDoctorDirectly?: (doctor: any) => void;
   userRole: string;
   isSaving: boolean;
   setIsSaving: (saving: boolean) => void;

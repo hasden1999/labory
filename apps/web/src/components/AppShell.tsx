@@ -1,91 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import GlobalQuickBar from './GlobalQuickBar';
-import { useTheme } from './ThemeContext';
-import { useLab } from './LabContext';
-import LabryoLogo from './LabryoLogo';
+import React, { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import UpdateNotificationBanner from './common/UpdateNotificationBanner';
-import {
-  LayoutDashboard,
-  FlaskConical,
-  FileText,
-  TrendingUp,
-  Package,
-  Users,
-  Stethoscope,
-  Settings as SettingsIcon,
-  Cpu,
-  Sun,
-  Moon,
-  LogOut,
-  Activity,
-  Menu,
-  X,
-  Layers,
-  Sparkles,
-  ChevronDown,
-  CreditCard,
-  ClipboardList
-} from 'lucide-react';
+import ReceptionSidebar from '../widgets/unified-workspace/ui/ReceptionSidebar';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  const HIDE_SHELL = ['/', '/login', '/showcase'];
-  const hideShell = HIDE_SHELL.includes(pathname) || pathname?.startsWith('/verify');
-  if (hideShell) return <>{children}</>;
-
-  const router = useRouter();
-  const { theme, toggleTheme } = useTheme();
-  const { labProfile } = useLab();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
-  const moreMenuRef = useRef<HTMLDivElement | null>(null);
-
-  // Primary Navigation Routes (Direct 1-Click Access on Desktop)
-  const primaryNavItems = [
-    { href: '/', label: 'Intake & Reception', icon: FlaskConical },
-    { href: '/results', label: 'Results Entry', icon: FileText },
-    { href: '/samples', label: 'Sample Registry', icon: Activity },
-    { href: '/patients', label: 'Patients', icon: Users },
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  ];
-
-  // Secondary Navigation Routes (Grouped under 'More ▾')
-  const secondaryNavItems = [
-    { href: '/financials', label: 'Financial Center', icon: TrendingUp },
-    { href: '/inventory', label: 'Inventory & Reagents', icon: Package },
-    { href: '/catalog', label: 'Test Catalog', icon: Layers },
-    { href: '/devices', label: 'LIS Analyzers', icon: Cpu },
-    { href: '/settings', label: 'Settings', icon: SettingsIcon },
-  ];
-
-  const allNavItems = [...primaryNavItems, ...secondaryNavItems];
-
-  const isSecondaryActive = secondaryNavItems.some(
-    (item) => pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
-  );
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
-        setMoreMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Close dropdown on route change
-  useEffect(() => {
-    setMoreMenuOpen(false);
-  }, [pathname]);
-
-  // Silently remove old classic view mode key from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -94,301 +16,65 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  if (pathname === '/') {
+    return (
+      <>
+        <UpdateNotificationBanner />
+        {children}
+      </>
+    );
+  }
+
+  const HIDE_SHELL = ['/login', '/showcase', '/connect', '/ready', '/health'];
+  const hideShell = HIDE_SHELL.includes(pathname) || pathname?.startsWith('/verify');
+  if (hideShell) return <>{children}</>;
+
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', color: 'var(--text-main)', fontFamily: 'var(--font-family)', overflowX: 'clip', maxWidth: '100vw' }}>
-      <UpdateNotificationBanner />
-      {/* 1. TOP SLEEK NAVIGATION BAR (Concept Mockup Style) */}
-      <header
+    <div
+      dir="rtl"
+      style={{
+        height: '100vh',
+        width: '100vw',
+        maxHeight: '100vh',
+        maxWidth: '100vw',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'row',
+        backgroundColor: 'var(--bg-primary)',
+        color: 'var(--text-main)',
+        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif",
+        boxSizing: 'border-box',
+        transition: 'background-color 0.15s ease, color 0.15s ease',
+      }}
+    >
+      {/* 1. Unified Right Sidebar (Exact same sidebar as Main Screen '/') */}
+      <ReceptionSidebar />
+
+      {/* 2. Unified Zero-Scroll Main Workspace Area */}
+      <div
         style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 100,
-          background: 'var(--bg-secondary)',
-          borderBottom: '1px solid var(--border-color)',
-          backdropFilter: 'blur(12px)',
-          padding: '0 16px',
-          height: '68px',
-          minHeight: '68px',
+          flex: 1,
+          height: '100vh',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          maxWidth: '100%',
-          boxSizing: 'border-box',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          minWidth: 0,
         }}
       >
-        {/* Left: Brand Logo & Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <Link
-            href="/"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              textDecoration: 'none',
-              paddingTop: '6px',
-              paddingBottom: '4px',
-            }}
-          >
-            <div
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '11px',
-                background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                boxShadow: '0 3px 12px rgba(6, 182, 212, 0.4)',
-                flexShrink: 0,
-                marginTop: '2px',
-              }}
-            >
-              <FlaskConical size={21} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', marginTop: '2px' }}>
-              <strong
-                style={{
-                  fontSize: '15px',
-                  fontWeight: 900,
-                  color: 'var(--text-main)',
-                  letterSpacing: '0.2px',
-                  display: 'block',
-                  lineHeight: 1.2,
-                }}
-              >
-                LABRYO <span style={{ color: 'var(--accent-cyan)' }}>LIMS</span>
-              </strong>
-              <span
-                style={{
-                  fontSize: '11px',
-                  color: 'var(--text-muted)',
-                  fontWeight: 600,
-                  marginTop: '2px',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {labProfile?.labName || 'مختبر وادي الرافدين'}
-              </span>
-            </div>
-          </Link>
-
-          {/* Desktop Horizontal Navigation Tabs */}
-          <nav
-            className="desktop-nav-tabs"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              marginRight: '16px',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {primaryNavItems.map((item) => {
-              const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  prefetch={true}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 12px',
-                    fontSize: '12.5px',
-                    fontWeight: isActive ? 800 : 600,
-                    color: isActive ? 'var(--accent-cyan)' : 'var(--text-muted)',
-                    background: isActive ? 'var(--accent-cyan-subtle)' : 'transparent',
-                    borderRadius: '8px',
-                    textDecoration: 'none',
-                    whiteSpace: 'nowrap',
-                    position: 'relative',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <Icon size={14} color={isActive ? 'var(--accent-cyan)' : 'currentColor'} />
-                  <span>{item.label}</span>
-                  {isActive && (
-                    <div style={{ position: 'absolute', bottom: '-8px', left: '12px', right: '12px', height: '2.5px', background: 'var(--accent-cyan)', borderRadius: '2px' }}></div>
-                  )}
-                </Link>
-              );
-            })}
-
-            {/* Secondary Routes 'More ▾' Dropdown */}
-            <div ref={moreMenuRef} style={{ position: 'relative' }}>
-              <button
-                type="button"
-                onClick={() => setMoreMenuOpen(!moreMenuOpen)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '8px 12px',
-                  fontSize: '12px',
-                  fontWeight: isSecondaryActive ? 800 : 600,
-                  color: isSecondaryActive ? 'var(--accent-cyan)' : 'var(--text-muted)',
-                  background: isSecondaryActive ? 'rgba(6, 182, 212, 0.1)' : 'transparent',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <span>More</span>
-                <ChevronDown size={14} style={{ transform: moreMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
-                {isSecondaryActive && (
-                  <div style={{ position: 'absolute', bottom: '-10px', left: '12px', right: '12px', height: '2px', background: 'var(--accent-cyan)', borderRadius: '2px' }}></div>
-                )}
-              </button>
-
-              {moreMenuOpen && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 12px)',
-                    right: 0,
-                    width: '210px',
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '10px',
-                    boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45)',
-                    padding: '6px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '3px',
-                    zIndex: 200,
-                    backdropFilter: 'blur(16px)',
-                  }}
-                >
-                  {secondaryNavItems.map((item) => {
-                    const isActive = pathname === item.href || pathname.startsWith(item.href);
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        prefetch={true}
-                        onClick={() => setMoreMenuOpen(false)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          padding: '8px 12px',
-                          fontSize: '12px',
-                          fontWeight: isActive ? 800 : 600,
-                          color: isActive ? 'var(--accent-cyan)' : 'var(--text-main)',
-                          background: isActive ? 'rgba(6, 182, 212, 0.12)' : 'transparent',
-                          borderRadius: '6px',
-                          textDecoration: 'none',
-                          transition: 'background 0.12s ease',
-                        }}
-                      >
-                        <Icon size={14} color={isActive ? 'var(--accent-cyan)' : 'var(--text-muted)'} />
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </nav>
-        </div>
-
-        {/* Right: Global Search Bar & Quick Tools (Accessible across all screens) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <GlobalQuickBar />
-
-          {/* Theme Toggle Button (Light / Dark) */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            title={theme === 'dark' ? 'Switch to Clinical Light Mode' : 'Switch to Dark Mode'}
-            style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '8px',
-              background: 'var(--bg-input)',
-              border: '1px solid var(--border-color)',
-              color: 'var(--text-main)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            {theme === 'dark' ? <Sun size={17} color="#f59e0b" /> : <Moon size={17} color="#0284c7" />}
-          </button>
-
-          {/* User Role Badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '20px', padding: '4px 10px', fontSize: '11px', color: 'var(--text-main)', fontWeight: 700 }}>
-            <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--accent-emerald)', boxShadow: '0 0 6px var(--accent-emerald)' }}></div>
-            <span>Lab Director</span>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="mobile-menu-btn"
-            style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '8px',
-              background: 'var(--bg-input)',
-              border: '1px solid var(--border-color)',
-              color: 'var(--text-main)',
-              display: 'none',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-            }}
-          >
-            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
-        </div>
-      </header>
-
-      {/* Mobile Drawer (if on mobile screen) */}
-      {mobileMenuOpen && (
-        <div style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '6px', zIndex: 99 }}>
-          {allNavItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 12px',
-                  fontSize: '13px',
-                  fontWeight: isActive ? 800 : 600,
-                  color: isActive ? 'var(--accent-cyan)' : 'var(--text-main)',
-                  background: isActive ? 'rgba(6, 182, 212, 0.12)' : 'transparent',
-                  borderRadius: '6px',
-                  textDecoration: 'none',
-                }}
-              >
-                <Icon size={16} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-
-      {/* 2. MAIN CONTENT AREA (Wide, Spacious, Floating Glass Aesthetic) */}
-      <main className="flex-1 p-3 md:p-6 max-w-[1600px] w-full mx-auto box-border overflow-x-clip" style={{ paddingTop: '20px' }}>
-        {children}
-      </main>
-
+        <UpdateNotificationBanner />
+        <main
+          style={{
+            flex: 1,
+            height: '100%',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+          }}
+        >
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

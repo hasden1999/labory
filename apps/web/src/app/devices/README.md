@@ -14,6 +14,7 @@
 
 ## الملفات الأساسية (Key Files)
 - `page.tsx`: شاشة إدارة ومراقبة الأجهزة المخبرية وخريطة المطابقة.
-- `../../lib/deviceProtocol.ts`: معالجة ومطابقة شفرات وقراءات الأجهزة المخبرية.
+- `../../lib/deviceEngine.ts`: محرك تحليل وتفسير حزم بروتوكولات الأجهزة (ASTM / HL7).
+- `apps/desktop/services/deviceBridgeService.js`: خدمة الاستماع الشبكي المباشر (TCP Listener) لأجهزة الـ LAN.
 
 </div>
