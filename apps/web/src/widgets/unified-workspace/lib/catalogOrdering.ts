@@ -38,20 +38,20 @@ export const MOST_USED_FALLBACK_CODES = [
 ];
 
 export const RECEPTION_CATEGORIES = [
-  { id: 'MOST_USED', label: 'الأكثر طلباً', isStar: true },
-  { id: 'BIOCHEMISTRY', label: 'الكيمياء السريرية' },
-  { id: 'HEMATOLOGY', label: 'أمراض الدم والتخثر' },
-  { id: 'HORMONES', label: 'الغدد والهرمونات' },
-  { id: 'VIROLOGY', label: 'الفيروسات والأمراض المعدية' },
-  { id: 'IMMUNOLOGY', label: 'المناعة والأمصال' },
-  { id: 'MOLECULAR_PCR', label: 'الوراثة والـ PCR' },
-  { id: 'URINE_STOOL', label: 'البول والبراز والمجهري' },
-  { id: 'TUMOR_MARKERS', label: 'دلالات الأورام' },
-  { id: 'MICROBIOLOGY', label: 'المزارع البكتيرية' },
-  { id: 'TOXICOLOGY', label: 'السموم والأدوية' },
-  { id: 'BLOOD_BANK', label: 'بنك الدم والتوافق' },
-  { id: 'PATHOLOGY', label: 'الأنسجة والخلايا' },
-  { id: 'WELLNESS_PANELS', label: 'باقات الفحص الشامل' },
+  { id: 'MOST_USED', label: 'Most used', isStar: true },
+  { id: 'BIOCHEMISTRY', label: 'Biochemistry' },
+  { id: 'HEMATOLOGY', label: 'Hematology' },
+  { id: 'HORMONES', label: 'Hormones' },
+  { id: 'VIROLOGY', label: 'Virology' },
+  { id: 'IMMUNOLOGY', label: 'Immunology' },
+  { id: 'MOLECULAR_PCR', label: 'Molecular (PCR)' },
+  { id: 'URINE_STOOL', label: 'GUE & GSE' },
+  { id: 'TUMOR_MARKERS', label: 'Tumor Markers' },
+  { id: 'MICROBIOLOGY', label: 'Microbiology' },
+  { id: 'TOXICOLOGY', label: 'Toxicology' },
+  { id: 'BLOOD_BANK', label: 'Blood Bank' },
+  { id: 'PATHOLOGY', label: 'Histopathology' },
+  { id: 'WELLNESS_PANELS', label: 'Wellness Panels' },
 ];
 
 /** Standard laboratory aliases mapping for test codes */

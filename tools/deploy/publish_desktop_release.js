@@ -90,7 +90,7 @@ const manifest = {
   releaseDate: new Date().toISOString(),
   downloadUrl: `https://github.com/${OWNER}/${REPO}/releases/download/${TAG}/${sanitizedRemoteName}`,
   mandatory: false,
-  releaseNotes: "تحديث Labryo LIMS v2.0.2: توحيد وتجميع تحاليل الكيمياء السريرية والسكر التراكمي (HbA1c) وباقة دهون الدم (Lipid Panel) في بطاقة تقرير وصورة واتساب واحدة مجمعة عالية الدقة، مع الحفاظ التام على استقلالية الاستمارات التخصصية (صورة الدم الكاملة CBC، الإدرار GUE، الخروج GSE، السائل المنوي SFA، الحمل الرقمي Bhcg، ومخزون المبيض AMH) كصور منفصلة لكل استمارة."
+  releaseNotes: "تحديث Labryo LIMS v2.0.5: تفعيل الطباعة التلقائية (Auto-Print) للتقارير الطبية، والسماح بتجاوز حظر العينات المعلقة (force=true) لطباعة التقارير الجزئية فوراً، وإصلاح أزرار الطباعة في سجل المرضى والاستقبال ومركز العمليات."
 };
 
 const manifestPath = path.join(distDir, 'latest.json');

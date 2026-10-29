@@ -11,6 +11,7 @@ export interface CatalogReferenceRangeItem {
   ageUnit?: 'days' | 'months' | 'years';
   text?: string | null;
   unit?: string | null;
+  sortOrder?: number | null;
 }
 
 export interface TestItem {
@@ -2252,8 +2253,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "A / B / AB / O (Normal Phenotype)",
+    "refRangeText": "A / B / AB / O (Normal Phenotype)",
     "unit": null
   },
   {
@@ -2267,8 +2268,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Positive / Negative (Normal Phenotype)",
+    "refRangeText": "Positive / Negative (Normal Phenotype)",
     "unit": null
   },
   {
@@ -2282,8 +2283,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Positive / Negative (Phenotype)",
+    "refRangeText": "Positive / Negative (Phenotype)",
     "unit": null
   },
   {
@@ -3953,20 +3954,48 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "price": 8000,
     "cost": 1500,
     "costEstimate": 1500,
-    "refRangeLow": 40,
-    "refRangeHigh": 65,
-    "normalMaleLow": 40,
-    "normalMaleHigh": 60,
-    "normalFemaleLow": 50,
-    "normalFemaleHigh": 65,
+    "refRangeLow": 35,
+    "refRangeHigh": 80,
+    "normalMaleLow": 35,
+    "normalMaleHigh": 80,
+    "normalFemaleLow": 40,
+    "normalFemaleHigh": 80,
     "criticalLow": null,
     "criticalHigh": null,
-    "refRangeText": "> 40 (M) / > 50 (F); low HDL is risk factor",
-    "normalRange": "> 40 (M) / > 50 (F); low HDL is risk factor",
+    "refRangeText": "35 - 80 mg/dL (Male) / 40 - 80 mg/dL (Female)",
+    "normalRange": "35 - 80 mg/dL (Male) / 40 - 80 mg/dL (Female)",
     "unit": "mg/dL",
     "sampleType": "Serum",
     "active": true,
-    "referenceSource": "ACC/AHA 2018 Cholesterol Guideline; ESC/EAS 2019 Dyslipidaemias"
+    "referenceSource": "ACC/AHA 2018 Cholesterol Guideline; ESC/EAS 2019 Dyslipidaemias",
+    "referenceRanges": [
+      {
+        "id": "rr-hdl-m",
+        "label": "رجال (Male)",
+        "sex": "M",
+        "ageMin": 0,
+        "ageMax": null,
+        "ageUnit": "years",
+        "low": 35,
+        "high": 80,
+        "text": "35 - 80",
+        "unit": "mg/dL",
+        "sortOrder": 0
+      },
+      {
+        "id": "rr-hdl-f",
+        "label": "نساء (Female)",
+        "sex": "F",
+        "ageMin": 0,
+        "ageMax": null,
+        "ageUnit": "years",
+        "low": 40,
+        "high": 80,
+        "text": "40 - 80",
+        "unit": "mg/dL",
+        "sortOrder": 1
+      }
+    ]
   },
   {
     "id": "t-ldl",
@@ -5613,8 +5642,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3000,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative: Non-pregnant | Positive: Pregnant",
+    "refRangeText": "Negative: Non-pregnant | Positive: Pregnant",
     "unit": null
   },
   {
@@ -5628,8 +5657,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3000,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative: Non-pregnant | Positive: Pregnant",
+    "refRangeText": "Negative: Non-pregnant | Positive: Pregnant",
     "unit": null
   },
   {
@@ -9106,9 +9135,9 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Negative",
-    "refRangeText": "Negative",
-    "unit": null
+    "normalRange": ">= 10 mIU/mL: Immune (محصن) | < 10: Non-immune (غير محصن)",
+    "refRangeText": ">= 10 mIU/mL: Immune | < 10: Non-immune",
+    "unit": "mIU/mL"
   },
   {
     "id": "t-hbcab-t",
@@ -9633,8 +9662,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Negative",
-    "refRangeText": "Negative",
+    "normalRange": "Positive: Prior Exposure (مناعة قديمة) | Negative: Non-immune",
+    "refRangeText": "Positive: Prior Exposure | Negative: Non-immune",
     "unit": null
   },
   {
@@ -9708,8 +9737,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Negative",
-    "refRangeText": "Negative",
+    "normalRange": "Positive: Immune (محصنة) | Negative: Non-immune",
+    "refRangeText": "Positive: Immune | Negative: Non-immune",
     "unit": null
   },
   {
@@ -9753,8 +9782,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Negative",
-    "refRangeText": "Negative",
+    "normalRange": "Positive: Prior Exposure (مناعة قديمة) | Negative: Non-immune",
+    "refRangeText": "Positive: Prior Exposure | Negative: Non-immune",
     "unit": null
   },
   {
@@ -12804,8 +12833,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative: Non-pregnant | Positive: Pregnant",
+    "refRangeText": "Negative: Non-pregnant | Positive: Pregnant",
     "unit": null
   },
   {
@@ -24034,6 +24063,32 @@ export const INITIAL_PANELS: PanelItem[] = [
       "t-tsh",
       "t-ft4",
       "t-ft3"
+    ]
+  },
+  {
+    "id": "p-7",
+    "name": "باقة تورش الشاملة للحوامل (TORCH Panel)",
+    "description": "فحوصات الأجسام المضادة النوعية IgG و IgM لداء القطط والحصبة الألمانية والفيروس المضخم للخلايا وفيروس الهربس",
+    "price": 60000,
+    "testCodes": [
+      "TOXO-G",
+      "TOXO-M",
+      "RUB-G",
+      "RUB-M",
+      "CMV-G",
+      "CMV-M",
+      "HSV-G",
+      "HSV-M"
+    ],
+    "testIds": [
+      "t-toxo-g",
+      "t-toxo-m",
+      "t-rub-g",
+      "t-rub-m",
+      "t-cmv-g",
+      "t-cmv-m",
+      "t-hsv-g",
+      "t-hsv-m"
     ]
   }
 ];

@@ -262,7 +262,7 @@ export default function UnifiedActionBar({
         console.warn('Failed to auto-sync latest results before print:', err);
       }
     }
-    const printUrl = `/api/samples/${target.id}/print`;
+    const printUrl = `/api/samples/${target.id}/print?autoprint=true&force=true`;
     window.open(printUrl, '_blank');
   }, [savedSample, canSave, hasName, hasAge, hasSex, hasTests, handleSave, results, isComplete, toast]);
 

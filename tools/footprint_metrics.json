@@ -1,32 +1,32 @@
 {
-  "timestamp": "2026-10-28T10:41:05.434Z",
+  "timestamp": "2026-10-29T17:09:03.593Z",
   "engine": {
     "path": "apps/desktop/engine",
     "exists": true,
-    "sizeBytes": 185259740,
-    "sizeFormatted": "176.68 MB",
-    "fileCount": 4265
+    "sizeBytes": 169248859,
+    "sizeFormatted": "161.41 MB",
+    "fileCount": 4222
   },
   "standaloneNodeModules": {
     "path": "apps/desktop/engine/standalone/node_modules",
     "exists": true,
-    "sizeBytes": 62062771,
-    "sizeFormatted": "59.19 MB",
+    "sizeBytes": 62111921,
+    "sizeFormatted": "59.23 MB",
     "fileCount": 3780
   },
   "latestSetupExe": {
-    "fileName": "Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 2.0.3.exe",
-    "filePath": "apps/desktop/dist/Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 2.0.3.exe",
-    "sizeBytes": 109794882,
-    "sizeFormatted": "104.71 MB",
-    "modifiedTime": "2026-10-28T10:40:37.020Z"
+    "fileName": "Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 2.0.5.exe",
+    "filePath": "apps/desktop/dist/Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 2.0.5.exe",
+    "sizeBytes": 109710264,
+    "sizeFormatted": "104.63 MB",
+    "modifiedTime": "2026-10-29T17:06:24.128Z"
   },
   "topNodeModulesFolders": [
     {
       "name": ".prisma",
       "path": "apps/desktop/engine/standalone/node_modules/.prisma",
-      "sizeBytes": 21400718,
-      "sizeFormatted": "20.41 MB",
+      "sizeBytes": 21449868,
+      "sizeFormatted": "20.46 MB",
       "fileCount": 13
     },
     {

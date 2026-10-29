@@ -1,6 +1,6 @@
 {
   "name": "@lab-manager/server",
-  "version": "2.0.3",
+  "version": "2.0.5",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

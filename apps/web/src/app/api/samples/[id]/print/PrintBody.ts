@@ -538,9 +538,9 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
   };
 
   const lipidTcSt = findLipid(LIPID_CATALOG_IDS.TC, ['CHOL', 'TC', 'CHOL-TOTAL'] as unknown as readonly string[]);
-  const lipidHdlSt = findLipid(LIPID_CATALOG_IDS.HDL, ['HDL', 'HDL-C'] as unknown as readonly string[]);
+  const lipidHdlSt = findLipid(LIPID_CATALOG_IDS.HDL, ['HDL', 'HDL-C', 'HDLC'] as unknown as readonly string[]);
   const lipidTgSt = findLipid(LIPID_CATALOG_IDS.TG, ['TG', 'TRIG'] as unknown as readonly string[]);
-  const lipidLdlSt = findLipid(LIPID_CATALOG_IDS.LDL, ['LDL', 'LDL-C'] as unknown as readonly string[]);
+  const lipidLdlSt = findLipid(LIPID_CATALOG_IDS.LDL, ['LDL', 'LDL-C', 'LDLC'] as unknown as readonly string[]);
   const lipidVldlSt = findLipid(LIPID_CATALOG_IDS.VLDL, ['VLDL', 'VLDL-C'] as unknown as readonly string[]);
   const lipidUnit = normalizeLipidUnit(lipidTgSt?.test?.unit || lipidTcSt?.test?.unit || lipidHdlSt?.test?.unit || 'mg/dL');
   const lipidDirectLdl = (() => {
@@ -589,8 +589,12 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
       let effectiveValue: any = t.resultValue;
       const tid = String(t.testId || t.test?.id || '');
       const tcode = String(t.test?.code || t.code || '').toUpperCase();
-      const isLdlRow = tid === LIPID_CATALOG_IDS.LDL || tcode === 'LDL' || tcode === 'LDL-C';
+      const tname = String(t.test?.name || t.name || '').toLowerCase();
+      const isLdlRow = tid === LIPID_CATALOG_IDS.LDL || tcode === 'LDL' || tcode === 'LDL-C' || tcode === 'LDLC';
       const isVldlRow = tid === LIPID_CATALOG_IDS.VLDL || tcode === 'VLDL' || tcode === 'VLDL-C';
+      const isLdlHdlRatioRow = tid === LIPID_CATALOG_IDS.LDL_HDL_RATIO || tcode === 'LDL/HDL' || tcode === 'LDL_HDL_RATIO' || tname.includes('ldl/hdl');
+      const isTcHdlRatioRow = tid === LIPID_CATALOG_IDS.TC_HDL_RATIO || tcode === 'TC/HDL' || tcode === 'TC_HDL_RATIO' || tname.includes('tc/hdl') || tname.includes('cholesterol/hdl');
+
       if (!effectiveValue || String(effectiveValue).trim() === '') {
         if (isLdlRow && lipidEffectiveLdl) {
           if (lipidEffectiveLdl.value !== null) {
@@ -603,6 +607,21 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
             effectiveValue = String(lipidPanel.vldl.value);
           } else if (lipidPanel.vldl.invalidReason && lipidTgSt) {
             effectiveValue = lipidPanel.vldl.invalidReason;
+          }
+        } else if (isLdlHdlRatioRow && lipidPanel?.ldlHdlRatio.value !== null && lipidPanel?.ldlHdlRatio.value !== undefined) {
+          effectiveValue = String(lipidPanel.ldlHdlRatio.value);
+        } else if (isTcHdlRatioRow && lipidPanel?.tcHdlRatio.value !== null && lipidPanel?.tcHdlRatio.value !== undefined) {
+          effectiveValue = String(lipidPanel.tcHdlRatio.value);
+        }
+      } else if (isLdlHdlRatioRow && parseFloat(toEnglishDigits(String(effectiveValue))) > 10) {
+        // Clinical sanity check: LDL/HDL ratio cannot clinically be > 10 (e.g. 164.5 which was contaminated by Friedewald LDL)
+        if (lipidPanel?.ldlHdlRatio.value !== null && lipidPanel?.ldlHdlRatio.value !== undefined) {
+          effectiveValue = String(lipidPanel.ldlHdlRatio.value);
+        } else {
+          const ldlVal = lipidLdlSt ? numOf(lipidLdlSt) : NaN;
+          const hdlVal = lipidHdlSt ? numOf(lipidHdlSt) : NaN;
+          if (!isNaN(ldlVal) && !isNaN(hdlVal) && hdlVal > 0) {
+            effectiveValue = (ldlVal / hdlVal).toFixed(1);
           }
         }
       }
@@ -722,7 +741,29 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
           testRef = formatSingleRangeRowHtml(resolved.matchedRange, false);
         } else {
           const raw = resolved.rangeText || '-';
-          testRef = formatFreeRangeLineHtml(raw, false) || `<span dir="ltr" style="display:inline-block;direction:ltr;unicode-bidi:isolate;">-</span>`;
+          let segments = String(raw)
+            .split(/\r?\n|\||;/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+          if (segments.length < 2 && /\s+\/\s+/.test(String(raw))) {
+            segments = String(raw).split(/\s+\/\s+/).map((s) => s.trim()).filter(Boolean);
+          }
+          if (segments.length > 1) {
+            const pGender = String(sample.patient?.gender || '').toUpperCase();
+            const matchedSeg = segments.find((seg) => {
+              const segUpper = seg.toUpperCase();
+              if (pGender === 'MALE' || pGender === 'M') {
+                return segUpper.includes('MALE') || segUpper.startsWith('M:') || segUpper.includes('ذكر') || segUpper.includes('رجال');
+              }
+              if (pGender === 'FEMALE' || pGender === 'F') {
+                return segUpper.includes('FEMALE') || segUpper.startsWith('F:') || segUpper.includes('أنثى') || segUpper.includes('نساء');
+              }
+              return false;
+            });
+            testRef = formatFreeRangeLineHtml(matchedSeg || segments[0], false);
+          } else {
+            testRef = formatFreeRangeLineHtml(raw, false) || `<span dir="ltr" style="display:inline-block;direction:ltr;unicode-bidi:isolate;">-</span>`;
+          }
         }
       } else {
         // printScope === 'ALL': ALWAYS show ALL reference range categories/brackets (e.g. all 3 HbA1c brackets)
@@ -754,10 +795,13 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
                 (t.refRangeLow != null && t.refRangeHigh != null
                   ? `${t.refRangeLow} - ${t.refRangeHigh}`
                   : '-'));
-          const segments = String(raw)
+          let segments = String(raw)
             .split(/\r?\n|\||;/)
             .map((s) => s.trim())
             .filter(Boolean);
+          if (segments.length < 2 && /\s+\/\s+/.test(String(raw))) {
+            segments = String(raw).split(/\s+\/\s+/).map((s) => s.trim()).filter(Boolean);
+          }
           if (segments.length > 1) {
             const hasEnteredVal = effectiveValue !== undefined && effectiveValue !== null && String(effectiveValue).trim() !== '';
             const matchedNorm = translateRefRangeToEnglish(resolved.rangeText || '').toLowerCase();

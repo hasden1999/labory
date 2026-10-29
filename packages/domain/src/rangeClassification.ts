@@ -274,10 +274,22 @@ export function parseBracketRangeBounds(r: StructuredReferenceRangeRow): {
  */
 export function parseMultiBracketLegacyText(refRangeText?: string | null): StructuredReferenceRangeRow[] {
   if (!refRangeText || typeof refRangeText !== 'string') return [];
-  const segments = refRangeText
+  let segments = refRangeText
     .split(/\r?\n|\||;/)
     .map((s) => s.trim())
     .filter(Boolean);
+
+  if (segments.length < 2) {
+    if (/\s+\/\s+/.test(refRangeText)) {
+      const slashParts = refRangeText
+        .split(/\s+\/\s+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (slashParts.length >= 2) {
+        segments = slashParts;
+      }
+    }
+  }
 
   if (segments.length < 2) return [];
 
@@ -310,14 +322,50 @@ export function parseMultiBracketLegacyText(refRangeText?: string | null): Struc
     if (label && rangePart) {
       const bounds = parseNumericBounds(null, null, rangePart);
       if (bounds.low !== null || bounds.high !== null) {
+        let cleanText = rangePart;
+        if (bounds.low !== null && bounds.high !== null) {
+          cleanText = `${bounds.low} - ${bounds.high}`;
+        } else if (bounds.low !== null) {
+          cleanText = `>= ${bounds.low}`;
+        } else if (bounds.high !== null) {
+          cleanText = `< ${bounds.high}`;
+        }
+
+        let sex: 'M' | 'F' | 'any' = 'any';
+        const normLabel = label.toLowerCase();
+        const normSeg = seg.toLowerCase();
+        if (
+          normLabel === 'male' ||
+          normLabel === 'm' ||
+          normLabel.includes('ذكر') ||
+          normLabel.includes('رجال') ||
+          normLabel.startsWith('m:') ||
+          normLabel.startsWith('m ') ||
+          normSeg.includes('(male)') ||
+          normSeg.startsWith('m:')
+        ) {
+          sex = 'M';
+        } else if (
+          normLabel === 'female' ||
+          normLabel === 'f' ||
+          normLabel.includes('أنثى') ||
+          normLabel.includes('نساء') ||
+          normLabel.startsWith('f:') ||
+          normLabel.startsWith('f ') ||
+          normSeg.includes('(female)') ||
+          normSeg.startsWith('f:')
+        ) {
+          sex = 'F';
+        }
+
         rows.push({
-          sex: 'any',
+          sex,
           label,
           min: bounds.low,
           max: bounds.high,
           low: bounds.low,
           high: bounds.high,
-          text: rangePart,
+          text: cleanText,
         });
       }
     }
@@ -558,7 +606,13 @@ export function resolveDynamicReferenceRange(
     const parsedLegacy = parseMultiBracketLegacyText(legacyTextField);
     if (parsedLegacy.length >= 2) {
       if (applicable.length === 0 || isGenericPlaceholderLabel(applicable[0]?.label)) {
-        applicable = parsedLegacy;
+        let filteredLegacy = parsedLegacy.filter((r) => {
+          if (r.sex && r.sex !== 'any') {
+            if (!pSex || r.sex.toUpperCase() !== pSex) return false;
+          }
+          return true;
+        });
+        applicable = filteredLegacy.length > 0 ? filteredLegacy : parsedLegacy;
       }
     }
   }
@@ -702,16 +756,30 @@ export function resolveDynamicReferenceRange(
 
   // Fallback to explicit legacy fields on test object
   const isFemale = pSex === 'F';
+  const isMale = pSex === 'M';
+  const genderSpecificLow = isFemale
+    ? (test.normalFemaleLow ?? test.normalMaleLow)
+    : isMale
+      ? (test.normalMaleLow ?? test.normalFemaleLow)
+      : null;
+  const genderSpecificHigh = isFemale
+    ? (test.normalFemaleHigh ?? test.normalMaleHigh)
+    : isMale
+      ? (test.normalMaleHigh ?? test.normalFemaleHigh)
+      : null;
+
   const lowField =
+    (pSex ? genderSpecificLow : null) ??
     test.refRangeLow ??
     test.low ??
-    (isFemale ? test.normalFemaleLow : test.normalMaleLow) ??
+    genderSpecificLow ??
     test.normalMaleLow ??
     test.normalFemaleLow;
   const highField =
+    (pSex ? genderSpecificHigh : null) ??
     test.refRangeHigh ??
     test.high ??
-    (isFemale ? test.normalFemaleHigh : test.normalMaleHigh) ??
+    genderSpecificHigh ??
     test.normalMaleHigh ??
     test.normalFemaleHigh;
   const textField = legacyTextField ? String(legacyTextField).trim() : null;

@@ -69,7 +69,7 @@ export default function ReferenceRangesEditor({
   const [selectedManualIndex, setSelectedManualIndex] = useState<number>(0);
 
   // Template Handlers
-  const handleApplyTemplate = (type: 'all' | 'mf' | 'mfc' | 'qualitative') => {
+  const handleApplyTemplate = (type: 'all' | 'mf' | 'mfc' | 'qualitative' | 'qualitative_blood_group' | 'qualitative_pregnancy' | 'qualitative_immunity') => {
     const timestamp = Date.now();
     let newRanges: ReferenceRangeItem[] = [];
 
@@ -85,6 +85,60 @@ export default function ReferenceRangesEditor({
           low: null,
           high: null,
           text: 'Negative',
+          valueType: 'text',
+          unit: unit || null,
+          isUserEdited: true,
+          sortOrder: 0,
+        },
+      ];
+    } else if (type === 'qualitative_blood_group') {
+      newRanges = [
+        {
+          id: `rr_bg_${timestamp}`,
+          label: 'فصيلة الدم والعامل الريسي',
+          sex: 'any',
+          ageMin: 0,
+          ageMax: null,
+          ageUnit: 'years',
+          low: null,
+          high: null,
+          text: 'A / B / AB / O (Rh: Pos/Neg)',
+          valueType: 'text',
+          unit: unit || null,
+          isUserEdited: true,
+          sortOrder: 0,
+        },
+      ];
+    } else if (type === 'qualitative_pregnancy') {
+      newRanges = [
+        {
+          id: `rr_preg_${timestamp}`,
+          label: 'فحص الحمل',
+          sex: 'F',
+          ageMin: 12,
+          ageMax: 55,
+          ageUnit: 'years',
+          low: null,
+          high: null,
+          text: 'Negative: Non-pregnant | Positive: Pregnant',
+          valueType: 'text',
+          unit: unit || null,
+          isUserEdited: true,
+          sortOrder: 0,
+        },
+      ];
+    } else if (type === 'qualitative_immunity') {
+      newRanges = [
+        {
+          id: `rr_imm_${timestamp}`,
+          label: 'المناعة والتطعيم',
+          sex: 'any',
+          ageMin: 0,
+          ageMax: null,
+          ageUnit: 'years',
+          low: null,
+          high: null,
+          text: 'Positive: Immune | Negative: Non-immune',
           valueType: 'text',
           unit: unit || null,
           isUserEdited: true,
@@ -321,6 +375,26 @@ export default function ReferenceRangesEditor({
         if (cleanResult === cleanRef || cleanRef.includes(cleanResult) || cleanResult.includes(cleanRef)) {
           return { flag: 'NORMAL', status: 'NORMAL', text: 'طبيعي / متطابق مع المدى (Normal)' };
         } else if ((cleanResult.includes('pos') && cleanRef.includes('neg')) || (cleanResult.includes('react') && cleanRef.includes('non'))) {
+          const isNonPathological =
+            cleanRef.includes('pos/neg') ||
+            cleanRef.includes('a / b') ||
+            cleanRef.includes('pregnant') ||
+            cleanRef.includes('حامل') ||
+            cleanRef.includes('phenotype') ||
+            cleanRef.includes('immune') ||
+            cleanRef.includes('محصن') ||
+            testName.toLowerCase().includes('blood group') ||
+            testName.toLowerCase().includes('abo') ||
+            testName.toLowerCase().includes('rh') ||
+            testName.toLowerCase().includes('pregnancy') ||
+            testName.toLowerCase().includes('anti-hbs') ||
+            testName.toLowerCase().includes('rubella') ||
+            testName.includes('فصيلة') ||
+            testName.includes('حمل') ||
+            testName.includes('مناعة');
+          if (isNonPathological) {
+            return { flag: 'NORMAL', status: 'NORMAL', text: 'طبيعي / حالة مقبولة سريرياً (Normal)' };
+          }
           return { flag: 'HIGH', status: 'ABNORMAL', text: 'إيجابي / غير طبيعي (Abnormal)' };
         }
       }
@@ -442,7 +516,55 @@ export default function ReferenceRangesEditor({
               border: '1px solid rgba(16, 185, 129, 0.3)',
             }}
           >
-            فحص وصفي (Negative للجميع)
+            فحص مسحي (Negative)
+          </button>
+          <button
+            type="button"
+            onClick={() => handleApplyTemplate('qualitative_blood_group')}
+            className="btn-secondary"
+            style={{
+              fontSize: '11.5px',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontWeight: 700,
+              backgroundColor: 'rgba(14, 165, 233, 0.12)',
+              color: '#0284c7',
+              border: '1px solid rgba(14, 165, 233, 0.3)',
+            }}
+          >
+            فصائل الدم (Rh±)
+          </button>
+          <button
+            type="button"
+            onClick={() => handleApplyTemplate('qualitative_pregnancy')}
+            className="btn-secondary"
+            style={{
+              fontSize: '11.5px',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontWeight: 700,
+              backgroundColor: 'rgba(147, 51, 234, 0.12)',
+              color: '#9333ea',
+              border: '1px solid rgba(147, 51, 234, 0.3)',
+            }}
+          >
+            فحص حمل (حامل / غير حامل)
+          </button>
+          <button
+            type="button"
+            onClick={() => handleApplyTemplate('qualitative_immunity')}
+            className="btn-secondary"
+            style={{
+              fontSize: '11.5px',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontWeight: 700,
+              backgroundColor: 'rgba(13, 148, 136, 0.12)',
+              color: '#0d9488',
+              border: '1px solid rgba(13, 148, 136, 0.3)',
+            }}
+          >
+            مناعة وتطعيم (Immune)
           </button>
         </div>
       </div>

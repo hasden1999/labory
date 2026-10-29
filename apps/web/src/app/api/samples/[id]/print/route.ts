@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getStore, clampMargin, getLocalIpAddress, saveStoreToFile } from '../../../../../lib/serverStore';
 import { toEnglishDigits, formatEnglishDate, formatEnglishDateTime, isBloodGroupTest, evaluateClinicalResult } from '../../../../../lib/formatters';
 import { calculateLipidPanel, LIPID_REFERENCE_SOURCES, LIPID_CATALOG_IDS, normalizeLipidUnit, classifyResultRange, formatClinicalAge } from '@lab-manager/domain';
+import { INITIAL_TESTS_CATALOG } from '@lab-manager/data';
 import { resolveReferenceRange } from '../../../../../lib/orderHelpers';
 import { renderPrintBodyPages } from './PrintBody';
 import { renderPrintHeader, renderPatientMetaBox, renderEmblemSvg, HEADER_STYLE_TO_TEMPLATE_MAP, TEMPLATE_TO_HEADER_STYLE_MAP } from './PrintHeader';
@@ -283,25 +284,41 @@ export async function GET(request: Request, { params }: { params: { id: string }
     tests: (rawSample.tests || []).map((st: any) => {
       const tid = st.testId || st.test?.id;
       const tcode = String(st.test?.code || st.code || '').toUpperCase().trim();
+      const tname = String(st.test?.name || st.name || '').toLowerCase().trim();
       const catalogMatch = catalogTests.find(
         (ct: any) =>
           (tid && ct.id === tid) ||
-          (tcode && String(ct.code || '').toUpperCase().trim() === tcode)
+          (tcode && String(ct.code || '').toUpperCase().trim() === tcode) ||
+          (tcode === 'HDLC' && String(ct.code || '').toUpperCase().trim() === 'HDL') ||
+          (tcode === 'LDLC' && String(ct.code || '').toUpperCase().trim() === 'LDL') ||
+          (tname && String(ct.name || '').toLowerCase().trim() === tname)
       );
-      if (!catalogMatch) return st;
+      const initialMatch = INITIAL_TESTS_CATALOG.find(
+        (ct: any) =>
+          (tid && ct.id === tid) ||
+          (tcode && String(ct.code || '').toUpperCase().trim() === tcode) ||
+          (tcode === 'HDLC' && String(ct.code || '').toUpperCase().trim() === 'HDL') ||
+          (tcode === 'LDLC' && String(ct.code || '').toUpperCase().trim() === 'LDL')
+      );
+      if (!catalogMatch && !initialMatch) return st;
+      const fallbackRanges = Array.isArray(initialMatch?.referenceRanges) && initialMatch.referenceRanges.length > 0
+        ? initialMatch.referenceRanges
+        : [];
       return {
         ...st,
         test: {
           ...(st.test || {}),
-          ...catalogMatch,
+          ...(catalogMatch || initialMatch || {}),
           referenceRanges:
-            Array.isArray(catalogMatch.referenceRanges) && catalogMatch.referenceRanges.length > 0
+            Array.isArray(catalogMatch?.referenceRanges) && catalogMatch.referenceRanges.length > 0
               ? catalogMatch.referenceRanges
-              : st.test?.referenceRanges || [],
-          refRangeText: catalogMatch.refRangeText ?? st.test?.refRangeText ?? null,
-          refRangeLow: catalogMatch.refRangeLow ?? st.test?.refRangeLow ?? null,
-          refRangeHigh: catalogMatch.refRangeHigh ?? st.test?.refRangeHigh ?? null,
-          unit: catalogMatch.unit || st.test?.unit || st.unit || '',
+              : fallbackRanges.length > 0
+                ? fallbackRanges
+                : st.test?.referenceRanges || [],
+          refRangeText: catalogMatch?.refRangeText ?? initialMatch?.refRangeText ?? st.test?.refRangeText ?? null,
+          refRangeLow: catalogMatch?.refRangeLow ?? initialMatch?.refRangeLow ?? st.test?.refRangeLow ?? null,
+          refRangeHigh: catalogMatch?.refRangeHigh ?? initialMatch?.refRangeHigh ?? st.test?.refRangeHigh ?? null,
+          unit: catalogMatch?.unit || initialMatch?.unit || st.test?.unit || st.unit || '',
         },
       };
     }),
@@ -311,6 +328,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const allowForce = searchParams.get('force') === 'true';
   const sectionParam = (searchParams.get('section') || 'all').toLowerCase();
   const isSingleMode = searchParams.get('mode') === 'single' || searchParams.get('mode') === 'image';
+  const autoprint = searchParams.get('autoprint') !== 'false' && searchParams.get('autoprint') !== '0';
 
   // Filter tests by requested section for completeness checking
   let targetTestsToCheck = sample.tests || [];
@@ -485,9 +503,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
               ${incompleteListHtml}
             </ul>
           </div>
-          <a href="/results?sampleId=${sample.id}" class="btn-return">
-            الانتقال لشاشة إدخال النتائج لإكمال الفحوصات 🔬
-          </a>
+          <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px;">
+            <a href="/api/samples/${sample.id}/print?force=true&autoprint=true" style="display: inline-block; background: #0284c7; color: #ffffff; padding: 12px 22px; border-radius: 10px; text-decoration: none; font-weight: 800; font-size: 13.5px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);">
+              🖨️ متابعة الطباعة فوراً (تقرير جزئي)
+            </a>
+            <a href="/results?sampleId=${sample.id}" class="btn-return">
+              الانتقال لإكمال الفحوصات المعلقة 🔬
+            </a>
+          </div>
         </div>
       </body>
       </html>
@@ -1222,6 +1245,32 @@ export async function GET(request: Request, { params }: { params: { id: string }
           window.print();
         });
       }
+      ${autoprint && !isSingleMode ? `
+      // Auto-trigger native print dialog once DOM is ready
+      try {
+        var hasTriggered = false;
+        var triggerAutoPrint = function() {
+          if (hasTriggered) return;
+          hasTriggered = true;
+          setTimeout(function() {
+            window.print();
+          }, 350);
+        };
+
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(triggerAutoPrint).catch(triggerAutoPrint);
+        }
+        if (document.readyState === 'complete') {
+          triggerAutoPrint();
+        } else {
+          window.addEventListener('load', triggerAutoPrint);
+        }
+        // Immediate fallback in case document.fonts stalls or load event already fired
+        setTimeout(triggerAutoPrint, 900);
+      } catch (err) {
+        console.warn('Auto-print error:', err);
+      }
+      ` : ''}
     })();
   </script>
 </body>

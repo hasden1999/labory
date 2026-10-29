@@ -766,20 +766,6 @@ export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: Cata
                       }}
                     >
                       {test.name}
-                      {test.arabicName && test.arabicName !== test.name && (
-                        <span
-                          style={{
-                            fontSize: '11px',
-                            fontWeight: 400,
-                            color: 'var(--text-muted)',
-                            marginRight: '6px',
-                            direction: 'rtl',
-                            unicodeBidi: 'isolate',
-                          }}
-                        >
-                          ({test.arabicName})
-                        </span>
-                      )}
                     </span>
                     {dedicatedForm && (
                       <span
@@ -1159,7 +1145,7 @@ export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: Cata
                             </span>
                           )}
                           <span style={{ fontWeight: isSelected ? 700 : 500, color: 'var(--text-main)' }}>
-                            {test.name} {test.arabicName && test.arabicName !== test.name ? `(${test.arabicName})` : ''}
+                            {test.name}
                           </span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

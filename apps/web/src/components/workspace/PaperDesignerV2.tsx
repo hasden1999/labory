@@ -284,6 +284,7 @@ export default function PaperDesignerV2() {
   // Debounced Auto-Save State
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const isInitialMount = useRef(true);
+  const hasHydratedRef = useRef(false);
 
   // Currency Converter states
   const [selectedCurrencyCode, setSelectedCurrencyCode] = useState<string>(() => {
@@ -299,9 +300,13 @@ export default function PaperDesignerV2() {
 
   const [saving, setSaving] = useState(false);
 
-  // Synchronize state when labProfile loads from remote
+  // Synchronize state when labProfile loads from remote (Initial Hydration Guard - runs once to prevent wiping user edits)
   useEffect(() => {
-    if (labProfile) {
+    if (hasHydratedRef.current) return;
+    if (!labProfile) return;
+
+    if (labProfile.isConfigured || labProfile.labName || labProfile.headerStyle || labProfile.reportTemplate) {
+      hasHydratedRef.current = true;
       setLabName(labProfile.labName || 'مختبر الرضا للتحليلات الطبية التخصصية');
       setLabSubtitle(labProfile.labSubtitle || 'فحوصات مرضية وتطبيقية دقيقة - تشخيص إلكتروني متكامل');
       setDoctorName(labProfile.doctorName || 'د. أحمد الرضا');
@@ -746,8 +751,10 @@ export default function PaperDesignerV2() {
         headerPaddingY: Number(headerPaddingY),
       };
 
-      await updateLabProfile(payload as any);
+      await updateLabProfile(payload as any, false);
       await apiRequest('/settings', 'POST', payload);
+      setAutoSaveStatus('saved');
+      setTimeout(() => setAutoSaveStatus('idle'), 2500);
       toast.success('تم حفظ كافة إعدادات الفورمة وتنسيق النتائج والمظهر بنجاح!', 'حفظ التكوين');
     } catch (err: any) {
       toast.error(err?.message || 'فشل حفظ الإعدادات', 'خطأ');
@@ -763,8 +770,8 @@ export default function PaperDesignerV2() {
       return;
     }
 
-    setAutoSaveStatus('saving');
     const timer = setTimeout(async () => {
+      setAutoSaveStatus('saving');
       try {
         const payload = {
           labName,
@@ -855,9 +862,12 @@ export default function PaperDesignerV2() {
           headerPaddingY: Number(headerPaddingY),
         };
 
-        await updateLabProfile(payload as any);
+        await updateLabProfile(payload as any, false);
         await apiRequest('/settings', 'POST', payload);
         setAutoSaveStatus('saved');
+        setTimeout(() => {
+          setAutoSaveStatus('idle');
+        }, 2500);
       } catch (e) {
         console.warn('Auto-save error:', e);
         setAutoSaveStatus('idle');
@@ -978,25 +988,65 @@ export default function PaperDesignerV2() {
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {autoSaveStatus === 'saving' && (
-              <span style={{ fontSize: '11px', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <RefreshCw size={13} className="animate-spin" />
-                <span>جاري الحفظ التلقائي...</span>
-              </span>
-            )}
-            {autoSaveStatus === 'saved' && (
-              <span style={{ fontSize: '11px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <CheckCircle2 size={13} color="#10b981" />
-                <span>تم الحفظ والمزامنة تلقائياً</span>
-              </span>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+            {/* Fixed-width Status Badge with Zero Cumulative Layout Shift (CLS) */}
+            <div
+              style={{
+                minWidth: '165px',
+                height: '34px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '0 10px',
+                borderRadius: '8px',
+                fontSize: '11px',
+                fontWeight: 700,
+                background: autoSaveStatus === 'saving'
+                  ? 'rgba(6, 182, 212, 0.1)'
+                  : autoSaveStatus === 'saved'
+                  ? 'rgba(16, 185, 129, 0.1)'
+                  : 'transparent',
+                border: autoSaveStatus === 'saving'
+                  ? '1px solid rgba(6, 182, 212, 0.25)'
+                  : autoSaveStatus === 'saved'
+                  ? '1px solid rgba(16, 185, 129, 0.25)'
+                  : '1px solid transparent',
+                opacity: autoSaveStatus === 'idle' ? 0 : 1,
+                transition: 'opacity 0.25s ease, background 0.25s ease, border-color 0.25s ease',
+                pointerEvents: 'none',
+                userSelect: 'none',
+              }}
+            >
+              {autoSaveStatus === 'saving' && (
+                <>
+                  <RefreshCw size={13} className="animate-spin" color="var(--accent-cyan)" />
+                  <span style={{ color: 'var(--accent-cyan)' }}>جاري الحفظ التلقائي...</span>
+                </>
+              )}
+              {autoSaveStatus === 'saved' && (
+                <>
+                  <CheckCircle2 size={13} color="#10b981" />
+                  <span style={{ color: '#10b981' }}>تم الحفظ والمزامنة تلقائياً</span>
+                </>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={handleSave}
               disabled={saving}
               className="btn-cyan-primary"
-              style={{ padding: '0 18px', height: '36px', fontSize: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}
+              style={{
+                padding: '0 18px',
+                height: '36px',
+                fontSize: '12px',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                flexShrink: 0,
+              }}
             >
               <Check size={16} />
               <span>{saving ? 'جاري الحفظ...' : 'حفظ وتطبيق التصميم'}</span>

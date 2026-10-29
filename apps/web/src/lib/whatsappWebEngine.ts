@@ -151,6 +151,7 @@ class WhatsAppWebEngine {
     }
 
     this.isInitializing = true;
+    this.status = 'PAIRING';
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -161,6 +162,7 @@ class WhatsAppWebEngine {
         this.sock.end?.(undefined);
       } catch {}
       this.sock = null;
+      this.qrDataUrl = null;
     }
 
     try {
@@ -252,8 +254,8 @@ class WhatsAppWebEngine {
         }
       });
 
-      // Wait briefly so the initial QR code (or fast session resume) is ready in the response
-      await this.waitForQrOrConnect(5500);
+      // Wait sufficiently so the initial QR code (or fast session resume) is ready in the response
+      await this.waitForQrOrConnect(12000);
       return this.getStatus();
     } catch (err: any) {
       console.error('[WhatsAppWebEngine] initSocket error:', err);
@@ -278,9 +280,15 @@ class WhatsAppWebEngine {
     if (!this.hasCheckedSession && !this.sock) {
       this.checkExistingSession();
     }
+    const effectiveStatus: WhatsAppConnectionStatus =
+      this.status === 'CONNECTED'
+        ? 'CONNECTED'
+        : this.qrDataUrl
+          ? 'PAIRING'
+          : this.status;
     return {
       connected: this.status === 'CONNECTED',
-      status: this.status,
+      status: effectiveStatus,
       user: this.connectedUser?.id,
       userName: this.connectedUser?.name,
       qr: this.qrDataUrl || undefined,

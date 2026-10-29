@@ -1138,6 +1138,13 @@ export function getStore(): ServerStore {
             touched = true;
           }
         }
+        // Authoritative sync for structured reference ranges (e.g. Male 35-80, Female 40-80)
+        if (Array.isArray((catalogItem as any).referenceRanges) && (catalogItem as any).referenceRanges.length > 0) {
+          if (!Array.isArray((found as any).referenceRanges) || (found as any).referenceRanges.length === 0) {
+            (found as any).referenceRanges = JSON.parse(JSON.stringify((catalogItem as any).referenceRanges));
+            touched = true;
+          }
+        }
         // Ensure calculated tests stay free (item 9: add nothing to price/revenue)
         if ((catalogItem as any).isCalculated && (found as any).price !== 0) {
           (found as any).price = 0;

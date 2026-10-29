@@ -4,7 +4,11 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Activity, ChevronDown, CheckCircle2, FileText } from 'lucide-react';
 import { UnifiedWorkspaceReturn } from '../model/types';
 import { classifyResultRange, matchPatientReferenceRange, groupTests } from '@lab-manager/domain';
-import { getQualitativeOptionsForTest } from '../../../lib/qualitativeResultOptions';
+import {
+  getQualitativeOptionsForTest,
+  getQualitativeTestKind,
+  getQualitativeVisualTokens,
+} from '../../../lib/qualitativeResultOptions';
 import { resolveReferenceRange } from '@/lib/orderHelpers';
 import * as testClassifier from '@/lib/testClassifier';
 import {
@@ -359,7 +363,7 @@ export default function ResultsGridPanel({
               }}
             >
               <span>🏥</span>
-              <span>{sec.nameAr ? `${sec.nameAr} (${sec.nameEn})` : sec.nameEn}</span>
+              <span>{sec.nameEn || sec.nameAr}</span>
             </div>
 
             {/* Subgroups and tests in Department */}
@@ -379,7 +383,7 @@ export default function ResultsGridPanel({
                   }}
                 >
                   <span>📁</span>
-                  <span>{grp.nameAr ? `${grp.nameAr} (${grp.nameEn})` : grp.nameEn}</span>
+                  <span>{grp.nameEn || grp.nameAr}</span>
                 </div>
                 {grp.tests.map((test) => {
               const res = results[test.id] || {
@@ -584,6 +588,8 @@ export default function ResultsGridPanel({
                         </button>
                       ) : (() => {
                         const qualOptions = getQualitativeOptionsForTest(test);
+                        const qualKind = getQualitativeTestKind(test);
+                        const visualTokens = getQualitativeVisualTokens(res.value, qualKind);
                         return (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                             {qualOptions ? (
@@ -617,15 +623,9 @@ export default function ResultsGridPanel({
                                     padding: '0 8px',
                                     fontSize: '12px',
                                     fontWeight: 700,
-                                    color: res.value.toLowerCase().includes('pos') || res.value.toLowerCase().includes('react')
-                                      ? '#ef4444'
-                                      : res.value.toLowerCase().includes('neg') || res.value.toLowerCase().includes('non')
-                                      ? '#10b981'
-                                      : 'var(--text-main)',
-                                    backgroundColor: 'var(--bg-input)',
-                                    border: res.value.toLowerCase().includes('pos') || res.value.toLowerCase().includes('react')
-                                      ? '1.5px solid #ef4444'
-                                      : '1px solid var(--border-color)',
+                                    color: visualTokens.color,
+                                    backgroundColor: visualTokens.backgroundColor,
+                                    border: `1.5px solid ${visualTokens.borderColor}`,
                                     borderRadius: '6px',
                                     outline: 'none',
                                     cursor: 'pointer',
@@ -637,6 +637,22 @@ export default function ResultsGridPanel({
                                   ))}
                                   <option value="__custom__">كتابة يدوية...</option>
                                 </select>
+                                {visualTokens.statusLabel && res.value && (
+                                  <span
+                                    style={{
+                                      fontSize: '10.5px',
+                                      fontWeight: 700,
+                                      color: visualTokens.color,
+                                      backgroundColor: visualTokens.backgroundColor,
+                                      border: `1px solid ${visualTokens.borderColor}`,
+                                      padding: '1.5px 5px',
+                                      borderRadius: '4px',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    {visualTokens.statusLabel}
+                                  </span>
+                                )}
                                 {(!qualOptions.includes(res.value) || res.value === '') && (
                                   <input
                                     type="text"
@@ -651,9 +667,9 @@ export default function ResultsGridPanel({
                                       padding: '0 6px',
                                       fontSize: '11.5px',
                                       fontWeight: 600,
-                                      color: 'var(--text-main)',
-                                      backgroundColor: 'var(--bg-input)',
-                                      border: '1px solid var(--border-color)',
+                                      color: visualTokens.color,
+                                      backgroundColor: visualTokens.backgroundColor,
+                                      border: `1px solid ${visualTokens.borderColor}`,
                                       borderRadius: '6px',
                                       outline: 'none',
                                       boxSizing: 'border-box',
@@ -751,7 +767,10 @@ export default function ResultsGridPanel({
                             {isLow && (
                               <span style={{ color: '#2563eb', fontWeight: 900, fontSize: 15 }}>↓</span>
                             )}
-                            {isNormal && (
+                            {visualTokens?.isAbnormal && (
+                              <span style={{ color: '#dc2626', fontWeight: 900, fontSize: 13 }} title="نتيجة إيجابية غير طبيعية">⚠</span>
+                            )}
+                            {isNormal && !visualTokens?.isAbnormal && (
                               <span style={{ color: '#16a34a', fontWeight: 800, fontSize: 13 }}>✓</span>
                             )}
                           </div>

@@ -323,21 +323,29 @@ export function LabProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateLabProfile = async (newFields: Partial<LabProfile>, syncRemote = true) => {
-    const updated: LabProfile = {
+    let updated: LabProfile = {
       ...labProfile,
       ...newFields,
       isConfigured: true,
     };
 
-    setLabProfile(updated);
+    setLabProfile((prev) => {
+      updated = {
+        ...prev,
+        ...newFields,
+        isConfigured: true,
+      };
 
-    // Save to localStorage
-    try {
-      localStorage.setItem('lab_profile_settings', JSON.stringify(updated));
-      localStorage.setItem('lab_setup_completed', 'true');
-    } catch (e) {
-      console.warn('Failed to save lab profile to localStorage:', e);
-    }
+      // Save to localStorage
+      try {
+        localStorage.setItem('lab_profile_settings', JSON.stringify(updated));
+        localStorage.setItem('lab_setup_completed', 'true');
+      } catch (e) {
+        console.warn('Failed to save lab profile to localStorage:', e);
+      }
+
+      return updated;
+    });
 
     // Sync to backend API
     if (syncRemote) {

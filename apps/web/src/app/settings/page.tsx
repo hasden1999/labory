@@ -167,8 +167,10 @@ function UnifiedSettingsCatalogView({
       });
       if (data?.connected) {
         toast.success('حساب واتساب ويب متصل ونشط بالفعل ✓');
-      } else {
+      } else if (data?.qrDataUrl || data?.qr) {
         toast.info('تم توليد الباركود (QR) — امسحه من تطبيق واتساب في هاتفك للربط');
+      } else {
+        toast.info('جاري تجهيز اتصال واتساب، سيظهر الرمز خلال ثوانٍ معدودة...');
       }
     } catch (err: any) {
       toast.error(err?.message || 'تعذر بدء جلسة ربط واتساب ويب');
@@ -275,12 +277,12 @@ function UnifiedSettingsCatalogView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  // Poll WhatsApp connection status every 2.5s while on WHATSAPP/SYSTEM tab or while pairing QR is active
+  // Poll WhatsApp connection status every 2s while on WHATSAPP/SYSTEM tab or while pairing QR is active
   useEffect(() => {
     if (activeTab !== 'WHATSAPP' && activeTab !== 'SYSTEM' && waStatus.status !== 'PAIRING') return;
     const timer = setInterval(() => {
       fetchWaStatus();
-    }, 2500);
+    }, 2000);
     return () => clearInterval(timer);
   }, [activeTab, waStatus.status, fetchWaStatus]);
 
@@ -998,7 +1000,9 @@ function UnifiedSettingsCatalogView({
                     />
                   ) : (
                     <div style={{ textAlign: 'center', color: '#475569', padding: '16px', fontSize: '13px', fontWeight: 700 }}>
-                      {waLoading ? '⏳ جاري توليد رمز الباركود (QR)...' : 'اضغط زر توليد الباركود بالأسفل'}
+                      {waLoading || waStatus.status === 'PAIRING'
+                        ? '⏳ جاري الاتصال وتوليد رمز الباركود (QR)... يرجى الانتظار ثوانٍ معدودة'
+                        : 'اضغط زر توليد الباركود بالأسفل'}
                     </div>
                   )}
                 </div>
@@ -1017,7 +1021,7 @@ function UnifiedSettingsCatalogView({
                   <div style={{ marginTop: '14px' }}>
                     <button
                       type="button"
-                      onClick={() => handleConnectWhatsApp(true)}
+                      onClick={() => handleConnectWhatsApp(!waStatus.qrDataUrl ? false : true)}
                       disabled={waLoading}
                       style={{
                         padding: '10px 18px',
@@ -1033,7 +1037,7 @@ function UnifiedSettingsCatalogView({
                         gap: '8px',
                       }}
                     >
-                      <RefreshCw size={15} />
+                      <RefreshCw size={15} className={waLoading ? 'animate-spin' : ''} />
                       <span>{waLoading ? 'جاري توليد الباركود...' : 'تحديث / إعادة توليد الباركود (QR)'}</span>
                     </button>
                   </div>

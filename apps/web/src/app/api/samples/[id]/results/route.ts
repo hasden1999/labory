@@ -79,13 +79,25 @@ async function handleSaveResults(request: Request, params: { id: string }) {
     const c = (t.code || t.test?.code || '').toUpperCase();
     const n = (t.name || t.test?.name || '').toLowerCase();
     const a = t.arabicName || t.test?.arabicName || '';
-    return c === 'HDL' || c === 'HDL-C' || n.includes('hdl') || a.includes('النافع');
+    if (c.includes('RATIO') || c.includes('/') || n.includes('ratio') || n.includes('/')) return false;
+    return c === 'HDL' || c === 'HDL-C' || c === 'HDLC' || n.includes('hdl') || a.includes('النافع');
   };
   const isLdl = (t: any) => {
     const c = (t.code || t.test?.code || '').toUpperCase();
     const n = (t.name || t.test?.name || '').toLowerCase();
     const a = t.arabicName || t.test?.arabicName || '';
-    return (c === 'LDL' || c === 'LDL-C' || (n.includes('ldl') && !n.includes('vldl')) || a.includes('الضار')) && c !== 'VLDL';
+    if (c.includes('RATIO') || c.includes('/') || n.includes('ratio') || n.includes('/')) return false;
+    return (c === 'LDL' || c === 'LDL-C' || c === 'LDLC' || (n.includes('ldl') && !n.includes('vldl')) || a.includes('الضار')) && c !== 'VLDL';
+  };
+  const isLdlHdlRatio = (t: any) => {
+    const c = (t.code || t.test?.code || '').toUpperCase();
+    const n = (t.name || t.test?.name || '').toLowerCase();
+    return c === 'LDL/HDL' || c === 'LDL_HDL_RATIO' || n.includes('ldl/hdl');
+  };
+  const isTcHdlRatio = (t: any) => {
+    const c = (t.code || t.test?.code || '').toUpperCase();
+    const n = (t.name || t.test?.name || '').toLowerCase();
+    return c === 'TC/HDL' || c === 'TC_HDL_RATIO' || c === 'CHOLRATIO' || n.includes('tc/hdl') || n.includes('cholesterol/hdl');
   };
   const isVldl = (t: any) => {
     const c = (t.code || t.test?.code || '').toUpperCase();
@@ -157,6 +169,36 @@ async function handleSaveResults(request: Request, params: { id: string }) {
           }
           ldlT.status = 'COMPLETED';
         }
+      }
+    }
+  }
+
+  // Auto-calculate lipid ratios if present in sample
+  const ldlHdlRatioT = sample.tests.find(isLdlHdlRatio);
+  const tcHdlRatioT = sample.tests.find(isTcHdlRatio);
+
+  if (ldlHdlRatioT && (!ldlHdlRatioT.resultValue || ldlHdlRatioT.resultValue.trim() === '' || parseFloat(ldlHdlRatioT.resultValue) > 10)) {
+    if (ldlT && ldlT.resultValue && hdlT && hdlT.resultValue) {
+      const l = parseFloat(ldlT.resultValue);
+      const h = parseFloat(hdlT.resultValue);
+      if (!isNaN(l) && !isNaN(h) && h > 0) {
+        const ratio = l / h;
+        ldlHdlRatioT.resultValue = ratio.toFixed(1);
+        ldlHdlRatioT.isAbnormal = ratio > 2.5;
+        ldlHdlRatioT.status = 'COMPLETED';
+      }
+    }
+  }
+
+  if (tcHdlRatioT && (!tcHdlRatioT.resultValue || tcHdlRatioT.resultValue.trim() === '' || parseFloat(tcHdlRatioT.resultValue) > 15)) {
+    if (cholT && cholT.resultValue && hdlT && hdlT.resultValue) {
+      const c = parseFloat(cholT.resultValue);
+      const h = parseFloat(hdlT.resultValue);
+      if (!isNaN(c) && !isNaN(h) && h > 0) {
+        const ratio = c / h;
+        tcHdlRatioT.resultValue = ratio.toFixed(1);
+        tcHdlRatioT.isAbnormal = ratio > 5.0;
+        tcHdlRatioT.status = 'COMPLETED';
       }
     }
   }

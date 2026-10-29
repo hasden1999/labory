@@ -163,7 +163,7 @@ async function runReceptionRedesignFullTest() {
   // Test Case 6: Category Rail & Most-Used Determinism
   // ==========================================================================
   console.log('  [TC-06] Testing category rail categories and counts...');
-  assert.strictEqual(RECEPTION_CATEGORIES.length, 7);
+  assert.strictEqual(RECEPTION_CATEGORIES.length, 14);
   assert.strictEqual(RECEPTION_CATEGORIES[0].id, 'MOST_USED');
   assert.strictEqual(RECEPTION_CATEGORIES[0].label, 'Most used');
   assert.strictEqual(RECEPTION_CATEGORIES[1].id, 'BIOCHEMISTRY');

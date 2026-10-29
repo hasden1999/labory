@@ -330,7 +330,9 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
         loadData();
       } catch {}
     }
-    setPreviewUrl(`/api/samples/${activeVisit.sampleId}/print`);
+    const printUrl = `/api/samples/${activeVisit.sampleId}/print?autoprint=true&force=true`;
+    window.open(printUrl, '_blank');
+    setPreviewUrl(printUrl);
   };
 
   const handleSendWhatsApp = async () => {
@@ -1668,21 +1670,48 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
               }}
             >
               <span style={{ fontWeight: 800, fontSize: '14px' }}>معاينة وطباعة التقرير الطبي</span>
-              <button
-                type="button"
-                onClick={() => setPreviewUrl(null)}
-                style={{
-                  background: 'rgba(255,255,255,0.15)',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '4px 10px',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                }}
-              >
-                إغلاق ✕
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (previewUrl) {
+                      window.open(`${previewUrl}${previewUrl.includes('?') ? '&' : '?'}autoprint=true&force=true`, '_blank');
+                    }
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: '#0284c7',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '5px 12px',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                  }}
+                >
+                  <Printer size={13} />
+                  <span>طباعة فورية</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewUrl(null)}
+                  style={{
+                    background: 'rgba(255,255,255,0.15)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '5px 12px',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                  }}
+                >
+                  إغلاق ✕
+                </button>
+              </div>
             </div>
             <iframe src={previewUrl} style={{ flex: 1, width: '100%', border: 'none' }} title="Report Preview" />
           </div>
@@ -2000,7 +2029,8 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                       <button
                         type="button"
                         onClick={() => {
-                          setPreviewUrl(`/api/samples/${visitItem.sampleId}/print`);
+                          const printUrl = `/api/samples/${visitItem.sampleId}/print?autoprint=true&force=true`;
+                          window.open(printUrl, '_blank');
                           setShowPatientHistoryModal(false);
                         }}
                         style={{

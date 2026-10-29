@@ -188,4 +188,63 @@ console.log('🧪 Starting Range Classification & Clinical Alert Unit Tests...')
   console.log('✅ 7. HTML flagged output formatting passed.');
 }
 
+// 8. HDL Gender-Specific Ranges & Qualitative Non-Pathological Normalcy
+{
+  const hdlTest = {
+    id: 't-hdl',
+    code: 'HDL',
+    name: 'HDL Cholesterol',
+    refRangeLow: 35,
+    refRangeHigh: 80,
+    normalMaleLow: 35,
+    normalMaleHigh: 80,
+    normalFemaleLow: 40,
+    normalFemaleHigh: 80,
+    refRangeText: '35 - 80 mg/dL (Male) / 40 - 80 mg/dL (Female)',
+  };
+
+  // Male: 36 mg/dL is within [35, 80] -> NORMAL
+  const hdlMale36 = classifyResultRange(36, hdlTest, { gender: 'MALE' });
+  assert.strictEqual(hdlMale36.flag, 'NORMAL');
+  assert.strictEqual(hdlMale36.isAbnormal, false);
+
+  // Male: 34 mg/dL is below 35 -> LOW
+  const hdlMale34 = classifyResultRange(34, hdlTest, { gender: 'MALE' });
+  assert.strictEqual(hdlMale34.flag, 'LOW');
+  assert.strictEqual(hdlMale34.arrow, '↓');
+  assert.strictEqual(hdlMale34.isAbnormal, true);
+
+  // Female: 36 mg/dL is below 40 -> LOW
+  const hdlFemale36 = classifyResultRange(36, hdlTest, { gender: 'FEMALE' });
+  assert.strictEqual(hdlFemale36.flag, 'LOW');
+  assert.strictEqual(hdlFemale36.arrow, '↓');
+  assert.strictEqual(hdlFemale36.isAbnormal, true);
+
+  // Female: 45 mg/dL is within [40, 80] -> NORMAL
+  const hdlFemale45 = classifyResultRange(45, hdlTest, { gender: 'FEMALE' });
+  assert.strictEqual(hdlFemale45.flag, 'NORMAL');
+  assert.strictEqual(hdlFemale45.isAbnormal, false);
+
+  // Qualitative checks: Blood Group and Pregnancy
+  const bloodGroupTest = { id: 't-bg', code: 'BG', name: 'Blood Group & Rh Factor' };
+  const bgPos = classifyResultRange('O Positive (O+)', bloodGroupTest);
+  assert.strictEqual(bgPos.flag, 'NONE');
+  assert.strictEqual(bgPos.isAbnormal, false);
+
+  const bgNeg = classifyResultRange('A Negative (A-)', bloodGroupTest);
+  assert.strictEqual(bgNeg.flag, 'NONE');
+  assert.strictEqual(bgNeg.isAbnormal, false);
+
+  const pregTest = { id: 't-hcg-u', code: 'HCG-U', name: 'Pregnancy Test (Urine hCG)' };
+  const pregPos = classifyResultRange('Positive', pregTest);
+  assert.strictEqual(pregPos.flag, 'NONE');
+  assert.strictEqual(pregPos.isAbnormal, false);
+
+  const pregNeg = classifyResultRange('Negative', pregTest);
+  assert.strictEqual(pregNeg.flag, 'NONE');
+  assert.strictEqual(pregNeg.isAbnormal, false);
+
+  console.log('✅ 8. HDL gender-specific ranges & qualitative normalcy checks passed.');
+}
+
 console.log('🎉 ALL Range Classification Unit Tests PASSED Successfully!\n');

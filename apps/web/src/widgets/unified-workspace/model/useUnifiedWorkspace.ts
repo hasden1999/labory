@@ -480,9 +480,16 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
       BIOCHEMISTRY: 0,
       HEMATOLOGY: 0,
       HORMONES: 0,
+      VIROLOGY: 0,
       IMMUNOLOGY: 0,
+      MOLECULAR_PCR: 0,
       URINE_STOOL: 0,
       TUMOR_MARKERS: 0,
+      MICROBIOLOGY: 0,
+      TOXICOLOGY: 0,
+      BLOOD_BANK: 0,
+      PATHOLOGY: 0,
+      WELLNESS_PANELS: 0,
     };
 
     catalogTests.forEach((t) => {
@@ -877,7 +884,7 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
 
       if (code === 'CHOL' || code === 'TC' || code === 'CHOLESTEROL' || r.testId === LIPID_CATALOG_IDS.TC || name.includes('total cholesterol')) {
         if (!isNaN(num)) tcVal = num;
-      } else if (code === 'HDL' || code === 'HDL-C' || r.testId === LIPID_CATALOG_IDS.HDL || name.includes('hdl')) {
+      } else if (code === 'HDL' || code === 'HDL-C' || code === 'HDLC' || r.testId === LIPID_CATALOG_IDS.HDL || (name.includes('hdl') && !name.includes('ratio') && !name.includes('/') && !name.includes('ldl') && !name.includes('non-hdl'))) {
         if (!isNaN(num)) hdlVal = num;
       } else if (code === 'TG' || code === 'TRIG' || code === 'TRIGLYCERIDES' || r.testId === LIPID_CATALOG_IDS.TG || name.includes('triglyceride')) {
         if (!isNaN(num)) tgVal = num;
@@ -886,11 +893,11 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
       }
 
       // Track target auto-calculated rows if present
-      if (code === 'LDL' || code === 'LDL-C' || r.testId === LIPID_CATALOG_IDS.LDL || name.includes('ldl')) ldlTestId = r.testId;
-      if (code === 'VLDL' || r.testId === LIPID_CATALOG_IDS.VLDL || name.includes('vldl')) vldlTestId = r.testId;
+      if (code === 'LDL' || code === 'LDL-C' || code === 'LDLC' || r.testId === LIPID_CATALOG_IDS.LDL || (name.includes('ldl') && !name.includes('ratio') && !name.includes('/') && !name.includes('hdl') && !name.includes('vldl'))) ldlTestId = r.testId;
+      if (code === 'VLDL' || code === 'VLDL-C' || r.testId === LIPID_CATALOG_IDS.VLDL || name.includes('vldl')) vldlTestId = r.testId;
       if (code === 'NON_HDL' || code === 'NON-HDL' || r.testId === LIPID_CATALOG_IDS.NON_HDL || name.includes('non-hdl')) nonHdlTestId = r.testId;
-      if (code === 'TC_HDL_RATIO' || code === 'TC/HDL' || r.testId === LIPID_CATALOG_IDS.TC_HDL_RATIO || name.includes('tc/hdl')) tcHdlTestId = r.testId;
-      if (code === 'LDL_HDL_RATIO' || code === 'LDL/HDL' || r.testId === LIPID_CATALOG_IDS.LDL_HDL_RATIO || name.includes('ldl/hdl')) ldlHdlTestId = r.testId;
+      if (code === 'TC_HDL_RATIO' || code === 'TC/HDL' || r.testId === LIPID_CATALOG_IDS.TC_HDL_RATIO || name.includes('tc/hdl') || name.includes('tc / hdl') || name.includes('chol/hdl')) tcHdlTestId = r.testId;
+      if (code === 'LDL_HDL_RATIO' || code === 'LDL/HDL' || r.testId === LIPID_CATALOG_IDS.LDL_HDL_RATIO || name.includes('ldl/hdl') || name.includes('ldl / hdl')) ldlHdlTestId = r.testId;
       if (code === 'EGFR' || name.includes('egfr')) egfrTestId = r.testId;
     });
 
@@ -936,7 +943,7 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
         if (nonHdlTestId && next[nonHdlTestId] && !next[nonHdlTestId].isDirectOverride) {
           const newVal = lipidPanel.nonHdl.value !== null ? String(lipidPanel.nonHdl.value) : '';
           if (next[nonHdlTestId].value !== newVal) {
-            next[next[nonHdlTestId].testId] = {
+            next[nonHdlTestId] = {
               ...next[nonHdlTestId],
               value: newVal,
               isCalculated: true,

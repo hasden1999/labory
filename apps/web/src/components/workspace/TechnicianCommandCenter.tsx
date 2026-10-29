@@ -304,7 +304,7 @@ export default function TechnicianCommandCenter({
     if (onOpenReport) {
       onOpenReport(sampleId);
     } else {
-      window.open(`/samples/${sampleId}/print`, '_blank');
+      window.open(`/api/samples/${sampleId}/print?autoprint=true&force=true`, '_blank');
     }
   };
 
