@@ -241,15 +241,16 @@ async function runPdfArabicAndFlagsGoldenTest() {
   const localAppData = process.env.LOCALAPPDATA || '';
 
   const candidatePaths: string[] = [
-    path.join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    localAppData ? path.join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe') : '',
+    localAppData ? path.join(localAppData, 'Microsoft', 'Edge', 'Application', 'msedge.exe') : '',
     path.join(progFiles, 'Google', 'Chrome', 'Application', 'chrome.exe'),
     path.join(progFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'),
-    path.join(progFiles, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
     path.join(progFilesX86, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+    path.join(progFiles, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
   ];
   let execPath: string | undefined = undefined;
   for (const p of candidatePaths) {
-    if (fs.existsSync(p)) {
+    if (p && fs.existsSync(p)) {
       execPath = p;
       break;
     }
@@ -257,14 +258,24 @@ async function runPdfArabicAndFlagsGoldenTest() {
 
   const launchOptions: any = {
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
   };
   if (execPath) launchOptions.executablePath = execPath;
 
   const browser = await puppeteer.launch(launchOptions);
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'domcontentloaded' });
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      const url = req.url();
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+    page.setDefaultTimeout(30000);
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 30000 });
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,

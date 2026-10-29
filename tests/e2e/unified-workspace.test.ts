@@ -802,6 +802,83 @@ describe('Tier 1.5: R2 Action Bar & Ergonomic Shortcuts', () => {
     expect(composing).toBe(false);
   });
 
+  test('TC-T1-27c: advanceFocusToNextField traverses Patient -> Gender -> Results -> Save button in sequence', async () => {
+    const { JSDOM } = await import('jsdom');
+    const { advanceFocusToNextField } = await import('../../apps/web/src/widgets/unified-workspace/lib/useShiftNavigation');
+
+    const dom = new JSDOM(`
+      <!DOCTYPE html>
+      <body>
+        <div id="workspace">
+          <input id="name" data-shift-nav="patient" value="Ali" />
+          <input id="age" data-shift-nav="patient" value="30" />
+          <button id="female" data-shift-nav="patient">أنثى</button>
+          <button id="male" data-shift-nav="patient">ذكر</button>
+          <input id="phone" data-shift-nav="patient" value="0770" />
+          <input id="res1" data-shift-nav="result" value="120" />
+          <select id="res2" data-shift-nav="result"><option value="NEG">Negative</option></select>
+          <button id="save" data-shift-nav="save-btn">Save</button>
+        </div>
+      </body>
+    `);
+
+    const win = dom.window;
+    const oldWin = global.window;
+    const oldDoc = global.document;
+    (global as any).window = win;
+    (global as any).document = win.document;
+    (global as any).HTMLInputElement = win.HTMLInputElement;
+    (global as any).HTMLTextAreaElement = win.HTMLTextAreaElement;
+
+    const nameInput = win.document.getElementById('name') as HTMLInputElement;
+    const ageInput = win.document.getElementById('age') as HTMLInputElement;
+    const femaleBtn = win.document.getElementById('female') as HTMLButtonElement;
+    const maleBtn = win.document.getElementById('male') as HTMLButtonElement;
+    const phoneInput = win.document.getElementById('phone') as HTMLInputElement;
+    const res1Input = win.document.getElementById('res1') as HTMLInputElement;
+    const res2Select = win.document.getElementById('res2') as HTMLSelectElement;
+    const saveBtn = win.document.getElementById('save') as HTMLButtonElement;
+
+    // Start with focus on name
+    nameInput.focus();
+    expect(win.document.activeElement).toBe(nameInput);
+
+    // 1st Shift press: advances to age
+    advanceFocusToNextField(win.document.body);
+    expect(win.document.activeElement).toBe(ageInput);
+
+    // 2nd Shift press: advances to Gender Female (never neglected!)
+    advanceFocusToNextField(win.document.body);
+    expect(win.document.activeElement).toBe(femaleBtn);
+
+    // 3rd Shift press: advances to Gender Male
+    advanceFocusToNextField(win.document.body);
+    expect(win.document.activeElement).toBe(maleBtn);
+
+    // 4th Shift press: advances to phone
+    advanceFocusToNextField(win.document.body);
+    expect(win.document.activeElement).toBe(phoneInput);
+
+    // 5th Shift press: advances to first result input
+    advanceFocusToNextField(win.document.body);
+    expect(win.document.activeElement).toBe(res1Input);
+
+    // 6th Shift press: advances to qualitative select result
+    advanceFocusToNextField(win.document.body);
+    expect(win.document.activeElement).toBe(res2Select);
+
+    // 7th Shift press: advances to Save button (focus only, no click)
+    advanceFocusToNextField(win.document.body);
+    expect(win.document.activeElement).toBe(saveBtn);
+
+    // 8th Shift press: loops back to patient name
+    advanceFocusToNextField(win.document.body);
+    expect(win.document.activeElement).toBe(nameInput);
+
+    (global as any).window = oldWin;
+    (global as any).document = oldDoc;
+  });
+
 });
 
 describe('Tier 1.6: R3 System Preservation - Zero Breaking Changes', () => {
