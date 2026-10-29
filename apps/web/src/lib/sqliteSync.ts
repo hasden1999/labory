@@ -1,6 +1,8 @@
 import { prisma, initDbWAL } from './prisma';
+import { HEADER_STYLE_TO_TEMPLATE_MAP, TEMPLATE_TO_HEADER_STYLE_MAP } from '@lab/domain';
 
 export async function loadStoreFromSqlite(): Promise<any | null> {
+  if (process.arch === 'ia32') return null;
   try {
     await initDbWAL();
 
@@ -188,7 +190,7 @@ export async function loadStoreFromSqlite(): Promise<any | null> {
       labSubtitle: dbSettings.labSubtitle || '',
       doctorName: dbSettings.doctorName || '',
       doctorTitle: dbSettings.doctorTitle || '',
-      labLicense: dbSettings.labLicense || '',
+      labLicense: dbSettings.labLicense === 'MOH-IQ-2026-8842' ? '' : (dbSettings.labLicense || ''),
       phone: dbSettings.phone || '',
       whatsappNumber: dbSettings.whatsappNumber || '',
       address: dbSettings.address || '',
@@ -196,6 +198,7 @@ export async function loadStoreFromSqlite(): Promise<any | null> {
       reportHeader: dbSettings.reportHeader || dbSettings.labName,
       reportFooter: dbSettings.reportFooter || '',
       reportTemplate: (dbSettings.reportTemplate as any) || 'CLASSIC',
+      headerStyle: (dbSettings.reportTemplate ? TEMPLATE_TO_HEADER_STYLE_MAP[dbSettings.reportTemplate] : 'default') || 'default',
       cbcLayoutTemplate: (dbSettings.cbcLayoutTemplate as any) || 'WITH_HISTOGRAMS',
       showPanicFlags: dbSettings.showPanicFlags,
       showClinicalComments: dbSettings.showClinicalComments,
@@ -506,14 +509,14 @@ export async function syncSettingsToSqlite(s: any): Promise<void> {
         labSubtitle: s.labSubtitle || '',
         doctorName: s.doctorName || '',
         doctorTitle: s.doctorTitle || '',
-        labLicense: s.labLicense || '',
+        labLicense: s.labLicense === 'MOH-IQ-2026-8842' ? '' : (s.labLicense || ''),
         phone: s.phone || '',
         whatsappNumber: s.whatsappNumber || '',
         address: s.address || '',
         currency: s.currency || 'د.ع',
         reportHeader: s.reportHeader || s.labName || '',
         reportFooter: s.reportFooter || '',
-        reportTemplate: s.reportTemplate || 'CLASSIC',
+        reportTemplate: s.reportTemplate || (s.headerStyle ? HEADER_STYLE_TO_TEMPLATE_MAP[s.headerStyle] : null) || 'CLASSIC',
         cbcLayoutTemplate: s.cbcLayoutTemplate || 'WITH_HISTOGRAMS',
         showPanicFlags: s.showPanicFlags !== false,
         showClinicalComments: s.showClinicalComments !== false,
@@ -534,14 +537,14 @@ export async function syncSettingsToSqlite(s: any): Promise<void> {
         labSubtitle: s.labSubtitle || '',
         doctorName: s.doctorName || '',
         doctorTitle: s.doctorTitle || '',
-        labLicense: s.labLicense || '',
+        labLicense: s.labLicense === 'MOH-IQ-2026-8842' ? '' : (s.labLicense || ''),
         phone: s.phone || '',
         whatsappNumber: s.whatsappNumber || '',
         address: s.address || '',
         currency: s.currency || 'د.ع',
         reportHeader: s.reportHeader || s.labName || '',
         reportFooter: s.reportFooter || '',
-        reportTemplate: s.reportTemplate || 'CLASSIC',
+        reportTemplate: s.reportTemplate || (s.headerStyle ? HEADER_STYLE_TO_TEMPLATE_MAP[s.headerStyle] : null) || 'CLASSIC',
         cbcLayoutTemplate: s.cbcLayoutTemplate || 'WITH_HISTOGRAMS',
         showPanicFlags: s.showPanicFlags !== false,
         showClinicalComments: s.showClinicalComments !== false,

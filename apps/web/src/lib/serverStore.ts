@@ -23,7 +23,8 @@ import {
   deleteTestGroupFromSqlite,
   syncTestSpecialtyAssignmentToSqlite,
 } from './sqliteSync';
-import { prisma } from './prisma';
+import { broadcastEvent } from './networkDeviceManager';
+import { normalizeAgeToBirthDate } from '@lab/domain';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -146,10 +147,15 @@ export interface LabSettings {
   resultValueFontSize?: number;
   unitFontSize?: number;
   refRangeFontSize?: number;
+  specialFormFontSize?: number;
+  print_special_form_font_size?: number;
+  patientNameFontSize?: number;
+  patientInfoFontSize?: number;
+  watermarkEnabled?: boolean;
   testNameFontWeight?: 'normal' | 'bold';
   resultValueFontWeight?: 'normal' | 'bold';
   tableColumns?: {
-    id: 'testName' | 'result' | 'unit' | 'refRange' | 'notes';
+    id: 'testName' | 'result' | 'unit' | 'refRange' | 'notes' | 'method';
     label: string;
     visible: boolean;
     align: 'left' | 'center' | 'right';
@@ -163,6 +169,14 @@ export interface LabSettings {
   tableRowBorders?: boolean;
   tableZebraStriping?: boolean;
   tableRowSpacing?: 'COMPACT' | 'COMFORTABLE' | 'RELAXED';
+
+  // Flexible Clinical Design Architecture (Indian Diagnostic Standard & Emblems)
+  labEmblem?: 'microscope' | 'tubes' | 'dna' | 'badge' | 'blood' | 'none';
+  emblemPlacement?: 'header_corner' | 'with_logo' | 'watermark' | 'both';
+  secondaryColor?: string;
+  showRangeBar?: boolean;
+  patientLayout?: 'grid' | 'cards' | 'compact';
+  headerStyle?: 'dual_wing' | 'gradient_banner' | 'minimal_pure' | 'regal_box' | 'compact_strip' | 'gold_frame' | 'smart_digital' | 'accredited_badge' | 'bauhaus_grid' | 'aurora_wave' | 'executive_dark' | 'vertical_accent' | 'glass_capsule' | 'default' | string;
 }
 
 export interface LicenseStore {
@@ -188,6 +202,8 @@ export interface PatientRecord {
   name: string;
   phone?: string;
   age?: number | null;
+  ageMonths?: number | null;
+  ageDays?: number | null;
   gender: 'MALE' | 'FEMALE';
   birthDate?: string | null;
   birthDateEstimated?: boolean | null;
@@ -222,6 +238,9 @@ export interface SampleTestRecord {
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
   notes?: string;
   completedAt?: string;
+  previousValue?: string | null;
+  previousDate?: string | null;
+  previousSampleNumber?: number | null;
   [key: string]: any;
 }
 
@@ -247,13 +266,14 @@ export interface SampleRecord {
   doctorId?: string | null;
   doctor?: DoctorRecord | null;
   doctorCommission?: number;
-  status: 'RECEIVED' | 'IN_PROGRESS' | 'READY' | 'DELIVERED' | 'REJECTED';
+  status: 'RECEIVED' | 'IN_PROGRESS' | 'READY' | 'DELIVERED' | 'REJECTED' | 'COMPLETED';
   isUrgent: boolean;
   priceTotal: number;
   discount: number;
   discountPercent: number;
   paidAmount: number;
   remainingAmount: number;
+  paymentStatus?: 'PAID' | 'PARTIAL' | 'PENDING' | string;
   paymentMethod: 'CASH' | 'DEBT' | 'CARD';
   notes?: string;
   rejectionReason?: string | null;
@@ -261,6 +281,7 @@ export interface SampleRecord {
   rejectedAt?: string | null;
   rejectedBy?: string | null;
   criticalCallLogs?: CriticalCallLog[];
+  reagentAlerts?: { itemId: string; name: string; remainingQuantity: number; minStockLevel: number; unit: string }[];
   createdAt: string;
   tests: SampleTestRecord[];
 }
@@ -421,9 +442,55 @@ export interface ServerStore {
   deviceRawLogs?: DeviceRawLogRecord[];
   debtors?: DebtorRecord[];
   debtTransactions?: DebtTransactionRecord[];
+  financialTransactions?: any[];
   shifts?: CashShiftRecord[];
   specialties?: SpecialtyRecord[];
   testGroups?: TestGroupRecord[];
+  inventoryItems?: InventoryItemRecord[];
+  inventoryTransactions?: InventoryTransactionRecord[];
+  staff?: StaffRecord[];
+}
+
+export interface InventoryTransactionRecord {
+  id: string;
+  itemId: string;
+  type: 'IN' | 'OUT' | 'ADJUST' | 'WASTE';
+  quantity: number;
+  reason?: string | null;
+  sampleId?: string | null;
+  createdAt: string;
+}
+
+export interface InventoryItemRecord {
+  id: string;
+  name: string;
+  code?: string | null;
+  catalogCode?: string | null;
+  category: 'REAGENT' | 'CONSUMABLE' | 'CALIBRATOR' | 'CONTROL' | string;
+  unit: string;
+  quantity: number;
+  minStockLevel: number;
+  lotNumber?: string | null;
+  expiryDate?: string | null;
+  openedAt?: string | null;
+  onBoardStabilityDays?: number | null;
+  calculatedStabilityExpiry?: string | null;
+  supplierName?: string | null;
+  costPerUnit?: number | null;
+  isActive?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  transactions?: InventoryTransactionRecord[];
+}
+
+export interface StaffRecord {
+  id: string;
+  name: string;
+  email: string;
+  role: 'ADMIN' | 'RECEPTION' | 'TECH' | 'DOCTOR' | string;
+  phone?: string;
+  active: boolean;
+  createdAt: string;
 }
 
 export function getInitialDevices(): DeviceRecord[] {
@@ -639,8 +706,8 @@ function initStore(): ServerStore {
       watermarkColor: '#0f172a',
       fontFamily: 'Tajawal',
       fontSize: 'MEDIUM',
-      groupByCategory: false,
-      groupingStyle: 'category',
+      groupByCategory: true,
+      groupingStyle: 'specialty',
       logoWidthMm: null,
       logoAlign: null,
       logoOffsetXMm: null,
@@ -678,29 +745,65 @@ if (typeof process !== 'undefined') {
   process.once('SIGTERM', () => { handleExit(); process.exit(0); });
 }
 
+function renameWithRetrySync(tempFile: string, targetFile: string, maxRetries = 3, delayMs = 50): void {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      fs.renameSync(tempFile, targetFile);
+      return;
+    } catch (err: any) {
+      const isLockError = err?.code === 'EBUSY' || err?.code === 'EPERM' || err?.code === 'EACCES';
+      if (attempt === maxRetries || !isLockError) {
+        throw err;
+      }
+      const end = Date.now() + delayMs * attempt;
+      while (Date.now() < end) {}
+    }
+  }
+}
+
+async function renameWithRetryAsync(tempFile: string, targetFile: string, maxRetries = 3, delayMs = 50): Promise<void> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await fs.promises.rename(tempFile, targetFile);
+      return;
+    } catch (err: any) {
+      const isLockError = err?.code === 'EBUSY' || err?.code === 'EPERM' || err?.code === 'EACCES';
+      if (attempt === maxRetries || !isLockError) {
+        throw err;
+      }
+      await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+    }
+  }
+}
+
 export function flushStoreSync(): void {
   if (saveTimeout) {
     clearTimeout(saveTimeout);
     saveTimeout = null;
   }
+  let tempFile: string | null = null;
   try {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
     if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
 
     if (global.__labStore) {
       const payload = JSON.stringify(global.__labStore, null, 2);
-      const tempFile = `${DATA_FILE}.tmp`;
+      tempFile = `${DATA_FILE}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
       const bakFile = `${DATA_FILE}.bak`;
 
       fs.writeFileSync(tempFile, payload, 'utf-8');
       if (fs.existsSync(DATA_FILE)) {
         try { fs.copyFileSync(DATA_FILE, bakFile); } catch {}
       }
-      fs.renameSync(tempFile, DATA_FILE);
+      renameWithRetrySync(tempFile, DATA_FILE);
+      tempFile = null;
       rotateDailySnapshot(payload);
     }
   } catch (err) {
     console.error('[ServerStore] Synchronous flush error:', err);
+    if (tempFile && fs.existsSync(tempFile)) {
+      try { fs.unlinkSync(tempFile); } catch {}
+    }
   }
 }
 
@@ -711,24 +814,29 @@ async function executeAsyncSave(): Promise<void> {
   }
   isSaving = true;
 
+  let tempFile: string | null = null;
   try {
     if (!fs.existsSync(DATA_DIR)) await fs.promises.mkdir(DATA_DIR, { recursive: true });
     if (!fs.existsSync(BACKUP_DIR)) await fs.promises.mkdir(BACKUP_DIR, { recursive: true });
 
     if (global.__labStore) {
       const payload = JSON.stringify(global.__labStore, null, 2);
-      const tempFile = `${DATA_FILE}.tmp`;
+      tempFile = `${DATA_FILE}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
       const bakFile = `${DATA_FILE}.bak`;
 
       await fs.promises.writeFile(tempFile, payload, 'utf-8');
       if (fs.existsSync(DATA_FILE)) {
         try { await fs.promises.copyFile(DATA_FILE, bakFile); } catch {}
       }
-      await fs.promises.rename(tempFile, DATA_FILE);
+      await renameWithRetryAsync(tempFile, DATA_FILE);
+      tempFile = null;
       rotateDailySnapshot(payload);
     }
   } catch (err) {
     console.error('[ServerStore] Async persistence error:', err);
+    if (tempFile && fs.existsSync(tempFile)) {
+      try { await fs.promises.unlink(tempFile); } catch {}
+    }
   } finally {
     isSaving = false;
     if (pendingSave) {
@@ -736,6 +844,10 @@ async function executeAsyncSave(): Promise<void> {
       scheduleSaveStore(50);
     }
   }
+}
+
+export async function flushStoreAsync(): Promise<void> {
+  return executeAsyncSave();
 }
 
 export function scheduleSaveStore(delayMs = 250): void {
@@ -891,6 +1003,25 @@ export function triggerSqliteSync(): void {
   sqliteSyncTriggered = true;
   loadStoreFromSqlite().then((fromSqlite) => {
     if (fromSqlite && fromSqlite.tests && fromSqlite.tests.length > 0) {
+      const existingSettings = global.__labStore?.settings || loadStoreFromFile()?.settings || {};
+      const existingLicense = global.__labStore?.license || loadStoreFromFile()?.license;
+      if ((existingSettings as any)?.labLicense === 'MOH-IQ-2026-8842') (existingSettings as any).labLicense = '';
+      if (fromSqlite.settings?.labLicense === 'MOH-IQ-2026-8842') fromSqlite.settings.labLicense = '';
+      fromSqlite.settings = { ...existingSettings, ...fromSqlite.settings };
+      if (fromSqlite.settings?.labLicense === 'MOH-IQ-2026-8842') fromSqlite.settings.labLicense = '';
+      if (existingLicense) {
+        fromSqlite.license = existingLicense;
+      }
+      const existingStore = global.__labStore || loadStoreFromFile();
+      if (existingStore?.devices?.length) fromSqlite.devices = existingStore.devices;
+      if (existingStore?.inventoryItems?.length) fromSqlite.inventoryItems = existingStore.inventoryItems;
+      if (existingStore?.inventoryTransactions?.length) fromSqlite.inventoryTransactions = existingStore.inventoryTransactions;
+      if (existingStore?.staff?.length) fromSqlite.staff = existingStore.staff;
+      if (existingStore?.debtors?.length) fromSqlite.debtors = existingStore.debtors;
+      if (existingStore?.debtTransactions?.length) fromSqlite.debtTransactions = existingStore.debtTransactions;
+      if (existingStore?.shifts?.length) fromSqlite.shifts = existingStore.shifts;
+      if (existingStore?.incomingResults?.length) fromSqlite.incomingResults = existingStore.incomingResults;
+      if (existingStore?.deviceRawLogs?.length) fromSqlite.deviceRawLogs = existingStore.deviceRawLogs;
       global.__labStore = fromSqlite;
       console.log(`💎 [ServerStore] Authoritative state active from SQLite lab.db (${fromSqlite.tests.length} tests)`);
       try {
@@ -907,6 +1038,25 @@ export async function getStoreAsync(): Promise<ServerStore> {
   if (!global.__labStore || !global.__labStore.tests || global.__labStore.tests.length === 0) {
     const fromSqlite = await loadStoreFromSqlite();
     if (fromSqlite) {
+      const existingSettings = global.__labStore?.settings || loadStoreFromFile()?.settings || {};
+      const existingLicense = global.__labStore?.license || loadStoreFromFile()?.license;
+      if ((existingSettings as any)?.labLicense === 'MOH-IQ-2026-8842') (existingSettings as any).labLicense = '';
+      if (fromSqlite.settings?.labLicense === 'MOH-IQ-2026-8842') fromSqlite.settings.labLicense = '';
+      fromSqlite.settings = { ...existingSettings, ...fromSqlite.settings };
+      if (fromSqlite.settings?.labLicense === 'MOH-IQ-2026-8842') fromSqlite.settings.labLicense = '';
+      if (existingLicense) {
+        fromSqlite.license = existingLicense;
+      }
+      const existingStore = global.__labStore || loadStoreFromFile();
+      if (existingStore?.devices?.length) fromSqlite.devices = existingStore.devices;
+      if (existingStore?.inventoryItems?.length) fromSqlite.inventoryItems = existingStore.inventoryItems;
+      if (existingStore?.inventoryTransactions?.length) fromSqlite.inventoryTransactions = existingStore.inventoryTransactions;
+      if (existingStore?.staff?.length) fromSqlite.staff = existingStore.staff;
+      if (existingStore?.debtors?.length) fromSqlite.debtors = existingStore.debtors;
+      if (existingStore?.debtTransactions?.length) fromSqlite.debtTransactions = existingStore.debtTransactions;
+      if (existingStore?.shifts?.length) fromSqlite.shifts = existingStore.shifts;
+      if (existingStore?.incomingResults?.length) fromSqlite.incomingResults = existingStore.incomingResults;
+      if (existingStore?.deviceRawLogs?.length) fromSqlite.deviceRawLogs = existingStore.deviceRawLogs;
       global.__labStore = fromSqlite;
     }
   }
@@ -921,6 +1071,7 @@ export function getStore(): ServerStore {
       if (fromFile.settings) {
         if (fromFile.settings.labName && fromFile.settings.labName.trim().length > 0) {
           fromFile.settings.isConfigured = true;
+          if (fromFile.settings.labLicense === 'MOH-IQ-2026-8842') fromFile.settings.labLicense = '';
         }
       }
       global.__labStore = fromFile;
@@ -957,7 +1108,17 @@ export function getStore(): ServerStore {
   // Ensure all tests from INITIAL_TESTS_CATALOG are present in tests catalog
   // (dedupe by id AND code — item 3: never create duplicates)
   const currentStore = global.__labStore;
-  if (currentStore && Array.isArray(currentStore.tests)) {
+  if (currentStore && Array.isArray(currentStore.tests) && !(currentStore as any).__catalogHydrated) {
+    Object.defineProperty(currentStore, '__catalogHydrated', { value: true, enumerable: false, configurable: true, writable: true });
+    if (!Array.isArray(currentStore.inventoryItems) || currentStore.inventoryItems.length === 0) {
+      currentStore.inventoryItems = getInitialInventoryItems();
+    }
+    if (!Array.isArray(currentStore.inventoryTransactions)) {
+      currentStore.inventoryTransactions = [];
+    }
+    if (!Array.isArray(currentStore.staff) || currentStore.staff.length === 0) {
+      currentStore.staff = getInitialStaff();
+    }
     let storeUpdated = false;
     INITIAL_TESTS_CATALOG.forEach(catalogItem => {
       const found = currentStore.tests.find((t: any) => t.id === catalogItem.id || (t.code && catalogItem.code && t.code === catalogItem.code));
@@ -986,13 +1147,75 @@ export function getStore(): ServerStore {
       }
     });
 
-    // Ensure all standard diagnostic panels are present
+    // Ensure demo seed doctors (doc-1 through doc-4) are purged from active list
+    if (Array.isArray(currentStore.doctors)) {
+      const demoDoctorIds = new Set(['doc-1', 'doc-2', 'doc-3', 'doc-4']);
+      const beforeDocCount = currentStore.doctors.length;
+      currentStore.doctors = currentStore.doctors.filter((d) => !demoDoctorIds.has(d.id));
+      if (currentStore.doctors.length !== beforeDocCount) {
+        storeUpdated = true;
+      }
+    }
+
+    // Ensure only canonical diagnostic panels and user custom panels exist
     if (Array.isArray(currentStore.panels)) {
-      INITIAL_PANELS.forEach(panelItem => {
-        const foundPanel = currentStore.panels.find((p: any) => p.id === panelItem.id);
-        if (!foundPanel) {
-          currentStore.panels.push(panelItem);
+      const canonicalIds = new Set(INITIAL_PANELS.map((p) => p.id));
+      const beforeCount = currentStore.panels.length;
+      currentStore.panels = currentStore.panels.filter((p: any) => {
+        if (!p || !p.id) return false;
+        if (canonicalIds.has(p.id)) return true;
+        if (String(p.id).startsWith('panel_')) return true;
+        return false;
+      });
+      if (currentStore.panels.length !== beforeCount) {
+        storeUpdated = true;
+      }
+
+      INITIAL_PANELS.forEach((panelItem) => {
+        const foundIndex = currentStore.panels.findIndex((p: any) => p.id === panelItem.id);
+        const canonicalTestIds = Array.from(new Set(panelItem.testIds || []));
+        if (foundIndex === -1) {
+          currentStore.panels.push({
+            ...panelItem,
+            testIds: canonicalTestIds,
+            items: canonicalTestIds.map((tId: string) => ({
+              panelId: panelItem.id,
+              testId: tId,
+              test: currentStore.tests.find((t: any) => t.id === tId),
+            })),
+          });
           storeUpdated = true;
+        } else {
+          const existing = currentStore.panels[foundIndex];
+          const currentTestIds = Array.isArray(existing.testIds) ? existing.testIds : [];
+          if (
+            canonicalTestIds.length !== currentTestIds.length ||
+            canonicalTestIds.some((id, idx) => id !== currentTestIds[idx])
+          ) {
+            existing.testIds = canonicalTestIds;
+            existing.items = canonicalTestIds.map((tId: string) => ({
+              panelId: existing.id,
+              testId: tId,
+              test: currentStore.tests.find((t: any) => t.id === tId),
+            }));
+            storeUpdated = true;
+          }
+        }
+      });
+
+      // Deduplicate testIds in custom user panels
+      currentStore.panels.forEach((p: any) => {
+        if (p && String(p.id).startsWith('panel_') && Array.isArray(p.testIds)) {
+          const uniqueIds = Array.from(new Set(p.testIds.map(String)));
+          if (uniqueIds.length !== p.testIds.length) {
+            p.testIds = uniqueIds;
+            p.items = uniqueIds.map((tId: string) => ({
+              panelId: p.id,
+              testId: tId,
+              test: currentStore.tests.find((t: any) => t.id === tId),
+            }));
+            storeUpdated = true;
+          }
         }
       });
     }
@@ -1180,6 +1403,8 @@ export function addPatient(data: Partial<PatientRecord> & { name: string; gender
     name: data.name.trim(),
     phone: data.phone?.trim() || '',
     age: data.age !== undefined && data.age !== null ? Number(data.age) : null,
+    ageMonths: data.ageMonths !== undefined && data.ageMonths !== null ? Number(data.ageMonths) : null,
+    ageDays: data.ageDays !== undefined && data.ageDays !== null ? Number(data.ageDays) : null,
     gender: data.gender || 'MALE',
     birthDate: data.birthDate ? String(data.birthDate) : null,
     birthDateEstimated: data.birthDateEstimated != null ? Boolean(data.birthDateEstimated) : null,
@@ -1192,6 +1417,7 @@ export function addPatient(data: Partial<PatientRecord> & { name: string; gender
   store.patients.unshift(newPatient);
   saveStoreToFile();
   syncPatientToSqlite(newPatient).catch((e) => console.warn('[SqliteSync] addPatient error:', e?.message));
+  broadcastEvent('PATIENT', 'CREATE', newPatient.id, { name: newPatient.name });
   return newPatient;
 }
 
@@ -1215,6 +1441,7 @@ export function updatePatient(id: string, data: Partial<PatientRecord>): Patient
 
   saveStoreToFile();
   syncPatientToSqlite(updated).catch((e) => console.warn('[SqliteSync] updatePatient error:', e?.message));
+  broadcastEvent('PATIENT', 'UPDATE', updated.id, { name: updated.name });
   return updated;
 }
 
@@ -1225,6 +1452,7 @@ export function deletePatient(id: string): boolean {
   store.patients.splice(index, 1);
   saveStoreToFile();
   deletePatientFromSqlite(id).catch((e) => console.warn('[SqliteSync] deletePatient error:', e?.message));
+  broadcastEvent('PATIENT', 'DELETE', id);
   return true;
 }
 
@@ -1369,8 +1597,8 @@ export function createPanelInStore(data: any): any {
     isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
     description: data.description || null,
     price: Number(data.price) || 0,
-    testIds: data.testIds || [],
-    items: (data.testIds || []).map((tId: string) => ({
+    testIds: Array.from(new Set(data.testIds || [])),
+    items: Array.from(new Set(data.testIds || [])).map((tId: string) => ({
       panelId: id,
       testId: tId,
       test: store.tests.find(t => t.id === tId),
@@ -1529,6 +1757,14 @@ export function searchPatients(q: string) {
         isUrgent: s.isUrgent,
         testsCount: s.tests.length,
         testsSummary: s.tests.map(t => t.test?.code || t.test?.name).join(', '),
+        tests: (s.tests || []).map((t: any) => ({
+          testId: t.testId || t.test?.id,
+          code: t.test?.code || t.code,
+          name: t.test?.name || t.name,
+          resultValue: t.resultValue,
+          unit: t.test?.unit || t.unit,
+          isAbnormal: t.isAbnormal,
+        })),
       })),
       lastVisit: lastVisit ? {
         id: lastVisit.id,
@@ -1623,12 +1859,68 @@ export function deleteDoctor(id: string): { success: boolean; inUse?: boolean } 
 // -------------------------------------------------------------
 
 export function getSamples(): SampleRecord[] {
-  return getStore().samples;
+  return enrichSamplesWithDeltaCheck(getStore().samples);
 }
 
 export function findSample(idOrNumber: string): SampleRecord | undefined {
   const store = getStore();
-  return store.samples.find(s => s.id === idOrNumber || String(s.sampleNumber) === idOrNumber);
+  const found = store.samples.find(s => s.id === idOrNumber || String(s.sampleNumber) === idOrNumber);
+  if (!found) return undefined;
+  enrichSamplesWithDeltaCheck(store.samples, found.id);
+  return found;
+}
+
+export function enrichSamplesWithDeltaCheck(samples: SampleRecord[], targetSampleId?: string): SampleRecord[] {
+  if (!Array.isArray(samples) || samples.length === 0) return samples;
+  for (const sample of samples) {
+    if (targetSampleId && sample.id !== targetSampleId) continue;
+    if (!Array.isArray(sample.tests)) continue;
+    const patId = sample.patientId || sample.patient?.id;
+    const patName = sample.patient?.name ? normalizeArabic(sample.patient.name) : '';
+    const sampleCreatedMs = sample.createdAt ? new Date(sample.createdAt).getTime() : Date.now();
+    for (const st of sample.tests) {
+      if (st.previousValue !== undefined && st.previousValue !== null && String(st.previousValue).trim() !== '') {
+        continue;
+      }
+      let latestPrevVal: string | null = null;
+      let latestPrevDate: string | null = null;
+      let latestPrevNum: number | null = null;
+      let latestMs = -1;
+      for (const other of samples) {
+        if (other.id === sample.id) continue;
+        const otherPatId = other.patientId || other.patient?.id;
+        const otherPatName = other.patient?.name ? normalizeArabic(other.patient.name) : '';
+        const samePatient = (patId && otherPatId && patId === otherPatId) || (patName && otherPatName && patName === otherPatName);
+        if (!samePatient) continue;
+        const otherMs = other.createdAt ? new Date(other.createdAt).getTime() : 0;
+        if (otherMs >= sampleCreatedMs || otherMs <= latestMs) continue;
+        const stCode = (st.test?.code || st.code || '').toUpperCase().trim();
+        const stName = (st.test?.name || st.name || '').toLowerCase().trim();
+        const matchTest = (other.tests || []).find(
+          ot => {
+            const otCode = (ot.test?.code || ot.code || '').toUpperCase().trim();
+            const otName = (ot.test?.name || ot.name || '').toLowerCase().trim();
+            const idMatch = (st.testId && (ot.testId === st.testId || ot.test?.id === st.testId)) || (st.test?.id && (ot.testId === st.test.id || ot.test?.id === st.test.id));
+            const codeMatch = stCode && otCode && stCode === otCode;
+            const nameMatch = stName && otName && stName === otName;
+            return (idMatch || codeMatch || nameMatch) && ot.resultValue !== null && ot.resultValue !== undefined && String(ot.resultValue).trim() !== '';
+          }
+        );
+        if (matchTest) {
+          latestMs = otherMs;
+          latestPrevVal = String(matchTest.resultValue);
+          latestPrevDate = other.createdAt;
+          latestPrevNum = other.sampleNumber;
+        }
+      }
+      if (latestPrevVal !== null) {
+        st.previousValue = latestPrevVal;
+        st.previousDate = latestPrevDate;
+        st.previousSampleNumber = latestPrevNum;
+      }
+    }
+  }
+  return samples;
 }
 
 export function addSample(data: any): SampleRecord {
@@ -1685,24 +1977,61 @@ export function addSample(data: any): SampleRecord {
     });
   }
 
+  const rawYears = data.patient?.age ?? data.patientAge ?? data.age;
+  const rawMonths = data.patient?.ageMonths ?? data.patientAgeMonths ?? data.ageMonths;
+  const rawDays = data.patient?.ageDays ?? data.patientAgeDays ?? data.ageDays;
+  let resolvedBirthDate = data.patient?.birthDate || data.patientBirthDate || data.birthDate || null;
+  let resolvedBirthDateEstimated = data.patient?.birthDateEstimated ?? data.patientBirthDateEstimated ?? data.birthDateEstimated ?? false;
+
+  if (!resolvedBirthDate && (rawYears != null || rawMonths != null || rawDays != null)) {
+    try {
+      const norm = normalizeAgeToBirthDate({
+        years: rawYears !== undefined && rawYears !== null && rawYears !== '' ? Number(rawYears) : 0,
+        months: rawMonths !== undefined && rawMonths !== null && rawMonths !== '' ? Number(rawMonths) : 0,
+        days: rawDays !== undefined && rawDays !== null && rawDays !== '' ? Number(rawDays) : 0,
+      });
+      if (norm && norm.birthDate) {
+        resolvedBirthDate = norm.birthDate;
+        resolvedBirthDateEstimated = norm.birthDateEstimated ?? true;
+      }
+    } catch (e) {
+      console.warn('[ServerStore] Failed to normalize age to birthDate:', e);
+    }
+  }
+
   if (!patient) {
     patient = addPatient({
       name: candidateName || 'مريض جديد',
       phone: data.patient?.phone || data.patientPhone || data.phone || '',
-      age: data.patient?.age !== undefined && data.patient?.age !== null 
-        ? Number(data.patient.age) 
-        : (data.patientAge !== undefined && data.patientAge !== null ? Number(data.patientAge) : (data.age !== undefined && data.age !== null ? Number(data.age) : null)),
+      age: rawYears !== undefined && rawYears !== null && rawYears !== '' ? Number(rawYears) : null,
+      ageMonths: rawMonths !== undefined && rawMonths !== null && rawMonths !== '' ? Number(rawMonths) : null,
+      ageDays: rawDays !== undefined && rawDays !== null && rawDays !== '' ? Number(rawDays) : null,
       gender: data.patient?.gender || data.patientGender || data.gender || 'MALE',
-      birthDate: data.patient?.birthDate || data.birthDate || null,
-      birthDateEstimated: data.patient?.birthDateEstimated ?? data.birthDateEstimated ?? null,
+      birthDate: resolvedBirthDate ? String(resolvedBirthDate) : null,
+      birthDateEstimated: resolvedBirthDateEstimated,
       referringDoctorId: data.patient?.referringDoctorId || data.doctorId || null,
     });
-  } else if (data.birthDate && !patient.birthDate) {
-    updatePatient(patient.id, {
-      birthDate: data.birthDate,
-      birthDateEstimated: data.birthDateEstimated ?? true,
-      ...(data.doctorId ? { referringDoctorId: data.doctorId } : {}),
-    });
+  } else {
+    const updates: Partial<PatientRecord> = {};
+    if (resolvedBirthDate && (!patient.birthDate || resolvedBirthDate !== patient.birthDate)) {
+      updates.birthDate = String(resolvedBirthDate);
+      updates.birthDateEstimated = resolvedBirthDateEstimated;
+    }
+    if (rawYears !== undefined && rawYears !== null && rawYears !== '') {
+      updates.age = Number(rawYears);
+    }
+    if (rawMonths !== undefined && rawMonths !== null && rawMonths !== '') {
+      updates.ageMonths = Number(rawMonths);
+    }
+    if (rawDays !== undefined && rawDays !== null && rawDays !== '') {
+      updates.ageDays = Number(rawDays);
+    }
+    if (data.doctorId && !patient.referringDoctorId) {
+      updates.referringDoctorId = data.doctorId;
+    }
+    if (Object.keys(updates).length > 0) {
+      patient = updatePatient(patient.id, updates) || patient;
+    }
   }
 
   const sampleNum = store.samples.length > 0
@@ -1729,12 +2058,16 @@ export function addSample(data: any): SampleRecord {
   });
 
   const doctor = data.doctorId ? store.doctors.find(d => d.id === data.doctorId) || null : null;
-  const priceTotal = Math.round(Number(data.priceTotal || data.totalPrice || 0));
-  const discount = Math.round(Number(data.discount || 0));
-  const discountPercent = Number(data.discountPercent || 0);
-  const paidAmount = Math.round(Number(data.paidAmount || 0));
-  const netPayable = Math.round(Math.max(0, priceTotal - discount));
-  const remainingAmount = data.remainingAmount !== undefined ? Math.round(Number(data.remainingAmount)) : Math.round(Math.max(0, netPayable - paidAmount));
+  // FIN-01: Authoritative server-side price recalculation from catalog
+  const catalogCalculatedTotal = sampleTests.reduce((sum, st) => sum + (st.priceAtTime || 0), 0);
+  const priceTotal = catalogCalculatedTotal > 0 ? catalogCalculatedTotal : Math.round(Number(data.priceTotal || data.totalPrice || 0));
+  const rawDiscount = Math.round(Number(data.discount || 0));
+  const discount = Math.min(priceTotal, Math.max(0, rawDiscount));
+  const discountPercent = priceTotal > 0 ? Math.round((discount / priceTotal) * 100) : 0;
+  const netPayable = Math.max(0, priceTotal - discount);
+  const rawPaid = Math.round(Number(data.paidAmount || 0));
+  const paidAmount = Math.min(netPayable, Math.max(0, rawPaid));
+  const remainingAmount = Math.max(0, netPayable - paidAmount);
 
   // Commission calculation
   const commissionPercent = doctor ? (doctor.commissionPercent || 0) : 0;
@@ -1762,8 +2095,18 @@ export function addSample(data: any): SampleRecord {
   };
 
   store.samples.unshift(newSample);
+
+  // Feature 3: Enrich new sample tests with Delta Check (previous patient results)
+  enrichSamplesWithDeltaCheck(store.samples, newSample.id);
+
+  // Feature 1: Auto-Reagent Deduction on sample creation
+  const reagentAlerts = deductReagentsForSample(store, newSample);
+  if (reagentAlerts.length > 0) {
+    newSample.reagentAlerts = reagentAlerts;
+  }
   saveStoreToFile();
   syncSampleToSqlite(newSample).catch((e) => console.warn('[SqliteSync] addSample error:', e?.message));
+  broadcastEvent('SAMPLE', 'CREATE', newSample.id, { sampleNumber: newSample.sampleNumber, status: newSample.status });
   return newSample;
 }
 
@@ -1783,6 +2126,7 @@ export function updateSample(id: string, data: Partial<SampleRecord>): SampleRec
   store.samples[index] = updated;
   saveStoreToFile();
   syncSampleToSqlite(updated).catch((e) => console.warn('[SqliteSync] updateSample error:', e?.message));
+  broadcastEvent('SAMPLE', 'UPDATE', updated.id, { sampleNumber: updated.sampleNumber, status: updated.status });
   return updated;
 }
 
@@ -1793,6 +2137,7 @@ export function deleteSample(id: string): boolean {
   store.samples.splice(index, 1);
   saveStoreToFile();
   deleteSampleFromSqlite(id).catch((e) => console.warn('[SqliteSync] deleteSample error:', e?.message));
+  broadcastEvent('SAMPLE', 'DELETE', id);
   return true;
 }
 
@@ -2502,9 +2847,19 @@ export function processDeviceIngest(params: {
     }
   }
 
-  // If still not found and sample list is non-empty, match the first recent sample as fallback for simulation
-  if (!targetSample && store.samples.length > 0) {
-    targetSample = store.samples[0];
+  // SECURITY / CLINICAL SAFETY: never guess a patient's sample.
+  // An unmatched analyzer result must be rejected and reviewed by a human.
+  if (!targetSample) {
+    return {
+      success: false,
+      status: 'UNMATCHED_SAMPLE',
+      message: 'لم يتم العثور على عينة مطابقة لرقم العينة أو الباركود الوارد من الجهاز. تم رفض النتيجة ولم تُنسب لأي مريض.',
+      deviceId: device?.id,
+      deviceName: device?.name,
+      parsedSampleNumber: parsed.sampleNumber,
+      parsedSampleBarcode: parsed.sampleBarcode,
+      totalItems: parsed.items.length,
+    };
   }
 
   // Prepare Items Map for CBC or multi-analyte bundling
@@ -2707,10 +3062,16 @@ export function processDeviceIngest(params: {
 export function getNextVoucherNumber(): number {
   const store = getStore();
   const txs = store.debtTransactions || [];
+  const finTxs = store.financialTransactions || [];
   let maxVoucher = 1000;
   txs.forEach((t) => {
     if (t.voucherNumber && t.voucherNumber > maxVoucher) {
       maxVoucher = t.voucherNumber;
+    }
+  });
+  finTxs.forEach((t: any) => {
+    if (t.voucherNumber && Number(t.voucherNumber) > maxVoucher) {
+      maxVoucher = Number(t.voucherNumber);
     }
   });
   return maxVoucher + 1;
@@ -3123,10 +3484,17 @@ export function paySampleRemaining(
     throw new Error('الرجاء إدخال مبلغ دفع صالح أكبر من صفر');
   }
 
-  const newPaid = Math.round((sample.paidAmount || 0) + amount);
-  const newRemaining = Math.round(Math.max(0, sample.priceTotal - (sample.discount || 0) - newPaid));
+  // FIN-02: Cap payment strictly at remaining balance
+  const currentRemaining = Math.max(0, sample.remainingAmount !== undefined ? sample.remainingAmount : (sample.priceTotal - (sample.discount || 0) - (sample.paidAmount || 0)));
+  const actualPay = Math.min(amount, currentRemaining);
+  if (actualPay <= 0) {
+    throw new Error('تم سداد كامل المبلغ المتبقي على هذه العينة مسبقاً');
+  }
+  const newPaid = Math.round((sample.paidAmount || 0) + actualPay);
+  const newRemaining = Math.max(0, currentRemaining - actualPay);
   sample.paidAmount = newPaid;
   sample.remainingAmount = newRemaining;
+  sample.paymentStatus = newRemaining <= 0 ? 'PAID' : 'PARTIAL';
 
   const voucherNumber = getNextVoucherNumber();
   const now = new Date().toISOString();
@@ -3164,8 +3532,25 @@ export function paySampleRemaining(
     });
   }
 
+  // Record Financial Transaction (Cash Drawer Entry)
+  if (!store.financialTransactions) store.financialTransactions = [];
+  const finTx: any = {
+    id: 'ft-pay-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+    voucherNumber,
+    type: 'INCOME',
+    amount,
+    category: 'تسديد دين عينة',
+    description: 'سداد دين عينة #' + sample.sampleNumber + ' - المريض: ' + (sample.patient?.name || ''),
+    paymentMethod: params.paymentMethod || 'CASH',
+    date: now,
+    sampleId: sample.id,
+    patientId: sample.patientId,
+  };
+  store.financialTransactions.unshift(finTx);
+
   saveStoreToFile();
   syncSampleToSqlite(sample).catch((e) => console.warn('[SqliteSync] paySampleRemaining error:', e?.message));
+  broadcastEvent('SAMPLE', 'UPDATE', sample.id, { sampleNumber: sample.sampleNumber, paymentStatus: sample.paymentStatus, remainingAmount: newRemaining });
 
   return {
     success: true,
@@ -3291,6 +3676,449 @@ export function deleteTestGroup(id: string) {
   saveStoreToFile();
   deleteTestGroupFromSqlite(id).catch(e => console.warn('[SqliteSync] deleteTestGroup error:', e?.message));
   return { success: true };
+}
+
+// -------------------------------------------------------------
+// Inventory & Reagents + Feature 1 (Auto-Reagent Deduction)
+// -------------------------------------------------------------
+
+export function getInitialInventoryItems(): InventoryItemRecord[] {
+  const now = new Date();
+  const in6Months = new Date(now.getTime() + 180 * 86400000).toISOString();
+  const in15Days = new Date(now.getTime() + 15 * 86400000).toISOString();
+  return [
+    {
+      id: 'inv-cbc-diluent',
+      name: 'Mindray M-52D Diluent (محلول تخفيف CBC)',
+      code: 'REAG-CBC-01',
+      catalogCode: 'CBC',
+      category: 'REAGENT',
+      unit: 'فحص',
+      quantity: 250,
+      minStockLevel: 40,
+      lotNumber: 'MD-2026-08',
+      expiryDate: in6Months,
+      onBoardStabilityDays: 60,
+      supplierName: 'الوكيل الطبي المعتمد',
+      costPerUnit: 500,
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 'inv-glucose-kit',
+      name: 'Glucose Hexokinase Reagent Kit (كاشف السكر)',
+      code: 'REAG-GLU-02',
+      catalogCode: 'FBS',
+      category: 'REAGENT',
+      unit: 'فحص',
+      quantity: 180,
+      minStockLevel: 30,
+      lotNumber: 'RC-99412',
+      expiryDate: in6Months,
+      onBoardStabilityDays: 30,
+      supplierName: 'Roche Diagnostics',
+      costPerUnit: 450,
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 'inv-urea-kit',
+      name: 'Urea / BUN UV Kinetic Reagent (كاشف اليوريا)',
+      code: 'REAG-UREA-03',
+      catalogCode: 'UREA',
+      category: 'REAGENT',
+      unit: 'فحص',
+      quantity: 120,
+      minStockLevel: 25,
+      lotNumber: 'RC-88210',
+      expiryDate: in6Months,
+      onBoardStabilityDays: 30,
+      supplierName: 'Roche Diagnostics',
+      costPerUnit: 600,
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 'inv-creat-kit',
+      name: 'Creatinine Jaffe Gen.2 Reagent (كاشف الكرياتينين)',
+      code: 'REAG-CREA-04',
+      catalogCode: 'CREAT',
+      category: 'REAGENT',
+      unit: 'فحص',
+      quantity: 140,
+      minStockLevel: 25,
+      lotNumber: 'RC-77105',
+      expiryDate: in6Months,
+      onBoardStabilityDays: 28,
+      supplierName: 'Roche Diagnostics',
+      costPerUnit: 600,
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 'inv-vitd-clia',
+      name: '25-OH Vitamin D CLIA Kit (كاشف فيتامين د)',
+      code: 'REAG-VITD-05',
+      catalogCode: 'VITD',
+      category: 'REAGENT',
+      unit: 'فحص',
+      quantity: 18,
+      minStockLevel: 20,
+      lotNumber: 'MG-2026-02',
+      expiryDate: in15Days,
+      onBoardStabilityDays: 28,
+      supplierName: 'Snibe Maglumi',
+      costPerUnit: 3500,
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 'inv-tsh-clia',
+      name: 'TSH 3rd Gen CLIA Reagent (كاشف الغدة الدرقية)',
+      code: 'REAG-TSH-06',
+      catalogCode: 'TSH',
+      category: 'REAGENT',
+      unit: 'فحص',
+      quantity: 85,
+      minStockLevel: 20,
+      lotNumber: 'MG-2026-04',
+      expiryDate: in6Months,
+      onBoardStabilityDays: 28,
+      supplierName: 'Snibe Maglumi',
+      costPerUnit: 2500,
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 'inv-edta-tubes',
+      name: 'أنابيب سحب دم EDTA K3 (غطاء بنفسجي)',
+      code: 'CONS-EDTA-01',
+      catalogCode: null,
+      category: 'CONSUMABLE',
+      unit: 'أنبوب',
+      quantity: 450,
+      minStockLevel: 100,
+      lotNumber: 'VAC-2026',
+      expiryDate: in6Months,
+      onBoardStabilityDays: null,
+      supplierName: 'مستلزمات المختبر الحديث',
+      costPerUnit: 150,
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+  ];
+}
+
+export function deductReagentsForSample(
+  store: ServerStore,
+  sample: SampleRecord
+): { itemId: string; name: string; remainingQuantity: number; minStockLevel: number; unit: string }[] {
+  if (!Array.isArray(store.inventoryItems) || !Array.isArray(sample.tests)) return [];
+  if (!Array.isArray(store.inventoryTransactions)) store.inventoryTransactions = [];
+  const alerts: { itemId: string; name: string; remainingQuantity: number; minStockLevel: number; unit: string }[] = [];
+  const now = new Date().toISOString();
+
+  for (const st of sample.tests) {
+    const testCode = String(st.test?.code || '').trim().toUpperCase();
+    const testId = String(st.testId || st.test?.id || '').trim().toUpperCase();
+    if (!testCode && !testId) continue;
+
+    const matchingItem = store.inventoryItems.find(item => {
+      if (item.isActive === false) return false;
+      const catCode = String(item.catalogCode || '').trim().toUpperCase();
+      if (!catCode) return false;
+      return catCode === testCode || catCode === testId || `T-${catCode}` === testId;
+    });
+
+    if (matchingItem) {
+      matchingItem.quantity = Math.max(0, Number(matchingItem.quantity || 0) - 1);
+      matchingItem.updatedAt = now;
+      const tx: InventoryTransactionRecord = {
+        id: `invtx-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        itemId: matchingItem.id,
+        type: 'OUT',
+        quantity: 1,
+        reason: `استهلاك تلقائي - عينة #${sample.sampleNumber} (${st.test?.code || st.test?.name || ''})`,
+        sampleId: sample.id,
+        createdAt: now,
+      };
+      store.inventoryTransactions.unshift(tx);
+
+      if (matchingItem.quantity <= matchingItem.minStockLevel) {
+        alerts.push({
+          itemId: matchingItem.id,
+          name: matchingItem.name,
+          remainingQuantity: matchingItem.quantity,
+          minStockLevel: matchingItem.minStockLevel,
+          unit: matchingItem.unit,
+        });
+      }
+    }
+  }
+  return alerts;
+}
+
+export function getInventoryItems(): any[] {
+  const store = getStore();
+  if (!Array.isArray(store.inventoryItems) || store.inventoryItems.length === 0) {
+    store.inventoryItems = getInitialInventoryItems();
+    saveStoreToFile();
+  }
+  const txs = store.inventoryTransactions || [];
+  const nowMs = Date.now();
+  return store.inventoryItems
+    .filter(item => item.isActive !== false)
+    .map(item => {
+      const effectiveExp = item.calculatedStabilityExpiry || item.expiryDate || null;
+      const daysUntilExpiry = effectiveExp ? Math.ceil((new Date(effectiveExp).getTime() - nowMs) / 86400000) : null;
+      const expiryStatus =
+        daysUntilExpiry === null
+          ? 'VALID'
+          : daysUntilExpiry <= 0
+          ? 'EXPIRED'
+          : daysUntilExpiry <= 30
+          ? 'APPROACHING_EXPIRY'
+          : 'VALID';
+      const reorderThreshold = item.minStockLevel ?? (item as any).reorderThreshold ?? 5;
+      return {
+        ...item,
+        reorderThreshold,
+        minStockLevel: reorderThreshold,
+        openVialDays: item.onBoardStabilityDays ?? (item as any).openVialDays ?? null,
+        effectiveExpiry: effectiveExp,
+        daysUntilExpiry,
+        expiryStatus,
+        supplier: item.supplierName || (item as any).supplier || '',
+        transactions: txs.filter(t => t.itemId === item.id).slice(0, 10),
+      };
+    });
+}
+
+export function getInventoryAlerts() {
+  const items = getInventoryItems();
+  const expired = items.filter(i => i.expiryStatus === 'EXPIRED');
+  const expiring = items.filter(i => i.expiryStatus === 'APPROACHING_EXPIRY');
+  const lowStock = items.filter(i => i.quantity <= i.reorderThreshold);
+
+  return {
+    expiredCount: expired.length,
+    expiringCount: expiring.length,
+    expiringSoonCount: expiring.length,
+    lowStockCount: lowStock.length,
+    expired,
+    lowStock,
+    expiring,
+  };
+}
+
+export function addInventoryItem(data: any): InventoryItemRecord {
+  const store = getStore();
+  if (!Array.isArray(store.inventoryItems)) store.inventoryItems = getInitialInventoryItems();
+  if (!Array.isArray(store.inventoryTransactions)) store.inventoryTransactions = [];
+  const now = new Date().toISOString();
+  const initialQty = Number(data.quantity ?? 0);
+  const minStock = Number(data.minStockLevel ?? data.reorderThreshold ?? 5);
+  const stabDays = data.onBoardStabilityDays ?? data.openVialDays;
+
+  const newItem: InventoryItemRecord = {
+    id: `inv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    name: String(data.name || '').trim(),
+    code: data.code ? String(data.code).trim() : null,
+    catalogCode: data.catalogCode ? String(data.catalogCode).trim().toUpperCase() : null,
+    category: data.category || 'REAGENT',
+    unit: data.unit || 'فحص',
+    quantity: initialQty,
+    minStockLevel: minStock,
+    lotNumber: data.lotNumber ? String(data.lotNumber).trim() : null,
+    expiryDate: data.expiryDate ? new Date(data.expiryDate).toISOString() : null,
+    onBoardStabilityDays: stabDays ? Number(stabDays) : null,
+    supplierName: (data.supplierName || data.supplier) ? String(data.supplierName || data.supplier).trim() : null,
+    costPerUnit: data.costPerUnit != null ? Number(data.costPerUnit) : null,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  store.inventoryItems.unshift(newItem);
+  if (initialQty > 0) {
+    store.inventoryTransactions.unshift({
+      id: `invtx-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      itemId: newItem.id,
+      type: 'IN',
+      quantity: initialQty,
+      reason: 'رصيد افتتاحي عند الإضافة',
+      createdAt: now,
+    });
+  }
+  saveStoreToFile();
+  return newItem;
+}
+
+export function openInventoryVial(id: string): InventoryItemRecord {
+  const store = getStore();
+  const items = store.inventoryItems || [];
+  const item = items.find(i => i.id === id);
+  if (!item) throw new Error('الصنف غير موجود في المخزون');
+  const now = new Date();
+  let calculatedStabilityExpiry: string | null = item.calculatedStabilityExpiry || null;
+  if (item.onBoardStabilityDays && item.onBoardStabilityDays > 0) {
+    const stabDate = new Date(now.getTime() + item.onBoardStabilityDays * 86400000);
+    if (item.expiryDate && new Date(item.expiryDate) < stabDate) {
+      calculatedStabilityExpiry = item.expiryDate;
+    } else {
+      calculatedStabilityExpiry = stabDate.toISOString();
+    }
+  }
+  item.openedAt = now.toISOString();
+  item.calculatedStabilityExpiry = calculatedStabilityExpiry;
+  item.updatedAt = now.toISOString();
+  saveStoreToFile();
+  return item;
+}
+
+export function updateInventoryItem(
+  id: string,
+  data: Partial<InventoryItemRecord> & { adjustQuantity?: number; transactionType?: 'IN' | 'OUT' | 'ADJUST' | 'WASTE'; reason?: string }
+): InventoryItemRecord {
+  const store = getStore();
+  const items = store.inventoryItems || [];
+  const item = items.find(i => i.id === id);
+  if (!item) throw new Error('الصنف غير موجود في المخزون');
+  if (!Array.isArray(store.inventoryTransactions)) store.inventoryTransactions = [];
+  const now = new Date().toISOString();
+
+  if (data.adjustQuantity !== undefined && data.transactionType) {
+    const delta = Number(data.adjustQuantity);
+    if (data.transactionType === 'IN') item.quantity += delta;
+    else if (data.transactionType === 'OUT' || data.transactionType === 'WASTE') item.quantity = Math.max(0, item.quantity - Math.abs(delta));
+    else item.quantity = delta;
+
+    store.inventoryTransactions.unshift({
+      id: `invtx-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      itemId: item.id,
+      type: data.transactionType,
+      quantity: Math.abs(delta),
+      reason: data.reason || 'تعديل مخزني يدوي',
+      createdAt: now,
+    });
+  }
+
+  if (data.name !== undefined) item.name = data.name.trim();
+  if ((data as any).quantity !== undefined && data.adjustQuantity === undefined) {
+    item.quantity = Math.max(0, Number((data as any).quantity));
+  }
+  if ((data as any).reorderThreshold !== undefined && data.minStockLevel === undefined) {
+    item.minStockLevel = Number((data as any).reorderThreshold);
+  }
+  if (data.code !== undefined) item.code = data.code ? String(data.code).trim() : null;
+  if (data.catalogCode !== undefined) item.catalogCode = data.catalogCode ? String(data.catalogCode).trim().toUpperCase() : null;
+  if (data.category !== undefined) item.category = data.category;
+  if (data.unit !== undefined) item.unit = data.unit;
+  if (data.minStockLevel !== undefined) item.minStockLevel = Number(data.minStockLevel);
+  if (data.lotNumber !== undefined) item.lotNumber = data.lotNumber;
+  if (data.expiryDate !== undefined) item.expiryDate = data.expiryDate ? new Date(data.expiryDate).toISOString() : null;
+  if (data.onBoardStabilityDays !== undefined) item.onBoardStabilityDays = data.onBoardStabilityDays ? Number(data.onBoardStabilityDays) : null;
+  if (data.supplierName !== undefined) item.supplierName = data.supplierName;
+  if (data.costPerUnit !== undefined) item.costPerUnit = data.costPerUnit != null ? Number(data.costPerUnit) : null;
+  if (data.isActive !== undefined) item.isActive = Boolean(data.isActive);
+  item.updatedAt = now;
+
+  saveStoreToFile();
+  return item;
+}
+
+export function deleteInventoryItem(id: string): boolean {
+  const store = getStore();
+  const items = store.inventoryItems || [];
+  const item = items.find(i => i.id === id);
+  if (!item) return false;
+  item.isActive = false;
+  item.updatedAt = new Date().toISOString();
+  saveStoreToFile();
+  return true;
+}
+
+// -------------------------------------------------------------
+// Staff Management Helpers
+// -------------------------------------------------------------
+
+export function getInitialStaff(): StaffRecord[] {
+  const now = new Date().toISOString();
+  return [
+    {
+      id: 'staff-admin-1',
+      name: 'مدير المختبر الرئيسي',
+      email: 'admin@lab.local',
+      role: 'ADMIN',
+      phone: '07700000000',
+      active: true,
+      createdAt: now,
+    },
+    {
+      id: 'staff-tech-1',
+      name: 'محلل مختبر أقدم',
+      email: 'tech@lab.local',
+      role: 'TECH',
+      phone: '07800000000',
+      active: true,
+      createdAt: now,
+    },
+    {
+      id: 'staff-rec-1',
+      name: 'موظف الاستقبال والسحب',
+      email: 'reception@lab.local',
+      role: 'RECEPTION',
+      phone: '07900000000',
+      active: true,
+      createdAt: now,
+    },
+  ];
+}
+
+export function getStaffList(): StaffRecord[] {
+  const store = getStore();
+  if (!Array.isArray(store.staff) || store.staff.length === 0) {
+    store.staff = getInitialStaff();
+    saveStoreToFile();
+  }
+  return store.staff;
+}
+
+export function addStaffMember(data: { name: string; email?: string; role?: string; phone?: string }): StaffRecord {
+  const store = getStore();
+  if (!Array.isArray(store.staff)) store.staff = getInitialStaff();
+  const member: StaffRecord = {
+    id: `staff-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    name: data.name.trim(),
+    email: (data.email || `user${Date.now()}@lab.local`).trim(),
+    role: data.role || 'TECH',
+    phone: data.phone?.trim() || '',
+    active: true,
+    createdAt: new Date().toISOString(),
+  };
+  store.staff.push(member);
+  saveStoreToFile();
+  return member;
+}
+
+export function updateStaffMember(id: string, data: Partial<StaffRecord>): StaffRecord | null {
+  const store = getStore();
+  if (!Array.isArray(store.staff)) store.staff = getInitialStaff();
+  const idx = store.staff.findIndex(s => s.id === id);
+  if (idx === -1) return null;
+  store.staff[idx] = { ...store.staff[idx], ...data };
+  saveStoreToFile();
+  return store.staff[idx];
+}
+
+export function deleteStaffMember(id: string): boolean {
+  const store = getStore();
+  if (!Array.isArray(store.staff)) return false;
+  const idx = store.staff.findIndex(s => s.id === id);
+  if (idx === -1) return false;
+  store.staff.splice(idx, 1);
+  saveStoreToFile();
+  return true;
 }
 
 export function updateTestSpecialty(

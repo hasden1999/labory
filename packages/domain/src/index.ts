@@ -9,3 +9,4 @@ export * from './clinicalIntelligence';
 export * from './ageUtils';
 export * from './rangeClassification';
 export * from './grouping';
+export * from './reportTemplates';

@@ -14,7 +14,7 @@ function resolveDatabaseUrl(): string {
     process.env.LABRYO_DATA_DIR ? path.resolve(process.env.LABRYO_DATA_DIR) : null,
     path.resolve(process.cwd(), '..', 'server', 'prisma'),
     path.resolve(process.cwd(), 'apps', 'server', 'prisma'),
-    'D:\\lab\\apps\\server\\prisma',
+    path.resolve(process.cwd(), 'prisma'),
     path.resolve(process.cwd(), 'data'),
     path.resolve(process.cwd(), 'apps', 'web', 'data'),
     path.resolve(process.cwd(), 'prisma'),
@@ -64,6 +64,9 @@ function resolveDatabaseUrl(): string {
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient; walInitialized?: boolean };
 
 function initPrismaClient(): PrismaClient | null {
+  if (process.arch === 'ia32') {
+    return null;
+  }
   if (globalForPrisma.prisma) {
     return globalForPrisma.prisma;
   }
@@ -96,6 +99,11 @@ export const prisma: PrismaClient = rawPrisma || (new Proxy({}, {
       get(_target2, method) {
         if (method === 'then') return undefined;
         return async () => {
+          if (process.arch === 'ia32') {
+            if (method === 'count') return 0;
+            if (method === 'findMany' || method === 'deleteMany') return [];
+            return null;
+          }
           throw new Error(`Prisma is not available in this environment. Method: ${String(prop)}.${String(method)}`);
         };
       }
@@ -103,8 +111,37 @@ export const prisma: PrismaClient = rawPrisma || (new Proxy({}, {
   }
 }) as unknown as PrismaClient);
 
+async function ensureSessionTable(client: PrismaClient): Promise<void> {
+  try {
+    await client.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Session" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "userId" TEXT NOT NULL,
+        "userName" TEXT,
+        "role" TEXT,
+        "ipAddress" TEXT,
+        "userAgent" TEXT,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "lastSeenAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "expiresAt" DATETIME NOT NULL,
+        "revokedAt" DATETIME
+      );
+    `);
+    await client.$executeRawUnsafe(
+      'CREATE INDEX IF NOT EXISTS "Session_userId_expiresAt_idx" ON "Session"("userId", "expiresAt");'
+    );
+    await client.$executeRawUnsafe(
+      'CREATE INDEX IF NOT EXISTS "Session_expiresAt_idx" ON "Session"("expiresAt");'
+    );
+  } catch (err: any) {
+    console.warn('[Prisma SQLite] Session table ensure notice:', err?.message);
+  }
+}
+
 export async function initDbWAL() {
   if (!rawPrisma || globalForPrisma.walInitialized) return;
+  const isBench = process.env.LABRYO_STARTUP_BENCHMARK === '1' || process.env.DEBUG_STARTUP_BENCHMARK === '1';
+  const t0Pragmas = isBench ? process.hrtime.bigint() : BigInt(0);
   const pragmas = [
     'PRAGMA journal_mode = WAL;',
     'PRAGMA synchronous = NORMAL;',
@@ -121,10 +158,29 @@ export async function initDbWAL() {
     }
   }
   globalForPrisma.walInitialized = true;
+  if (isBench) {
+    const ms = Number(process.hrtime.bigint() - t0Pragmas) / 1e6;
+    console.log(`⏱️ [BENCHMARK] الاتصال بقاعدة البيانات/Prisma: ${ms.toFixed(2)}ms`);
+  }
   console.log('⚡ [Prisma SQLite] WAL mode & high-performance Pragmas initialized successfully.');
 
-  // Safe additive self-healing schema migration for existing SQLite databases
+  // Session registry must exist regardless of the stored user_version.
+  await ensureSessionTable(rawPrisma);
+
+  // Safe additive self-healing schema migration for existing SQLite databases (runs ONLY when app/schema version changes)
+  const CURRENT_SCHEMA_VERSION = 144;
+  const t0Mig = isBench ? process.hrtime.bigint() : BigInt(0);
   try {
+    const vRes: any = await rawPrisma.$queryRawUnsafe('PRAGMA user_version;');
+    const currentV = Array.isArray(vRes) && vRes[0] ? Number(vRes[0].user_version) : 0;
+    if (currentV >= CURRENT_SCHEMA_VERSION) {
+      if (isBench) {
+        const ms = Number(process.hrtime.bigint() - t0Mig) / 1e6;
+        console.log(`⏱️ [BENCHMARK] migrations (مكتملة مسبقاً، تخطي فوري): ${ms.toFixed(2)}ms`);
+      }
+      return;
+    }
+
     const catalogCols: any = await rawPrisma.$queryRawUnsafe('PRAGMA table_info(TestCatalog);');
     const colNames = Array.isArray(catalogCols) ? catalogCols.map((c: any) => c.name) : [];
     if (!colNames.includes('specialtyId')) {
@@ -135,6 +191,9 @@ export async function initDbWAL() {
     }
     if (!colNames.includes('sortOrder')) {
       await rawPrisma.$queryRawUnsafe('ALTER TABLE "TestCatalog" ADD COLUMN "sortOrder" INTEGER;');
+    }
+    if (!colNames.includes('tubeType')) {
+      await rawPrisma.$queryRawUnsafe('ALTER TABLE "TestCatalog" ADD COLUMN "tubeType" TEXT;');
     }
 
     const settingsCols: any = await rawPrisma.$queryRawUnsafe('PRAGMA table_info(Settings);');
@@ -153,6 +212,27 @@ export async function initDbWAL() {
     }
     if (!setColNames.includes('logoOffsetYMm')) {
       await rawPrisma.$queryRawUnsafe('ALTER TABLE "Settings" ADD COLUMN "logoOffsetYMm" REAL;');
+    }
+    if (!setColNames.includes('logoUrl')) {
+      await rawPrisma.$queryRawUnsafe('ALTER TABLE "Settings" ADD COLUMN "logoUrl" TEXT;');
+    }
+
+    const refDoctorCols: any = await rawPrisma.$queryRawUnsafe('PRAGMA table_info(ReferringDoctor);');
+    const refDoctorColNames = Array.isArray(refDoctorCols) ? refDoctorCols.map((c: any) => c.name) : [];
+    if (!refDoctorColNames.includes('isActive')) {
+      await rawPrisma.$queryRawUnsafe('ALTER TABLE "ReferringDoctor" ADD COLUMN "isActive" BOOLEAN NOT NULL DEFAULT 1;');
+    }
+
+    const patientCols: any = await rawPrisma.$queryRawUnsafe('PRAGMA table_info(Patient);');
+    const patientColNames = Array.isArray(patientCols) ? patientCols.map((c: any) => c.name) : [];
+    if (!patientColNames.includes('birthDate')) {
+      await rawPrisma.$queryRawUnsafe('ALTER TABLE "Patient" ADD COLUMN "birthDate" DATETIME;');
+    }
+
+    const sampleTestCols: any = await rawPrisma.$queryRawUnsafe('PRAGMA table_info(SampleTest);');
+    const sampleTestColNames = Array.isArray(sampleTestCols) ? sampleTestCols.map((c: any) => c.name) : [];
+    if (!sampleTestColNames.includes('crystals')) {
+      await rawPrisma.$queryRawUnsafe('ALTER TABLE "SampleTest" ADD COLUMN "crystals" TEXT;');
     }
 
     await rawPrisma.$queryRawUnsafe(`
@@ -202,8 +282,14 @@ export async function initDbWAL() {
         "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    await rawPrisma.$queryRawUnsafe(`PRAGMA user_version = ${CURRENT_SCHEMA_VERSION};`);
   } catch (migErr: any) {
     console.warn('[Prisma SQLite] Safe auto-migration notice:', migErr?.message);
+  } finally {
+    if (isBench) {
+      const ms = Number(process.hrtime.bigint() - t0Mig) / 1e6;
+      console.log(`⏱️ [BENCHMARK] migrations: ${ms.toFixed(2)}ms`);
+    }
   }
 }
 

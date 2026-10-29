@@ -30,7 +30,7 @@ class DeviceBridgeService {
     this.activeSockets = new Set();
     this.webPort = 8080;
     this.tcpPort = 5000;
-    this.host = '0.0.0.0';
+    this.host = process.env.DEVICE_BRIDGE_HOST || (process.env.DEVICE_BRIDGE_ALLOW_LAN === '1' ? '0.0.0.0' : '127.0.0.1');
     this.isRunning = false;
     this.deviceApiKey = null;
   }

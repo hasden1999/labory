@@ -21,9 +21,10 @@ function getAllSourceFiles(dir, fileList = []) {
   return fileList;
 }
 
-const files = getAllSourceFiles('D:/lab/packages');
-const appsFiles = getAllSourceFiles('D:/lab/apps/web/src');
-const serverFiles = getAllSourceFiles('D:/lab/apps/server/src');
+const repoRoot = path.resolve(__dirname, '..');
+const files = getAllSourceFiles(path.join(repoRoot, 'packages'));
+const appsFiles = getAllSourceFiles(path.join(repoRoot, 'apps/web/src'));
+const serverFiles = getAllSourceFiles(path.join(repoRoot, 'apps/server/src'));
 const allFiles = [...files, ...appsFiles, ...serverFiles];
 
 const violations = [];
