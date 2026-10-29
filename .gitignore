@@ -62,6 +62,32 @@ storage/
 *.lnk
 *.tsbuildinfo
 
+# Corrupt data & backups
+apps/web/data/lab_store_corrupt_*.json
+apps/web/data/*.bak
+
+# Patient health information (PHI) — local runtime data, never tracked
+apps/web/data/lab_store*.json
+apps/web/data/clinical_templates.json
+apps/desktop/engine/data/lab_store*.json
+apps/desktop/engine/standalone/apps/web/data/lab_store*.json
+apps/desktop/engine/standalone/apps/web/data/clinical_templates.json
+apps/desktop/engine/standalone/apps/web/data/backups/
+apps/desktop/engine/standalone/data/lab_store*.json
+apps/web/data/*.tmp
+apps/web/data/network_devices.json
+apps/desktop/engine/data/*.tmp
+apps/desktop/engine/standalone/data/*.tmp
+apps/desktop/engine/standalone/apps/web/data/*.tmp
+apps/desktop/engine/standalone/apps/web/data/network_devices.json
+
+# Test artifacts and capture scripts
+tools/test_*.png
+tools/capture_*.js
+
 # Project Context Protocol
 PROJECT_CONTEXT.md
 .context/
+.hwid_seal.json
+**/.hwid_seal.json
+
