@@ -25,7 +25,8 @@ console.log(`======================================================`);
 // 1. فحص خيار البناء
 if (process.argv.includes('--build')) {
   console.log('جاري بناء مثبت سطح المكتب عبر tools/build-standalone-installer.js --rebuild...');
-  execSync('node tools/build-standalone-installer.js --rebuild', { cwd: rootDir, stdio: 'inherit' });
+  const allowSame = process.argv.includes('--allow-same-version') ? ' --allow-same-version' : '';
+  execSync(`node tools/build-standalone-installer.js --rebuild${allowSame}`, { cwd: rootDir, stdio: 'inherit' });
 }
 
 // 2. البحث الدقيق عن ملف المثبت الرئيسي Setup .exe المطابق للإصدار
@@ -89,7 +90,7 @@ const manifest = {
   releaseDate: new Date().toISOString(),
   downloadUrl: `https://github.com/${OWNER}/${REPO}/releases/download/${TAG}/${sanitizedRemoteName}`,
   mandatory: false,
-  releaseNotes: "تحديث v1.4.7: توحيد غلاف التطبيق في التخطيط الجذري، التدوير التلقائي المشفر لمفاتيح أجهزة التحليل الطبية، تعزيز استقرار المحرك المستقل Standalone، واكتمال منظومة الفحوصات والتدقيق بنسبة 100%."
+  releaseNotes: "تحديث Labryo LIMS v2.0.2: توحيد وتجميع تحاليل الكيمياء السريرية والسكر التراكمي (HbA1c) وباقة دهون الدم (Lipid Panel) في بطاقة تقرير وصورة واتساب واحدة مجمعة عالية الدقة، مع الحفاظ التام على استقلالية الاستمارات التخصصية (صورة الدم الكاملة CBC، الإدرار GUE، الخروج GSE، السائل المنوي SFA، الحمل الرقمي Bhcg، ومخزون المبيض AMH) كصور منفصلة لكل استمارة."
 };
 
 const manifestPath = path.join(distDir, 'latest.json');
@@ -216,14 +217,14 @@ if (process.argv.includes('--publish')) {
         }
       }
 
-      const releaseTitle = `Labryo Clinical LIMS ${TAG} - التدوير التلقائي لمفاتيح الأجهزة، توحيد غلاف التطبيق، واستقرار المحرك المستقل`;
-      const releaseBody = `## تحديث نظام المختبرات الطبية (${TAG})
+      const releaseTitle = `Labryo Clinical LIMS ${TAG} - دمج تحاليل الكيمياء والدهون في واتساب وتوحيد التقارير الطبية`;
+      const releaseBody = `## تحديث نظام المختبرات الطبية الكبير (${TAG})
 
 ### أبرز التحديثات والميزات في هذا الإصدار:
-1. **نقل وتوحيد غلاف التطبيق (AppShell)**: نقل الغلاف إلى التخطيط الجذري الموحد ومنع وميض إعادة البناء في جميع الصفحات.
-2. **التدوير التلقائي المشفر لمفاتيح أجهزة التحليل**: توليد آمن عبر تشفير عشوائي وحظر المفاتيح الافتراضية المكشوفة تماماً.
-3. **تعزيز الأمان والتحكم**: تشديد حماية مسارات النسخ الاحتياطي وحظر محاكاة الأجهزة في بيئة الإنتاج.
-4. **استقرار المحرك المستقل (Standalone Desktop Engine)**: بناء نظيف واجتياز بوابة فحص الدخان 100% مع كتالوج الـ 150 تحليلاً طبياً نشطاً.
+1. **توحيد وتجميع تحاليل الكيمياء السريرية والدهون في واتساب**: إرسال فحوصات الكيمياء السريرية، السكر التراكمي (HbA1c)، وباقة دهون الدم الشاملة مجمعة في صورة تشخيصية واحدة أنيقة وعالية الدقة بدلاً من إرسال كل فحص على حده.
+2. **عزل الاستمارات الطبية التخصصية**: استمرار إرسال استمارات صورة الدم الكاملة (CBC)، الفحص العام للإدرار (GUE)، الفحص العام للخروج (GSE)، وفحوصات الهرمونات كصور مستقلة لكل استمارة.
+3. **دعم النتائج السابقة والمقارنة التلقائية**: إدراج النتائج السابقة للمريض تلقائياً في التقرير المطبوع ورسائل الواتساب لمقارنة المؤشرات الحيوية مع الزيارات السابقة.
+4. **استقرار الأداء والربط الشبكي المحلي (LAN)**: تعزيز موثوقية الخادم المحلي والمزامنة اللحظية والطباعة السريعة.
 
 - بصمة التحقق الرقمية (SHA-256): \`${sha256Hash}\`
 `;
@@ -292,27 +293,43 @@ releaseDate: '${new Date().toISOString()}'
       fs.writeFileSync(latestYml, ymlContent, 'utf-8');
       itemsToUpload.push({ localFile: latestYml, remoteName: 'latest.yml' });
 
+      // ضمان رفع stable.yml دائماً للعملاء والمستخدمين المحددة قنواتهم كـ stable
+      const stableYml = path.join(distDir, 'stable.yml');
+      fs.writeFileSync(stableYml, ymlContent, 'utf-8');
+      itemsToUpload.push({ localFile: stableYml, remoteName: 'stable.yml' });
+
       const sha256File = `${setupExePath}.sha256`;
       if (fs.existsSync(sha256File)) {
         itemsToUpload.push({ localFile: sha256File, remoteName: `${sanitizedRemoteName}.sha256` });
       }
 
       for (const item of itemsToUpload) {
-        // فحص ما إذا كان الملف موجوداً ومطابقاً في الحجم
         const itemStats = fs.statSync(item.localFile);
-        const matched = existingAssets.find(a => a.name === item.remoteName);
+        const maxRetries = 5;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            const latestRelRes = await apiRequest(`/repos/${OWNER}/${REPO}/releases/${release.id}`);
+            const currentAssets = latestRelRes.data?.assets || [];
+            const matched = currentAssets.find(a => a.name === item.remoteName);
 
-        if (matched) {
-          if (matched.size === itemStats.size) {
-            console.log(`الأصل ${item.remoteName} موجود بالفعل وبنفس الحجم، تم التحقق بنجاح.`);
-            continue;
+            if (matched) {
+              if (matched.size === itemStats.size && matched.state === 'uploaded' && !process.argv.includes('--allow-same-version')) {
+                console.log(`الأصل ${item.remoteName} موجود بالفعل وبنفس الحجم، تم التحقق بنجاح.`);
+                break;
+              }
+              console.log(`حذف الأصل السابق/الجزئي ${item.remoteName} (ID: ${matched.id}) قبل المحاولة #${attempt}...`);
+              await apiRequest(`/repos/${OWNER}/${REPO}/releases/assets/${matched.id}`, 'DELETE');
+              await new Promise(r => setTimeout(r, 1500));
+            }
+
+            await uploadAsset(release.upload_url, item.localFile, item.remoteName);
+            break;
+          } catch (uploadErr) {
+            console.warn(`⚠️ انقطاع أثناء رفع ${item.remoteName} (محاولة ${attempt}/${maxRetries}): ${uploadErr.message}`);
+            if (attempt === maxRetries) throw uploadErr;
+            await new Promise(r => setTimeout(r, 3000));
           }
-          console.log(`حذف الأصل السابق ${item.remoteName} (ID: ${matched.id}) قبل إعادة الرفع...`);
-          await apiRequest(`/repos/${OWNER}/${REPO}/releases/assets/${matched.id}`, 'DELETE');
-          await new Promise(r => setTimeout(r, 1000));
         }
-
-        await uploadAsset(release.upload_url, item.localFile, item.remoteName);
       }
 
       console.log(`\n🎉 تم نشر وتوزيع التحديث بنجاح تام للمستخدمين!`);

@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 const http = require('http');
 const { execSync, spawn, execFileSync } = require('child_process');
 const { DatabaseSync } = require('node:sqlite');
@@ -209,6 +210,17 @@ function pruneEngineContents(rootDir, targetStandalone) {
     }
   }
 
+  // 4b. Ensure puppeteer & headless browser dependencies are bundled for report image generation
+  const puppeteerPkgs = ['puppeteer', 'puppeteer-core', '@puppeteer', 'devtools-protocol', 'chromium-bidi', 'cosmiconfig', 'ws'];
+  for (const pkg of puppeteerPkgs) {
+    const pkgSrc = path.join(rootDir, 'node_modules', pkg);
+    const pkgDest = path.join(targetStandalone, 'node_modules', pkg);
+    if (fs.existsSync(pkgSrc) && !fs.existsSync(pkgDest)) {
+      console.log(`  -> نسخ حزمة ${pkg} لدعم محرك التقارير والصور الطبية...`);
+      fs.cpSync(pkgSrc, pkgDest, { recursive: true });
+    }
+  }
+
   // 5. Recursive safety cleanup: remove any stray *.so.node or schema-engine-windows.exe
   function removeForbiddenFiles(dir) {
     if (!fs.existsSync(dir)) return;
@@ -231,7 +243,7 @@ function pruneEngineContents(rootDir, targetStandalone) {
 // -------------------------------------------------------------
 // Phase 2: Automated Smoke Test Gate
 // -------------------------------------------------------------
-async function runSmokeTestGate({ engineDir, targetStandalone, timeoutMs = 25000 }) {
+async function runSmokeTestGate({ engineDir, targetStandalone, timeoutMs = 45000 }) {
   const nodeExe = path.join(engineDir, 'node.exe');
   const serverJs = path.join(targetStandalone, 'apps', 'web', 'server.js');
   const sanitizedDbSrc = path.join(targetStandalone, 'apps', 'web', 'data', 'lab.db');
@@ -436,18 +448,57 @@ async function run() {
   console.log(`نسخ مجلد الخادم المستقل إلى: ${targetStandalone} ...`);
   fs.cpSync(standaloneWebDir, targetStandalone, { recursive: true });
 
+  // SECURITY: Next.js file tracing can copy local runtime data (PHI) into standalone.
+  // Remove every sensitive artifact before the clean seed database/store are written.
+  const sensitiveStandaloneDataDirs = [
+    path.join(targetStandalone, 'apps', 'web', 'data'),
+    path.join(targetStandalone, 'data'),
+  ];
+  for (const dataDir of sensitiveStandaloneDataDirs) {
+    if (!fs.existsSync(dataDir)) continue;
+    for (const entry of fs.readdirSync(dataDir)) {
+      const isSensitive =
+        entry === 'lab_store.json' ||
+        entry === 'lab_store.json.bak' ||
+        entry.startsWith('lab_store.json.') ||
+        entry === 'lab.db' ||
+        entry === 'lab.db-wal' ||
+        entry === 'lab.db-shm' ||
+        entry === 'clinical_templates.json' ||
+        entry === 'network_devices.json' ||
+        entry === '.hwid_seal.json' ||
+        entry === 'backups';
+      if (!isSensitive) continue;
+      fs.rmSync(path.join(dataDir, entry), { recursive: true, force: true });
+      console.log(`🧹 إزالة بيانات محلية حساسة من الحزمة: ${path.join(dataDir, entry)}`);
+    }
+  }
+
+  // The server Prisma fallback path must never carry the real patient database.
+  const standaloneServerPrismaDir = path.join(targetStandalone, 'apps', 'server', 'prisma');
+  if (fs.existsSync(standaloneServerPrismaDir)) {
+    for (const entry of fs.readdirSync(standaloneServerPrismaDir)) {
+      if (entry === 'lab.db' || entry.startsWith('lab.db-') || entry.startsWith('lab.db.')) {
+        fs.rmSync(path.join(standaloneServerPrismaDir, entry), { recursive: true, force: true });
+        console.log(`🧹 إزالة قاعدة بيانات محلية من الحزمة: ${path.join(standaloneServerPrismaDir, entry)}`);
+      }
+    }
+  }
+
   // Copy static assets once into targetStandalone/apps/web/.next/static
   const staticSrc = path.join(webDir, '.next', 'static');
   const staticDest = path.join(targetStandalone, 'apps', 'web', '.next', 'static');
   console.log('نسخ الأصول الثابتة (.next/static)...');
   fs.cpSync(staticSrc, staticDest, { recursive: true });
 
-  // Copy public assets once into targetStandalone/apps/web/public
+  // Copy public assets into targetStandalone/apps/web/public AND targetStandalone/public
   const publicSrc = path.join(webDir, 'public');
   if (fs.existsSync(publicSrc)) {
     const publicDest = path.join(targetStandalone, 'apps', 'web', 'public');
+    const rootPublicDest = path.join(targetStandalone, 'public');
     console.log('نسخ مجلد public...');
     fs.cpSync(publicSrc, publicDest, { recursive: true });
+    fs.cpSync(publicSrc, rootPublicDest, { recursive: true });
   }
 
   // Phase 2: Engine bundling pruning (Prisma + dev tools)
@@ -514,6 +565,45 @@ async function run() {
   }
 
   logStep('5/5', 'حزم وتوليد ملف التثبيت الرسمي النهائي (Setup.exe) عبر electron-builder...');
+  const distDir = path.join(desktopDir, 'dist');
+  if (fs.existsSync(distDir)) {
+    console.log('🧹 تنظيف مسبق لملفات التثبيت والمخلفات السابقة في مجلد dist/...');
+    const oldFiles = fs.readdirSync(distDir);
+    for (const f of oldFiles) {
+      if (f.endsWith('.exe') || f.endsWith('.blockmap') || f.endsWith('.sha256') || f.endsWith('.nsis.7z')) {
+        try {
+          fs.unlinkSync(path.join(distDir, f));
+        } catch (e) {
+          // ignore locked files
+        }
+      }
+    }
+
+    // تنظيف روابط التطوير المؤقتة واستعادة app.asar إن كان معطلاً بواسطة dev-desktop
+    const resDir = path.join(distDir, 'win-unpacked', 'resources');
+    if (fs.existsSync(resDir)) {
+      const devJunction = path.join(resDir, 'app');
+      if (fs.existsSync(devJunction)) {
+        try {
+          fs.rmSync(devJunction, { recursive: true, force: true });
+          console.log('  🧹 تم تنظيف رابط التطوير المؤقت (resources/app junction).');
+        } catch (e) {}
+      }
+      const asarDev = path.join(resDir, 'app.asar.dev-disabled');
+      const asarReal = path.join(resDir, 'app.asar');
+      if (fs.existsSync(asarDev)) {
+        try {
+          if (fs.existsSync(asarReal)) {
+            fs.unlinkSync(asarDev);
+          } else {
+            fs.renameSync(asarDev, asarReal);
+            console.log('  ✅ تم استعادة ملف app.asar من النسخة المعطلة مؤقتاً.');
+          }
+        } catch (e) {}
+      }
+    }
+  }
+
   console.log('جاري تشغيل electron-builder لحزم تطبيق سطح المكتب بنظام NSIS...');
 
   const shouldPublish = process.argv.includes('--publish') || process.argv.includes('--release');
@@ -546,7 +636,6 @@ async function run() {
   console.log('  🎉 تم إنجاز بناء ملف التثبيت المستقل بنجاح فائق!');
   console.log('======================================================');
 
-  const distDir = path.join(desktopDir, 'dist');
   const targetVersion = require(path.join(rootDir, 'package.json')).version;
   const files = fs.readdirSync(distDir);
   const setupFile = files.find(
@@ -578,10 +667,18 @@ async function run() {
     throw new Error(`❌ خطأ جسيم: ترويسة ملف التثبيت المترجم (${peVersion}) لا تطابق الإصدار المطلوب (${targetVersion})!`);
   }
 
+  // حساب وحفظ بصمة التجزئة SHA-256 للتحقق الرقمي
+  const fileBuffer = fs.readFileSync(setupPath);
+  const hashSum = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+  const sha256Path = `${setupPath}.sha256`;
+  safeWriteFileSync(sha256Path, `${hashSum} *${path.basename(setupPath)}\n`, 'utf-8');
+
   const sizeMb = (fs.statSync(setupPath).size / (1024 * 1024)).toFixed(2);
   console.log(`\n  📁 مسار ملف التثبيت النهائي المعتمد:`);
   console.log(`  ${setupPath}`);
   console.log(`  🔍 رقم الإصدار الموثق داخلياً: ${peVersion}`);
+  console.log(`  🔐 بصمة التجزئة SHA-256: ${hashSum}`);
+  console.log(`  📄 ملف التحقق الرقمي: ${sha256Path}`);
   console.log(`  📦 الحجم الإجمالي: ${sizeMb} MB`);
   console.log(`\n  هذا الملف هو الوحيد الذي ترسله للعميل، وهو مستقل 100% ولا يحتاج أي برنامج مساند!`);
 

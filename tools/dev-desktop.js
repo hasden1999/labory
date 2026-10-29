@@ -54,6 +54,19 @@ async function ensureJunction() {
     execSync('npx electron-builder --win --dir', { cwd: desktopAppDir, stdio: 'inherit' });
   }
 
+  // Disable old app.asar in live dev so Electron runs directly from live source junction
+  const asarPath = path.join(rootDir, 'apps', 'desktop', 'dist', 'win-unpacked', 'resources', 'app.asar');
+  const asarDevBackup = asarPath + '.dev-disabled';
+  if (fs.existsSync(asarPath)) {
+    try {
+      log('تعطيل app.asar القديم وتفعيل كود التطوير الحي المباشر (Live Dev)...');
+      if (fs.existsSync(asarDevBackup)) fs.unlinkSync(asarDevBackup);
+      fs.renameSync(asarPath, asarDevBackup);
+    } catch (e) {
+      console.warn('تنبيه asar:', e.message);
+    }
+  }
+
   if (!fs.existsSync(unpackedAppJunction)) {
     try {
       log('ربط مجلد التطوير بكود سطح المكتب الحي (Junction)...');
@@ -77,8 +90,8 @@ async function startDev() {
   if (!isPortOpen) {
     log('تشغيل خادم الواجهة البرمجية المباشر (Next.js Fast Refresh HMR)...');
     const isWin = process.platform === 'win32';
-    webProcess = spawn(isWin ? 'npm.cmd' : 'npm', ['run', 'dev', '--workspace=@lab-manager/web'], {
-      cwd: rootDir,
+    webProcess = spawn(isWin ? 'npm.cmd' : 'npm', ['run', 'dev'], {
+      cwd: path.join(rootDir, 'apps', 'web'),
       stdio: 'inherit',
       shell: isWin,
       env: {
@@ -95,9 +108,8 @@ async function startDev() {
       await new Promise((r) => setTimeout(r, 600));
       const portOpen = await checkPort(WEB_PORT);
       if (portOpen) {
-        portOpenCount++;
-        const healthy = await checkHealth(WEB_PORT, 2000);
-        if (healthy || portOpenCount >= 4) {
+        const healthy = await checkHealth(WEB_PORT, 2500);
+        if (healthy) {
           ready = true;
           break;
         }

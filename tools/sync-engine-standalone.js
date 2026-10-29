@@ -12,9 +12,13 @@ if (!fs.existsSync(nextDir)) {
 }
 
 const targets = [
+  path.join(rootDir, 'apps', 'web', '.next', 'standalone'),
   path.join(rootDir, 'apps', 'desktop', 'engine', 'standalone'),
   path.join(rootDir, 'apps', 'desktop', 'dist', 'win-unpacked', 'resources', 'engine', 'standalone'),
+  path.join(process.env.LOCALAPPDATA || '', 'Programs', '@lab-managerdesktop', 'resources', 'engine', 'standalone'),
   path.join(process.env.LOCALAPPDATA || '', 'Programs', 'lab-manager-desktop', 'resources', 'engine', 'standalone'),
+  path.join(process.env['ProgramFiles'] || 'C:\\Program Files', 'Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية', 'resources', 'engine', 'standalone'),
+  path.join(process.env['ProgramFiles'] || 'C:\\Program Files', '@lab-managerdesktop', 'resources', 'engine', 'standalone'),
 ].filter(Boolean);
 
 const serverSrc = path.join(nextDir, 'server');
@@ -27,8 +31,8 @@ for (const targetStandalone of targets) {
   }
   console.log('🔄 Syncing assets to:', targetStandalone);
   try {
-    // 1. If standaloneWebDir exists, sync its apps/web
-    if (fs.existsSync(standaloneWebDir)) {
+    // 1. If standaloneWebDir exists and is not target, sync its apps/web
+    if (fs.existsSync(standaloneWebDir) && targetStandalone !== standaloneWebDir) {
       const webSrcStandalone = path.join(standaloneWebDir, 'apps', 'web');
       const webDestStandalone = path.join(targetStandalone, 'apps', 'web');
       if (fs.existsSync(webSrcStandalone)) {
@@ -95,6 +99,16 @@ for (const targetStandalone of targets) {
       for (const pDest of publicDests) {
         fs.mkdirSync(path.dirname(pDest), { recursive: true });
         fs.cpSync(publicSrc, pDest, { recursive: true, force: true });
+      }
+    }
+
+    // 6. Ensure puppeteer & headless browser dependencies exist in standalone node_modules
+    const puppeteerPkgs = ['puppeteer', 'puppeteer-core', '@puppeteer', 'devtools-protocol', 'chromium-bidi', 'cosmiconfig', 'ws'];
+    for (const pkg of puppeteerPkgs) {
+      const pkgSrc = path.join(rootDir, 'node_modules', pkg);
+      const pkgDest = path.join(targetStandalone, 'node_modules', pkg);
+      if (fs.existsSync(pkgSrc) && !fs.existsSync(pkgDest)) {
+        fs.cpSync(pkgSrc, pkgDest, { recursive: true });
       }
     }
 

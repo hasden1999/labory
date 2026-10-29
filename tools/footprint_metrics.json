@@ -1,32 +1,32 @@
 {
-  "timestamp": "2026-10-06T14:59:09.530Z",
+  "timestamp": "2026-10-28T10:41:05.434Z",
   "engine": {
     "path": "apps/desktop/engine",
     "exists": true,
-    "sizeBytes": 148664095,
-    "sizeFormatted": "141.78 MB",
-    "fileCount": 2161
+    "sizeBytes": 185259740,
+    "sizeFormatted": "176.68 MB",
+    "fileCount": 4265
   },
   "standaloneNodeModules": {
     "path": "apps/desktop/engine/standalone/node_modules",
     "exists": true,
-    "sizeBytes": 43194057,
-    "sizeFormatted": "41.19 MB",
-    "fileCount": 1761
+    "sizeBytes": 62062771,
+    "sizeFormatted": "59.19 MB",
+    "fileCount": 3780
   },
   "latestSetupExe": {
-    "fileName": "Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 1.3.1.exe",
-    "filePath": "apps/desktop/dist/Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 1.3.1.exe",
-    "sizeBytes": 106036234,
-    "sizeFormatted": "101.12 MB",
-    "modifiedTime": "2026-10-06T14:53:45.064Z"
+    "fileName": "Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 2.0.3.exe",
+    "filePath": "apps/desktop/dist/Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 2.0.3.exe",
+    "sizeBytes": 109794882,
+    "sizeFormatted": "104.71 MB",
+    "modifiedTime": "2026-10-28T10:40:37.020Z"
   },
   "topNodeModulesFolders": [
     {
       "name": ".prisma",
       "path": "apps/desktop/engine/standalone/node_modules/.prisma",
-      "sizeBytes": 21394464,
-      "sizeFormatted": "20.40 MB",
+      "sizeBytes": 21400718,
+      "sizeFormatted": "20.41 MB",
       "fileCount": 13
     },
     {
@@ -37,11 +37,32 @@
       "fileCount": 970
     },
     {
+      "name": "chromium-bidi",
+      "path": "apps/desktop/engine/standalone/node_modules/chromium-bidi",
+      "sizeBytes": 7905344,
+      "sizeFormatted": "7.54 MB",
+      "fileCount": 259
+    },
+    {
+      "name": "puppeteer-core",
+      "path": "apps/desktop/engine/standalone/node_modules/puppeteer-core",
+      "sizeBytes": 6784138,
+      "sizeFormatted": "6.47 MB",
+      "fileCount": 1508
+    },
+    {
       "name": "@prisma/client",
       "path": "apps/desktop/engine/standalone/node_modules/@prisma/client",
       "sizeBytes": 4119828,
       "sizeFormatted": "3.93 MB",
       "fileCount": 32
+    },
+    {
+      "name": "devtools-protocol",
+      "path": "apps/desktop/engine/standalone/node_modules/devtools-protocol",
+      "sizeBytes": 3114537,
+      "sizeFormatted": "2.97 MB",
+      "fileCount": 11
     },
     {
       "name": "react-dom",
@@ -51,46 +72,25 @@
       "fileCount": 8
     },
     {
+      "name": "@puppeteer/browsers",
+      "path": "apps/desktop/engine/standalone/node_modules/@puppeteer/browsers",
+      "sizeBytes": 487700,
+      "sizeFormatted": "476.27 KB",
+      "fileCount": 158
+    },
+    {
+      "name": "puppeteer",
+      "path": "apps/desktop/engine/standalone/node_modules/puppeteer",
+      "sizeBytes": 343026,
+      "sizeFormatted": "334.99 KB",
+      "fileCount": 43
+    },
+    {
       "name": "caniuse-lite",
       "path": "apps/desktop/engine/standalone/node_modules/caniuse-lite",
       "sizeBytes": 337526,
       "sizeFormatted": "329.62 KB",
       "fileCount": 599
-    },
-    {
-      "name": "react",
-      "path": "apps/desktop/engine/standalone/node_modules/react",
-      "sizeBytes": 140050,
-      "sizeFormatted": "136.77 KB",
-      "fileCount": 9
-    },
-    {
-      "name": "source-map-js",
-      "path": "apps/desktop/engine/standalone/node_modules/source-map-js",
-      "sizeBytes": 108784,
-      "sizeFormatted": "106.23 KB",
-      "fileCount": 12
-    },
-    {
-      "name": "postcss",
-      "path": "apps/desktop/engine/standalone/node_modules/postcss",
-      "sizeBytes": 105233,
-      "sizeFormatted": "102.77 KB",
-      "fileCount": 29
-    },
-    {
-      "name": "semver",
-      "path": "apps/desktop/engine/standalone/node_modules/semver",
-      "sizeBytes": 68829,
-      "sizeFormatted": "67.22 KB",
-      "fileCount": 48
-    },
-    {
-      "name": "busboy",
-      "path": "apps/desktop/engine/standalone/node_modules/busboy",
-      "sizeBytes": 48296,
-      "sizeFormatted": "47.16 KB",
-      "fileCount": 5
     }
   ]
 }
