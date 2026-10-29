@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { apiRequest } from '../../lib/api';
+import { apiRequest, setAuthToken } from '../../lib/api';
 import { useToast } from '../../components/Toast';
 import LabryoLogo from '../../components/LabryoLogo';
 import { FlaskConical, Lock, User, ShieldCheck, ArrowLeft, CheckCircle2, Sparkles, Check } from 'lucide-react';
@@ -33,7 +33,8 @@ export default function LoginPage() {
       });
 
       if (res && res.token) {
-        localStorage.setItem('auth_token', res.token);
+        setAuthToken(res.token);
+        localStorage.setItem('lab_user', JSON.stringify(res.user));
         localStorage.setItem('user_role', res.user.role);
         localStorage.setItem('user_profile', JSON.stringify(res.user));
         toast.success(`مرحباً بك ${res.user.name}`, 'تم تسجيل الدخول بنجاح');
@@ -64,7 +65,8 @@ export default function LoginPage() {
       });
 
       if (res && res.token) {
-        localStorage.setItem('auth_token', res.token);
+        setAuthToken(res.token);
+        localStorage.setItem('lab_user', JSON.stringify(res.user));
         localStorage.setItem('user_role', res.user.role);
         localStorage.setItem('user_profile', JSON.stringify(res.user));
         toast.success(`تم تسجيل الدخول كـ ${res.user.name}`, 'دخول سريع');

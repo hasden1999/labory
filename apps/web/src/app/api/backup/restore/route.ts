@@ -1,21 +1,13 @@
 import { NextResponse } from 'next/server';
 import { restoreBackupFromFile } from '../../../../lib/serverStore';
+import { isLocalLoopbackRequest, forbiddenLoopbackResponse } from '../../../../lib/backupSecurity';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    // Security Guard (Desktop-only): restore allowed only from local loopback.
-    // Binding is 127.0.0.1 so LAN cannot reach here; this is defense-in-depth.
-    const host = request.headers.get('host') || '';
-    const origin = request.headers.get('origin') || '';
-    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1') || origin.includes('localhost') || origin.includes('127.0.0.1') || origin === '';
-
-    if (!isLocalhost) {
-      return NextResponse.json(
-        { message: 'غير مصرح: استرجاع النسخ الاحتياطية مسموح فقط من هذا الجهاز المحلي' },
-        { status: 403 }
-      );
+    if (!isLocalLoopbackRequest(request)) {
+      return forbiddenLoopbackResponse();
     }
 
     const contentType = request.headers.get('content-type') || '';

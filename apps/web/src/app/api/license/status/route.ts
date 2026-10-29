@@ -106,7 +106,10 @@ export async function GET() {
         });
 
         for (const candidate of sqliteLicenses) {
-          if (candidate.signature && candidate.signature.startsWith('LIC-')) {
+          if (
+            candidate.signature &&
+            (candidate.signature.startsWith('LIC2-') || candidate.signature.startsWith('LIC-'))
+          ) {
             const recoveryVerif = verifyLicenseKey(candidate.signature, hwid);
             if (recoveryVerif.valid && recoveryVerif.payload) {
               console.log('[License] Restored valid active license from SQLite database to local store.');
@@ -280,10 +283,27 @@ export async function GET() {
       }
 
       if (isPriorInstallation) {
-        // File was deleted to reset trial! Deny fresh trial and force lock.
-        trialFirstRun = priorDate || new Date(nowMs - (TRIAL_DAYS + 1) * 24 * 60 * 60 * 1000).toISOString();
-        trialExpiresAt = trialExpiresAt || new Date(nowMs - 1000).toISOString();
-        trialFinished = true;
+        // Check if prior trial or oldest sample is still within the 48-hour (2-day) trial window
+        let stillValid = false;
+        if (trialExpiresAt && new Date(trialExpiresAt).getTime() > nowMs) {
+          stillValid = true;
+        } else if (priorDate && (nowMs - new Date(priorDate).getTime() < TRIAL_DAYS * 24 * 60 * 60 * 1000)) {
+          const exp = new Date(new Date(priorDate).getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+          if (exp.getTime() > nowMs) {
+            trialExpiresAt = exp.toISOString();
+            stillValid = true;
+          }
+        }
+
+        if (stillValid) {
+          trialFirstRun = priorDate || new Date(new Date(trialExpiresAt!).getTime() - TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+          trialFinished = false;
+        } else {
+          // File was deleted or 48-hour trial window legitimately lapsed! Deny fresh trial and force lock.
+          trialFirstRun = priorDate || new Date(nowMs - (TRIAL_DAYS + 1) * 24 * 60 * 60 * 1000).toISOString();
+          trialExpiresAt = trialExpiresAt || new Date(nowMs - 1000).toISOString();
+          trialFinished = true;
+        }
       } else {
         // Legitimate fresh first run: Initialize 2-Day Trial
         trialFirstRun = now.toISOString();
@@ -334,8 +354,8 @@ export async function GET() {
     const updatedMonotonic = nowMs > maxHistoricalTimeMs ? now.toISOString() : (currentLicense?.maxMonotonicTime || now.toISOString());
     const updatedSeal = createLicenseTamperSeal({
       hardwareId: hwid,
-      firstRunDate: trialFirstRun,
-      trialExpiresAt: trialExpiresAt,
+      firstRunDate: trialFirstRun || now.toISOString(),
+      trialExpiresAt: trialExpiresAt || now.toISOString(),
       maxMonotonicTime: updatedMonotonic,
       isActivated: false,
       licenseKey: '',
@@ -348,7 +368,7 @@ export async function GET() {
       tamperSeal: updatedSeal,
     });
 
-    const trialExpDate = new Date(trialExpiresAt);
+    const trialExpDate = new Date(trialExpiresAt || now.toISOString());
     const trialDiffMs = trialExpDate.getTime() - nowMs;
     const trialDaysLeft = Math.max(0, Math.ceil(trialDiffMs / (1000 * 60 * 60 * 24)));
     const trialHoursLeft = Math.max(0, Math.ceil(trialDiffMs / (1000 * 60 * 60)));

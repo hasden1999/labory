@@ -1,8 +1,11 @@
+import './env';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import { initDbWAL, checkpointDbWAL, prisma } from './prisma';
 import { startMDNS } from './utils/mdns';
+import { preWarmPuppeteer } from './utils/pdf';
+import { whatsappService } from './services/whatsappService';
 import { authRoutes } from './routes/auth';
 import { patientRoutes } from './routes/patients';
 import { sampleRoutes } from './routes/samples';
@@ -23,45 +26,109 @@ import { archiveRoutes } from './routes/archive';
 import { deviceRoutes } from './routes/devices';
 import { auditRoutes } from './routes/audit';
 import { startTcpDeviceServer, stopTcpDeviceServer } from './services/tcpDeviceServer';
+import crypto from 'crypto';
 
+const tServerEntry = (process.env.LABRYO_STARTUP_BENCHMARK === '1' || process.env.DEBUG_STARTUP_BENCHMARK === '1') ? process.hrtime.bigint() : 0n;
 const server = Fastify({ logger: true });
 
 async function bootstrap() {
-  // CORS & JWT
+  const isBench = process.env.LABRYO_STARTUP_BENCHMARK === '1' || process.env.DEBUG_STARTUP_BENCHMARK === '1';
+  if (isBench) {
+    const ms = Number(process.hrtime.bigint() - tServerEntry) / 1e6;
+    console.log(`⏱️ [BENCHMARK] تشغيل الخدمة: ${ms.toFixed(2)}ms`);
+  }
+  // CORS & JWT (fail-closed)
+  const defaultOrigins = [
+    'http://127.0.0.1:8080',
+    'http://localhost:8080',
+    'http://127.0.0.1:3000',
+    'http://localhost:3000',
+  ];
+  const allowedOrigins = (process.env.LABRYO_CORS_ORIGINS || defaultOrigins.join(','))
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (!process.env.JWT_SECRET) {
+    server.log.warn('[SECURITY] JWT_SECRET is not set; using an ephemeral secret. Sessions will not survive a restart.');
+  }
+
   await Promise.all([
-    server.register(cors, { origin: true }),
+    server.register(cors, {
+      origin: (origin, cb) => {
+        if (!origin) return cb(null, true);
+        if (allowedOrigins.includes(origin)) return cb(null, true);
+        return cb(new Error('CORS origin is not allowed'), false);
+      },
+      credentials: true,
+    }),
     server.register(jwt, {
-      secret: process.env.JWT_SECRET || 'LAB_MANAGER_SECRET_KEY_LOCAL_OFFLINE_2026',
+      secret: process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex'),
     }),
   ]);
 
-  // Single-Operator Auto Auth
+  // Authentication & authorization (fail-closed, session-backed)
   server.decorate('authenticate', async (request: any, reply: any) => {
+    if (!request.headers.authorization) {
+      return reply.status(401).send({ message: 'Authentication required' });
+    }
+    let payload: any;
     try {
-      if (request.headers.authorization) {
-        await request.jwtVerify();
-      } else {
-        request.user = { id: 'single_operator', name: 'المشغل', role: 'OWNER' };
+      payload = await request.jwtVerify();
+    } catch (err) {
+      return reply.status(401).send({ message: 'Invalid or expired token' });
+    }
+
+    const sessionId = payload?.sid;
+    if (!sessionId || typeof sessionId !== 'string') {
+      return reply.status(401).send({ message: 'Session identifier missing' });
+    }
+
+    try {
+      const session = await prisma.session.findUnique({ where: { id: sessionId } });
+      const now = new Date();
+      if (!session || session.revokedAt || session.expiresAt <= now) {
+        return reply.status(401).send({ message: 'Session expired or revoked' });
+      }
+
+      request.user = {
+        id: payload.id,
+        name: payload.name,
+        username: payload.username,
+        role: payload.role,
+        sessionId,
+      };
+
+      // Refresh lastSeenAt at most once every five minutes to avoid write amplification.
+      if (now.getTime() - session.lastSeenAt.getTime() > 5 * 60 * 1000) {
+        void prisma.session
+          .update({ where: { id: sessionId }, data: { lastSeenAt: now } })
+          .catch(() => {});
       }
     } catch (err) {
-      request.user = { id: 'single_operator', name: 'المشغل', role: 'OWNER' };
+      request.log.error({ err }, 'Session verification failed');
+      return reply.status(503).send({ message: 'Session verification unavailable' });
     }
   });
 
   server.decorate('requireOwner', async (request: any, reply: any) => {
     if (!request.user || request.user.role !== 'OWNER') {
-      request.user = { id: 'single_operator', name: 'المشغل', role: 'OWNER' };
+      return reply.status(403).send({ message: 'Owner privileges required' });
     }
   });
 
   // Root redirect to Web UI (Port 8080)
   server.get('/', async (request, reply) => {
-    return reply.redirect('http://localhost:8080');
+    return reply.redirect('http://127.0.0.1:8080');
   });
 
-  // Health check
+  // Health & Readiness checks
   server.get('/health', async () => {
     return { status: 'OK', app: 'Lab Manager Single-User Edition' };
+  });
+
+  server.get('/ready', async () => {
+    return { ready: true, status: 'READY', timestamp: Date.now() };
   });
 
   // Register All Routes in Parallel
@@ -148,6 +215,10 @@ async function bootstrap() {
       console.error('Server failed to start:', err);
       process.exit(1);
     }
+    if (isBench) {
+      const ms = Number(process.hrtime.bigint() - tServerEntry) / 1e6;
+      console.log(`⏱️ [BENCHMARK] جاهزية Fastify: ${ms.toFixed(2)}ms`);
+    }
     console.log(`🚀 Lab Manager Backend running at: ${address}`);
 
     // Asynchronous non-blocking network services initialization
@@ -155,8 +226,14 @@ async function bootstrap() {
       startTcpDeviceServer().catch((err) => {
         console.error('Failed to start TCP Device Server:', err);
       }),
-      Promise.resolve(startMDNS(PORT)),
     ]);
+
+    // Defer heavy background tasks (mDNS, Baileys, Puppeteer) after startup
+    setTimeout(() => {
+      startMDNS(PORT);
+      whatsappService.checkExistingSession();
+      preWarmPuppeteer(1000);
+    }, 2500);
   });
 }
 

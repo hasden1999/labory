@@ -104,6 +104,7 @@ model TestCatalog {
   refRangeText     String?         // مدى طبيعي نصي (مثال: Negative / 70 - 110)
   unit             String?
   sampleType       String?         @default("Serum") // دم كامل / مصل / بلازما / إدرار / مسحة
+  tubeType         String?         // EDTA, SST, Citrate, Urine cup, Stool cup
   active           Boolean         @default(true)
   specialtyId      String?
   specialty        Specialty?      @relation(fields: [specialtyId], references: [id], onDelete: SetNull)
@@ -430,6 +431,24 @@ model AuditLog {
 
   @@index([entity, entityId, createdAt(sort: Desc)])
   @@index([action, createdAt(sort: Desc)])
+}
+
+// Server-side session registry. The JWT carries only the session id (`sid`);
+// revocation and expiry are enforced against this table on every request.
+model Session {
+  id         String    @id
+  userId     String
+  userName   String?
+  role       String?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
 }
 
 model ReferenceRange {

@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getStore } from '../../../../lib/serverStore';
+import { isLocalLoopbackRequest, forbiddenLoopbackResponse } from '../../../../lib/backupSecurity';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!isLocalLoopbackRequest(request)) {
+    return forbiddenLoopbackResponse();
+  }
+
   try {
     const store = getStore();
     const labNameClean = (store.settings?.labName || 'Labryo')

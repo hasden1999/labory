@@ -1,6 +1,11 @@
 import { FastifyInstance } from 'fastify';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { prisma } from '../prisma';
+import { writeAudit } from '../utils/audit';
+
+const SESSION_TTL_HOURS = 12;
+const SESSION_PRUNE_AFTER_DAYS = 7;
 
 export async function authRoutes(fastify: FastifyInstance) {
   // Login
@@ -21,11 +26,57 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(401).send({ message: 'كلمة المرور غير صحيحة' });
     }
 
-    const token = fastify.jwt.sign({
-      id: staff.id,
-      name: staff.name,
-      username: staff.username,
-      role: staff.role,
+    const sessionId = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + SESSION_TTL_HOURS * 60 * 60 * 1000);
+
+    try {
+      await prisma.session.create({
+        data: {
+          id: sessionId,
+          userId: staff.id,
+          userName: staff.name,
+          role: staff.role,
+          ipAddress: request.ip,
+          userAgent: request.headers['user-agent'] || null,
+          expiresAt,
+        },
+      });
+    } catch (err: any) {
+      request.log.error({ err }, 'Failed to create server-side session');
+      return reply.status(503).send({
+        message: 'تعذر إنشاء جلسة دخول آمنة. يرجى المحاولة مرة أخرى.',
+      });
+    }
+
+    const token = fastify.jwt.sign(
+      {
+        id: staff.id,
+        name: staff.name,
+        username: staff.username,
+        role: staff.role,
+        sid: sessionId,
+      },
+      { expiresIn: `${SESSION_TTL_HOURS}h` }
+    );
+
+    void prisma.session
+      .deleteMany({
+        where: {
+          expiresAt: {
+            lt: new Date(Date.now() - SESSION_PRUNE_AFTER_DAYS * 24 * 60 * 60 * 1000),
+          },
+        },
+      })
+      .catch(() => {});
+
+    await writeAudit({
+      action: 'LOGIN',
+      entity: 'AUTH',
+      entityId: staff.id,
+      details: `تسجيل دخول ناجح للمستخدم ${staff.username}`,
+      userId: staff.id,
+      userName: staff.name,
+      ipAddress: request.ip,
     });
 
     return reply.send({
@@ -39,10 +90,58 @@ export async function authRoutes(fastify: FastifyInstance) {
     });
   });
 
-  // Logout
+  // Logout (idempotent: revokes the session when a valid token is supplied)
   fastify.post('/auth/logout', async (request, reply) => {
+    if (request.headers.authorization) {
+      try {
+        const payload = (await request.jwtVerify()) as any;
+        if (payload?.sid) {
+          await prisma.session.updateMany({
+            where: { id: payload.sid, revokedAt: null },
+            data: { revokedAt: new Date() },
+          });
+          await writeAudit({
+            action: 'LOGOUT',
+            entity: 'AUTH',
+            entityId: payload.id || payload.sid,
+            details: 'تسجيل خروج وإبطال الجلسة الحالية',
+            userId: payload.id,
+            userName: payload.name,
+            ipAddress: request.ip,
+          });
+        }
+      } catch {
+        // Invalid/expired token: logout remains a successful no-op.
+      }
+    }
     return reply.send({ message: 'تم تسجيل الخروج بنجاح' });
   });
+
+  // Revoke every active session for the current user
+  fastify.post(
+    '/auth/logout-all',
+    { onRequest: [fastify.authenticate] },
+    async (request, reply) => {
+      const user = request.user as any;
+      const result = await prisma.session.updateMany({
+        where: { userId: user.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      await writeAudit({
+        action: 'LOGOUT_ALL',
+        entity: 'AUTH',
+        entityId: user.id,
+        details: `إبطال جميع الجلسات النشطة (${result.count})`,
+        userId: user.id,
+        userName: user.name,
+        ipAddress: request.ip,
+      });
+      return reply.send({
+        message: 'تم إبطال جميع الجلسات النشطة',
+        revoked: result.count,
+      });
+    }
+  );
 
   // Get current user profile
   fastify.get('/auth/me', { onRequest: [fastify.authenticate] }, async (request, reply) => {
@@ -110,6 +209,24 @@ export async function authRoutes(fastify: FastifyInstance) {
       where: { id },
       data: dataToUpdate,
       select: { id: true, name: true, username: true, role: true, phone: true, active: true },
+    });
+
+    // A deactivated account or a password change must invalidate every existing session.
+    if (active === false || password) {
+      await prisma.session.updateMany({
+        where: { userId: id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    }
+
+    await writeAudit({
+      action: 'UPDATE',
+      entity: 'STAFF',
+      entityId: id,
+      details: `تحديث حساب موظف${active === false ? ' وتعطيله' : ''}${password ? ' وتغيير كلمة مروره' : ''}`,
+      userId: (request.user as any)?.id,
+      userName: (request.user as any)?.name,
+      ipAddress: request.ip,
     });
 
     return reply.send(updated);

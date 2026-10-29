@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createBackupSnapshot } from '../../../../lib/serverStore';
+import { isLocalLoopbackRequest, forbiddenLoopbackResponse } from '../../../../lib/backupSecurity';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
+    if (!isLocalLoopbackRequest(request)) {
+      return forbiddenLoopbackResponse();
+    }
+
     let label = '';
     try {
       const body = await request.json();

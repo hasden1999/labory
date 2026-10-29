@@ -112,6 +112,35 @@ export function getCurrentUser() {
   }
 }
 
+// Ultra-fast client-side SWR in-memory cache for instant page transitions
+const _apiGetCache = new Map<string, { data: any; timestamp: number }>();
+const _apiInflight = new Map<string, Promise<any>>();
+const SWR_FRESH_TTL_MS = 4000;
+const SWR_MAX_STALE_MS = 30000;
+
+export function invalidateApiCache(prefix?: string) {
+  if (!prefix) {
+    _apiGetCache.clear();
+    return;
+  }
+  for (const key of Array.from(_apiGetCache.keys())) {
+    if (key.includes(prefix)) {
+      _apiGetCache.delete(key);
+    }
+  }
+}
+
+function getCurrentUser_unused() {
+  if (typeof window === 'undefined') return null;
+  const raw = localStorage.getItem('lab_user');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export async function apiRequest<T = any>(
   endpoint: string,
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'GET',
@@ -128,9 +157,31 @@ export async function apiRequest<T = any>(
     headers['Authorization'] = 'Bearer ' + token;
   }
 
+  if (typeof window !== 'undefined') {
+    const deviceToken = localStorage.getItem('labryo_device_token');
+    if (deviceToken) {
+      headers['x-device-token'] = deviceToken;
+    }
+  }
+
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
   const url = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) + cleanEndpoint : baseUrl + cleanEndpoint;
+
+  // Invalidate cache on any write/mutation operation
+  if (method !== 'GET') {
+    _apiGetCache.clear();
+  } else if (typeof window !== 'undefined') {
+    const cached = _apiGetCache.get(cleanEndpoint);
+    const now = Date.now();
+    if (cached && now - cached.timestamp < SWR_FRESH_TTL_MS) {
+      return cached.data as T;
+    }
+    const existingInflight = _apiInflight.get(cleanEndpoint);
+    if (existingInflight && !cached) {
+      return existingInflight as Promise<T>;
+    }
+  }
 
   try {
     const response = await fetch(url, {
@@ -203,6 +254,9 @@ export async function apiRequest<T = any>(
       }
       if (method === 'GET' && cleanEndpoint.includes('/tests') && (!jsonRes?.tests || jsonRes.tests.length === 0)) {
         return handleClientFallback(cleanEndpoint) as unknown as T;
+      }
+      if (method === 'GET' && typeof window !== 'undefined') {
+        _apiGetCache.set(cleanEndpoint, { data: jsonRes, timestamp: Date.now() });
       }
       return jsonRes as T;
     }
