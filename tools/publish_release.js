@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const crypto = require('crypto');
+const { spawn, execFileSync } = require('child_process');
 
 const envPath = path.resolve(__dirname, '../.env');
 if (!fs.existsSync(envPath)) {
@@ -60,75 +61,71 @@ function requestGitHub(method, apiPath, body = null) {
 function uploadAssetFile(uploadUrlTemplate, filePath, fileName, contentType = 'application/octet-stream') {
   return new Promise((resolve, reject) => {
     const uploadUrlStr = uploadUrlTemplate.replace(/\{.*?\}$/, `?name=${encodeURIComponent(fileName)}`);
-    const uploadUrl = new URL(uploadUrlStr);
-
     const stat = fs.statSync(filePath);
     const size = stat.size;
     const sizeMB = (size / (1024 * 1024)).toFixed(1);
 
     console.log(`\nبدء رفع الملف: ${fileName} (${sizeMB} MB)...`);
 
-    const options = {
-      method: 'POST',
-      hostname: uploadUrl.hostname,
-      path: uploadUrl.pathname + uploadUrl.search,
-      headers: {
-        'User-Agent': 'Labryo-Release-Publisher',
-        'Authorization': 'token ' + token,
-        'Content-Type': contentType,
-        'Content-Length': size,
-        'Accept': 'application/vnd.github.v3+json',
-      },
-      timeout: 600000, // 10 minutes
-    };
+    const args = [
+      '--http1.1',
+      '--ssl-no-revoke',
+      '-#',
+      '-w', '\nHTTP_CODE:%{http_code}',
+      '-X', 'POST',
+      '-H', 'User-Agent: Labryo-Release-Publisher',
+      '-H', 'Authorization: token ' + token,
+      '-H', `Content-Type: ${contentType}`,
+      '-H', `Content-Length: ${size}`,
+      '-H', 'Accept: application/vnd.github.v3+json',
+      '--connect-timeout', '60',
+      '--max-time', '1800',
+      '--data-binary', `@${filePath}`,
+      uploadUrlStr
+    ];
 
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          console.log(`\n✅ تم اكتمال رفع: ${fileName} بنجاح! (Status ${res.statusCode})`);
-          resolve(data);
-        } else {
-          reject(new Error(`فشل الرفع برمز استجابة ${res.statusCode}: ${data}`));
-        }
-      });
+    const child = spawn('curl.exe', args, { stdio: ['ignore', 'pipe', 'inherit'] });
+    let stdout = '';
+
+    child.stdout.on('data', chunk => {
+      stdout += chunk.toString();
     });
 
-    req.on('error', (err) => {
-      console.error(`\n❌ خطأ شبكة أثناء رفع ${fileName}:`, err.message);
-      reject(err);
-    });
-
-    req.on('timeout', () => {
-      req.destroy(new Error('Upload request timed out after 10 minutes'));
-    });
-
-    let uploaded = 0;
-    let lastLogTime = Date.now();
-    const fileStream = fs.createReadStream(filePath, { highWaterMark: 128 * 1024 });
-
-    fileStream.on('data', (chunk) => {
-      uploaded += chunk.length;
-      const now = Date.now();
-      if (now - lastLogTime > 1000 || uploaded === size) {
-        lastLogTime = now;
-        const pct = ((uploaded / size) * 100).toFixed(1);
-        process.stdout.write(`\r  التقدم: ${pct}% (${(uploaded / (1024 * 1024)).toFixed(1)} / ${sizeMB} MB)`);
+    child.on('close', (code) => {
+      const match = stdout.match(/HTTP_CODE:(\d+)/);
+      const httpCode = match ? parseInt(match[1], 10) : 0;
+      if (code === 0 && httpCode >= 200 && httpCode < 300) {
+        console.log(`\n✅ تم اكتمال رفع: ${fileName} بنجاح! (Status ${httpCode})`);
+        resolve(stdout);
+      } else {
+        reject(new Error(`فشل رفع ${fileName} برمز خطأ exit=${code}, HTTP=${httpCode}: ${stdout.slice(0, 300)}`));
       }
     });
 
-    fileStream.on('end', () => {
-      console.log('\n  اكتمل نقل البيانات محلياً، بانتظار استجابة السحابة...');
-    });
-
-    fileStream.pipe(req);
+    child.on('error', reject);
   });
 }
 
-async function uploadWithRetry(uploadUrlTemplate, filePath, fileName, contentType, maxRetries = 3) {
+async function cleanAssetByName(releaseId, fileName) {
+  try {
+    const res = await requestGitHub('GET', `/repos/${OWNER}/${REPO}/releases/${releaseId}/assets`);
+    if (Array.isArray(res.data)) {
+      const match = res.data.find(a => a.name === fileName);
+      if (match) {
+        console.log(`🧹 تنظيف أصل سابق يحمل نفس الاسم (${fileName}, ID: ${match.id})...`);
+        await requestGitHub('DELETE', `/repos/${OWNER}/${REPO}/releases/assets/${match.id}`);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
+async function uploadWithRetry(releaseId, uploadUrlTemplate, filePath, fileName, contentType, maxRetries = 4) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
+      await cleanAssetByName(releaseId, fileName);
       console.log(`\n--- محاولة الرفع [${attempt}/${maxRetries}] لملف ${fileName} ---`);
       return await uploadAssetFile(uploadUrlTemplate, filePath, fileName, contentType);
     } catch (err) {
@@ -169,7 +166,6 @@ async function main() {
   }
 
   // Strict Windows PE Header Validation
-  const { execFileSync } = require('child_process');
   let productVersion = '';
   try {
     productVersion = execFileSync('powershell.exe', [
@@ -191,7 +187,7 @@ async function main() {
     fs.copyFileSync(rawExePath, standardExePath);
   }
 
-  // Handle latest.yml
+  // Handle latest.yml and stable.yml
   const latestYmlPath = path.join(distDir, 'latest.yml');
   if (!fs.existsSync(latestYmlPath)) {
     throw new Error('ملف latest.yml غير موجود في مجلد dist');
@@ -216,6 +212,10 @@ async function main() {
   fs.writeFileSync(latestYmlPath, ymlContent, 'utf-8');
   console.log('✅ تم تحديث ملف latest.yml لمطابقة اسم وحجم وبصمة المثبت بدقة.');
 
+  const stableYmlPath = path.join(distDir, 'stable.yml');
+  fs.writeFileSync(stableYmlPath, ymlContent, 'utf-8');
+  console.log('✅ تم إنشاء وتحديث ملف stable.yml لضمان توافق التحديث التلقائي لكافة الأجهزة المثبتة مسبقاً.');
+
   let blockmapPath = null;
   const rawBlockmap = distFiles.find(f => 
     f.endsWith('.exe.blockmap') && 
@@ -237,8 +237,8 @@ async function main() {
   let relRes = await requestGitHub('GET', `/repos/${OWNER}/${REPO}/releases/tags/${TAG}`);
   let release = null;
 
-  const releaseTitle = `Labryo Clinical LIMS ${TAG} - إعادة تنظيم واجهة الاستقبال والكونسول الموحد الشامل`;
-  const releaseBody = `### تحديث نظام Labryo Clinical LIMS (${TAG})\n\n- **إعادة هيكلة واجهة الاستقبال والكونسول السريري الموحد:**\n  - ترتيب ثلاثي الأعمدة من اليمين إلى اليسار (تسجيل المريض يميناً، كتالوج وسلة الفحوصات بالوسط، شبكة إدخال النتائج يساراً).\n  - تثبيت الترويسة مع شعار المختبر وزر الأقسام (القائمة الجانبية) في أقصى اليمين.\n  - تعريب واجهة إدخال المريض وأزرار التحكم والاختصارات (F1-F10) لتسهيل عمل موظف الاستقبال.\n  - الحفاظ الصارم على أسماء التحاليل والنتائج الطبية والتقارير باللغة الإنجليزية الطبية المعتمدة 100% دون أي تعريب يظهر للمريض (باستثناء اسم المريض).\n  - أزرار وصول مباشر وفورية للفورمات التخصصية (GUE, GSE, CBC, SFA) مع الفتح التلقائي عند اختيار التحليل ومؤشر الإنجاز.\n\nروابط التنزيل المباشر أدناه.`;
+  const releaseTitle = `Labryo Clinical LIMS ${TAG} - فورمات فحص الدم CBC مخصصة لكل جهاز تحليل (سوي لاب Swelab، ميندراي Mindray، سيسمكس Sysmex) وتكامل LIS تلقائي`;
+  const releaseBody = `### تحديث نظام Labryo Clinical LIMS (${TAG})\n\n- **1. فورمات CBC مخصصة ومطابقة 100% لأجهزة التحليل الحقيقية:**\n  - تصميم وطباعة فورمات فحص الدم CBC المخصصة لكل جهاز (Swelab Alfa 3-Part، Mindray BC-3000 Plus 3-Part، Mindray BC-5000 5-Part مع Laser Scattergram، وSysmex XP-300).\n  - قالب Swelab Alfa مطابق لقصاصة الورقة الحقيقية 100%: 3 كتل أفقية مستقلة مع منحنياتها الخاصة (WBC 450fl, RBC 250fl, PLT 30fl)، علامات التنبيه الملاصقة للأرقام (▼ / ▲)، ونجوم الفحوصات البحثية (*).\n- **2. ربط أجهزة التحليل وتكامل LIS تلقائي:**\n  - الكشف التلقائي للجهاز عند الطباعة وتطبيق الفورمة المخصصة دون تدخل يدوي.\n  - دعم كامل لاستقبال برقيات ASTM 1394 وHL7 عبر منفذ الشبكة LAN (Port 5000) ومنفذ السيريال RS-232.\n  - لصق قراءات الجهاز الذكي وزر عينة سوي لاب التجريبية في نافذة إدخال CBC.\n- **3. اختبار المحاكاة والتحقق السريري:**\n  - اجتياز اختبار محاكاة حي كامل لاستقبال نتائج عينة حقيقية من جهاز Swelab وترحيلها بنجاح 100% واجتياز حزمة الاختبارات الذهبية 6/6.\n\nروابط التنزيل المباشر أدناه.`;
 
   if (relRes.status === 200 && relRes.data) {
     release = relRes.data;
@@ -275,9 +275,38 @@ async function main() {
   const filesToUpload = [
     { name: standardExeName, path: standardExePath, type: 'application/octet-stream' },
     { name: 'latest.yml', path: latestYmlPath, type: 'text/yaml' },
+    { name: 'stable.yml', path: stableYmlPath, type: 'text/yaml' },
   ];
   if (blockmapPath && fs.existsSync(blockmapPath)) {
     filesToUpload.push({ name: `${standardExeName}.blockmap`, path: blockmapPath, type: 'application/octet-stream' });
+  }
+
+  // Also check for legacy universal installer in dist-legacy
+  const distLegacyDir = path.resolve(__dirname, '../apps/desktop/dist-legacy');
+  if (fs.existsSync(distLegacyDir)) {
+    const legacyFiles = fs.readdirSync(distLegacyDir);
+    const legacyExe = legacyFiles.find(f => f.endsWith('.exe') && !f.includes('elevate') && !f.includes('unins'));
+    if (legacyExe) {
+      const legacyExePath = path.join(distLegacyDir, legacyExe);
+      const legacyRemoteName = `Labryo.LIMS.Universal.Setup.${VERSION}.exe`;
+      filesToUpload.push({ name: legacyRemoteName, path: legacyExePath, type: 'application/octet-stream' });
+      console.log(`📦 تم تضمين مثبت النسخة الشاملة للأجهزة القديمة (${legacyRemoteName}) ضمن ملفات الرفع.`);
+
+      const legacyBlockmap = path.join(distLegacyDir, `${legacyExe}.blockmap`);
+      if (fs.existsSync(legacyBlockmap)) {
+        filesToUpload.push({ name: `${legacyRemoteName}.blockmap`, path: legacyBlockmap, type: 'application/octet-stream' });
+      }
+
+      const legacyYml = path.join(distLegacyDir, 'legacy.yml');
+      if (fs.existsSync(legacyYml)) {
+        let legContent = fs.readFileSync(legacyYml, 'utf-8');
+        legContent = legContent
+          .replace(/- url:.*$/m, `- url: ${legacyRemoteName}`)
+          .replace(/^path:.*$/m, `path: ${legacyRemoteName}`);
+        fs.writeFileSync(legacyYml, legContent, 'utf-8');
+        filesToUpload.push({ name: 'legacy.yml', path: legacyYml, type: 'text/yaml' });
+      }
+    }
   }
 
   // 3. Delete existing or orphan assets before upload
@@ -286,7 +315,7 @@ async function main() {
   
   for (const asset of currentAssets) {
     const isTarget = filesToUpload.some(f => f.name === asset.name);
-    const isOrphan = asset.name.includes('@lab-manager') || asset.name.includes('Setup') || asset.name === 'latest.yml';
+    const isOrphan = asset.name.includes('@lab-manager') || asset.name.includes('Setup') || asset.name === 'latest.yml' || asset.name === 'stable.yml' || asset.name === 'legacy.yml';
     if (isTarget || isOrphan) {
       console.log(`تنظيف الملف ${asset.name} (ID: ${asset.id})...`);
       await requestGitHub('DELETE', `/repos/${OWNER}/${REPO}/releases/assets/${asset.id}`);
@@ -295,7 +324,7 @@ async function main() {
 
   // 4. Upload files
   for (const f of filesToUpload) {
-    await uploadWithRetry(release.upload_url, f.path, f.name, f.type);
+    await uploadWithRetry(release.id, release.upload_url, f.path, f.name, f.type);
   }
 
   // 5. Finalize and publish release (set draft: false)
@@ -314,17 +343,20 @@ async function main() {
 
   // 6. Output direct download URLs
   const directExeUrl = `https://github.com/${OWNER}/${REPO}/releases/download/${TAG}/${standardExeName}`;
+  const directLegacyExeUrl = `https://github.com/${OWNER}/${REPO}/releases/download/${TAG}/Labryo.LIMS.Universal.Setup.${VERSION}.exe`;
   const latestDirectUrl = `https://github.com/${OWNER}/${REPO}/releases/latest/download/${standardExeName}`;
   const releasePageUrl = release.html_url || `https://github.com/${OWNER}/${REPO}/releases/tag/${TAG}`;
 
   console.log('\n======================================================');
   console.log('🎉 تم رفع التحديث وربط روابط التحميل المباشرة بنجاح!');
   console.log('======================================================');
-  console.log(`\n📥 1. رابط التحميل المباشر الدائم لملف التثبيت (.exe):`);
+  console.log(`\n📥 1. رابط التحميل المباشر للنسخة الحديثة (Modern Setup x64):`);
   console.log(directExeUrl);
-  console.log(`\n⚡ 2. رابط التحميل المباشر التلقائي لأحدث إصدار (Always Latest):`);
+  console.log(`\n📥 2. رابط التحميل المباشر للنسخة الشاملة للأجهزة القديمة (Universal Setup 32/64-bit):`);
+  console.log(directLegacyExeUrl);
+  console.log(`\n⚡ 3. رابط التحميل المباشر التلقائي لأحدث إصدار (Always Latest):`);
   console.log(latestDirectUrl);
-  console.log(`\n🌐 3. صفحة الإصدار الرسمية على GitHub:`);
+  console.log(`\n🌐 4. صفحة الإصدار الرسمية على GitHub:`);
   console.log(releasePageUrl);
   console.log('======================================================\n');
 }

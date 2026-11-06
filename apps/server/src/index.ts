@@ -112,7 +112,8 @@ async function bootstrap() {
   });
 
   server.decorate('requireOwner', async (request: any, reply: any) => {
-    if (!request.user || request.user.role !== 'OWNER') {
+    const role = request.user?.role;
+    if (!request.user || (role !== 'OWNER' && role !== 'ADMIN' && role !== 'SUPER_ADMIN')) {
       return reply.status(403).send({ message: 'Owner privileges required' });
     }
   });

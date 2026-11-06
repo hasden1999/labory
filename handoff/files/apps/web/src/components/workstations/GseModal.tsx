@@ -1,0 +1,1931 @@
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  X, 
+  Check, 
+  Sparkles, 
+  Microscope, 
+  Plus, 
+  Trash2, 
+  Activity, 
+  AlertOctagon, 
+  AlertTriangle,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  CheckCircle2,
+  Bug
+} from 'lucide-react';
+import { useToast } from '../Toast';
+import MultiEntryCombobox, { MultiEntryItem, SingleCombobox, generateUniqueId } from '../common/MultiEntryCombobox';
+import { DEFAULT_CLINICAL_TEMPLATES, ClinicalTemplates } from '../../lib/clinicalTemplatesConfig';
+import { applyReplacements } from '../../lib/clinicalIntelligence';
+
+export interface ParasiteEntry {
+  id: string;
+  organism: string;
+  stage: string;
+  archivedSeverity?: string;
+}
+
+export interface GseAnalysisData {
+  // Physical Examination
+  color: string;
+  consistency: string;
+
+  // Occult Blood (Optional)
+  includeFobt: boolean;
+  fobt: string;
+
+  // Stool pH (Required for every patient)
+  ph: string;
+
+  // Stool Culture & Sensitivity (Optional)
+  includeSensitivity: boolean;
+  sensitivity: string;
+
+  // Reducing Substances (Optional / On Demand)
+  includeReducingSubstances: boolean;
+  reducingSubstances: string;
+
+  // Backward compatibility alias
+  includePhAndReducing?: boolean;
+
+  // Microscopic Examination (HPF)
+  pusCells: string;
+  rbcs: string;
+  muscleFibers: string;
+  starchGranules: string;
+  fatGlobules: string;
+  vegetableCells: string;
+  yeastMonilia: string; // Item 5: Yeast / Monilia in Stool
+
+  // Parasitology Matrix
+  parasites: ParasiteEntry[];
+
+  // Notes
+  notes: string;
+}
+
+export const DEFAULT_GSE_DATA: GseAnalysisData = {
+  color: 'Brown',
+  consistency: 'Formed',
+  ph: '6.5',
+  includeFobt: false,
+  fobt: 'Negative',
+  includeSensitivity: false,
+  sensitivity: 'Nil',
+  includeReducingSubstances: false,
+  reducingSubstances: 'Negative',
+  includePhAndReducing: false,
+  pusCells: '0-2',
+  rbcs: '0-1',
+  muscleFibers: 'Nil',
+  starchGranules: 'Nil',
+  fatGlobules: 'Nil',
+  vegetableCells: 'Nil',
+  yeastMonilia: 'Not seen',
+  parasites: [],
+  notes: 'No parasites, cysts, or ova seen in direct saline and iodine wet mounts.'
+};
+
+export const DEFAULT_PARASITE_SUGGESTIONS = [
+  'Entamoeba histolytica/dispar',
+  'Entamoeba histolytica',
+  'Entamoeba coli',
+  'Giardia lamblia',
+  'Blastocystis hominis',
+  'Cryptosporidium spp.',
+  'Cyclospora cayetanensis',
+  'Ascaris lumbricoides',
+  'Enterobius vermicularis',
+  'Trichuris trichiura',
+  'Hookworm',
+  'Strongyloides stercoralis',
+  'Hymenolepis nana',
+  'Taenia spp.',
+  'Schistosoma mansoni'
+];
+
+export const DEFAULT_STAGE_SUGGESTIONS = [
+  'Cyst',
+  'Trophozoite',
+  'Ova (Egg)',
+  'Larva',
+  'Adult worm',
+  'Proglottid (segment)',
+  'Oocyst'
+];
+
+export const YEAST_MONILIA_SUGGESTIONS = ['Not seen', 'Few', '+', '++', '+++', 'Many'];
+
+export function serializeGse(data: GseAnalysisData): string {
+  const parts: string[] = ['[G.S.E - GENERAL STOOL EXAMINATION]'];
+  
+  parts.push(`PHYSICAL: Color: ${data.color} | Consistency: ${data.consistency}`);
+  
+  // Only serialize FOBT if explicitly enabled!
+  if (data.includeFobt && data.fobt && data.fobt !== 'Not Requested') {
+    parts.push(`FOBT: ${data.fobt}`);
+  }
+
+  // Only serialize Sensitivity if explicitly enabled!
+  if (data.includeSensitivity && data.sensitivity && data.sensitivity !== 'Not Requested') {
+    parts.push(`SENSITIVITY: ${data.sensitivity}`);
+  }
+
+  // Stool pH is standard and required for every patient
+  if (data.ph) {
+    parts.push(`PH: ${data.ph}`);
+  }
+
+  // Only serialize Reducing Substances if explicitly enabled (on-demand)
+  if (data.includeReducingSubstances && data.reducingSubstances && data.reducingSubstances !== 'Not Requested') {
+    parts.push(`REDUCING: ${data.reducingSubstances}`);
+  } else if (data.includePhAndReducing && data.reducingSubstances && !data.includeReducingSubstances) {
+    parts.push(`REDUCING: ${data.reducingSubstances}`);
+  }
+
+  const microItems: string[] = [
+    `Pus Cells: ${applyReplacements(data.pusCells)} /HPF`,
+    `RBCs: ${applyReplacements(data.rbcs)} /HPF`
+  ];
+
+  if (data.muscleFibers && data.muscleFibers !== 'Nil') {
+    microItems.push(`Muscle Fibers: ${data.muscleFibers}`);
+  }
+  if (data.starchGranules && data.starchGranules !== 'Nil') {
+    microItems.push(`Starch: ${data.starchGranules}`);
+  }
+  if (data.fatGlobules && data.fatGlobules !== 'Nil') {
+    microItems.push(`Fat: ${data.fatGlobules}`);
+  }
+  if (data.vegetableCells && data.vegetableCells !== 'Nil') {
+    microItems.push(`Vegetable: ${data.vegetableCells}`);
+  }
+  // Item 5: Yeast / Monilia
+  if (data.yeastMonilia && data.yeastMonilia !== 'Not seen' && data.yeastMonilia !== 'Nil') {
+    microItems.push(`Yeast / Monilia: ${data.yeastMonilia}`);
+  }
+
+  parts.push(`MICROSCOPIC: ${microItems.join(' | ')}`);
+
+  // Item 4: Multi-parasite without crosses, format: {name} – {stage}
+  if (data.parasites && data.parasites.length > 0) {
+    const pStr = data.parasites
+      .filter(p => p.organism && p.organism.trim())
+      .map(p => p.stage && p.stage.trim() ? `${p.organism.trim()} – ${p.stage.trim()}` : p.organism.trim())
+      .join(' | ');
+    parts.push(`PARASITOLOGY: ${pStr || 'Nil (No ova, cysts, or parasites seen)'}`);
+  } else {
+    parts.push(`PARASITOLOGY: Nil (No ova, cysts, or parasites seen)`);
+  }
+
+  if (data.notes && data.notes.trim()) {
+    parts.push(`NOTES: ${data.notes.trim()}`);
+  }
+
+  return parts.join('\n');
+}
+
+export function parseGse(raw: string): GseAnalysisData {
+  if (!raw || !raw.includes('G.S.E')) return { ...DEFAULT_GSE_DATA };
+
+  const parsed = { ...DEFAULT_GSE_DATA, parasites: [] as ParasiteEntry[] };
+  const lines = raw.split('\n');
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('PHYSICAL:')) {
+      const matchColor = trimmed.match(/Color:\s*([^|]+)/i);
+      if (matchColor) parsed.color = matchColor[1].trim();
+      const matchConst = trimmed.match(/Consistency:\s*([^|]+)/i);
+      if (matchConst) parsed.consistency = matchConst[1].trim();
+    } else if (trimmed.startsWith('FOBT:')) {
+      parsed.includeFobt = true;
+      parsed.fobt = trimmed.replace('FOBT:', '').trim();
+    } else if (trimmed.startsWith('SENSITIVITY:')) {
+      parsed.includeSensitivity = true;
+      parsed.sensitivity = trimmed.replace('SENSITIVITY:', '').trim();
+    } else if (trimmed.startsWith('PH:')) {
+      parsed.ph = trimmed.replace('PH:', '').trim();
+    } else if (trimmed.startsWith('REDUCING:')) {
+      parsed.includeReducingSubstances = true;
+      parsed.reducingSubstances = trimmed.replace('REDUCING:', '').trim();
+    } else if (trimmed.startsWith('PH_REDUCING:')) {
+      parsed.includePhAndReducing = true;
+      parsed.includeReducingSubstances = true;
+      const matchPh = trimmed.match(/pH:\s*([^|]+)/i);
+      if (matchPh) parsed.ph = matchPh[1].trim();
+      const matchRed = trimmed.match(/Reducing Substances:\s*([^|\n]+)/i);
+      if (matchRed) parsed.reducingSubstances = matchRed[1].trim();
+    } else if (trimmed.startsWith('MICROSCOPIC:')) {
+      const pMatch = trimmed.match(/Pus Cells:\s*([^\/|]+)/i);
+      if (pMatch) parsed.pusCells = applyReplacements(pMatch[1].trim());
+      const rMatch = trimmed.match(/RBCs:\s*([^\/|]+)/i);
+      if (rMatch) parsed.rbcs = applyReplacements(rMatch[1].trim());
+      const mMatch = trimmed.match(/Muscle Fibers:\s*([^|]+)/i);
+      if (mMatch) parsed.muscleFibers = mMatch[1].trim();
+      const sMatch = trimmed.match(/Starch:\s*([^|]+)/i);
+      if (sMatch) parsed.starchGranules = sMatch[1].trim();
+      const fMatch = trimmed.match(/Fat:\s*([^|]+)/i);
+      if (fMatch) parsed.fatGlobules = fMatch[1].trim();
+      const vMatch = trimmed.match(/Vegetable:\s*([^|]+)/i);
+      if (vMatch) parsed.vegetableCells = vMatch[1].trim();
+      const ymMatch = trimmed.match(/(?:Yeast\s*\/?\s*Monilia|Monilia|Yeast):\s*([^|]+)/i);
+      if (ymMatch) parsed.yeastMonilia = ymMatch[1].trim();
+    } else if (trimmed.startsWith('YEAST:') || trimmed.startsWith('YEAST / MONILIA:')) {
+      parsed.yeastMonilia = trimmed.split(':')[1].trim();
+    } else if (trimmed.startsWith('PARASITOLOGY:')) {
+      const content = trimmed.replace('PARASITOLOGY:', '').trim();
+      if (!content.toLowerCase().startsWith('nil')) {
+        const items = content.split('|');
+        parsed.parasites = items.map(item => {
+          const cleanItem = item.trim();
+          if (!cleanItem) return null;
+
+          // Check format: "Name [Stage] (Severity)" or "Name (Stage) (Severity)"
+          const bracketAndCrosses = cleanItem.match(/^(.*?)\s*[\[\(](.*?)[\]\)]\s*\(\s*(\+{1,4})\s*\)$/);
+          if (bracketAndCrosses) {
+            return {
+              id: generateUniqueId(),
+              organism: bracketAndCrosses[1].trim(),
+              stage: bracketAndCrosses[2].trim(),
+              archivedSeverity: bracketAndCrosses[3].trim()
+            };
+          }
+
+          // Check format: "Name – Stage" or "Name - Stage" (requiring whitespace around dash/hyphen)
+          const dashMatch = cleanItem.match(/^(.*?)\s+[–\-]\s+(.*?)$/);
+          if (dashMatch) {
+            return {
+              id: generateUniqueId(),
+              organism: dashMatch[1].trim(),
+              stage: dashMatch[2].trim()
+            };
+          }
+
+          // Check format: "Name [Stage]: Severity" (old fixture format)
+          const bracketSeverity = cleanItem.match(/^(.*?)\s*\[(.*?)\]:\s*(.*?)$/);
+          if (bracketSeverity) {
+            return {
+              id: generateUniqueId(),
+              organism: bracketSeverity[1].trim(),
+              stage: bracketSeverity[2].trim(),
+              archivedSeverity: bracketSeverity[3].trim()
+            };
+          }
+
+          // Check format: "Name (+++)" without stage
+          const crossesOnly = cleanItem.match(/^(.*?)\s*\(\s*(\+{1,4})\s*\)$/);
+          if (crossesOnly) {
+            return {
+              id: generateUniqueId(),
+              organism: crossesOnly[1].trim(),
+              stage: '',
+              archivedSeverity: crossesOnly[2].trim()
+            };
+          }
+
+          // Check format: "Name [Stage]" or "Name (Stage)"
+          const bracketMatch = cleanItem.match(/^(.*?)\s*[\[\(](.*?)[\]\)]$/);
+          if (bracketMatch) {
+            const val = bracketMatch[2].trim();
+            const isCrosses = ['+', '++', '+++', '++++'].includes(val);
+            return {
+              id: generateUniqueId(),
+              organism: bracketMatch[1].trim(),
+              stage: isCrosses ? '' : val,
+              archivedSeverity: isCrosses ? val : undefined
+            };
+          }
+
+          // Check legacy crosses format: "Name: Severity" (e.g. "Entamoeba histolytica: +++")
+          const colonMatch = cleanItem.match(/^(.*?):\s*(.*?)$/);
+          if (colonMatch) {
+            const org = colonMatch[1].trim();
+            const val = colonMatch[2].trim();
+            const isSeverity = ['+', '++', '+++', '++++'].includes(val) || val.includes('+');
+            return {
+              id: generateUniqueId(),
+              organism: org,
+              stage: isSeverity ? '' : val,
+              archivedSeverity: isSeverity ? val : undefined
+            };
+          }
+
+          return {
+            id: generateUniqueId(),
+            organism: cleanItem,
+            stage: ''
+          };
+        }).filter(Boolean) as ParasiteEntry[];
+      }
+    } else if (trimmed.startsWith('NOTES:')) {
+      parsed.notes = trimmed.replace('NOTES:', '').trim();
+    }
+  }
+
+  return parsed;
+}
+
+// Color Swatches Definition
+const COLOR_OPTIONS = [
+  { name: 'Brown', hex: '#78350f', border: '#b45309' },
+  { name: 'Light Brown', hex: '#d97706', border: '#f59e0b' },
+  { name: 'Dark Brown', hex: '#451a03', border: '#78350f' },
+  { name: 'Yellow', hex: '#eab308', border: '#ca8a04' },
+  { name: 'Reddish Brown', hex: '#dc2626', border: '#b91c1c' },
+  { name: 'Green', hex: '#16a34a', border: '#15803d' },
+  { name: 'Clay / Pale', hex: '#94a3b8', border: '#64748b' },
+  { name: 'Black / Tar-like', hex: '#0f172a', border: '#334155' },
+];
+
+// Module-level Helper Component for Clinical Option Pills (Hoisted for stable DOM identity)
+const PillSelector = ({
+  label,
+  refRange,
+  value,
+  onChange,
+  options,
+  abnormalValues = [],
+}: {
+  label: string;
+  refRange?: string;
+  value: string;
+  onChange: (val: string) => void;
+  options: string[];
+  abnormalValues?: string[];
+}) => {
+  return (
+    <div
+      style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '8px',
+        padding: '10px 14px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>{label}</span>
+        {refRange && (
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+            Ref: <span style={{ color: '#0284c7' }}>{refRange}</span>
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+        {options.map((opt) => {
+          const isSelected = value === opt;
+          const isAbn = abnormalValues.includes(opt);
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => onChange(opt)}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: isSelected ? 800 : 600,
+                cursor: 'pointer',
+                border: isSelected
+                  ? isAbn
+                    ? '1.5px solid #dc2626'
+                    : '1.5px solid #0284c7'
+                  : '1px solid var(--border-color)',
+                background: isSelected
+                  ? isAbn
+                    ? '#fee2e2'
+                    : '#e0f2fe'
+                  : 'var(--bg-input)',
+                color: isSelected
+                  ? isAbn
+                    ? '#b91c1c'
+                    : '#0369a1'
+                  : 'var(--text-main)',
+                boxShadow: isSelected ? '0 1px 4px rgba(2, 132, 199, 0.2)' : 'none',
+                transition: 'all 0.12s ease',
+              }}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// Module-level Helper Component for Stool Element Row Selector with Nil, +, ++, +++, ++++, Full Field
+const StoolElementRow = ({
+  name,
+  value,
+  onChange,
+}: {
+  name: string;
+  value: string;
+  onChange: (val: string) => void;
+}) => {
+  const levels = ['Nil', '+', '++', '+++', '++++', 'Full Field'];
+  const isPositive = value && value !== 'Nil';
+  const isSevere = ['+++', '++++', 'Full Field'].includes(value);
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '8px',
+        padding: '6px 0',
+        borderBottom: '1px dashed var(--border-color)',
+      }}
+    >
+      <div style={{ minWidth: '150px' }}>
+        <span style={{ fontSize: '12px', fontWeight: 700, color: isPositive ? (isSevere ? '#dc2626' : '#0284c7') : 'var(--text-main)' }}>
+          • {name} {isPositive && <span style={{ fontWeight: 800 }}>({value})</span>}
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: '4px', flex: 1, maxWidth: '340px' }}>
+        {levels.map((lvl) => {
+          const isSelected = value === lvl;
+          const isLvlHeavy = ['+++', '++++', 'Full Field'].includes(lvl);
+          return (
+            <button
+              key={lvl}
+              type="button"
+              onClick={() => onChange(lvl)}
+              style={{
+                flex: 1,
+                padding: '5px 0',
+                borderRadius: '6px',
+                fontSize: lvl === 'Full Field' ? '10px' : '11px',
+                fontWeight: isSelected ? 800 : 600,
+                cursor: 'pointer',
+                border: isSelected
+                  ? isLvlHeavy
+                    ? '1.5px solid #dc2626'
+                    : '1.5px solid #0284c7'
+                  : '1px solid var(--border-color)',
+                background: isSelected
+                  ? lvl === 'Nil'
+                    ? '#0284c7'
+                    : isLvlHeavy
+                    ? '#fee2e2'
+                    : '#e0f2fe'
+                  : 'var(--bg-input)',
+                color: isSelected
+                  ? lvl === 'Nil'
+                    ? '#ffffff'
+                    : isLvlHeavy
+                    ? '#b91c1c'
+                    : '#0369a1'
+                  : 'var(--text-main)',
+                boxShadow: isSelected ? '0 1px 3px rgba(2,132,199,0.2)' : 'none',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.12s ease',
+              }}
+            >
+              {lvl}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+interface GseModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  sample?: any;
+  patientName?: string;
+  sampleNumber?: number | string;
+  initialValue?: string;
+  onSave?: (serialized: string, isAbnormal: boolean) => Promise<void> | void;
+  onApply?: (formattedResult: string, rawData: GseAnalysisData) => void;
+}
+
+export default function GseModal({
+  isOpen,
+  onClose,
+  sample,
+  patientName,
+  sampleNumber,
+  initialValue,
+  onSave,
+  onApply,
+}: GseModalProps) {
+  const toast = useToast();
+
+  // Tab State: 'PHYSICAL' | 'MICROSCOPIC' | 'PARASITOLOGY'
+  const [activeTab, setActiveTab] = useState<'PHYSICAL' | 'MICROSCOPIC' | 'PARASITOLOGY'>('PHYSICAL');
+  const [data, setData] = useState<GseAnalysisData>(DEFAULT_GSE_DATA);
+  const [saving, setSaving] = useState(false);
+  const [clinicalTemplates, setClinicalTemplates] = useState<ClinicalTemplates>(DEFAULT_CLINICAL_TEMPLATES);
+
+  // Load data-driven clinical templates
+  useEffect(() => {
+    fetch('/api/templates/clinical')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((resData) => {
+        if (resData?.templates) {
+          setClinicalTemplates(resData.templates);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const resolvedPatientName = patientName || sample?.patient?.name || 'مريض غير محدد';
+  const resolvedSampleNumber = sampleNumber || sample?.sampleNumber || sample?.id || '---';
+
+  // FEAT-04: Auto-detect FOBT from sample.tests
+  const hasFobtTest = React.useMemo(() => {
+    if (!sample?.tests || !Array.isArray(sample.tests)) return false;
+    return sample.tests.some((st: any) => {
+      const code = (st.test?.code || st.testCode || '').toUpperCase();
+      const name = (st.test?.name || '').toLowerCase();
+      return code === 'FOBT' || name.includes('fobt') || name.includes('occult') || name.includes('دم خفي');
+    });
+  }, [sample]);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialValue && initialValue.includes('G.S.E')) {
+        setData(parseGse(initialValue));
+      } else {
+        // Auto-enable FOBT if the test was explicitly ordered in the sample
+        setData({ ...DEFAULT_GSE_DATA, parasites: [], includeFobt: hasFobtTest });
+      }
+    }
+  }, [isOpen, initialValue, hasFobtTest]);
+
+  if (!isOpen) return null;
+
+  const setField = (field: keyof GseAnalysisData, value: any) => {
+    setData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const applyPreset = (presetName: 'NORMAL' | 'AMOEBIC' | 'GIARDIA' | 'RESET') => {
+    if (presetName === 'NORMAL' || presetName === 'RESET') {
+      setData({
+        ...DEFAULT_GSE_DATA,
+      });
+      toast.success('تم تطبيق القيم الطبيعية لفحص الخروج (Normal G.S.E)', 'تم التحميل');
+    } else if (presetName === 'AMOEBIC') {
+      setData({
+        ...DEFAULT_GSE_DATA,
+        color: 'Reddish Brown',
+        consistency: 'Mucoid / Loose',
+        includeFobt: true,
+        fobt: 'Positive',
+        pusCells: '25-30',
+        rbcs: '35-40',
+        muscleFibers: 'Present',
+        starchGranules: 'Few',
+        fatGlobules: 'Nil',
+        vegetableCells: 'Few',
+        yeastMonilia: 'Not seen',
+        parasites: [
+          { id: generateUniqueId(), organism: 'Entamoeba histolytica', stage: 'Trophozoite' },
+        ],
+        notes: 'Active amoebic dysentery picture with red blood cells and tissue debris.',
+      });
+      toast.warning('تم تطبيق نموذج الزحار الأميبي الحاد (Amoebic Dysentery)', 'تم التحميل');
+    } else if (presetName === 'GIARDIA') {
+      setData({
+        ...DEFAULT_GSE_DATA,
+        color: 'Yellow',
+        consistency: 'Loose',
+        includeFobt: false,
+        fobt: 'Negative',
+        pusCells: '2-4',
+        rbcs: '0-1',
+        muscleFibers: 'Few',
+        starchGranules: 'Moderate',
+        fatGlobules: '++',
+        vegetableCells: 'Few',
+        yeastMonilia: 'Not seen',
+        parasites: [
+          { id: generateUniqueId(), organism: 'Giardia lamblia', stage: 'Cyst' },
+        ],
+        notes: 'Giardiasis pattern with fatty globules and presence of motile organisms.',
+      });
+      toast.info('تم تطبيق نموذج داء الجيارديات (Giardiasis)', 'تم التحميل');
+    }
+  };
+
+  function parseRangeMax(val: string): number {
+    if (!val) return 0;
+    if (val.includes('-')) {
+      const parts = val.split('-').map((s) => parseInt(s.trim(), 10));
+      return Math.max(...parts.filter((n) => !isNaN(n)));
+    }
+    return parseInt(val, 10) || 0;
+  }
+
+  const isAbnormal =
+    (data.includeFobt && (data.fobt === 'Positive' || data.fobt === 'Weakly Positive')) ||
+    (data.includeSensitivity && data.sensitivity === 'Sensitive') ||
+    data.parasites.length > 0 ||
+    parseRangeMax(data.pusCells) > 5 ||
+    parseRangeMax(data.rbcs) > 2 ||
+    (Boolean(data.yeastMonilia) && !['Not seen', 'Nil'].includes(data.yeastMonilia)) ||
+    data.consistency.includes('Loose') ||
+    data.consistency.includes('Watery') ||
+    data.consistency.includes('Mucoid') ||
+    data.color === 'Reddish Brown' ||
+    data.color === 'Black / Tar-like';
+
+  const handleSaveAndApply = async () => {
+    try {
+      setSaving(true);
+      const serialized = serializeGse(data);
+      if (onSave) {
+        await onSave(serialized, isAbnormal);
+      }
+      if (onApply) {
+        onApply(serialized, data);
+      }
+      toast.success('تم حفظ وإدراج تقرير فحص الخروج العام (G.S.E) بنجاح!', 'تم الحفظ');
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message || 'فشل حفظ النتائج', 'خطأ');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
+
+
+
+
+
+
+
+  const isPusAbnormal = parseRangeMax(data.pusCells) > 5;
+  const isRbcAbnormal = parseRangeMax(data.rbcs) > 2;
+  const isFobtAbnormal = data.fobt !== 'Negative';
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(15, 23, 42, 0.75)',
+        backdropFilter: 'blur(6px)',
+        zIndex: 99999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+      }}
+    >
+      <div
+        style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '16px',
+          width: '100%',
+          maxWidth: '1240px',
+          maxHeight: '94vh',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 25px 60px -12px rgba(15, 23, 42, 0.4)',
+          overflow: 'hidden',
+          fontFamily: 'inherit',
+        }}
+      >
+        {/* ========================================================
+            1. TOP CLINICAL HEADER BAR
+           ======================================================== */}
+        <div
+          dir="ltr"
+          style={{
+            direction: 'ltr',
+            padding: '12px 20px',
+            background: 'var(--bg-card)',
+            borderBottom: '1px solid var(--border-color)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
+          {/* Patient Details */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: '#fef3c7',
+                color: '#d97706',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+              }}
+            >
+              <Microscope size={22} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
+                  {resolvedPatientName}
+                </span>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-muted)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontWeight: 700,
+                  }}
+                >
+                  Sample #{resolvedSampleNumber}
+                </span>
+                {isAbnormal ? (
+                  <span style={{ fontSize: '11px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', padding: '1px 7px', borderRadius: '4px', fontWeight: 800 }}>
+                    غير طبيعي (Abnormal)
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '11px', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '1px 7px', borderRadius: '4px', fontWeight: 800 }}>
+                    طبيعي (Normal)
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                General Stool Examination (G.S.E) • Model B Clinical Form
+              </div>
+            </div>
+          </div>
+
+          {/* Clinical Presets */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginRight: '4px' }}>
+              One-Click Presets:
+            </span>
+
+            <button
+              type="button"
+              onClick={() => applyPreset('NORMAL')}
+              style={{
+                fontSize: '11.5px',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                border: '1px solid #10b981',
+                background: '#ecfdf5',
+                color: '#047857',
+              }}
+            >
+              [Normal G.S.E]
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyPreset('AMOEBIC')}
+              style={{
+                fontSize: '11.5px',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                border: '1px solid #ef4444',
+                background: '#fef2f2',
+                color: '#b91c1c',
+              }}
+            >
+              [Amoebic Dysentery]
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyPreset('GIARDIA')}
+              style={{
+                fontSize: '11.5px',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                border: '1px solid #f59e0b',
+                background: '#fffbeb',
+                color: '#b45309',
+              }}
+            >
+              [Giardiasis]
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: '#f1f5f9',
+                border: '1px solid #cbd5e1',
+                color: '#475569',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                padding: '6px',
+                marginLeft: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* ========================================================
+            2. MAIN BODY: 2 COLUMNS (LEFT: TABBED ENTRY | RIGHT: LIVE PRINT PREVIEW)
+           ======================================================== */}
+        <div
+          style={{
+            flex: 1,
+            display: 'grid',
+            gridTemplateColumns: '1.4fr 1fr',
+            gap: '16px',
+            padding: '16px 20px',
+            overflowY: 'auto',
+          }}
+        >
+          {/* ----------------------------------------------------
+              LEFT PANEL: STRUCTURED TABBED FORM (MODEL B)
+             ---------------------------------------------------- */}
+          <div dir="ltr" style={{ display: 'flex', flexDirection: 'column', gap: '12px', direction: 'ltr', textAlign: 'left' }}>
+            {/* Tab Navigation Header */}
+            <div
+              dir="ltr"
+              style={{
+                display: 'flex',
+                background: 'var(--bg-input)',
+                padding: '4px',
+                borderRadius: '10px',
+                gap: '4px',
+                direction: 'ltr',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setActiveTab('PHYSICAL')}
+                style={{
+                  flex: 1,
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: activeTab === 'PHYSICAL' ? 800 : 600,
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: activeTab === 'PHYSICAL' ? 'var(--bg-card)' : 'transparent',
+                  color: activeTab === 'PHYSICAL' ? '#0284c7' : 'var(--text-muted)',
+                  boxShadow: activeTab === 'PHYSICAL' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Eye size={16} />
+                <span>1. PHYSICAL & FOBT</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('MICROSCOPIC')}
+                style={{
+                  flex: 1,
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: activeTab === 'MICROSCOPIC' ? 800 : 600,
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: activeTab === 'MICROSCOPIC' ? 'var(--bg-card)' : 'transparent',
+                  color: activeTab === 'MICROSCOPIC' ? '#0284c7' : 'var(--text-muted)',
+                  boxShadow: activeTab === 'MICROSCOPIC' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Microscope size={16} />
+                <span>2. MICROSCOPIC (HPF)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('PARASITOLOGY')}
+                style={{
+                  flex: 1,
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: activeTab === 'PARASITOLOGY' ? 800 : 600,
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: activeTab === 'PARASITOLOGY' ? 'var(--bg-card)' : 'transparent',
+                  color: activeTab === 'PARASITOLOGY' ? '#0284c7' : 'var(--text-muted)',
+                  boxShadow: activeTab === 'PARASITOLOGY' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Bug size={16} />
+                <span>3. PARASITOLOGY & NOTES</span>
+              </button>
+            </div>
+
+            {/* TAB 1: PHYSICAL & FOBT */}
+            {activeTab === 'PHYSICAL' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Color Swatch Selector */}
+                <div
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      Color
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      Ref: <strong style={{ color: '#0284c7' }}>Brown / Light Brown</strong>
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                    {COLOR_OPTIONS.map((c) => {
+                      const isSelected = data.color === c.name;
+                      return (
+                        <button
+                          key={c.name}
+                          type="button"
+                          onClick={() => setField('color', c.name)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            border: isSelected ? '2px solid #0284c7' : '1px solid var(--border-color)',
+                            background: isSelected ? '#e0f2fe' : 'var(--bg-input)',
+                            fontWeight: isSelected ? 800 : 600,
+                            fontSize: '11.5px',
+                            color: 'var(--text-main)',
+                            boxShadow: isSelected ? '0 2px 6px rgba(2,132,199,0.2)' : 'none',
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              borderRadius: '50%',
+                              background: c.hex,
+                              border: `1.5px solid ${c.border}`,
+                              flexShrink: 0,
+                            }}
+                          />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {c.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Consistency Pills */}
+                <PillSelector
+                  label="Consistency"
+                  refRange="Formed"
+                  value={data.consistency}
+                  onChange={(val) => setField('consistency', val)}
+                  options={[
+                    'Formed',
+                    'Semi-formed',
+                    'Soft',
+                    'Mucoid / Loose',
+                    'Loose',
+                    'Watery',
+                    'Hard',
+                  ]}
+                  abnormalValues={['Mucoid / Loose', 'Loose', 'Watery', 'Hard']}
+                />
+
+                {/* Occult Blood (FOBT) Optional Toggle Box */}
+                <div
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: data.includeFobt ? '1.5px solid #0284c7' : '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', userSelect: 'none' }}>
+                      <input
+                        type="checkbox"
+                        checked={data.includeFobt}
+                        onChange={(e) => setField('includeFobt', e.target.checked)}
+                        style={{ width: '16px', height: '16px', accentColor: '#0284c7', cursor: 'pointer' }}
+                      />
+                      <span>تضمين فحص الدم الخفي (FOBT) في التقرير</span>
+                    </label>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: data.includeFobt ? '#0284c7' : 'var(--text-muted)' }}>
+                      {data.includeFobt ? 'مُفعّل بالتقرير' : 'غير مطلوب (لن يظهر بالتقرير)'}
+                    </span>
+                  </div>
+
+                  {data.includeFobt ? (
+                    <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-color)' }}>
+                      <PillSelector
+                        label="نتيجة فحص الدم الخفي FOBT"
+                        refRange="Negative"
+                        value={data.fobt}
+                        onChange={(val) => setField('fobt', val)}
+                        options={['Nil', 'Negative', 'Weakly Positive', 'Positive']}
+                        abnormalValues={['Weakly Positive', 'Positive']}
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                      ملاحظة: إذا لم يطلب الطبيب فحص FOBT، لن تظهر كلمة Negative أو سطر الفحص في التقرير المطبوع نهائياً.
+                    </div>
+                  )}
+                </div>
+
+                {/* Stool Culture & Sensitivity (حساسية الخروج مع خيار Nil) */}
+                <div
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: data.includeSensitivity ? '1.5px solid #0284c7' : '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', userSelect: 'none' }}>
+                      <input
+                        type="checkbox"
+                        checked={data.includeSensitivity}
+                        onChange={(e) => setField('includeSensitivity', e.target.checked)}
+                        style={{ width: '16px', height: '16px', accentColor: '#0284c7', cursor: 'pointer' }}
+                      />
+                      <span>فحص حساسية وزرع الخروج (Stool Culture & Sensitivity)</span>
+                    </label>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: data.includeSensitivity ? '#0284c7' : 'var(--text-muted)' }}>
+                      {data.includeSensitivity ? 'مُفعّل بالتقرير' : 'غير مطلوب'}
+                    </span>
+                  </div>
+
+                  {data.includeSensitivity && (
+                    <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-color)' }}>
+                      <PillSelector
+                        label="نتيجة حساسية وزرع الخروج"
+                        refRange="Nil"
+                        value={data.sensitivity}
+                        onChange={(val) => setField('sensitivity', val)}
+                        options={['Nil', 'No Bacterial Growth', 'Sensitive', 'Pending / Under Incubation']}
+                        abnormalValues={['Sensitive']}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* درجة الحموضة (Stool pH / Reaction) - مطلوب لكل مريض */}
+                <div
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: '1.5px solid #0d9488',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      درجة الحموضة (Stool pH / Reaction)
+                    </span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#0d9488' }}>
+                      مطلوب لكل مريض (دائم بالتقرير)
+                    </span>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                      قيمة درجة الحموضة (pH):
+                    </label>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      {['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0'].map((p) => {
+                        const isSel = data.ph === p;
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setField('ph', p)}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: '6px',
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              border: isSel ? '1.5px solid #0d9488' : '1px solid var(--border-color)',
+                              background: isSel ? 'rgba(13, 148, 136, 0.15)' : 'var(--bg-input)',
+                              color: isSel ? '#0d9488' : 'var(--text-main)',
+                            }}
+                          >
+                            {p}
+                          </button>
+                        );
+                      })}
+                      <input
+                        type="text"
+                        placeholder="يدوي..."
+                        value={data.ph}
+                        onChange={(e) => setField('ph', e.target.value)}
+                        style={{
+                          width: '70px',
+                          padding: '5px 8px',
+                          borderRadius: '6px',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-input)',
+                          color: 'var(--text-main)',
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* فحص المواد المختزلة (Reducing Substances) - حسب الطلب اختياري */}
+                <div
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: data.includeReducingSubstances ? '1.5px solid #0284c7' : '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', userSelect: 'none' }}>
+                      <input
+                        type="checkbox"
+                        checked={data.includeReducingSubstances}
+                        onChange={(e) => setField('includeReducingSubstances', e.target.checked)}
+                        style={{ width: '16px', height: '16px', accentColor: '#0284c7', cursor: 'pointer' }}
+                      />
+                      <span>فحص المواد المختزلة (Reducing Substances)</span>
+                    </label>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: data.includeReducingSubstances ? '#0284c7' : 'var(--text-muted)' }}>
+                      {data.includeReducingSubstances ? 'مُفعّل بالتقرير' : 'غير مطلوب (حسب الطلب)'}
+                    </span>
+                  </div>
+
+                  {data.includeReducingSubstances ? (
+                    <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-color)' }}>
+                      <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                        نتيجة المواد المختزلة (Reducing Substances):
+                      </label>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {['Negative', 'Trace', '0.25% (+)', '0.5% (++)', '0.75% (+++)', '>=1.0% (++++)'].map((rs) => {
+                          const isSel = data.reducingSubstances === rs;
+                          return (
+                            <button
+                              key={rs}
+                              type="button"
+                              onClick={() => setField('reducingSubstances', rs)}
+                              style={{
+                                padding: '5px 10px',
+                                borderRadius: '6px',
+                                fontSize: '11.5px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                border: isSel ? '1.5px solid #0284c7' : '1px solid var(--border-color)',
+                                background: isSel ? 'rgba(2, 132, 199, 0.15)' : 'var(--bg-input)',
+                                color: isSel ? '#0284c7' : 'var(--text-main)',
+                              }}
+                            >
+                              {rs}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                      ملاحظة: فحص المواد المختزلة اختياري (حسب الطلب). عند عدم اختياره لن يظهر في التقرير المطبوع.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: MICROSCOPIC EXAMINATION */}
+            {activeTab === 'MICROSCOPIC' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Pus Cells */}
+                <div
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      Pus Cells (/HPF)
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      Ref: <strong style={{ color: '#0284c7' }}>0 - 5 /HPF</strong>
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {['0-2', '2-4', '4-6', '8-10', '15-20', '25-30', 'Packed / HPF'].map((opt) => {
+                      const isSelected = data.pusCells === opt;
+                      const isAbn = !['0-2', '2-4'].includes(opt);
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => setField('pusCells', applyReplacements(opt))}
+                          style={{
+                            padding: '5px 10px',
+                            borderRadius: '6px',
+                            fontSize: '11.5px',
+                            fontWeight: isSelected ? 800 : 600,
+                            cursor: 'pointer',
+                            border: isSelected
+                              ? isAbn
+                                ? '1.5px solid #dc2626'
+                                : '1.5px solid #0284c7'
+                              : '1px solid var(--border-color)',
+                            background: isSelected
+                              ? isAbn
+                                ? '#fee2e2'
+                                : '#e0f2fe'
+                              : 'var(--bg-input)',
+                            color: isSelected
+                              ? isAbn
+                                ? '#b91c1c'
+                                : '#0369a1'
+                              : 'var(--text-main)',
+                          }}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                    <input
+                      type="text"
+                      placeholder="اكتب أي قيمة (مثال: 5-10 أو plenty)..."
+                      value={data.pusCells}
+                      onChange={(e) => setField('pusCells', e.target.value)}
+                      onBlur={(e) => {
+                        const replaced = applyReplacements(e.target.value);
+                        if (replaced !== e.target.value) setField('pusCells', replaced);
+                      }}
+                      style={{
+                        minWidth: '160px',
+                        flex: 1,
+                        padding: '5px 10px',
+                        borderRadius: '6px',
+                        border: '1.5px solid var(--accent-cyan)',
+                        background: 'var(--bg-input)',
+                        color: 'var(--text-main)',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* RBCs */}
+                <div
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      R.B.Cs (/HPF)
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      Ref: <strong style={{ color: '#0284c7' }}>0 - 2 /HPF</strong>
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {['0-1', '1-2', '2-4', '6-8', '15-20', '30-40', 'Packed / HPF'].map((opt) => {
+                      const isSelected = data.rbcs === opt;
+                      const isAbn = !['0-1', '1-2'].includes(opt);
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => setField('rbcs', applyReplacements(opt))}
+                          style={{
+                            padding: '5px 10px',
+                            borderRadius: '6px',
+                            fontSize: '11.5px',
+                            fontWeight: isSelected ? 800 : 600,
+                            cursor: 'pointer',
+                            border: isSelected
+                              ? isAbn
+                                ? '1.5px solid #dc2626'
+                                : '1.5px solid #0284c7'
+                              : '1px solid var(--border-color)',
+                            background: isSelected
+                              ? isAbn
+                                ? '#fee2e2'
+                                : '#e0f2fe'
+                              : 'var(--bg-input)',
+                            color: isSelected
+                              ? isAbn
+                                ? '#b91c1c'
+                                : '#0369a1'
+                              : 'var(--text-main)',
+                          }}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                    <input
+                      type="text"
+                      placeholder="اكتب أي قيمة (مثال: 0-2 أو packed)..."
+                      value={data.rbcs}
+                      onChange={(e) => setField('rbcs', e.target.value)}
+                      onBlur={(e) => {
+                        const replaced = applyReplacements(e.target.value);
+                        if (replaced !== e.target.value) setField('rbcs', replaced);
+                      }}
+                      style={{
+                        minWidth: '160px',
+                        flex: 1,
+                        padding: '5px 10px',
+                        borderRadius: '6px',
+                        border: '1.5px solid var(--accent-cyan)',
+                        background: 'var(--bg-input)',
+                        color: 'var(--text-main)',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Stool Microscopic Elements Box */}
+                <div
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px' }}>
+                    Microscopic Findings
+                  </div>
+                  <StoolElementRow
+                    name="Muscle Fibers"
+                    value={data.muscleFibers}
+                    onChange={(val) => setField('muscleFibers', val)}
+                  />
+                  <StoolElementRow
+                    name="Starch Granules"
+                    value={data.starchGranules}
+                    onChange={(val) => setField('starchGranules', val)}
+                  />
+                  <StoolElementRow
+                    name="Fat Globules"
+                    value={data.fatGlobules}
+                    onChange={(val) => setField('fatGlobules', val)}
+                  />
+                  <StoolElementRow
+                    name="Vegetable Cells"
+                    value={data.vegetableCells}
+                    onChange={(val) => setField('vegetableCells', val)}
+                  />
+                </div>
+
+                {/* Yeast / Monilia Box (Item 5) */}
+                <div
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      Yeast / Monilia (خمائر الخروج)
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      Ref: <strong style={{ color: '#0284c7' }}>Not seen</strong>
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {YEAST_MONILIA_SUGGESTIONS.map((opt) => {
+                      const isSelected = data.yeastMonilia === opt;
+                      const isAbn = !['Not seen', 'Nil'].includes(opt);
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => setField('yeastMonilia', opt)}
+                          style={{
+                            padding: '5px 12px',
+                            borderRadius: '6px',
+                            fontSize: '11.5px',
+                            fontWeight: isSelected ? 800 : 600,
+                            cursor: 'pointer',
+                            border: isSelected
+                              ? isAbn
+                                ? '1.5px solid #dc2626'
+                                : '1.5px solid #0284c7'
+                              : '1px solid var(--border-color)',
+                            background: isSelected
+                              ? isAbn
+                                ? '#fee2e2'
+                                : '#e0f2fe'
+                              : 'var(--bg-input)',
+                            color: isSelected
+                              ? isAbn
+                                ? '#b91c1c'
+                                : '#0369a1'
+                              : 'var(--text-main)',
+                          }}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                    <div style={{ minWidth: '160px', flex: 1 }}>
+                      <SingleCombobox
+                        value={data.yeastMonilia}
+                        onChange={(val) => setField('yeastMonilia', val)}
+                        suggestions={YEAST_MONILIA_SUGGESTIONS}
+                        placeholder="أو اكتب قيمة مخصصة (حر)..."
+                        ariaLabel="Yeast Monilia value"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: PARASITOLOGY & NOTES */}
+            {activeTab === 'PARASITOLOGY' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Item 4: Parasites & Stage MultiEntryCombobox */}
+                <MultiEntryCombobox
+                  label="طفيليات الخروج (Parasitology: Organisms & Stages)"
+                  items={data.parasites.map((p) => ({
+                    id: p.id,
+                    name: p.organism,
+                    secondValue: p.stage,
+                  }))}
+                  onChange={(items) => {
+                    const newParasites: ParasiteEntry[] = items.map((item) => {
+                      const existing = data.parasites.find((p) => p.id === item.id);
+                      return {
+                        id: item.id,
+                        organism: item.name,
+                        stage: item.secondValue,
+                        archivedSeverity: existing?.archivedSeverity,
+                      };
+                    });
+                    setField('parasites', newParasites);
+                  }}
+                  nameSuggestions={clinicalTemplates?.stool?.parasiteSuggestions || DEFAULT_PARASITE_SUGGESTIONS}
+                  namePlaceholder="اختر أو اكتب اسم الطفيلي (مثل Entamoeba histolytica)..."
+                  secondFieldLabel="الطور (Stage)"
+                  secondSuggestions={clinicalTemplates?.stool?.stageSuggestions || DEFAULT_STAGE_SUGGESTIONS}
+                  secondPlaceholder="الطور (Cyst, Trophozoite, Ova, Larva...)"
+                  addButtonText="إضافة طفيلي (Add Parasite)"
+                  emptyStateText="✓ لا توجد طفيليات مسجلة (Nil / No ova, cysts, or parasites seen)"
+                  badgeColor="#b91c1c"
+                  badgeBg="#fef2f2"
+                  badgeBorder="#fecaca"
+                />
+
+                {/* Clinical Notes */}
+                <div
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      الملاحظات السريرية (Clinical Notes)
+                    </span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setField('notes', 'No parasites, cysts, or ova seen in direct saline and iodine wet mounts.')}
+                        style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-input)', color: 'var(--text-main)', cursor: 'pointer' }}
+                      >
+                        [No Parasites]
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setField('notes', 'Active amoebic dysentery picture with presence of RBCs.')}
+                        style={{ fontSize: '10.5px', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-input)', color: 'var(--text-main)', cursor: 'pointer' }}
+                      >
+                        [Dysentery]
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    rows={3}
+                    value={data.notes}
+                    onChange={(e) => setField('notes', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-input)',
+                      color: 'var(--text-main)',
+                      fontSize: '12px',
+                      fontFamily: 'inherit',
+                      resize: 'none',
+                    }}
+                    placeholder="اكتب أي توضيحات سريرية أو توصيات إضافية للطبيب المعالج..."
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ----------------------------------------------------
+              RIGHT PANEL: DEDICATED A4 CLINICAL REPORT PREVIEW
+             ---------------------------------------------------- */}
+          <div
+            dir="ltr"
+            style={{
+              direction: 'ltr',
+              textAlign: 'left',
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
+              borderRadius: '12px',
+              padding: '18px',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+              position: 'sticky',
+              top: 0,
+            }}
+          >
+            {/* Header of Preview */}
+            <div
+              dir="ltr"
+              style={{
+                direction: 'ltr',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '2px solid #d97706',
+                paddingBottom: '10px',
+                marginBottom: '12px',
+                textAlign: 'left',
+              }}
+            >
+              <div style={{ textAlign: 'left' }}>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    background: '#d97706',
+                    color: '#ffffff',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontWeight: 800,
+                  }}
+                >
+                  A4 REPORT PREVIEW
+                </span>
+                <h4 style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a', margin: '4px 0 0 0', textAlign: 'left' }}>
+                  General Stool Examination (G.S.E)
+                </h4>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                    Sample #{resolvedSampleNumber}
+                  </span>
+                </div>
+            </div>
+
+            {/* Preview Tables */}
+            <div dir="ltr" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '11px', direction: 'ltr', textAlign: 'left' }}>
+              {/* Section 1: Physical */}
+              <div dir="ltr" style={{ direction: 'ltr', textAlign: 'left' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#d97706', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px', textAlign: 'left' }}>
+                  {data.includeFobt ? 'PHYSICAL & OCCULT BLOOD' : 'PHYSICAL EXAMINATION'}
+                </div>
+                <table dir="ltr" style={{ width: '100%', borderCollapse: 'collapse', direction: 'ltr', textAlign: 'left' }}>
+                  <tbody>
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Color:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', width: '25%', textAlign: 'left' }}>{data.color}</td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Consistency:</td>
+                      <td style={{ fontWeight: 700, color: data.consistency.includes('Loose') || data.consistency.includes('Watery') ? '#dc2626' : '#0f172a', width: '25%', textAlign: 'left' }}>{data.consistency}</td>
+                    </tr>
+                    {data.includeFobt && (
+                      <tr>
+                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>FOBT:</td>
+                        <td colSpan={3} style={{ fontWeight: 800, color: isFobtAbnormal ? '#dc2626' : '#047857', textAlign: 'left' }}>
+                          {data.fobt}
+                        </td>
+                      </tr>
+                    )}
+                    {data.includeSensitivity && (
+                      <tr>
+                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>Sensitivity:</td>
+                        <td colSpan={3} style={{ fontWeight: 800, color: data.sensitivity === 'Nil' || data.sensitivity === 'No Bacterial Growth' ? '#047857' : '#dc2626', textAlign: 'left' }}>
+                          {data.sensitivity}
+                        </td>
+                      </tr>
+                    )}
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>pH:</td>
+                      <td style={{ fontWeight: 700, color: '#0f172a', textAlign: 'left' }}>{data.ph || '6.5'}</td>
+                      {(data.includeReducingSubstances || data.includePhAndReducing) ? (
+                        <>
+                          <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>Reducing:</td>
+                          <td style={{ fontWeight: 700, color: data.reducingSubstances !== 'Negative' ? '#dc2626' : '#047857', textAlign: 'left' }}>{data.reducingSubstances}</td>
+                        </>
+                      ) : (
+                        <td colSpan={2}></td>
+                      )}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Section 2: Microscopic */}
+              <div dir="ltr" style={{ direction: 'ltr', textAlign: 'left' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#d97706', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px', textAlign: 'left' }}>
+                  MICROSCOPIC EXAMINATION (HPF)
+                </div>
+                <table dir="ltr" style={{ width: '100%', borderCollapse: 'collapse', direction: 'ltr', textAlign: 'left' }}>
+                  <tbody>
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>Pus Cells:</td>
+                      <td style={{ fontWeight: 700, color: isPusAbnormal ? '#dc2626' : '#0f172a', width: '25%', textAlign: 'left' }}>
+                        {data.pusCells} /HPF
+                      </td>
+                      <td style={{ color: '#64748b', padding: '3px 0', width: '25%', textAlign: 'left' }}>RBCs:</td>
+                      <td style={{ fontWeight: 700, color: isRbcAbnormal ? '#dc2626' : '#0f172a', width: '25%', textAlign: 'left' }}>
+                        {data.rbcs} /HPF
+                      </td>
+                    </tr>
+                    {data.muscleFibers && data.muscleFibers !== 'Nil' && (
+                      <tr>
+                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>Muscle Fibers:</td>
+                        <td colSpan={3} style={{ fontWeight: 700, color: '#0284c7', textAlign: 'left' }}>{data.muscleFibers}</td>
+                      </tr>
+                    )}
+                    {data.starchGranules && data.starchGranules !== 'Nil' && (
+                      <tr>
+                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>Starch Granules:</td>
+                        <td colSpan={3} style={{ fontWeight: 700, color: '#0284c7', textAlign: 'left' }}>{data.starchGranules}</td>
+                      </tr>
+                    )}
+                    {data.fatGlobules && data.fatGlobules !== 'Nil' && (
+                      <tr>
+                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>Fat Globules:</td>
+                        <td colSpan={3} style={{ fontWeight: 700, color: '#dc2626', textAlign: 'left' }}>{data.fatGlobules}</td>
+                      </tr>
+                    )}
+                    {data.vegetableCells && data.vegetableCells !== 'Nil' && (
+                      <tr>
+                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>Vegetable:</td>
+                        <td colSpan={3} style={{ fontWeight: 600, color: '#0f172a', textAlign: 'left' }}>{data.vegetableCells}</td>
+                      </tr>
+                    )}
+                    {data.yeastMonilia && !['Not seen', 'Nil', ''].includes(data.yeastMonilia) && (
+                      <tr>
+                        <td style={{ color: '#64748b', padding: '3px 0', textAlign: 'left' }}>Yeast / Monilia:</td>
+                        <td colSpan={3} style={{ fontWeight: 700, color: '#dc2626', textAlign: 'left' }}>{data.yeastMonilia}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Section 3: Parasitology */}
+              <div dir="ltr" style={{ direction: 'ltr', textAlign: 'left' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#d97706', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px', textAlign: 'left' }}>
+                  PARASITOLOGY
+                </div>
+                {data.parasites.length === 0 ? (
+                  <div style={{ color: '#047857', fontWeight: 700, padding: '2px 0', textAlign: 'left' }}>
+                    Nil (No ova, cysts, or parasites seen)
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', textAlign: 'left' }}>
+                    {data.parasites.map((p, idx) => (
+                      <div key={p.id || idx} style={{ fontWeight: 800, color: '#b91c1c', textAlign: 'left' }}>
+                        • {p.organism} {p.stage ? `– ${p.stage}` : ''}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Section 4: Notes */}
+              {data.notes && (
+                <div
+                  dir="ltr"
+                  style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    fontSize: '10.5px',
+                    color: '#334155',
+                    direction: 'ltr',
+                    textAlign: 'left',
+                  }}
+                >
+                  <strong>Note:</strong> {data.notes}
+                </div>
+              )}
+            </div>
+
+            {/* Stamp / verification text */}
+            <div
+              dir="ltr"
+              style={{
+                marginTop: 'auto',
+                paddingTop: '10px',
+                borderTop: '1px dashed #cbd5e1',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '9.5px',
+                color: '#94a3b8',
+                direction: 'ltr',
+              }}
+            >
+              <span>Clinical Parasitology Diagnostics • Verified</span>
+              <span>100% Medical Standard</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+        {/* ========================================================
+            3. FOOTER ACTION BAR
+           ======================================================== */}
+        <div
+          style={{
+            padding: '12px 20px',
+            background: 'var(--bg-card)',
+            borderTop: '1px solid var(--border-color)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          {/* Previous / Next Tab buttons */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {activeTab !== 'PHYSICAL' && (
+              <button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'PARASITOLOGY' ? 'MICROSCOPIC' : 'PHYSICAL')}
+                style={{
+                  fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  height: '38px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-input)',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  color: 'var(--text-main)',
+                }}
+              >
+                <ChevronLeft size={16} />
+                <span>التبويب السابق (Previous)</span>
+              </button>
+            )}
+            {activeTab !== 'PARASITOLOGY' && (
+              <button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'PHYSICAL' ? 'MICROSCOPIC' : 'PARASITOLOGY')}
+                style={{
+                  fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  height: '38px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-input)',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  color: 'var(--text-main)',
+                }}
+              >
+                <span>التبويب التالي (Next)</span>
+                <ChevronRight size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* Cancel & Main Save & Apply Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                fontSize: '12.5px',
+                height: '38px',
+                padding: '0 18px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-input)',
+                cursor: 'pointer',
+                fontWeight: 700,
+                color: 'var(--text-main)',
+              }}
+            >
+              إلغاء (Cancel)
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSaveAndApply}
+              disabled={saving}
+              style={{
+                background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 800,
+                fontSize: '13px',
+                padding: '0 28px',
+                height: '40px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(217, 119, 6, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.15s ease',
+                opacity: saving ? 0.6 : 1,
+              }}
+            >
+              <Check size={18} strokeWidth={2.5} />
+              <span>{saving ? 'جارٍ الحفظ...' : 'حفظ وتطبيق نتيجة التحليل (SAVE & APPLY)'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

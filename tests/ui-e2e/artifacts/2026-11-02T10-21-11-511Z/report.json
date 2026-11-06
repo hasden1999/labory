@@ -1,0 +1,1006 @@
+{
+  "total": 140,
+  "passed": 131,
+  "failed": 9,
+  "skipped": 0,
+  "checks": [
+    {
+      "suite": "routes",
+      "name": "/ loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 24140
+    },
+    {
+      "suite": "routes",
+      "name": "/ has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1
+    },
+    {
+      "suite": "routes",
+      "name": "/ controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 12
+    },
+    {
+      "suite": "routes",
+      "name": "/ has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/patients loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 26317
+    },
+    {
+      "suite": "routes",
+      "name": "/patients has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/patients controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 24
+    },
+    {
+      "suite": "routes",
+      "name": "/patients has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/samples loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 14230
+    },
+    {
+      "suite": "routes",
+      "name": "/samples has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/samples controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 9
+    },
+    {
+      "suite": "routes",
+      "name": "/samples has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/results loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 9635
+    },
+    {
+      "suite": "routes",
+      "name": "/results has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/results controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 24
+    },
+    {
+      "suite": "routes",
+      "name": "/results has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/financials loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 7018
+    },
+    {
+      "suite": "routes",
+      "name": "/financials has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/financials controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 12
+    },
+    {
+      "suite": "routes",
+      "name": "/financials has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/debts loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 8106
+    },
+    {
+      "suite": "routes",
+      "name": "/debts has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1
+    },
+    {
+      "suite": "routes",
+      "name": "/debts controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 4
+    },
+    {
+      "suite": "routes",
+      "name": "/debts has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/expenses loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 4305
+    },
+    {
+      "suite": "routes",
+      "name": "/expenses has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/expenses controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 5
+    },
+    {
+      "suite": "routes",
+      "name": "/expenses has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/doctors loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 5549
+    },
+    {
+      "suite": "routes",
+      "name": "/doctors has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/doctors controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 6
+    },
+    {
+      "suite": "routes",
+      "name": "/doctors has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/dashboard loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 7663
+    },
+    {
+      "suite": "routes",
+      "name": "/dashboard has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/dashboard controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 8
+    },
+    {
+      "suite": "routes",
+      "name": "/dashboard has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1
+    },
+    {
+      "suite": "routes",
+      "name": "/devices loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 5546
+    },
+    {
+      "suite": "routes",
+      "name": "/devices has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/devices controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 5
+    },
+    {
+      "suite": "routes",
+      "name": "/devices has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/inventory loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 11278
+    },
+    {
+      "suite": "routes",
+      "name": "/inventory has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/inventory controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 4
+    },
+    {
+      "suite": "routes",
+      "name": "/inventory has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/catalog loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 12158
+    },
+    {
+      "suite": "routes",
+      "name": "/catalog has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/catalog controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 20
+    },
+    {
+      "suite": "routes",
+      "name": "/catalog has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/settings loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 10297
+    },
+    {
+      "suite": "routes",
+      "name": "/settings has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1
+    },
+    {
+      "suite": "routes",
+      "name": "/settings controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 14
+    },
+    {
+      "suite": "routes",
+      "name": "/settings has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/staff loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 4102
+    },
+    {
+      "suite": "routes",
+      "name": "/staff has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1
+    },
+    {
+      "suite": "routes",
+      "name": "/staff controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 534,
+      "details": "Error: Unnamed buttons (1): (empty)\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:85:19)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:570:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:78:7)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T10-21-11-511Z\\FAIL-routes--staff-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/staff has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/license loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 20451
+    },
+    {
+      "suite": "routes",
+      "name": "/license has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/license controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 304,
+      "details": "Error: Unnamed buttons (1): (empty)\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:85:19)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:570:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:78:7)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T10-21-11-511Z\\FAIL-routes--license-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/license has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/connect loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 6519
+    },
+    {
+      "suite": "routes",
+      "name": "/connect has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/connect controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 4
+    },
+    {
+      "suite": "routes",
+      "name": "/connect has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/login loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 6093
+    },
+    {
+      "suite": "routes",
+      "name": "/login has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/login controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 4
+    },
+    {
+      "suite": "routes",
+      "name": "/login has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/showcase loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 3556
+    },
+    {
+      "suite": "routes",
+      "name": "/showcase has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/showcase controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 5
+    },
+    {
+      "suite": "routes",
+      "name": "/showcase has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/ready loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 31844
+    },
+    {
+      "suite": "routes",
+      "name": "/ready has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/ready has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/health loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 32188
+    },
+    {
+      "suite": "routes",
+      "name": "/health has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/health has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/verify/nonexistent loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 3051
+    },
+    {
+      "suite": "routes",
+      "name": "/verify/nonexistent has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/verify/nonexistent controls are named",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 3
+    },
+    {
+      "suite": "routes",
+      "name": "/verify/nonexistent has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "intake",
+      "name": "opens the intake workspace",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 6832
+    },
+    {
+      "suite": "intake",
+      "name": "save is disabled until name, age, sex, and a test are present",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2603
+    },
+    {
+      "suite": "intake",
+      "name": "registers patient demographics and Iraqi phone",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 3432
+    },
+    {
+      "suite": "intake",
+      "name": "searches the catalog and adds CBC with its EDTA tube badge",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2964
+    },
+    {
+      "suite": "intake",
+      "name": "adds a chemistry test and renders an inline result input",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1930
+    },
+    {
+      "suite": "intake",
+      "name": "enters a critical glucose value and surfaces a panic/flag",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1335
+    },
+    {
+      "suite": "intake",
+      "name": "opens and closes the specialized CBC form from the results grid",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 3340
+    },
+    {
+      "suite": "intake",
+      "name": "applies a 10% discount and recalculates the net total",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2541
+    },
+    {
+      "suite": "intake",
+      "name": "saves the order (F9) and shows the success toast",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 6543
+    },
+    {
+      "suite": "intake",
+      "name": "persists the new order in the patients registry",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 24009
+    },
+    {
+      "suite": "intake",
+      "name": "opens the new patient file and shows the saved order",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 53
+    },
+    {
+      "suite": "intake",
+      "name": "resets the workspace with F1 (new patient)",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 30251,
+      "details": "Error: Node is detached from document\n    at CdpElementHandle.assertConnectedElement (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\ElementHandle.ts:1418:13)\n    at async CdpElementHandle.isIntersectingViewport (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\ElementHandle.ts:1454:5)\n    at async CdpElementHandle.<anonymous> (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\ElementHandle.ts:176:16)\n    at async CdpElementHandle.scrollIntoViewIfNeeded (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\ElementHandle.ts:1429:7)\n    at async CdpElementHandle.click (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\ElementHandle.ts:765:5)\n    at async CdpElementHandle.<anonymous> (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\ElementHandle.ts:186:22)\n    at async UiHarness.clickText (D:\\lab\\tests\\ui-e2e\\harness.ts:269:5)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\intake.ts:219:7)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:570:7)\n    at async Object.run (D:\\lab\\tests\\ui-e2e\\suites\\intake.ts:213:5)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T10-21-11-511Z\\FAIL-intake-resets-the-workspace-with-F1-new-patient-.png"
+    },
+    {
+      "suite": "patients",
+      "name": "opens the registry and finds the newly created patient",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 19885
+    },
+    {
+      "suite": "patients",
+      "name": "opens the patient file and displays demographics and results",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2115
+    },
+    {
+      "suite": "patients",
+      "name": "switches between registry quick filters",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 11858
+    },
+    {
+      "suite": "patients",
+      "name": "opens and cancels the edit-patient dialog",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 3055
+    },
+    {
+      "suite": "patients",
+      "name": "updates the patient phone number and persists it",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 8223,
+      "details": "Error: Updated phone number is not visible after save\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\patients.ts:53:46)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:570:7)\n    at async runPatientsSuite (D:\\lab\\tests\\ui-e2e\\suites\\patients.ts:46:3)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:135:9)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T10-21-11-511Z\\FAIL-patients-updates-the-patient-phone-number-and-persists-it.png"
+    },
+    {
+      "suite": "patients",
+      "name": "opens the sample-delete confirmation and cancels it safely",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2971
+    },
+    {
+      "suite": "patients",
+      "name": "opens the patient-visits dialog",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2130
+    },
+    {
+      "suite": "patients",
+      "name": "opens the settle-account dialog and cancels it",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 22346,
+      "details": "TimeoutError: Waiting failed: 20000ms exceeded\n    at new WaitTask (D:\\lab\\node_modules\\puppeteer-core\\src\\common\\WaitTask.ts:82:28)\n    at IsolatedWorld.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Realm.ts:74:22)\n    at CdpFrame.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:789:36)\n    at CdpFrame.<anonymous> (D:\\lab\\node_modules\\puppeteer-core\\src\\util\\decorators.ts:63:21)\n    at CdpPage.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2928:29)\n    at UiHarness.waitForModal (D:\\lab\\tests\\ui-e2e\\harness.ts:482:21)\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\patients.ts:88:16)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:570:7)\n    at async runPatientsSuite (D:\\lab\\tests\\ui-e2e\\suites\\patients.ts:86:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:135:9)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T10-21-11-511Z\\FAIL-patients-opens-the-settle-account-dialog-and-cancels-it.png"
+    },
+    {
+      "suite": "patients",
+      "name": "writes and saves a result from the patient file",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 63043,
+      "details": "TimeoutError: Waiting failed: 60000ms exceeded\n    at new WaitTask (D:\\lab\\node_modules\\puppeteer-core\\src\\common\\WaitTask.ts:82:28)\n    at IsolatedWorld.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Realm.ts:74:22)\n    at CdpFrame.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:789:36)\n    at CdpFrame.<anonymous> (D:\\lab\\node_modules\\puppeteer-core\\src\\util\\decorators.ts:63:21)\n    at CdpPage.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2928:29)\n    at UiHarness.waitForText (D:\\lab\\tests\\ui-e2e\\harness.ts:137:21)\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\patients.ts:105:16)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:570:7)\n    at async runPatientsSuite (D:\\lab\\tests\\ui-e2e\\suites\\patients.ts:99:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:135:9)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T10-21-11-511Z\\FAIL-patients-writes-and-saves-a-result-from-the-patient-file.png"
+    },
+    {
+      "suite": "patients",
+      "name": "does not crash when opening the final report action",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 3579
+    },
+    {
+      "suite": "financials",
+      "name": "opens the cashier dashboard",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 4767
+    },
+    {
+      "suite": "financials",
+      "name": "switches period filters",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 9930
+    },
+    {
+      "suite": "financials",
+      "name": "switches movement-type filters",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 7390
+    },
+    {
+      "suite": "financials",
+      "name": "switches between debts and referring doctors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 4201
+    },
+    {
+      "suite": "financials",
+      "name": "searches cash movements",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1479
+    },
+    {
+      "suite": "financials",
+      "name": "opens the expense dialog and validates empty input",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 4808
+    },
+    {
+      "suite": "financials",
+      "name": "creates an operating expense and shows it in the ledger",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2826
+    },
+    {
+      "suite": "financials",
+      "name": "opens the referring-doctor dialog and validates empty input",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 4732
+    },
+    {
+      "suite": "financials",
+      "name": "creates a referring doctor with a commission rate",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 35101,
+      "details": "TimeoutError: Waiting failed: 30000ms exceeded\n    at new WaitTask (D:\\lab\\node_modules\\puppeteer-core\\src\\common\\WaitTask.ts:82:28)\n    at IsolatedWorld.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Realm.ts:74:22)\n    at CdpFrame.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:789:36)\n    at CdpFrame.<anonymous> (D:\\lab\\node_modules\\puppeteer-core\\src\\util\\decorators.ts:63:21)\n    at CdpPage.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2928:29)\n    at UiHarness.waitForText (D:\\lab\\tests\\ui-e2e\\harness.ts:137:21)\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\financials.ts:92:14)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:570:7)\n    at async runFinancialsSuite (D:\\lab\\tests\\ui-e2e\\suites\\financials.ts:86:3)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:143:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T10-21-11-511Z\\FAIL-financials-creates-a-referring-doctor-with-a-commission-rate.png"
+    },
+    {
+      "suite": "financials",
+      "name": "opens a debt settlement dialog without submitting",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2543
+    },
+    {
+      "suite": "settings",
+      "name": "opens the catalog and searches for a test",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 15423
+    },
+    {
+      "suite": "settings",
+      "name": "filters the catalog by specialty",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 6732
+    },
+    {
+      "suite": "settings",
+      "name": "opens and cancels the add-test dialog",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2548
+    },
+    {
+      "suite": "settings",
+      "name": "switches between the four settings workspaces",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 22992
+    },
+    {
+      "suite": "settings",
+      "name": "saves the report design settings",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 16241
+    },
+    {
+      "suite": "settings",
+      "name": "renders the network/system panel and its four sections",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 13484
+    },
+    {
+      "suite": "settings",
+      "name": "opens the WhatsApp pairing tab without connecting",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 8926
+    },
+    {
+      "suite": "settings",
+      "name": "renders the system/license workspace on /license",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 5414
+    },
+    {
+      "suite": "devices",
+      "name": "opens the devices and inventory workspace",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 8374
+    },
+    {
+      "suite": "devices",
+      "name": "switches inventory filters",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 7397
+    },
+    {
+      "suite": "devices",
+      "name": "searches inventory by reagent or test code",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1268
+    },
+    {
+      "suite": "devices",
+      "name": "opens and cancels the add-device dialog",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2649
+    },
+    {
+      "suite": "devices",
+      "name": "opens and cancels the add-inventory dialog",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2583
+    },
+    {
+      "suite": "devices",
+      "name": "opens the device connection guide and closes it",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2144
+    },
+    {
+      "suite": "devices",
+      "name": "runs a device connectivity check without crashing",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 5098
+    },
+    {
+      "suite": "devices",
+      "name": "opens the delete-device confirmation and cancels it",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 2314,
+      "details": "Error: Delete-device confirmation was not shown\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\devices.ts:74:53)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:570:7)\n    at async runDevicesSuite (D:\\lab\\tests\\ui-e2e\\suites\\devices.ts:70:3)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:153:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T10-21-11-511Z\\FAIL-devices-opens-the-delete-device-confirmation-and-cancels-it.png"
+    },
+    {
+      "suite": "devices",
+      "name": "opens an inventory package and cancels it",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2091
+    },
+    {
+      "suite": "global",
+      "name": "sidebar navigation reaches every main section",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 18695
+    },
+    {
+      "suite": "global",
+      "name": "theme toggle switches and persists",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 68719
+    },
+    {
+      "suite": "global",
+      "name": "login page validates required fields",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 7310
+    },
+    {
+      "suite": "global",
+      "name": "login page reports an error for invalid credentials without hanging",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 7214
+    },
+    {
+      "suite": "global",
+      "name": "guest entry link reaches the dashboard",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 4571
+    },
+    {
+      "suite": "global",
+      "name": "F1 clears the intake form",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 7737,
+      "details": "Error: Node is detached from document\n    at CdpElementHandle.assertConnectedElement (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\ElementHandle.ts:1418:13)\n    at async CdpElementHandle.isIntersectingViewport (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\ElementHandle.ts:1454:5)\n    at async CdpElementHandle.<anonymous> (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\ElementHandle.ts:176:16)\n    at async CdpElementHandle.scrollIntoViewIfNeeded (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\ElementHandle.ts:1429:7)\n    at async CdpElementHandle.click (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\ElementHandle.ts:765:5)\n    at async CdpElementHandle.<anonymous> (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\ElementHandle.ts:186:22)\n    at async UiHarness.clickText (D:\\lab\\tests\\ui-e2e\\harness.ts:269:5)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\global.ts:89:5)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:570:7)\n    at async runGlobalSuite (D:\\lab\\tests\\ui-e2e\\suites\\global.ts:83:3)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T10-21-11-511Z\\FAIL-global-F1-clears-the-intake-form.png"
+    },
+    {
+      "suite": "global",
+      "name": "F2 barcode action never crashes the workspace",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 8612
+    },
+    {
+      "suite": "global",
+      "name": "public verification page is reachable without authentication",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 10518
+    },
+    {
+      "suite": "global",
+      "name": "readiness and health probes return JSON without errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2276
+    }
+  ]
+}

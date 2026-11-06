@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const http = require('http');
 const { execSync, spawn, execFileSync } = require('child_process');
 const { DatabaseSync } = require('node:sqlite');
+const { copyWhatsAppRuntime, verifyWhatsAppRuntimeClosure } = require('./lib/whatsapp-runtime-bundler');
 
 function logStep(step, message) {
   console.log(`\n======================================================`);
@@ -221,6 +222,20 @@ function pruneEngineContents(rootDir, targetStandalone) {
     }
   }
 
+  // 4c. Ensure WhatsApp Web engine (@whiskeysockets/baileys, qrcode, pino) and the FULL runtime
+  // dependency closure is bundled, preserving nested node_modules versions (e.g. keyv@5 -> @keyv/serialize).
+  const waResult = copyWhatsAppRuntime({ rootDir, targetStandalone, log: console.log });
+  console.log(`  ✅ تم تجهيز ${waResult.copied} حزمة لمحرك واتساب ويب المدمج.`);
+  if (waResult.missing.length > 0) {
+    console.log(`  ℹ️ حزم اختيارية غير مثبتة (سيتم تجاهلها): ${Array.from(new Set(waResult.missing)).join(', ')}`);
+  }
+
+  // 4d. Packaging gate: every required WhatsApp dependency must exist INSIDE the bundle.
+  // (Runtime import is not a valid check on the build machine because Node can resolve
+  // missing packages from the monorepo root node_modules.)
+  const waClosure = verifyWhatsAppRuntimeClosure({ targetStandalone });
+  console.log(`  ✅ تم التحقق من اكتمال شجرة اعتماديات واتساب داخل الحزمة (${waClosure.packages} حزمة).`);
+
   // 5. Recursive safety cleanup: remove any stray *.so.node or schema-engine-windows.exe
   function removeForbiddenFiles(dir) {
     if (!fs.existsSync(dir)) return;
@@ -317,8 +332,9 @@ async function runSmokeTestGate({ engineDir, targetStandalone, timeoutMs = 45000
   const startTime = Date.now();
   let healthOk = false;
   let testsOk = false;
+  let whatsappOk = false;
 
-  console.log('[Smoke Gate] استطلاع /health و /api/tests (الحد الأقصى 10 ثوان)...');
+  console.log('[Smoke Gate] استطلاع /health و /api/tests و /api/whatsapp/status (الحد الأقصى 10 ثوان)...');
   while (Date.now() - startTime < timeoutMs) {
     try {
       if (!healthOk) {
@@ -340,7 +356,18 @@ async function runSmokeTestGate({ engineDir, targetStandalone, timeoutMs = 45000
           testsOk = true;
         }
       }
-      if (healthOk && testsOk) break;
+      if (healthOk && testsOk && !whatsappOk) {
+        const wRes = await fetchUrl('/api/whatsapp/status');
+        if (wRes.statusCode === 200) {
+          let parsed = {};
+          try {
+            parsed = JSON.parse(wRes.body);
+          } catch (e) {}
+          console.log(`  ✅ استجابة مسار واتساب /api/whatsapp/status بنجاح (200 OK) - الحالة: ${parsed.status || 'OK'}`);
+          whatsappOk = true;
+        }
+      }
+      if (healthOk && testsOk && whatsappOk) break;
     } catch (e) {
       // Waiting for server to boot
     }
@@ -361,10 +388,10 @@ async function runSmokeTestGate({ engineDir, targetStandalone, timeoutMs = 45000
     fs.rmSync(tempDir, { recursive: true, force: true });
   } catch (e) {}
 
-  if (!healthOk || !testsOk) {
+  if (!healthOk || !testsOk || !whatsappOk) {
     console.error('\nمخرجات السيرفر أثناء الفحص:\n', serverOutput);
     throw new Error(
-      `❌ فشل فحص الدخان الآلي (Smoke Test Gate)! healthOk=${healthOk}, testsOk=${testsOk}. تم إيقاف الحزم لمنع إصدار حزمة تالفة.`
+      `❌ فشل فحص الدخان الآلي (Smoke Test Gate)! healthOk=${healthOk}, testsOk=${testsOk}, whatsappOk=${whatsappOk}. تم إيقاف الحزم لمنع إصدار حزمة تالفة.`
     );
   }
 
@@ -422,11 +449,20 @@ async function run() {
   const targetStandalone = path.join(engineDir, 'standalone');
   const directDataDest = path.join(engineDir, 'data');
 
-  // Clean stale engine contents before bundling
-  if (fs.existsSync(targetStandalone)) {
-    console.log(`تنظيف المحتويات القديمة من: ${targetStandalone} ...`);
-    fs.rmSync(targetStandalone, { recursive: true, force: true });
+  // Assemble standalone server
+  const builtServerJs = path.join(standaloneWebDir, 'apps', 'web', 'server.js');
+  if (fs.existsSync(builtServerJs)) {
+    if (fs.existsSync(targetStandalone)) {
+      console.log(`تحديث محتويات الخادم المستقل من: ${standaloneWebDir} ...`);
+      fs.rmSync(targetStandalone, { recursive: true, force: true });
+    }
+    fs.cpSync(standaloneWebDir, targetStandalone, { recursive: true });
+  } else if (fs.existsSync(targetStandalone)) {
+    console.log(`استخدام حزمة الخادم المدمجة المعتمدة في: ${targetStandalone}`);
+  } else if (fs.existsSync(standaloneWebDir)) {
+    fs.cpSync(standaloneWebDir, targetStandalone, { recursive: true });
   }
+
   if (fs.existsSync(directDataDest)) {
     console.log(`تنظيف مجلد البيانات القديم من: ${directDataDest} ...`);
     fs.rmSync(directDataDest, { recursive: true, force: true });
@@ -443,10 +479,6 @@ async function run() {
   } else {
     console.log('node.exe موجود مسبقاً ومطابق.');
   }
-
-  // Copy standalone server
-  console.log(`نسخ مجلد الخادم المستقل إلى: ${targetStandalone} ...`);
-  fs.cpSync(standaloneWebDir, targetStandalone, { recursive: true });
 
   // SECURITY: Next.js file tracing can copy local runtime data (PHI) into standalone.
   // Remove every sensitive artifact before the clean seed database/store are written.
@@ -486,10 +518,16 @@ async function run() {
   }
 
   // Copy static assets once into targetStandalone/apps/web/.next/static
-  const staticSrc = path.join(webDir, '.next', 'static');
-  const staticDest = path.join(targetStandalone, 'apps', 'web', '.next', 'static');
-  console.log('نسخ الأصول الثابتة (.next/static)...');
-  fs.cpSync(staticSrc, staticDest, { recursive: true });
+  const staticSrcCandidates = [
+    path.join(webDir, '.next', 'static'),
+    path.join(rootDir, '.next', 'static'),
+  ];
+  const foundStaticSrc = staticSrcCandidates.find((p) => fs.existsSync(p));
+  if (foundStaticSrc) {
+    const staticDest = path.join(targetStandalone, 'apps', 'web', '.next', 'static');
+    console.log(`نسخ الأصول الثابتة من ${foundStaticSrc} إلى ${staticDest}...`);
+    fs.cpSync(foundStaticSrc, staticDest, { recursive: true });
+  }
 
   // Copy public assets into targetStandalone/apps/web/public AND targetStandalone/public
   const publicSrc = path.join(webDir, 'public');

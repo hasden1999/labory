@@ -140,6 +140,23 @@ export default function WhatsAppFormsModal({
     }
   };
 
+  const handleShareAllFormsToWhatsApp = async () => {
+    const phone = normalizeIraqiPhone(customPhone);
+    if (!phone) {
+      toast.warning('رقم هاتف المريض غير صالح أو غير متوفر', 'واتساب');
+      return;
+    }
+    const caption = `مرحباً ${patientName}، يسر مختبرنا إرفاق نتائج التحاليل الطبية المعتمدة للعينة رقم (#${sampleNumber}). نتمنى لكم دوام الصحة والعافية.`;
+    toast.info('جاري تجهيز جميع صور التقرير وفتح واتساب لمحادثة المريض...');
+    // No `section` is passed on purpose so every report page/form is generated and sent.
+    const result = await shareReportToWhatsApp({ sampleId, phone, caption });
+    if (result.ok) {
+      toast.success(result.message);
+    } else {
+      toast.error(result.message, 'واتساب');
+    }
+  };
+
   const handleDownloadImage = (form: ActiveForm) => {
     const a = document.createElement('a');
     a.href = form.imageUrl;
@@ -165,6 +182,8 @@ export default function WhatsAppFormsModal({
         sampleId,
         phone: customPhone,
         autoSend: true,
+        // Manual user action must always dispatch, even when automatic sending is disabled in settings.
+        forceSend: true,
       });
       if (res && res.delivered) {
         setDispatchedSuccess(true);
@@ -172,7 +191,7 @@ export default function WhatsAppFormsModal({
       } else if (res && res.success === false) {
         toast.warning(res.message || 'خادم واتساب المباشر غير متصل، جاري فتح محادثة المريض مباشرة...');
         if (forms.length > 0) {
-          await handleDirectShareToWhatsApp(forms[0]);
+          await handleShareAllFormsToWhatsApp();
         } else {
           handleOpenWhatsAppChat();
         }
@@ -183,7 +202,7 @@ export default function WhatsAppFormsModal({
     } catch (err: any) {
       toast.warning('تعذر الإرسال التلقائي عبر الخادم، جاري فتح محادثة واتساب مباشرة...');
       if (forms.length > 0) {
-        await handleDirectShareToWhatsApp(forms[0]);
+        await handleShareAllFormsToWhatsApp();
       } else {
         handleOpenWhatsAppChat();
       }

@@ -1,0 +1,71 @@
+{
+  "total": 9,
+  "passed": 9,
+  "failed": 0,
+  "skipped": 0,
+  "checks": [
+    {
+      "suite": "global",
+      "name": "sidebar navigation reaches every main section",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 38908
+    },
+    {
+      "suite": "global",
+      "name": "theme toggle switches and persists",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 88510
+    },
+    {
+      "suite": "global",
+      "name": "login page validates required fields",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 8833
+    },
+    {
+      "suite": "global",
+      "name": "login page reports an error for invalid credentials without hanging",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 10459
+    },
+    {
+      "suite": "global",
+      "name": "guest entry link reaches the dashboard",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 5285
+    },
+    {
+      "suite": "global",
+      "name": "F1 clears the intake form",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 14962
+    },
+    {
+      "suite": "global",
+      "name": "F2 barcode action never crashes the workspace",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 7226
+    },
+    {
+      "suite": "global",
+      "name": "public verification page is reachable without authentication",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 7292
+    },
+    {
+      "suite": "global",
+      "name": "readiness and health probes return JSON without errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 3207
+    }
+  ]
+}

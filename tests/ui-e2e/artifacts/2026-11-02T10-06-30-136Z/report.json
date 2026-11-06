@@ -1,0 +1,66 @@
+{
+  "total": 8,
+  "passed": 7,
+  "failed": 1,
+  "skipped": 0,
+  "checks": [
+    {
+      "suite": "settings",
+      "name": "opens the catalog and searches for a test",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 17580
+    },
+    {
+      "suite": "settings",
+      "name": "filters the catalog by specialty",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1774
+    },
+    {
+      "suite": "settings",
+      "name": "opens and cancels the add-test dialog",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 988
+    },
+    {
+      "suite": "settings",
+      "name": "switches between the four settings workspaces",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 17358
+    },
+    {
+      "suite": "settings",
+      "name": "saves the report design settings",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 14685
+    },
+    {
+      "suite": "settings",
+      "name": "renders the network/system panel and its four sections",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 38948,
+      "details": "TimeoutError: Waiting failed: 30000ms exceeded\n    at new WaitTask (D:\\lab\\node_modules\\puppeteer-core\\src\\common\\WaitTask.ts:82:28)\n    at IsolatedWorld.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Realm.ts:74:22)\n    at CdpFrame.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:789:36)\n    at CdpFrame.<anonymous> (D:\\lab\\node_modules\\puppeteer-core\\src\\util\\decorators.ts:63:21)\n    at CdpPage.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2928:29)\n    at UiHarness.waitForText (D:\\lab\\tests\\ui-e2e\\harness.ts:137:21)\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\settings.ts:78:16)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:545:7)\n    at async runSettingsSuite (D:\\lab\\tests\\ui-e2e\\suites\\settings.ts:67:3)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:148:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T10-06-30-136Z\\FAIL-settings-renders-the-network-system-panel-and-its-four-sections.png"
+    },
+    {
+      "suite": "settings",
+      "name": "opens the WhatsApp pairing tab without connecting",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 9434
+    },
+    {
+      "suite": "settings",
+      "name": "renders the system/license workspace on /license",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 5084
+    }
+  ]
+}

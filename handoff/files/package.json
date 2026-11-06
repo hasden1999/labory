@@ -1,0 +1,58 @@
+{
+  "name": "lab-manager-monorepo",
+  "version": "2.0.9",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npx prisma generate --schema=apps/server/prisma/schema.prisma && npm run build:web",
+    "dev": "concurrently -n \"server,web\" -c \"cyan.bold,magenta.bold\" \"npm run dev:server\" \"npm run start --workspace=apps/web\"",
+    "dev:server": "npm run dev --workspace=apps/server",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:staging": "npm run staging --workspace=apps/web",
+    "start:web": "npm run start --workspace=apps/web",
+    "build:server": "npm run build --workspace=apps/server",
+    "build:web": "npm run build --workspace=apps/web",
+    "db:push": "npm run db:push --workspace=apps/server",
+    "db:seed": "npm run db:seed --workspace=apps/server",
+    "desktop": "electron apps/desktop",
+    "desktop:dev": "node tools/dev-desktop.js",
+    "preview:desktop": "node tools/dev-desktop.js",
+    "desktop:dist": "npm run dist --workspace=apps/desktop",
+    "build:installer": "node tools/build-standalone-installer.js",
+    "release": "node tools/build-standalone-installer.js --publish",
+    "deploy:lab": "node tools/deploy/index.js",
+    "deploy:backup": "node tools/deploy/backup.js",
+    "deploy:rollback": "node tools/deploy/rollback.js",
+    "deploy:publish": "node tools/deploy/index.js --publish",
+    "test": "npx tsx tests/e2e/run_all.ts",
+    "test:golden": "npx tsx tests/golden/run_golden.ts",
+    "test:devices": "python tests/integration/test_astm_analyzer.py",
+    "check:scope": "node tools/check_scope.js",
+    "lint:boundaries": "node tools/lint_boundaries.js",
+    "verify": "npm run typecheck && npm run lint:boundaries && npm run test:golden && npm run build",
+    "typecheck": "tsc --noEmit -p apps/server/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.12.1",
+    "lucide-react": "^0.368.0",
+    "next": "^14.2.1",
+    "prisma": "^5.12.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^30.0.0",
+    "@types/node": "^20.12.7",
+    "@types/react": "^18.2.79",
+    "@types/react-dom": "^18.2.25",
+    "7zip-bin": "^5.2.0",
+    "concurrently": "^8.2.2",
+    "electron": "30.0.1",
+    "electron-builder": "^24.13.3",
+    "jsdom": "^30.1.1",
+    "typescript": "^5.4.5"
+  }
+}

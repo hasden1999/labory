@@ -1,0 +1,78 @@
+{
+  "total": 10,
+  "passed": 10,
+  "failed": 0,
+  "skipped": 0,
+  "checks": [
+    {
+      "suite": "financials",
+      "name": "opens the cashier dashboard",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 5971
+    },
+    {
+      "suite": "financials",
+      "name": "switches period filters",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 14797
+    },
+    {
+      "suite": "financials",
+      "name": "switches movement-type filters",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 3982
+    },
+    {
+      "suite": "financials",
+      "name": "switches between debts and referring doctors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 821
+    },
+    {
+      "suite": "financials",
+      "name": "searches cash movements",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1547
+    },
+    {
+      "suite": "financials",
+      "name": "opens the expense dialog and validates empty input",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2131
+    },
+    {
+      "suite": "financials",
+      "name": "creates an operating expense and shows it in the ledger",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2082
+    },
+    {
+      "suite": "financials",
+      "name": "opens the referring-doctor dialog and validates empty input",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1320
+    },
+    {
+      "suite": "financials",
+      "name": "creates a referring doctor with a commission rate",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2286
+    },
+    {
+      "suite": "financials",
+      "name": "opens a debt settlement dialog without submitting",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1336
+    }
+  ]
+}

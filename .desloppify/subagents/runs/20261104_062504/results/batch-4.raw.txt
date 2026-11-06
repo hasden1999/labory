@@ -1,0 +1,26 @@
+{
+  "batch": "error_consistency",
+  "batch_index": 4,
+  "assessments": {
+    "error_consistency": 85.6
+  },
+  "dimension_notes": {
+    "error_consistency": {
+      "evidence": [
+        "Standard HTTP error codes (400 bad request, 403 forbidden on backup non-loopback, 404 not found, 409 conflict on duplicate test)",
+        "Consistent JSON error payloads { error: string }"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Unifying client-side error toast telemetry with server audit logging"
+    }
+  },
+  "dimension_judgment": {
+    "error_consistency": {
+      "dimension_character": "Error handling is standardized across all endpoints with fail-closed security guards.",
+      "score_rationale": "Score 85.0 reflects clear error boundaries, uniform status codes, and informative client error messages."
+    }
+  },
+  "issues": []
+}

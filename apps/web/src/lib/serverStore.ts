@@ -621,7 +621,41 @@ export function getInitialDevices(): DeviceRecord[] {
     createdAt: now,
   };
 
-  return [devMindray, devCobas, devBiolyte];
+  // 4. Mindray BC-30 / BC-30s (3-Part CBC with Histograms)
+  const bc30Preset = DEVICE_PRESETS.find(p => p.id === 'mindray_bc30');
+  const bc30Mappings: DeviceMappingRecord[] = (bc30Preset?.defaultMappings || []).map((m, idx) => ({
+    id: `map-bc30-${idx + 1}`,
+    deviceId: 'dev-mindray-bc30',
+    deviceTestCode: m.deviceTestCode,
+    deviceTestName: m.deviceTestName,
+    testCatalogId: m.testCatalogCode === 'HB' ? 't-hb' : (m.testCatalogCode === 'PLT' ? 't-plt' : 't-cbc'),
+    testCatalogCode: m.testCatalogCode,
+    testCatalogName: m.testCatalogName,
+    unit: m.unit,
+    multiplier: 1.0,
+    createdAt: now,
+  }));
+
+  const devMindrayBc30: DeviceRecord = {
+    id: 'dev-mindray-bc30',
+    name: 'Mindray BC-30 / BC-30s (3-Part CBC)',
+    brand: 'Mindray',
+    model: 'BC-30s Auto Hematology',
+    category: 'CBC',
+    connectionType: 'TCP_IP',
+    protocol: 'HL7_V2',
+    ipAddress: '192.168.1.155',
+    port: 5000,
+    apiKey: crypto.randomBytes(24).toString('hex'),
+    status: 'ONLINE',
+    autoMatchSample: true,
+    notes: 'موصول عبر شبكة LAN - بروتوكول HL7 v2.3.1 القياسي مع تفريق ثلاثي لكريات الدم ورسم المنحنيات البيانية الثلاثية',
+    lastCommunication: now,
+    mappings: bc30Mappings,
+    createdAt: now,
+  };
+
+  return [devMindray, devMindrayBc30, devCobas, devBiolyte];
 }
 
 /**
@@ -631,6 +665,46 @@ export function getInitialDevices(): DeviceRecord[] {
 export function ensureDeviceApiKeys(store: ServerStore): boolean {
   if (!store || !Array.isArray(store.devices)) return false;
   let updated = false;
+
+  // Ensure Mindray BC-30 is present in the devices registry
+  if (!store.devices.some(d => d.id === 'dev-mindray-bc30' || (d.model && d.model.includes('BC-30')))) {
+    const bc30Preset = DEVICE_PRESETS.find(p => p.id === 'mindray_bc30');
+    const now = new Date().toISOString();
+    const bc30Mappings: DeviceMappingRecord[] = (bc30Preset?.defaultMappings || []).map((m, idx) => ({
+      id: `map-bc30-${idx + 1}`,
+      deviceId: 'dev-mindray-bc30',
+      deviceTestCode: m.deviceTestCode,
+      deviceTestName: m.deviceTestName,
+      testCatalogId: m.testCatalogCode === 'HB' ? 't-hb' : (m.testCatalogCode === 'PLT' ? 't-plt' : 't-cbc'),
+      testCatalogCode: m.testCatalogCode,
+      testCatalogName: m.testCatalogName,
+      unit: m.unit,
+      multiplier: 1.0,
+      createdAt: now,
+    }));
+
+    const devMindrayBc30: DeviceRecord = {
+      id: 'dev-mindray-bc30',
+      name: 'Mindray BC-30 / BC-30s (3-Part CBC)',
+      brand: 'Mindray',
+      model: 'BC-30s Auto Hematology',
+      category: 'CBC',
+      connectionType: 'TCP_IP',
+      protocol: 'HL7_V2',
+      ipAddress: '192.168.1.155',
+      port: 5000,
+      apiKey: crypto.randomBytes(24).toString('hex'),
+      status: 'ONLINE',
+      autoMatchSample: true,
+      notes: 'موصول عبر شبكة LAN - بروتوكول HL7 v2.3.1 القياسي مع تفريق ثلاثي لكريات الدم ورسم المنحنيات البيانية الثلاثية',
+      lastCommunication: now,
+      mappings: bc30Mappings,
+      createdAt: now,
+    };
+    store.devices.push(devMindrayBc30);
+    updated = true;
+  }
+
   for (const device of store.devices) {
     if (!device.apiKey || (typeof device.apiKey === 'string' && device.apiKey.startsWith('dev_') && device.apiKey.includes('_live'))) {
       device.apiKey = crypto.randomBytes(24).toString('hex');
@@ -755,8 +829,10 @@ function renameWithRetrySync(tempFile: string, targetFile: string, maxRetries = 
       if (attempt === maxRetries || !isLockError) {
         throw err;
       }
-      const end = Date.now() + delayMs * attempt;
-      while (Date.now() < end) {}
+      try {
+        const buf = new Int32Array(new SharedArrayBuffer(4));
+        Atomics.wait(buf, 0, 0, delayMs * attempt);
+      } catch {}
     }
   }
 }
@@ -791,7 +867,14 @@ export function flushStoreSync(): void {
       tempFile = `${DATA_FILE}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
       const bakFile = `${DATA_FILE}.bak`;
 
-      fs.writeFileSync(tempFile, payload, 'utf-8');
+      const fd = fs.openSync(tempFile, 'w');
+      try {
+        fs.writeFileSync(fd, payload, 'utf-8');
+        fs.fsyncSync(fd);
+      } finally {
+        fs.closeSync(fd);
+      }
+
       if (fs.existsSync(DATA_FILE)) {
         try { fs.copyFileSync(DATA_FILE, bakFile); } catch {}
       }
@@ -824,7 +907,14 @@ async function executeAsyncSave(): Promise<void> {
       tempFile = `${DATA_FILE}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
       const bakFile = `${DATA_FILE}.bak`;
 
-      await fs.promises.writeFile(tempFile, payload, 'utf-8');
+      const fileHandle = await fs.promises.open(tempFile, 'w');
+      try {
+        await fileHandle.writeFile(payload, 'utf-8');
+        await fileHandle.sync();
+      } finally {
+        await fileHandle.close();
+      }
+
       if (fs.existsSync(DATA_FILE)) {
         try { await fs.promises.copyFile(DATA_FILE, bakFile); } catch {}
       }
@@ -1128,21 +1218,28 @@ export function getStore(): ServerStore {
       } else {
         let touched = false;
         if ((catalogItem as any).loincCode && !(found as any).loincCode) { (found as any).loincCode = (catalogItem as any).loincCode; touched = true; }
-        // Sync reference ranges/sources for guideline-verified tests (item 5/9) without overwriting prices
-        const syncKeys = ['refRangeLow','refRangeHigh','normalMaleLow','normalMaleHigh','normalFemaleLow','normalFemaleHigh','refRangeText','normalRange','unit','referenceSource','isCalculated','sampleType'] as const;
-        for (const k of syncKeys) {
-          const cv = (catalogItem as any)[k];
-          if (cv !== undefined && cv !== null && (found as any)[k] !== cv) {
-            // Only auto-sync when catalog carries an authoritative value (non-null) to avoid wiping custom edits with nulls
-            (found as any)[k] = cv;
-            touched = true;
+        // Sync reference ranges/sources for guideline-verified tests without overwriting user customizations
+        const isUserEdited = Boolean((found as any).isUserEdited);
+        const needsCatalogUpgrade = !(currentStore as any).__catalogDataVersion || (currentStore as any).__catalogDataVersion < 2;
+        if (!isUserEdited && needsCatalogUpgrade) {
+          const syncKeys = ['refRangeLow','refRangeHigh','normalMaleLow','normalMaleHigh','normalFemaleLow','normalFemaleHigh','refRangeText','normalRange','unit','referenceSource','isCalculated','sampleType'] as const;
+          for (const k of syncKeys) {
+            const cv = (catalogItem as any)[k];
+            const fv = (found as any)[k];
+            // Only auto-sync when catalog carries an authoritative value and existing value is null, empty or placeholder 'Normal'
+            if (cv !== undefined && cv !== null && cv !== '' && cv !== 'Normal') {
+              if (fv === undefined || fv === null || fv === '' || fv === 'Normal') {
+                (found as any)[k] = cv;
+                touched = true;
+              }
+            }
           }
-        }
-        // Authoritative sync for structured reference ranges (e.g. Male 35-80, Female 40-80)
-        if (Array.isArray((catalogItem as any).referenceRanges) && (catalogItem as any).referenceRanges.length > 0) {
-          if (!Array.isArray((found as any).referenceRanges) || (found as any).referenceRanges.length === 0) {
-            (found as any).referenceRanges = JSON.parse(JSON.stringify((catalogItem as any).referenceRanges));
-            touched = true;
+          // Authoritative sync for structured reference ranges (e.g. Male 35-80, Female 40-80)
+          if (Array.isArray((catalogItem as any).referenceRanges) && (catalogItem as any).referenceRanges.length > 0) {
+            if (!Array.isArray((found as any).referenceRanges) || (found as any).referenceRanges.length === 0) {
+              (found as any).referenceRanges = JSON.parse(JSON.stringify((catalogItem as any).referenceRanges));
+              touched = true;
+            }
           }
         }
         // Ensure calculated tests stay free (item 9: add nothing to price/revenue)
@@ -1153,6 +1250,8 @@ export function getStore(): ServerStore {
         if (touched) storeUpdated = true;
       }
     });
+
+    (currentStore as any).__catalogDataVersion = 2;
 
     // Ensure demo seed doctors (doc-1 through doc-4) are purged from active list
     if (Array.isArray(currentStore.doctors)) {
@@ -1349,16 +1448,42 @@ export function listBackupSnapshots() {
 export function restoreBackupFromFile(jsonContent: string): { success: boolean; message: string } {
   try {
     const parsed = JSON.parse(jsonContent);
-    if (!parsed || !Array.isArray(parsed.patients) || !Array.isArray(parsed.samples) || !parsed.settings) {
+    if (
+      !parsed ||
+      typeof parsed !== 'object' ||
+      !Array.isArray(parsed.patients) ||
+      !Array.isArray(parsed.samples) ||
+      !parsed.settings ||
+      typeof parsed.settings !== 'object'
+    ) {
       return { success: false, message: 'ملف النسخة الاحتياطية غير صالح أو بنيته غير مطابقة للنظام' };
+    }
+
+    // Schema integrity check on records
+    const invalidSample = parsed.samples.some((s: any) => !s || typeof s !== 'object' || (!s.id && !s.sampleNumber));
+    const invalidPatient = parsed.patients.some((p: any) => !p || typeof p !== 'object' || (!p.id && !p.name));
+    if (invalidSample || invalidPatient) {
+      return { success: false, message: 'بيانات المرضى أو العينات في ملف النسخة الاحتياطية تالفة أو ناقصة' };
+    }
+
+    const currentStore = getStore();
+    // Guard against malicious blank payload wiping out populated laboratory database
+    if (currentStore.samples.length > 5 && parsed.samples.length === 0 && parsed.patients.length === 0) {
+      return { success: false, message: 'تم رفض الاسترجاع: محاولة تفريغ قاعدة بيانات المختبر بملف فارغ غير مصرح بها' };
     }
 
     // Safety snapshot of current state before overwrite
     createBackupSnapshot('pre_restore_safety');
 
-    // Apply restored store
-    global.__labStore = parsed;
-    saveStoreToFile();
+    const previousStore = global.__labStore;
+    try {
+      // Apply restored store
+      global.__labStore = parsed;
+      saveStoreToFile();
+    } catch (saveErr) {
+      global.__labStore = previousStore;
+      throw saveErr;
+    }
 
     return {
       success: true,
@@ -1543,8 +1668,31 @@ export function updateTestInStore(id: string, data: any): any | null {
     ...(data.specialtyId !== undefined ? { specialtyId: data.specialtyId || null } : {}),
     ...(data.groupId !== undefined ? { groupId: data.groupId || null } : {}),
     ...(data.sortOrder !== undefined ? { sortOrder: data.sortOrder !== null && data.sortOrder !== undefined ? Number(data.sortOrder) : null } : {}),
+    isUserEdited: data.isUserEdited !== undefined ? Boolean(data.isUserEdited) : true,
     updatedAt: new Date().toISOString(),
   };
+
+  // Sync referenceRanges if user edited refRangeText without supplying custom ranges
+  if (data.refRangeText !== undefined && data.referenceRanges === undefined) {
+    const trimmed = String(data.refRangeText || '').trim();
+    const existingRanges = Array.isArray(existing.referenceRanges) ? existing.referenceRanges : [];
+    if (!trimmed) {
+      updated.referenceRanges = [];
+    } else if (existingRanges.length <= 1) {
+      const numMatch = trimmed.match(/^\s*(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)\s*$/);
+      updated.referenceRanges = [{
+        id: (existingRanges[0]?.id) || `inline-${id}`,
+        label: existingRanges[0]?.label || 'للجميع',
+        sex: existingRanges[0]?.sex || 'any',
+        ageUnit: existingRanges[0]?.ageUnit || 'years',
+        ageMin: existingRanges[0]?.ageMin ?? null,
+        ageMax: existingRanges[0]?.ageMax ?? null,
+        low: numMatch ? Number(numMatch[1]) : null,
+        high: numMatch ? Number(numMatch[2]) : null,
+        text: trimmed,
+      }];
+    }
+  }
 
   // Auto-sync refRangeText if empty but low/high are present
   if (!updated.refRangeText && (updated.refRangeLow !== null || updated.refRangeHigh !== null)) {
@@ -1879,11 +2027,33 @@ export function findSample(idOrNumber: string): SampleRecord | undefined {
 
 export function enrichSamplesWithDeltaCheck(samples: SampleRecord[], targetSampleId?: string): SampleRecord[] {
   if (!Array.isArray(samples) || samples.length === 0) return samples;
+
+  // Build high-speed patient history map to reduce O(N^2) quadratic scan to O(N)
+  const patientMap = new Map<string, SampleRecord[]>();
+  for (const s of samples) {
+    const pId = s.patientId || s.patient?.id;
+    const pName = s.patient?.name ? normalizeArabic(s.patient.name) : '';
+    const key = pId ? `id:${pId}` : pName ? `name:${pName}` : '';
+    if (!key) continue;
+    let list = patientMap.get(key);
+    if (!list) {
+      list = [];
+      patientMap.set(key, list);
+    }
+    list.push(s);
+  }
+
   for (const sample of samples) {
     if (targetSampleId && sample.id !== targetSampleId) continue;
     if (!Array.isArray(sample.tests)) continue;
     const patId = sample.patientId || sample.patient?.id;
     const patName = sample.patient?.name ? normalizeArabic(sample.patient.name) : '';
+    const key = patId ? `id:${patId}` : patName ? `name:${patName}` : '';
+    if (!key) continue;
+
+    const patientHistory = patientMap.get(key);
+    if (!patientHistory || patientHistory.length <= 1) continue;
+
     const sampleCreatedMs = sample.createdAt ? new Date(sample.createdAt).getTime() : Date.now();
     for (const st of sample.tests) {
       if (st.previousValue !== undefined && st.previousValue !== null && String(st.previousValue).trim() !== '') {
@@ -1893,16 +2063,15 @@ export function enrichSamplesWithDeltaCheck(samples: SampleRecord[], targetSampl
       let latestPrevDate: string | null = null;
       let latestPrevNum: number | null = null;
       let latestMs = -1;
-      for (const other of samples) {
+
+      const stCode = (st.test?.code || st.code || '').toUpperCase().trim();
+      const stName = (st.test?.name || st.name || '').toLowerCase().trim();
+
+      for (const other of patientHistory) {
         if (other.id === sample.id) continue;
-        const otherPatId = other.patientId || other.patient?.id;
-        const otherPatName = other.patient?.name ? normalizeArabic(other.patient.name) : '';
-        const samePatient = (patId && otherPatId && patId === otherPatId) || (patName && otherPatName && patName === otherPatName);
-        if (!samePatient) continue;
         const otherMs = other.createdAt ? new Date(other.createdAt).getTime() : 0;
         if (otherMs >= sampleCreatedMs || otherMs <= latestMs) continue;
-        const stCode = (st.test?.code || st.code || '').toUpperCase().trim();
-        const stName = (st.test?.name || st.name || '').toLowerCase().trim();
+
         const matchTest = (other.tests || []).find(
           ot => {
             const otCode = (ot.test?.code || ot.code || '').toUpperCase().trim();
@@ -2587,7 +2756,12 @@ export function getDevices(): DeviceRecord[] {
 
 export function findDevice(idOrKey: string): DeviceRecord | undefined {
   const store = getStore();
-  return (store.devices || []).find(d => d.id === idOrKey || d.apiKey === idOrKey);
+  const direct = (store.devices || []).find(d => d.id === idOrKey || d.apiKey === idOrKey);
+  if (direct) return direct;
+  if (idOrKey === 'dev-mindray-bc30' || idOrKey === 'mindray_bc30' || idOrKey.toLowerCase().includes('bc30')) {
+    return (store.devices || []).find(d => d.id === 'dev-mindray-bc30' || (d.model && d.model.includes('BC-30')));
+  }
+  return undefined;
 }
 
 export function addDevice(data: any): DeviceRecord {
@@ -2774,27 +2948,50 @@ export function buildCbcStringFromItems(itemsMap: Record<string, string>): strin
   const mcv = itemsMap['MCV'] || '90.6';
   const mch = itemsMap['MCH'] || '30.2';
   const mchc = itemsMap['MCHC'] || '33.3';
-  const rdw = itemsMap['RDW-CV'] || itemsMap['RDW'] || '12.5';
+  const rdw = itemsMap['RDW%'] || itemsMap['RDW-CV'] || itemsMap['RDW'] || '12.5';
+  const rdwSd = itemsMap['RDWA'] || itemsMap['RDWa'] || itemsMap['RDW-SD'] || itemsMap['RDW_SD'] || '';
   const plt = itemsMap['PLT'] || '250';
   const mpv = itemsMap['MPV'] || '9.8';
-  const pdw = itemsMap['PDW'] || '11.2';
+  const pdw = itemsMap['PDW%'] || itemsMap['PDW-CV'] || itemsMap['PDW'] || '11.2';
+  const pdwSd = itemsMap['PDWA'] || itemsMap['PDWa'] || itemsMap['PDW-SD'] || itemsMap['PDW_SD'] || '';
   const pct = itemsMap['PCT'] || '0.245';
+  const plcr = itemsMap['P-LCR'] || itemsMap['PLCR'] || '';
+  const plcc = itemsMap['P-LCC'] || itemsMap['PLCC'] || '';
   const wbc = itemsMap['WBC'] || '7.2';
-  const neu = itemsMap['NEU%'] || itemsMap['GRAN%'] || '60.0';
-  const lym = itemsMap['LYM%'] || '30.0';
-  const mon = itemsMap['MON%'] || itemsMap['MID%'] || '6.0';
+
+  const graP = itemsMap['GRA%'] || itemsMap['GRAN%'] || itemsMap['NEU%'] || '';
+  const graA = itemsMap['GRA'] || itemsMap['GRA#'] || itemsMap['GRAN#'] || '';
+  const lymP = itemsMap['LYM%'] || itemsMap['LYMPH%'] || '';
+  const lymA = itemsMap['LYM'] || itemsMap['LYM#'] || itemsMap['LYMPH#'] || '';
+  const midP = itemsMap['MID%'] || itemsMap['MXD%'] || itemsMap['MON%'] || '';
+  const midA = itemsMap['MID'] || itemsMap['MID#'] || itemsMap['MXD#'] || itemsMap['MON#'] || '';
+
+  const neu = itemsMap['NEU%'] || itemsMap['GRAN%'] || graP || '60.0';
+  const lym = itemsMap['LYM%'] || lymP || '30.0';
+  const mon = itemsMap['MON%'] || itemsMap['MID%'] || midP || '6.0';
   const eos = itemsMap['EOS%'] || '3.0';
   const bas = itemsMap['BAS%'] || '1.0';
 
   const diffSum = Math.round((parseFloat(neu) + parseFloat(lym) + parseFloat(mon) + parseFloat(eos) + parseFloat(bas)) * 10) / 10;
 
+  const rdwSdStr = rdwSd ? ` | RDW-SD: ${rdwSd} fL` : '';
+  const pdwSdStr = pdwSd ? ` | PDW-SD: ${pdwSd} fL` : '';
+  const plcrStr = plcr ? ` | P-LCR: ${plcr} %` : '';
+  const plccStr = plcc ? ` | P-LCC: ${plcc} 10^3/uL` : '';
+
   const parts = [
     '[CBC - COMPLETE BLOOD COUNT & 5-PART DIFFERENTIAL]',
-    `ERYTHROID: RBC: ${rbc} 10^6/uL | HGB: ${hgb} g/dL | HCT: ${hct} % | MCV: ${mcv} fL | MCH: ${mch} pg | MCHC: ${mchc} g/dL | RDW: ${rdw} %`,
-    `PLATELETS: PLT: ${plt} 10^3/uL | MPV: ${mpv} fL | PDW: ${pdw} % | PCT: ${pct} %`,
+    `ERYTHROID: RBC: ${rbc} 10^6/uL | HGB: ${hgb} g/dL | HCT: ${hct} % | MCV: ${mcv} fL | MCH: ${mch} pg | MCHC: ${mchc} g/dL | RDW: ${rdw} %${rdwSdStr}`,
+    `PLATELETS: PLT: ${plt} 10^3/uL | MPV: ${mpv} fL | PDW: ${pdw} % | PCT: ${pct} %${pdwSdStr}${plcrStr}${plccStr}`,
     `LEUKOCYTES: Total WBC: ${wbc} 10^3/uL`,
-    `DIFFERENTIAL: Neut: ${neu}% | Lymph: ${lym}% | Mono: ${mon}% | Eos: ${eos}% | Baso: ${bas}% (Sum: ${diffSum}%)`,
   ];
+
+  if (graP || lymP || midP) {
+    parts.push(`DIFFERENTIAL_3PART: GRA%: ${graP || '-'} % | GRA#: ${graA || '-'} 10^3/uL | LYM%: ${lymP || '-'} % | LYM#: ${lymA || '-'} 10^3/uL | MID%: ${midP || '-'} % | MID#: ${midA || '-'} 10^3/uL`);
+  }
+
+  parts.push(`DIFFERENTIAL: Neut: ${neu}% | Lymph: ${lym}% | Mono: ${mon}% | Eos: ${eos}% | Baso: ${bas}% (Sum: ${diffSum}%)`);
+
   return parts.join('\n');
 }
 
@@ -2818,7 +3015,10 @@ export function processDeviceIngest(params: {
     };
   }
 
-  const device = (store.devices || []).find(d => d.id === key || d.apiKey === key);
+  let device = (store.devices || []).find(d => d.id === key || d.apiKey === key);
+  if (!device && (key === 'dev-mindray-bc30' || key === 'mindray_bc30' || key.toLowerCase().includes('bc30'))) {
+    device = (store.devices || []).find(d => d.id === 'dev-mindray-bc30' || (d.model && d.model.includes('BC-30')));
+  }
   if (!device) {
     return {
       success: false,

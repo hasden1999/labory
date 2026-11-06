@@ -1,25 +1,25 @@
 {
-  "timestamp": "2026-10-29T17:09:03.593Z",
+  "timestamp": "2026-11-06T18:21:06.177Z",
   "engine": {
     "path": "apps/desktop/engine",
     "exists": true,
-    "sizeBytes": 169248859,
-    "sizeFormatted": "161.41 MB",
-    "fileCount": 4222
+    "sizeBytes": 197029882,
+    "sizeFormatted": "187.90 MB",
+    "fileCount": 6495
   },
   "standaloneNodeModules": {
     "path": "apps/desktop/engine/standalone/node_modules",
     "exists": true,
-    "sizeBytes": 62111921,
-    "sizeFormatted": "59.23 MB",
-    "fileCount": 3780
+    "sizeBytes": 88904910,
+    "sizeFormatted": "84.79 MB",
+    "fileCount": 5988
   },
   "latestSetupExe": {
-    "fileName": "Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 2.0.5.exe",
-    "filePath": "apps/desktop/dist/Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 2.0.5.exe",
-    "sizeBytes": 109710264,
-    "sizeFormatted": "104.63 MB",
-    "modifiedTime": "2026-10-29T17:06:24.128Z"
+    "fileName": "Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 2.1.3.exe",
+    "filePath": "apps/desktop/dist/Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 2.1.3.exe",
+    "sizeBytes": 113142682,
+    "sizeFormatted": "107.90 MB",
+    "modifiedTime": "2026-11-06T18:20:40.060Z"
   },
   "topNodeModulesFolders": [
     {
@@ -35,6 +35,13 @@
       "sizeBytes": 16047139,
       "sizeFormatted": "15.30 MB",
       "fileCount": 970
+    },
+    {
+      "name": "@whiskeysockets/baileys",
+      "path": "apps/desktop/engine/standalone/node_modules/@whiskeysockets/baileys",
+      "sizeBytes": 12965526,
+      "sizeFormatted": "12.36 MB",
+      "fileCount": 396
     },
     {
       "name": "chromium-bidi",
@@ -65,32 +72,25 @@
       "fileCount": 11
     },
     {
-      "name": "react-dom",
-      "path": "apps/desktop/engine/standalone/node_modules/react-dom",
-      "sizeBytes": 693408,
-      "sizeFormatted": "677.16 KB",
-      "fileCount": 8
+      "name": "protobufjs",
+      "path": "apps/desktop/engine/standalone/node_modules/protobufjs",
+      "sizeBytes": 3053104,
+      "sizeFormatted": "2.91 MB",
+      "fileCount": 79
     },
     {
-      "name": "@puppeteer/browsers",
-      "path": "apps/desktop/engine/standalone/node_modules/@puppeteer/browsers",
-      "sizeBytes": 487700,
-      "sizeFormatted": "476.27 KB",
-      "fileCount": 158
+      "name": "@types/node",
+      "path": "apps/desktop/engine/standalone/node_modules/@types/node",
+      "sizeBytes": 2288801,
+      "sizeFormatted": "2.18 MB",
+      "fileCount": 69
     },
     {
-      "name": "puppeteer",
-      "path": "apps/desktop/engine/standalone/node_modules/puppeteer",
-      "sizeBytes": 343026,
-      "sizeFormatted": "334.99 KB",
-      "fileCount": 43
-    },
-    {
-      "name": "caniuse-lite",
-      "path": "apps/desktop/engine/standalone/node_modules/caniuse-lite",
-      "sizeBytes": 337526,
-      "sizeFormatted": "329.62 KB",
-      "fileCount": 599
+      "name": "axios",
+      "path": "apps/desktop/engine/standalone/node_modules/axios",
+      "sizeBytes": 2059576,
+      "sizeFormatted": "1.96 MB",
+      "fileCount": 115
     }
   ]
 }

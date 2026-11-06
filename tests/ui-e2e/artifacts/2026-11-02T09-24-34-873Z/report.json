@@ -1,0 +1,642 @@
+{
+  "total": 84,
+  "passed": 61,
+  "failed": 23,
+  "skipped": 0,
+  "checks": [
+    {
+      "suite": "routes",
+      "name": "/ loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 32041
+    },
+    {
+      "suite": "routes",
+      "name": "/ has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1
+    },
+    {
+      "suite": "routes",
+      "name": "/ controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 3735,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/ has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1
+    },
+    {
+      "suite": "routes",
+      "name": "/patients loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 32140
+    },
+    {
+      "suite": "routes",
+      "name": "/patients has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/patients controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 1044,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--patients-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/patients has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/samples loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 16882
+    },
+    {
+      "suite": "routes",
+      "name": "/samples has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1
+    },
+    {
+      "suite": "routes",
+      "name": "/samples controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 620,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--samples-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/samples has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/results loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 18680
+    },
+    {
+      "suite": "routes",
+      "name": "/results has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/results controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 208,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--results-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/results has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/financials loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 13133
+    },
+    {
+      "suite": "routes",
+      "name": "/financials has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/financials controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 380,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--financials-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/financials has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/debts loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 5620
+    },
+    {
+      "suite": "routes",
+      "name": "/debts has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/debts controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 322,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--debts-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/debts has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/expenses loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 12243
+    },
+    {
+      "suite": "routes",
+      "name": "/expenses has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/expenses controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 274,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--expenses-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/expenses has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/doctors loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 17581
+    },
+    {
+      "suite": "routes",
+      "name": "/doctors has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/doctors controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 294,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--doctors-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/doctors has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/dashboard loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 8773
+    },
+    {
+      "suite": "routes",
+      "name": "/dashboard has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/dashboard controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 223,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--dashboard-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/dashboard has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/devices loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 8887
+    },
+    {
+      "suite": "routes",
+      "name": "/devices has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/devices controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 391,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--devices-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/devices has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/inventory loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 5423
+    },
+    {
+      "suite": "routes",
+      "name": "/inventory has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/inventory controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 280,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--inventory-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/inventory has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/catalog loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 4913
+    },
+    {
+      "suite": "routes",
+      "name": "/catalog has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/catalog controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 403,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--catalog-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/catalog has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/settings loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 7005
+    },
+    {
+      "suite": "routes",
+      "name": "/settings has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/settings controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 439,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--settings-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/settings has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/staff loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 6722
+    },
+    {
+      "suite": "routes",
+      "name": "/staff has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/staff controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 422,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--staff-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/staff has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/license loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 10699
+    },
+    {
+      "suite": "routes",
+      "name": "/license has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1
+    },
+    {
+      "suite": "routes",
+      "name": "/license controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 278,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--license-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/license has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/connect loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 8200
+    },
+    {
+      "suite": "routes",
+      "name": "/connect has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/connect controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 585,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--connect-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/connect has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/login loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 3749
+    },
+    {
+      "suite": "routes",
+      "name": "/login has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/login controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 361,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--login-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/login has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/showcase loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 3837
+    },
+    {
+      "suite": "routes",
+      "name": "/showcase has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/showcase controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 615,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--showcase-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/showcase has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/ready loads",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 4057,
+      "details": "Error: Document title is missing\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:56:54)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:40:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--ready-loads.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/ready has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/ready controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 178,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--ready-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/ready has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/health loads",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 1478,
+      "details": "Error: Document title is missing\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:56:54)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:40:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--health-loads.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/health has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/health controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 239,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--health-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/health has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/verify/nonexistent loads",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2152
+    },
+    {
+      "suite": "routes",
+      "name": "/verify/nonexistent has no uncaught page errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    },
+    {
+      "suite": "routes",
+      "name": "/verify/nonexistent controls are named",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 249,
+      "details": "ReferenceError: __name is not defined\n    at evaluate (evaluate at UiHarness.controlsInventory (D:\\lab\\tests\\ui-e2e\\harness.ts:2:10164), <anonymous>:0:20)\n    at ExecutionContext.#evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:449:34)\n    at async ExecutionContext.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\ExecutionContext.ts:292:12)\n    at async IsolatedWorld.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\cdp\\IsolatedWorld.ts:194:12)\n    at async CdpFrame.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:484:12)\n    at async CdpPage.evaluate (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2218:12)\n    at async <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:75:27)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:386:7)\n    at async runRouteSuite (D:\\lab\\tests\\ui-e2e\\suites\\routes.ts:72:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:119:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-24-34-873Z\\FAIL-routes--verify-nonexistent-controls-are-named.png"
+    },
+    {
+      "suite": "routes",
+      "name": "/verify/nonexistent has no failed internal API calls",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 0
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "total": 9,
+  "passed": 8,
+  "failed": 1,
+  "skipped": 0,
+  "checks": [
+    {
+      "suite": "global",
+      "name": "sidebar navigation reaches every main section",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 94330,
+      "details": "TimeoutError: Waiting failed: 30000ms exceeded\n    at new WaitTask (D:\\lab\\node_modules\\puppeteer-core\\src\\common\\WaitTask.ts:82:28)\n    at IsolatedWorld.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Realm.ts:74:22)\n    at CdpFrame.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:789:36)\n    at CdpFrame.<anonymous> (D:\\lab\\node_modules\\puppeteer-core\\src\\util\\decorators.ts:63:21)\n    at CdpPage.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2928:29)\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\global.ts:19:21)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:541:7)\n    at async runGlobalSuite (D:\\lab\\tests\\ui-e2e\\suites\\global.ts:14:3)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:158:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-55-02-714Z\\FAIL-global-sidebar-navigation-reaches-every-main-section.png"
+    },
+    {
+      "suite": "global",
+      "name": "theme toggle switches and persists",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 96529
+    },
+    {
+      "suite": "global",
+      "name": "login page validates required fields",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 6138
+    },
+    {
+      "suite": "global",
+      "name": "login page reports an error for invalid credentials without hanging",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 9587
+    },
+    {
+      "suite": "global",
+      "name": "guest entry link reaches the dashboard",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 10592
+    },
+    {
+      "suite": "global",
+      "name": "F1 clears the intake form",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 8902
+    },
+    {
+      "suite": "global",
+      "name": "F2 barcode action never crashes the workspace",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 5235
+    },
+    {
+      "suite": "global",
+      "name": "public verification page is reachable without authentication",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 8894
+    },
+    {
+      "suite": "global",
+      "name": "readiness and health probes return JSON without errors",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 4057
+    }
+  ]
+}

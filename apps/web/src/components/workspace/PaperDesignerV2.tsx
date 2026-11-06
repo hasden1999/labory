@@ -94,6 +94,121 @@ export const TEMPLATE_TO_HEADER_STYLE_MAP: Record<string, string> = {
   'MONOCHROME_LASER': 'minimal_pure',
 };
 
+export const CBC_LAYOUT_TEMPLATES_LIST = [
+  {
+    id: 'SWELAB_3PART',
+    nameAr: '1. تصميم جهاز سوي لاب (Swelab / Boule 3-Part)',
+    nameEn: 'Swelab Alfa / Lumi Analyzer Report',
+    badge: 'مطابق لجهاز سوي لاب 100%',
+    descriptionAr: 'مطابق تماماً لورقة جهاز سوي لاب مع ترويسة التشغيل (Seq/Asp/Prof) والتفريق الثلاثي ومنحنيات 450/250/30 fL والأسهم ▼/▲.',
+    accentColor: '#0284c7',
+  },
+  {
+    id: 'MINDRAY_3PART',
+    nameAr: '2. تصميم جهاز ميندراي ثلاثي الفئات (Mindray BC 3-Part)',
+    nameEn: 'Mindray BC-Series 3-Part Analyzer Report',
+    badge: 'مطابق لميندراي 3-Part',
+    descriptionAr: 'تصميم أجهزة ميندراي BC-3000 Plus / BC-20s مع عمود التنبيه Flag (H/L) والمنحنيات البيانية.',
+    accentColor: '#0f766e',
+  },
+  {
+    id: 'MINDRAY_5PART',
+    nameAr: '3. تصميم جهاز ميندراي خماسي الفئات (Mindray BC 5-Part & Scattergram)',
+    nameEn: 'Mindray 5-Part Laser Scattergram Report',
+    badge: 'خماسي الفئات + ليزر',
+    descriptionAr: 'تفريق خماسي كامل مع مخطط التشتت الليزري DIFF Scattergram ومنحنيات التوزيع.',
+    accentColor: '#7c3aed',
+  },
+  {
+    id: 'SYSMEX_3PART',
+    nameAr: '4. تصميم جهاز سيسمكس (Sysmex XP-300 / 3-Part)',
+    nameEn: 'Sysmex Automated Hematology Report',
+    badge: 'مطابق لسيسمكس',
+    descriptionAr: 'مطابق لتسلسل معاملات ورسوم أجهزة Sysmex XP-300 / KX-21N.',
+    accentColor: '#1e3a8a',
+  },
+  {
+    id: 'CLASSIC_5PART',
+    nameAr: '5. التصميم الكلاسيكي المعتمد (Classic 5-Part)',
+    nameEn: 'Classic 5-Part Clinical Grid',
+    badge: 'الافتراضي المعتمد',
+    descriptionAr: 'تخطيط ثنائي الأعمدة مع التفريق الخماسي ومنحنيات التوزيع وملاحظات المسحة المحيطية.',
+    accentColor: '#be123c',
+  },
+  {
+    id: 'ANALYZER_3PART_HISTOGRAM',
+    nameAr: '6. تصميم جهاز التحليل القياسي (3-Part Analyzer + Histograms)',
+    nameEn: 'Automated 3-Part Analyzer Report',
+    badge: 'مطابق لجهاز الدم',
+    descriptionAr: 'يحاكي ورقة جهاز فحص الدم (WBC/GRA/LYM/MID + RBC/RDWa + PLT/P-LCR/P-LCC) مع أسهم ▼/▲ والمنحنيات.',
+    accentColor: '#0284c7',
+  },
+  {
+    id: 'WITH_HISTOGRAMS',
+    nameAr: '3. جدول مع أشرطة مدى ومنحنيات (Range Bars & Histograms)',
+    nameEn: 'Visual Range Bars & Histograms',
+    badge: 'بصري متقدم',
+    descriptionAr: 'جدول سريري أنيق مدمج مع أشرطة موقع النتيجة ومنحنيات توزيع الكريات والصفائح.',
+    accentColor: '#0d9488',
+  },
+  {
+    id: 'COMPACT_GRID',
+    nameAr: '4. الشبكة المدمجة الاقتصادية (Compact In-Line Grid)',
+    nameEn: 'Compact Space-Saver Dual Grid',
+    badge: 'توفير مساحة',
+    descriptionAr: 'تصميم مدمج في عمودين متجاورين يستهلك مساحة قليلة ويسمح بطباعة فحوصات أخرى بنفس الورقة.',
+    accentColor: '#334155',
+  },
+  {
+    id: 'DUAL_COLUMN',
+    nameAr: '5. التقسيم الثنائي المتوازن (Balanced Dual Column)',
+    nameEn: 'Symmetric Dual-Column Hematology',
+    badge: 'ثنائي الأعمدة',
+    descriptionAr: 'فصل متناظر بين الكريات الحمراء والصفائح في عمود، والكريات البيضاء والتفريق في العمود المقابل.',
+    accentColor: '#1e3a8a',
+  },
+  {
+    id: 'PEDIATRIC_CARDS',
+    nameAr: '6. بطاقات الأطفال والعائلة (Pediatric & Family Cards)',
+    nameEn: 'Soft Pediatric & Family Care Cards',
+    badge: 'أطفال وعائلة',
+    descriptionAr: 'بطاقات ملونة ناعمة ومريحة بصرياً مناسبة لتقارير الأطفال والعيادات الاستشارية.',
+    accentColor: '#ea580c',
+  },
+  {
+    id: 'CLINICAL_MINIMAL',
+    nameAr: '7. الطبي التنفيذي لطابعات الليزر (Clinical Minimal B&W)',
+    nameEn: 'Executive Monochrome Laser Minimal',
+    badge: 'طابعات ليزر B&W',
+    descriptionAr: 'تصميم طبي نظيف بخطوط دقيقة بدون خلفيات داكنة لتوفير الحبر ووضوح فائق بالأسود والأبيض.',
+    accentColor: '#0f172a',
+  },
+  {
+    id: 'REFERENCE_BANDS',
+    nameAr: '8. أشرطة المدى المرجعي التفاعلية (Reference Bands)',
+    nameEn: 'Linear Reference Spectrum Bands',
+    badge: 'مؤشر بصري',
+    descriptionAr: 'يعرض موقع كل نتيجة بصرياً داخل شريط المدى الطبيعي بين الحد الأدنى والأعلى.',
+    accentColor: '#4338ca',
+  },
+  {
+    id: 'FLAG_FOCUS',
+    nameAr: '9. التركيز السريري على القيم الحرجة (Abnormal Flag Focus)',
+    nameEn: 'Clinical Abnormal Flag Spotlight',
+    badge: 'إبراز غير الطبيعي',
+    descriptionAr: 'يبرز القيم المرتفعة والمنخفضة (H/L / ▲/▼) بتظليل واضح مع ملخص علوي للتنبيهات السريرية.',
+    accentColor: '#dc2626',
+  },
+  {
+    id: 'FULL_DIFFERENTIAL',
+    nameAr: '10. التفصيلي الشامل 25+ معامل (Full 3-Part & 5-Part + Ratios)',
+    nameEn: 'Comprehensive 25+ Parameters & Indices',
+    badge: 'شامل 25+ معامل',
+    descriptionAr: 'يعرض كافة معاملات 3-Part و 5-Part بالنسبي والمطلق مع مؤشرات NLR و PLR و Mentzer Index.',
+    accentColor: '#7c3aed',
+  },
+];
+
 export default function PaperDesignerV2() {
   const toast = useToast();
   const { labProfile, updateLabProfile } = useLab();
@@ -181,6 +296,9 @@ export default function PaperDesignerV2() {
   );
   const [tableStyle, setTableStyle] = useState<'zebra' | 'grid' | 'clean_lines' | 'compact'>(
     (labProfile as any).tableStyle || 'clean_lines'
+  );
+  const [cbcLayoutTemplate, setCbcLayoutTemplate] = useState<string>(
+    (labProfile as any).cbcLayoutTemplate || 'CLASSIC_5PART'
   );
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<'ALL' | 'ROYAL' | 'INTERNATIONAL' | 'MODERN' | 'COMPACT' | 'SPECIALIZED' | 'STATIONERY'>('ALL');
   const [extractedColors, setExtractedColors] = useState<string[]>([]);
@@ -405,6 +523,7 @@ export default function PaperDesignerV2() {
         }
       }
       if ((labProfile as any).tableStyle) setTableStyle((labProfile as any).tableStyle);
+      if ((labProfile as any).cbcLayoutTemplate) setCbcLayoutTemplate((labProfile as any).cbcLayoutTemplate);
       if (labProfile.customLetterheadUrl !== undefined) setCustomLetterheadUrl(labProfile.customLetterheadUrl || '');
       if (labProfile.useLetterheadBackground !== undefined) setUseLetterheadBackground(Boolean(labProfile.useLetterheadBackground));
       if (labProfile.letterheadMode) setLetterheadMode(labProfile.letterheadMode as any);
@@ -745,6 +864,7 @@ export default function PaperDesignerV2() {
         patientLayout,
         headerStyle,
         tableStyle,
+        cbcLayoutTemplate,
         customLetterheadUrl,
         useLetterheadBackground,
         letterheadMode,
@@ -856,6 +976,7 @@ export default function PaperDesignerV2() {
           patientLayout,
           headerStyle,
           tableStyle,
+          cbcLayoutTemplate,
           customLetterheadUrl,
           useLetterheadBackground,
           letterheadMode,
@@ -893,7 +1014,7 @@ export default function PaperDesignerV2() {
     tableColumns, groupByCategory, groupingStyle, tableRowBorders, tableZebraStriping,
     tableRowSpacing, printRangeScope,
     labEmblem, emblemPlacement, secondaryColor, showRangeBar, patientLayout,
-    tableStyle, customLetterheadUrl, useLetterheadBackground, letterheadMode, headerPaddingY
+    tableStyle, cbcLayoutTemplate, customLetterheadUrl, useLetterheadBackground, letterheadMode, headerPaddingY
   ]);
 
   // Live Preview Sample Tests (STRICT REQUIREMENT: NO High/Low flags or alert colors!)
@@ -2346,6 +2467,108 @@ export default function PaperDesignerV2() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* CBC Layout Template Selection (10 Templates) */}
+            <div style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border-color)', borderRadius: '14px', padding: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(225, 29, 72, 0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e11d48' }}>
+                    <Microscope size={18} />
+                  </div>
+                  <div>
+                    <strong style={{ fontSize: '13.5px', color: 'var(--text-main)', display: 'block' }}>
+                      🩸 تصميم فورمة فحص الدم الشامل (CBC Layout — 10 تصاميم احترافية)
+                    </strong>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      اختر التخطيط البصري المعتمد لطباعة تقارير فحص الدم (3-Part / 5-Part / Histograms)
+                    </span>
+                  </div>
+                </div>
+
+                <a
+                  href={`/api/samples/1001/print?section=cbc&cbcLayout=${encodeURIComponent(cbcLayoutTemplate)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-cyan-primary"
+                  style={{
+                    padding: '6px 14px',
+                    fontSize: '11.5px',
+                    fontWeight: 800,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                  }}
+                >
+                  <Printer size={14} />
+                  <span>معاينة تصميم CBC المختار</span>
+                </a>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+                {CBC_LAYOUT_TEMPLATES_LIST.map((tpl) => {
+                  const isSelected = cbcLayoutTemplate === tpl.id;
+                  return (
+                    <div
+                      key={tpl.id}
+                      onClick={() => {
+                        setCbcLayoutTemplate(tpl.id);
+                        toast.success(`تم اختيار تصميم CBC: ${tpl.nameAr}`, 'قالب فحص الدم');
+                      }}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: isSelected ? `2px solid ${tpl.accentColor}` : '1px solid var(--border-color)',
+                        background: isSelected ? 'rgba(6, 182, 212, 0.1)' : 'var(--bg-input-deep)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+                        <span
+                          style={{
+                            fontSize: '9.5px',
+                            fontWeight: 800,
+                            padding: '2px 7px',
+                            borderRadius: '999px',
+                            background: tpl.accentColor,
+                            color: '#ffffff',
+                          }}
+                        >
+                          {tpl.badge}
+                        </span>
+                        {isSelected && <CheckCircle2 size={15} color="var(--accent-cyan)" />}
+                      </div>
+                      <strong style={{ fontSize: '11.5px', color: isSelected ? 'var(--accent-cyan)' : 'var(--text-main)' }}>
+                        {tpl.nameAr}
+                      </strong>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                        {tpl.descriptionAr}
+                      </span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '4px', borderTop: '1px dashed var(--border-color)' }}>
+                        <span style={{ fontSize: '9.5px', fontFamily: 'monospace', color: 'var(--text-muted)' }} dir="ltr">
+                          {tpl.id}
+                        </span>
+                        <a
+                          href={`/api/samples/1001/print?section=cbc&cbcLayout=${encodeURIComponent(tpl.id)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ fontSize: '10px', fontWeight: 800, color: 'var(--accent-cyan)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          <Eye size={12} />
+                          <span>معاينة</span>
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

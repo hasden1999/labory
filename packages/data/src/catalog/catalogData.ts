@@ -395,9 +395,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "0 /100 WBC",
+    "refRangeText": "0",
+    "unit": "/100 WBC",
+    "refRangeLow": 0,
+    "refRangeHigh": 0
   },
   {
     "id": "t-sickle",
@@ -410,9 +412,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": null,
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null
   },
   {
     "id": "t-hbelec",
@@ -425,8 +429,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -440,8 +444,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -455,9 +459,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "< 2.0 %",
+    "refRangeText": "< 2.0 %",
+    "unit": "%",
+    "refRangeLow": 0,
+    "refRangeHigh": 2
   },
   {
     "id": "t-hba2",
@@ -470,9 +476,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "2.2 - 3.5 %",
+    "refRangeText": "2.2 - 3.5",
+    "unit": "%",
+    "refRangeLow": 2.2,
+    "refRangeHigh": 3.5
   },
   {
     "id": "t-kb",
@@ -485,8 +493,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -500,9 +508,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": null,
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "4.6 - 13.5 U/g Hb",
+    "refRangeText": "4.6 - 13.5",
+    "unit": "U/g Hb",
+    "refRangeLow": 4.6,
+    "refRangeHigh": 13.5
   },
   {
     "id": "t-g6pd-s",
@@ -530,8 +540,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -545,8 +555,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Heparin Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -560,8 +570,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -575,8 +585,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -596,9 +606,9 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "normalFemaleHigh": null,
     "criticalLow": null,
     "criticalHigh": null,
-    "refRangeText": "Negative",
-    "normalRange": "Negative",
-    "unit": "Qualitative",
+    "refRangeText": "Negative (No parasites seen)",
+    "normalRange": "Negative (No parasites seen)",
+    "unit": null,
     "sampleType": "EDTA Whole Blood",
     "active": true,
     "loincCode": "44558-5"
@@ -614,9 +624,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "Negative (Not seen)",
+    "refRangeText": "Negative (Not seen)",
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null
   },
   {
     "id": "t-leish-bf",
@@ -629,9 +641,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "Negative (Not seen)",
+    "refRangeText": "Negative (Not seen)",
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null
   },
   {
     "id": "t-le-cell",
@@ -644,9 +658,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Clotted Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null
   },
   {
     "id": "t-ham",
@@ -659,8 +675,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Citrate Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -674,8 +690,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Citrate Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -689,8 +705,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Bone Marrow",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -704,8 +720,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Bone Marrow",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -719,8 +735,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Bone Marrow",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -734,8 +750,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Blood / Bone Marrow",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -749,8 +765,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Blood / Bone Marrow",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -788,8 +804,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Blood / Bone Marrow",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -803,9 +819,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Blood Smear",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "20 - 100 Score",
+    "refRangeText": "20 - 100",
+    "unit": "Score",
+    "refRangeLow": 20,
+    "refRangeHigh": 100
   },
   {
     "id": "t-trap",
@@ -818,8 +836,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Blood / Bone Marrow",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -833,9 +851,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": null,
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "15 - 300 ng/mL",
+    "refRangeText": "Male: 30 - 300 | Female: 15 - 150",
+    "unit": "ng/mL",
+    "refRangeLow": 15,
+    "refRangeHigh": 300
   },
   {
     "id": "t-si",
@@ -916,9 +936,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "200 - 360 mg/dL",
+    "refRangeText": "200 - 360",
+    "unit": "mg/dL",
+    "refRangeLow": 200,
+    "refRangeHigh": 360
   },
   {
     "id": "t-stfr",
@@ -979,9 +1001,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "< 5.0 mg/dL",
+    "refRangeText": "< 5.0",
+    "unit": "mg/dL",
+    "refRangeLow": 0,
+    "refRangeHigh": 5
   },
   {
     "id": "t-hemosid",
@@ -994,9 +1018,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null
   },
   {
     "id": "t-coombs-d",
@@ -1057,9 +1083,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum / Warm Clotted Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "< 1:32",
+    "refRangeText": "< 1:32",
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null
   },
   {
     "id": "t-dl",
@@ -1072,8 +1100,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -1087,9 +1115,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum (warm clotted)",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null
   },
   {
     "id": "t-visc",
@@ -1102,8 +1132,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1117,9 +1147,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "Not detected (Negative)",
+    "refRangeText": "Not detected (Negative)",
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null
   },
   {
     "id": "t-calr",
@@ -1132,9 +1164,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "Not detected (Negative)",
+    "refRangeText": "Not detected (Negative)",
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null
   },
   {
     "id": "t-mpl",
@@ -1147,9 +1181,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "Not detected (Negative)",
+    "refRangeText": "Not detected (Negative)",
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null
   },
   {
     "id": "t-bcrabl",
@@ -1162,9 +1198,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "Not detected (< 0.1% IS)",
+    "refRangeText": "Not detected (< 0.1% IS)",
+    "unit": "%",
+    "refRangeLow": 0,
+    "refRangeHigh": 0.1
   },
   {
     "id": "t-bcrabl-q",
@@ -1177,9 +1215,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "Not detected (Negative)",
+    "refRangeText": "Not detected (Negative)",
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null
   },
   {
     "id": "t-flt3",
@@ -1192,9 +1232,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood / BM",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "Not detected (Negative)",
+    "refRangeText": "Not detected (Negative)",
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null
   },
   {
     "id": "t-npm1",
@@ -1207,9 +1249,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood / BM",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "Not detected (Negative)",
+    "refRangeText": "Not detected (Negative)",
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null
   },
   {
     "id": "t-pmlrara",
@@ -1222,9 +1266,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood / BM",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "Not detected (Negative)",
+    "refRangeText": "Not detected (Negative)",
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null
   },
   {
     "id": "t-cebpa",
@@ -1237,9 +1283,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood / BM",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "Not detected (Negative)",
+    "refRangeText": "Not detected (Negative)",
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null
   },
   {
     "id": "t-igh",
@@ -1252,9 +1300,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Whole Blood / BM",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "Polyclonal (Negative)",
+    "refRangeText": "Polyclonal (Negative)",
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null
   },
   {
     "id": "t-fish-hem",
@@ -1267,8 +1317,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "BM / Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1282,8 +1332,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "BM / Heparin Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1297,8 +1347,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 22500,
     "sampleType": "EDTA Blood / BM",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1312,8 +1362,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1327,8 +1377,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1342,8 +1392,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 22500,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1357,8 +1407,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 22500,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1372,8 +1422,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 22500,
     "sampleType": "BM / Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1387,8 +1437,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 22500,
     "sampleType": "EDTA Blood / Apheresis",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1402,8 +1452,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 22500,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1417,8 +1467,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 22500,
     "sampleType": "BM",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1432,8 +1482,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 22500,
     "sampleType": "Citrate Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1447,8 +1497,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 22500,
     "sampleType": "Heparin Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -1462,8 +1512,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1477,8 +1527,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -1492,8 +1542,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1578,8 +1628,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma / Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1641,8 +1691,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -1656,8 +1706,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1671,8 +1721,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1686,8 +1736,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1701,8 +1751,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1716,8 +1766,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1731,8 +1781,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1746,8 +1796,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1761,8 +1811,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1776,8 +1826,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1791,8 +1841,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1806,8 +1856,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1821,8 +1871,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1860,8 +1910,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1875,8 +1925,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1890,8 +1940,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1905,8 +1955,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1920,8 +1970,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1935,8 +1985,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1950,8 +2000,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1965,8 +2015,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -1980,8 +2030,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2010,8 +2060,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2025,8 +2075,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2040,8 +2090,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -2079,8 +2129,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -2094,8 +2144,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -2148,8 +2198,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2163,8 +2213,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2178,8 +2228,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2193,8 +2243,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2208,8 +2258,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2223,8 +2273,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2238,8 +2288,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Citrate Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2298,8 +2348,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2328,8 +2378,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2343,8 +2393,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Serum + Donor RBC",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2358,8 +2408,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Serum + Donor RBC",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2403,8 +2453,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2418,8 +2468,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Serum / EDTA",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2448,8 +2498,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Mother + Cord Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2463,8 +2513,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2478,8 +2528,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2493,8 +2543,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2508,8 +2558,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Serum + Cells",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2538,8 +2588,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2553,8 +2603,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "EDTA Blood / BM",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2583,8 +2633,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2736,8 +2786,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2751,8 +2801,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2766,8 +2816,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2781,8 +2831,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2796,8 +2846,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2811,8 +2861,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2826,8 +2876,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2841,8 +2891,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2856,8 +2906,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2871,8 +2921,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2886,8 +2936,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2901,8 +2951,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -2916,8 +2966,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Fluoride Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3024,8 +3074,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3138,9 +3188,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": null,
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "8.5 - 10.5 mg/dL",
+    "refRangeText": "8.5 - 10.5",
+    "unit": "mg/dL",
+    "refRangeLow": 8.5,
+    "refRangeHigh": 10.5
   },
   {
     "id": "t-ca-ion",
@@ -3253,8 +3305,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3268,8 +3320,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3381,8 +3433,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3396,8 +3448,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3411,8 +3463,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": "g/dL"
   },
   {
@@ -3495,8 +3547,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3510,8 +3562,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3525,8 +3577,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3540,9 +3592,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1000,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": null,
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "7 - 45 U/L",
+    "refRangeText": "Male: 10 - 45 | Female: 7 - 35",
+    "unit": "U/L",
+    "refRangeLow": 7,
+    "refRangeHigh": 45
   },
   {
     "id": "t-ast",
@@ -3555,9 +3609,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1000,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": null,
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "8 - 40 U/L",
+    "refRangeText": "Male: 10 - 40 | Female: 8 - 35",
+    "unit": "U/L",
+    "refRangeLow": 8,
+    "refRangeHigh": 40
   },
   {
     "id": "t-alp",
@@ -3632,9 +3688,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1000,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": null,
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "0.0 - 0.3 mg/dL",
+    "refRangeText": "0.0 - 0.3",
+    "unit": "mg/dL",
+    "refRangeLow": 0,
+    "refRangeHigh": 0.3
   },
   {
     "id": "t-ibil",
@@ -3647,9 +3705,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": null,
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "0.2 - 0.8 mg/dL",
+    "refRangeText": "0.2 - 0.8",
+    "unit": "mg/dL",
+    "refRangeLow": 0.2,
+    "refRangeHigh": 0.8
   },
   {
     "id": "t-ldh",
@@ -3686,8 +3746,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3701,8 +3761,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3716,8 +3776,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "EDTA Plasma (on ice)",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3731,8 +3791,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3770,8 +3830,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3848,8 +3908,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3863,8 +3923,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3878,8 +3938,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum / Pleural / Ascitic / CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -3893,8 +3953,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4087,8 +4147,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": "g/dL"
   },
   {
@@ -4102,8 +4162,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": "g/dL"
   },
   {
@@ -4141,8 +4201,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": "g/dL"
   },
   {
@@ -4210,8 +4270,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "EDTA Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4225,8 +4285,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Serum / Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4240,8 +4300,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4255,8 +4315,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4270,8 +4330,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4324,8 +4384,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4339,8 +4399,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4377,8 +4437,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4392,8 +4452,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4407,8 +4467,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4422,8 +4482,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4437,8 +4497,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4452,8 +4512,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Whole Blood / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4467,8 +4527,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4482,8 +4542,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Whole Blood / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4497,8 +4557,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4512,8 +4572,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4592,8 +4652,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4645,8 +4705,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4660,8 +4720,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4675,8 +4735,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4690,8 +4750,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4705,8 +4765,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4720,8 +4780,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4735,8 +4795,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Whole Blood / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4750,8 +4810,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4765,8 +4825,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4780,8 +4840,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4795,8 +4855,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4810,8 +4870,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4825,8 +4885,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4840,8 +4900,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4930,8 +4990,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Heparin Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -4945,8 +5005,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Heparin Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5029,9 +5089,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "5.0 - 12.0 µg/dL",
+    "refRangeText": "5.0 - 12.0",
+    "unit": "µg/dL",
+    "refRangeLow": 5,
+    "refRangeHigh": 12
   },
   {
     "id": "t-tt3",
@@ -5044,9 +5106,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "80 - 200 ng/dL",
+    "refRangeText": "80 - 200",
+    "unit": "ng/dL",
+    "refRangeLow": 80,
+    "refRangeHigh": 200
   },
   {
     "id": "t-rt3",
@@ -5083,8 +5147,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3000,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5098,8 +5162,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3000,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5137,8 +5201,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5200,8 +5264,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5215,8 +5279,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5230,8 +5294,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5245,8 +5309,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5260,8 +5324,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5275,8 +5339,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5405,8 +5469,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5443,8 +5507,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -5458,8 +5522,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -5497,8 +5561,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5512,8 +5576,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5527,8 +5591,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5542,8 +5606,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5604,8 +5668,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5625,8 +5689,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "normalFemaleHigh": null,
     "criticalLow": null,
     "criticalHigh": null,
-    "refRangeText": "< 5 (Non-pregnant)",
-    "normalRange": "< 5 (Non-pregnant)",
+    "refRangeText": "< 5.0 (Non-pregnant)",
+    "normalRange": "< 5.0 mIU/mL",
     "unit": "mIU/mL",
     "sampleType": "Serum",
     "active": true
@@ -5672,8 +5736,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5687,8 +5751,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5750,8 +5814,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5765,8 +5829,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Saliva",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5804,8 +5868,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -5819,8 +5883,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -5834,8 +5898,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -5849,8 +5913,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum / Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5864,8 +5928,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5903,8 +5967,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5918,8 +5982,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5933,8 +5997,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5948,8 +6012,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5963,8 +6027,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5978,8 +6042,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -5993,8 +6057,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6032,8 +6096,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6047,8 +6111,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6062,8 +6126,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -6077,8 +6141,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -6092,8 +6156,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6107,8 +6171,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6122,8 +6186,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum + Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -6137,8 +6201,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6176,8 +6240,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -6215,8 +6279,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -6254,8 +6318,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum / Saliva",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6293,8 +6357,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6308,8 +6372,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6323,8 +6387,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Semen",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6338,8 +6402,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3000,
     "sampleType": "Semen",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6353,8 +6417,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3000,
     "sampleType": "Semen",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6368,8 +6432,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3000,
     "sampleType": "Semen",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6383,8 +6447,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3000,
     "sampleType": "Semen",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6398,8 +6462,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Semen",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6413,8 +6477,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Semen",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6428,8 +6492,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Semen / Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -6443,8 +6507,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Semen",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -6458,8 +6522,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Semen",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6473,8 +6537,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Semen",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6488,8 +6552,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3000,
     "sampleType": "Semen",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6503,8 +6567,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3000,
     "sampleType": "Semen",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6518,8 +6582,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EPS",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6533,8 +6597,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -6548,8 +6612,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -6563,9 +6627,11 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
-    "unit": null
+    "normalRange": "< 4.0 ng/mL",
+    "refRangeText": "< 4.0",
+    "unit": "ng/mL",
+    "refRangeLow": 0,
+    "refRangeHigh": 4
   },
   {
     "id": "t-fpsa",
@@ -6577,15 +6643,15 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "cost": 6500,
     "costEstimate": 6500,
     "refRangeLow": 0,
-    "refRangeHigh": 0.9,
+    "refRangeHigh": 0.5,
     "normalMaleLow": null,
     "normalMaleHigh": null,
     "normalFemaleLow": null,
     "normalFemaleHigh": null,
     "criticalLow": null,
     "criticalHigh": null,
-    "refRangeText": "0.0 - 0.9 (Free/Total Ratio > 25% Favorable)",
-    "normalRange": "0.0 - 0.9 (Free/Total Ratio > 25% Favorable)",
+    "refRangeText": "< 0.5",
+    "normalRange": "< 0.5 ng/mL",
     "unit": "ng/mL",
     "sampleType": "Serum",
     "active": true,
@@ -6602,8 +6668,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6617,8 +6683,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6632,8 +6698,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6646,15 +6712,15 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "cost": 5000,
     "costEstimate": 5000,
     "refRangeLow": 0,
-    "refRangeHigh": 7,
+    "refRangeHigh": 10,
     "normalMaleLow": null,
     "normalMaleHigh": null,
     "normalFemaleLow": null,
     "normalFemaleHigh": null,
     "criticalLow": null,
     "criticalHigh": null,
-    "refRangeText": "< 7.0",
-    "normalRange": "< 7.0",
+    "refRangeText": "< 10.0",
+    "normalRange": "< 10.0 ng/mL",
     "unit": "ng/mL",
     "sampleType": "Serum",
     "active": true
@@ -6676,8 +6742,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "normalFemaleHigh": null,
     "criticalLow": null,
     "criticalHigh": null,
-    "refRangeText": "< 5.0",
-    "normalRange": "< 5.0",
+    "refRangeText": "< 5.0 (Non-smokers < 3.0)",
+    "normalRange": "< 5.0 ng/mL",
     "unit": "ng/mL",
     "sampleType": "Serum",
     "active": true
@@ -6700,7 +6766,7 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "criticalLow": null,
     "criticalHigh": null,
     "refRangeText": "< 35.0",
-    "normalRange": "< 35.0",
+    "normalRange": "< 35.0 U/mL",
     "unit": "U/mL",
     "sampleType": "Serum",
     "active": true
@@ -6716,8 +6782,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6731,8 +6797,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6746,8 +6812,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6761,8 +6827,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6824,8 +6890,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6839,8 +6905,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6854,8 +6920,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6908,8 +6974,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6953,8 +7019,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6968,8 +7034,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Serum / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6983,8 +7049,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Tissue / Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -6998,8 +7064,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7013,8 +7079,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7028,8 +7094,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7043,8 +7109,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7058,8 +7124,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7073,8 +7139,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7088,8 +7154,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7103,8 +7169,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7118,8 +7184,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7133,8 +7199,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7148,8 +7214,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7163,8 +7229,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7178,8 +7244,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7193,8 +7259,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7208,8 +7274,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7223,8 +7289,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7238,8 +7304,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7253,8 +7319,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7268,8 +7334,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7283,8 +7349,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7298,8 +7364,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7313,8 +7379,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7328,8 +7394,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7343,8 +7409,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7358,8 +7424,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum / Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7373,8 +7439,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7388,8 +7454,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7403,8 +7469,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "EDTA Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7418,8 +7484,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -7433,8 +7499,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7448,8 +7514,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7463,8 +7529,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7478,8 +7544,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7493,8 +7559,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7508,8 +7574,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7523,8 +7589,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7538,8 +7604,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7553,8 +7619,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7568,8 +7634,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7583,8 +7649,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7598,8 +7664,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7613,8 +7679,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7628,8 +7694,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Urine / Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -7643,8 +7709,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Urine / Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -7658,8 +7724,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Urine / Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -7673,8 +7739,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 4500,
     "sampleType": "Hair",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -7688,8 +7754,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Blood / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11423,8 +11489,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11438,8 +11504,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11453,8 +11519,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11468,8 +11534,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Sputum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11483,8 +11549,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Throat Swab",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11498,8 +11564,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Nasal Swab",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -11513,8 +11579,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Ear Swab",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11528,8 +11594,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Eye Swab",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11543,8 +11609,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Swab / Pus",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11558,8 +11624,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Aspirate",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11573,8 +11639,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Vaginal Swab",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11588,8 +11654,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Swab",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11603,8 +11669,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Swab",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11618,8 +11684,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11633,8 +11699,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -11648,8 +11714,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -11663,8 +11729,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -11678,8 +11744,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Pleural Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11693,8 +11759,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Ascitic Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11708,8 +11774,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Synovial Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11723,8 +11789,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "BAL",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11738,8 +11804,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Catheter Tip",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11753,8 +11819,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11768,8 +11834,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Bone",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11783,8 +11849,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Various",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11798,8 +11864,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Various",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11813,8 +11879,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1500,
     "sampleType": "Skin / Nail / Hair",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11828,8 +11894,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Various",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -11843,8 +11909,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1500,
     "sampleType": "Various",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -11858,8 +11924,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1500,
     "sampleType": "Vaginal Swab",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11873,8 +11939,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1500,
     "sampleType": "Sputum / Other",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -11888,8 +11954,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Sputum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -11903,8 +11969,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -11918,8 +11984,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Culture",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11933,8 +11999,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1500,
     "sampleType": "Isolate",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -11948,8 +12014,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Isolate",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11963,8 +12029,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Isolate",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11978,8 +12044,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Isolate",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -11993,8 +12059,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Nasal Swab",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -12008,8 +12074,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Rectal Swab",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -12023,8 +12089,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Rectal Swab",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -12038,8 +12104,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Isolate",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12053,8 +12119,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Isolate",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12068,8 +12134,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Sputum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -12083,8 +12149,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -12098,8 +12164,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -12113,8 +12179,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12128,8 +12194,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12158,8 +12224,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12173,8 +12239,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1000,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -12188,8 +12254,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -12203,8 +12269,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12218,8 +12284,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12233,8 +12299,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12248,8 +12314,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12263,8 +12329,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12278,8 +12344,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12293,8 +12359,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12308,8 +12374,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12323,8 +12389,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12338,8 +12404,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12353,8 +12419,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -12368,8 +12434,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -12383,8 +12449,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Perianal Swab",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -12398,8 +12464,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12413,8 +12479,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12428,8 +12494,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12443,8 +12509,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12458,8 +12524,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12473,8 +12539,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Urine / Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12488,8 +12554,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Cyst Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12503,8 +12569,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Skin",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12518,8 +12584,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Eyelash / Skin",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12533,8 +12599,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Hair",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12548,8 +12614,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Skin Lesion",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -12563,8 +12629,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Swab",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -12578,8 +12644,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Skin / Hair / Nail",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12593,8 +12659,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Skin Scraping",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12608,8 +12674,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12638,8 +12704,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "CSF / Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12668,8 +12734,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "BAL / Sputum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -12683,8 +12749,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1000,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -12698,8 +12764,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1000,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12713,8 +12779,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12728,8 +12794,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12743,8 +12809,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12758,8 +12824,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12773,8 +12839,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12788,8 +12854,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12803,8 +12869,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12818,8 +12884,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12904,8 +12970,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Spot Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12942,8 +13008,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12957,8 +13023,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "24h Urine + Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12972,8 +13038,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -12987,8 +13053,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13002,8 +13068,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13017,8 +13083,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13032,8 +13098,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13047,8 +13113,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13062,8 +13128,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13077,8 +13143,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13092,8 +13158,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13107,8 +13173,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13122,8 +13188,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13137,8 +13203,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -13152,8 +13218,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stone",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13167,8 +13233,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13182,8 +13248,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13197,8 +13263,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13212,8 +13278,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13227,8 +13293,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13242,8 +13308,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13257,8 +13323,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13272,8 +13338,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13287,8 +13353,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13302,8 +13368,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13317,8 +13383,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13332,8 +13398,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13347,8 +13413,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13362,8 +13428,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13377,8 +13443,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13392,8 +13458,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13407,8 +13473,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13422,8 +13488,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13437,8 +13503,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13452,8 +13518,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13467,8 +13533,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13482,8 +13548,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13497,8 +13563,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13512,8 +13578,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13527,8 +13593,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -13542,8 +13608,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -13557,8 +13623,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13572,8 +13638,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "24h Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13587,8 +13653,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13602,8 +13668,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -13617,8 +13683,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13632,8 +13698,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13647,8 +13713,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13662,8 +13728,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13677,8 +13743,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13692,8 +13758,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13707,8 +13773,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13722,8 +13788,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13737,8 +13803,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13752,8 +13818,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13767,8 +13833,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13782,8 +13848,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -13797,8 +13863,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13812,8 +13878,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Pleural Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13827,8 +13893,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Pleural Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13842,8 +13908,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Pleural Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13857,8 +13923,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Pleural Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13872,8 +13938,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Pleural Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13887,8 +13953,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Pleural Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13902,8 +13968,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Pleural Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13917,8 +13983,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Pleural Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13932,8 +13998,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Pleural Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13947,8 +14013,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Ascitic Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13962,8 +14028,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Ascitic Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13977,8 +14043,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Ascitic Fluid + Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -13992,8 +14058,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Ascitic Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14007,8 +14073,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Ascitic Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14022,8 +14088,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Ascitic Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14037,8 +14103,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Ascitic Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14052,8 +14118,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Ascitic Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14067,8 +14133,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Pericardial Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14082,8 +14148,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Synovial Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14097,8 +14163,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Synovial Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14112,8 +14178,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Synovial Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14127,8 +14193,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Synovial Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14142,8 +14208,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Synovial Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14157,8 +14223,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Amniotic Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14172,8 +14238,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Amniotic Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14187,8 +14253,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Amniotic Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14202,8 +14268,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Amniotic Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -14217,8 +14283,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Vaginal Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -14232,8 +14298,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "BAL",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14247,8 +14313,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Sputum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14262,8 +14328,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Sputum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14277,8 +14343,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 1250,
     "sampleType": "Sputum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -14292,8 +14358,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Saliva",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -14307,8 +14373,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Sweat",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -14322,8 +14388,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Breath",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -14337,8 +14403,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Breath",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -14352,8 +14418,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14367,8 +14433,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Gastric Juice",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14382,8 +14448,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Duodenal Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14397,8 +14463,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 3750,
     "sampleType": "Bile",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14412,8 +14478,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 18750,
     "sampleType": "Heparin Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14427,8 +14493,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 18750,
     "sampleType": "Heparin Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14442,8 +14508,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 18750,
     "sampleType": "Tissue / Amniotic Fluid / CVS",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14457,8 +14523,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 30000,
     "sampleType": "Blood / Tissue / BM",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14472,8 +14538,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 30000,
     "sampleType": "Amniotic Fluid / Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14487,8 +14553,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 30000,
     "sampleType": "Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14502,8 +14568,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 30000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14517,8 +14583,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 30000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14532,8 +14598,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14547,8 +14613,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -14562,8 +14628,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -14577,8 +14643,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14592,8 +14658,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14607,8 +14673,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14622,8 +14688,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14637,8 +14703,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14652,8 +14718,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -14667,8 +14733,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -14682,8 +14748,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -14697,8 +14763,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14712,8 +14778,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14727,8 +14793,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14742,8 +14808,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14757,8 +14823,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14772,8 +14838,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14787,8 +14853,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood / Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14802,8 +14868,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14817,8 +14883,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -14832,8 +14898,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -14847,8 +14913,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -14862,8 +14928,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Tissue / Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -14877,8 +14943,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Tissue / Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -14892,8 +14958,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14907,8 +14973,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14922,8 +14988,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14937,8 +15003,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Tissue / Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14952,8 +15018,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Blood / BM",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14967,8 +15033,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -14982,8 +15048,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 187500,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -14997,8 +15063,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 187500,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15012,8 +15078,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 187500,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15027,8 +15093,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15042,8 +15108,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15057,8 +15123,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15072,8 +15138,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Buccal / Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15087,8 +15153,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Buccal / Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -15102,8 +15168,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Buccal / Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -15117,8 +15183,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Various",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15132,8 +15198,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15147,8 +15213,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15162,8 +15228,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15177,8 +15243,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15192,8 +15258,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15207,8 +15273,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15222,8 +15288,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15237,8 +15303,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15252,8 +15318,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15267,8 +15333,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15282,8 +15348,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15297,8 +15363,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15312,8 +15378,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15327,8 +15393,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15342,8 +15408,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15357,8 +15423,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Serum / EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15372,8 +15438,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15387,8 +15453,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15402,8 +15468,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15417,8 +15483,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15432,8 +15498,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15447,8 +15513,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15462,8 +15528,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15477,8 +15543,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15492,8 +15558,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15507,8 +15573,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15522,8 +15588,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15537,8 +15603,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15552,8 +15618,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15567,8 +15633,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15582,8 +15648,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15597,8 +15663,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15612,8 +15678,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15627,8 +15693,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15642,8 +15708,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood / Saliva",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -15657,8 +15723,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -15672,8 +15738,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Blood / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15687,8 +15753,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Embryo Biopsy",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15702,8 +15768,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15717,8 +15783,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA / Streck Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15732,8 +15798,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Maternal Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15747,8 +15813,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Maternal Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15762,8 +15828,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum + US",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -15777,8 +15843,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15792,8 +15858,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15807,8 +15873,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -15822,8 +15888,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -15837,8 +15903,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15852,8 +15918,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15867,8 +15933,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Vaginal Swab",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15882,8 +15948,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Vaginal / Rectal Swab",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -15897,8 +15963,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15912,8 +15978,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15927,8 +15993,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15942,8 +16008,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Serum / Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15957,8 +16023,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -15972,8 +16038,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -16002,8 +16068,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Serum / Skin",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16017,8 +16083,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Dried Blood Spot",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -16032,8 +16098,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Dried Blood Spot",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16047,8 +16113,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Dried Blood Spot",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16062,8 +16128,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Dried Blood Spot",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -16077,8 +16143,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Dried Blood Spot",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -16092,8 +16158,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Dried Blood Spot",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -16107,8 +16173,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Dried Blood Spot",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -16122,8 +16188,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Dried Blood Spot",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16137,8 +16203,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Dried Blood Spot",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -16152,8 +16218,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Dried Blood Spot",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -16167,8 +16233,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Cord Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16182,8 +16248,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 2500,
     "sampleType": "Cord Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16197,8 +16263,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16212,8 +16278,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16227,8 +16293,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "DBS / Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16242,8 +16308,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16257,8 +16323,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16272,8 +16338,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16287,8 +16353,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "RBC",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16302,8 +16368,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "DBS / Leukocytes",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16317,8 +16383,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "DBS / Leukocytes",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16332,8 +16398,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Serum / Leukocytes",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16347,8 +16413,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "DBS / Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16362,8 +16428,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "DBS",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16377,8 +16443,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "DBS",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16392,8 +16458,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "DBS / Leukocytes",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16407,8 +16473,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "DBS / Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16422,8 +16488,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16437,8 +16503,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16452,8 +16518,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16467,8 +16533,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "RBC",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16482,8 +16548,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16497,8 +16563,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16512,8 +16578,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Urine / Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16527,8 +16593,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16542,8 +16608,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16557,8 +16623,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16572,8 +16638,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16587,8 +16653,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Whole Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16602,8 +16668,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16617,8 +16683,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16632,8 +16698,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16647,8 +16713,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "EDTA Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16662,8 +16728,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16677,8 +16743,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16692,8 +16758,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16707,8 +16773,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 15000,
     "sampleType": "CSF",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16722,8 +16788,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue / Biopsy",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16737,8 +16803,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Fresh Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16752,8 +16818,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Specimen",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16767,8 +16833,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16782,8 +16848,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16797,8 +16863,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16812,8 +16878,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16827,8 +16893,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16842,8 +16908,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16857,8 +16923,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Kidney Biopsy",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16872,8 +16938,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Skin Biopsy / Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16887,8 +16953,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16902,8 +16968,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -16917,8 +16983,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16932,8 +16998,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -16947,8 +17013,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16962,8 +17028,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Aspirate",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16977,8 +17043,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Aspirate",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -16992,8 +17058,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Aspirate",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17007,8 +17073,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 7500,
     "sampleType": "Aspirate",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17022,8 +17088,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Cervical Smear",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17037,8 +17103,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Cervical Sample",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17052,8 +17118,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 5000,
     "sampleType": "Cervical Sample",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17067,8 +17133,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Biopsy",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17082,8 +17148,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Biopsy",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17097,8 +17163,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17112,8 +17178,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17127,8 +17193,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17142,8 +17208,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Bone Marrow",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17157,8 +17223,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Bone Marrow",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17172,8 +17238,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Biopsy",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17187,8 +17253,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Biopsy",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17202,8 +17268,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Biopsy",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17217,8 +17283,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Biopsy",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17232,8 +17298,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Biopsy",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17247,8 +17313,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Biopsy",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17262,8 +17328,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Biopsy",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17277,8 +17343,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Biopsy",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17292,8 +17358,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17307,8 +17373,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Biopsy",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17322,8 +17388,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Biopsy",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17337,8 +17403,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17352,8 +17418,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17367,8 +17433,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17382,8 +17448,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17397,8 +17463,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Body",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17412,8 +17478,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 8750,
     "sampleType": "Blood / Vitreous / Tissue",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17427,8 +17493,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "24h Urine + Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17442,8 +17508,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17457,8 +17523,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17472,8 +17538,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Urine + Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17487,8 +17553,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17502,8 +17568,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17517,8 +17583,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17532,8 +17598,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17547,8 +17613,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17562,8 +17628,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17577,8 +17643,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17592,8 +17658,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17607,8 +17673,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17622,8 +17688,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17637,8 +17703,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17652,8 +17718,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17667,8 +17733,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Urine / Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17682,8 +17748,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum / Breath",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17697,8 +17763,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17712,8 +17778,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Duodenal Fluid",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17727,8 +17793,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17766,8 +17832,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17781,8 +17847,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17796,8 +17862,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17811,8 +17877,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17826,8 +17892,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17841,8 +17907,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17856,8 +17922,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Blood / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17871,8 +17937,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 16250,
     "sampleType": "Blood / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17886,8 +17952,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 16250,
     "sampleType": "Blood / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17901,8 +17967,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Blood / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17916,8 +17982,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Blood / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17931,8 +17997,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17946,8 +18012,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum / Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17961,8 +18027,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -17976,8 +18042,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -17991,8 +18057,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -18006,8 +18072,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18021,8 +18087,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18036,8 +18102,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18051,8 +18117,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Blood / Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18066,8 +18132,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18081,8 +18147,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18096,8 +18162,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum / Swab",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -18111,8 +18177,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18126,8 +18192,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum / Semen",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18141,8 +18207,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18156,8 +18222,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18171,8 +18237,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18186,8 +18252,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18201,8 +18267,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum / Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18216,8 +18282,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18231,8 +18297,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -18246,8 +18312,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18261,8 +18327,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Blood / Urine / Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18276,8 +18342,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18291,8 +18357,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18306,8 +18372,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -18321,8 +18387,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18336,8 +18402,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18351,8 +18417,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18366,8 +18432,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18381,8 +18447,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -18396,8 +18462,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -18411,8 +18477,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Not detected",
+    "refRangeText": "Not detected",
     "unit": null
   },
   {
@@ -18426,8 +18492,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -18441,8 +18507,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Urine / Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18456,8 +18522,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18471,8 +18537,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18486,8 +18552,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18501,8 +18567,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18516,8 +18582,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18531,8 +18597,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18546,8 +18612,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Plasma",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18561,8 +18627,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18576,8 +18642,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Blood",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18591,8 +18657,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -18606,8 +18672,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "Negative",
+    "refRangeText": "Negative",
     "unit": null
   },
   {
@@ -18621,8 +18687,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum / Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18636,8 +18702,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum / Stool",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18651,8 +18717,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18666,8 +18732,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18681,8 +18747,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18696,8 +18762,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18711,8 +18777,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18726,8 +18792,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18741,8 +18807,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 11250,
     "sampleType": "Serum / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -18756,8 +18822,8 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "costEstimate": 6250,
     "sampleType": "Blood / Urine",
     "active": true,
-    "normalRange": "Normal",
-    "refRangeText": null,
+    "normalRange": "—",
+    "refRangeText": "—",
     "unit": null
   },
   {
@@ -19039,7 +19105,7 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "criticalLow": null,
     "criticalHigh": null,
     "refRangeText": "< 30.0",
-    "normalRange": "< 30.0",
+    "normalRange": "< 30.0 U/mL",
     "unit": "U/mL",
     "sampleType": "مصل الدم (Serum)",
     "active": true
@@ -19062,7 +19128,7 @@ export const INITIAL_TESTS_CATALOG: TestItem[] = [
     "criticalLow": null,
     "criticalHigh": null,
     "refRangeText": "< 37.0",
-    "normalRange": "< 37.0",
+    "normalRange": "< 37.0 U/mL",
     "unit": "U/mL",
     "sampleType": "مصل الدم (Serum)",
     "active": true

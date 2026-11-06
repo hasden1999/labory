@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { toEnglishDigits, formatEnglishDate, formatClinicalAge } from '../../lib/formatters';
 import { shareReportToWhatsApp, autoSendReportViaWhatsAppWeb } from '../../lib/shareReportToWhatsApp';
+import { AddSampleTestsModal } from '../../features/add-sample-tests';
 
 const UrineFormModal = nextDynamic(() => import('../../components/UrineFormModal'), { ssr: false });
 const GseModal = nextDynamic(() => import('../../components/workstations/GseModal'), { ssr: false });
@@ -119,6 +120,9 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
   // Patient Past Visits History Modal
   const [showPatientHistoryModal, setShowPatientHistoryModal] = useState(false);
 
+  // Add Sample Tests Modal State
+  const [showAddTestModal, setShowAddTestModal] = useState(false);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -145,7 +149,7 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
 
   const visits: FlattenedVisit[] = useMemo(() => {
     return samples.map((s: any) => {
-      const finalAmt = Number(s.finalAmount ?? s.totalAmount ?? 0);
+      const finalAmt = Number(s.finalAmount ?? s.totalAmount ?? Math.max(0, (s.priceTotal || 0) - (s.discount || 0)));
       const paidAmt = Number(s.paidAmount ?? finalAmt);
       const remAmt = Math.max(0, Number(s.remainingAmount ?? finalAmt - paidAmt));
       return {
@@ -485,7 +489,12 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             type="button"
-            onClick={() => router.push('/')}
+            onClick={() => {
+              setShowEditPatientModal(false);
+              setShowPayModal(false);
+              setDeleteSampleId(null);
+              router.push('/');
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -994,6 +1003,29 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                       >
                         <FolderOpen size={13} />
                         <span>ملف المريض ({currentPatientVisits.length} {currentPatientVisits.length === 1 ? 'زيارة' : 'زيارات'})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddTestModal(true)}
+                        title="إضافة فحص جديد لهذه الزيارة"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          fontSize: '11.5px',
+                          fontWeight: 800,
+                          padding: '3px 11px',
+                          borderRadius: '999px',
+                          backgroundColor: '#0284c7',
+                          color: '#ffffff',
+                          border: 'none',
+                          cursor: 'pointer',
+                          boxShadow: '0 1px 4px rgba(2, 132, 199, 0.25)',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <Plus size={13} />
+                        <span>➕ إضافة فحص</span>
                       </button>
                       <button
                         type="button"
@@ -2057,6 +2089,40 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
             </div>
           </div>
         </div>
+      )}
+
+      {activeVisit && (
+        <AddSampleTestsModal
+          isOpen={showAddTestModal}
+          onClose={() => setShowAddTestModal(false)}
+          sampleId={activeVisit.sampleId}
+          sampleNumber={activeVisit.sampleNumber}
+          patientName={activeVisit.patient?.name || 'مريض'}
+          existingTestIds={activeVisit.tests.map((t: any) => t.testId || t.test?.id || t.id).filter(Boolean)}
+          currency={currency}
+          onSuccess={async (updatedSample, addedCount, paymentMode) => {
+            if (updatedSample && updatedSample.id) {
+              setSamples((prev) =>
+                prev.map((s: any) => (s.id === updatedSample.id ? { ...s, ...updatedSample } : s))
+              );
+              if (Array.isArray(updatedSample.tests)) {
+                setEditedResults((prev) => {
+                  const next = { ...prev };
+                  updatedSample.tests.forEach((st: any) => {
+                    const key = st.testId || st.id;
+                    if (next[key] === undefined) {
+                      next[key] = st.resultValue ?? '';
+                    }
+                  });
+                  return next;
+                });
+              }
+            }
+            const modeText = paymentMode === 'CASH' ? 'تم قبض المبلغ نقداً' : 'تمت إضافة المبلغ للمتبقي (الذمة)';
+            toast.success(`تمت إضافة (${addedCount}) فحص جديد للزيارة بنجاح • ${modeText}`);
+            await loadData();
+          }}
+        />
       )}
 
       <ConfirmModal

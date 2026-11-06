@@ -154,7 +154,7 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
     verifyUrl = '',
   } = params;
 
-  const style = String(explicitHeaderStyle || settings?.headerStyle || '').toLowerCase().trim();
+  const style = String(explicitHeaderStyle || (initialTemplate === 'CLASSIC' ? settings?.headerStyle : '') || '').toLowerCase().trim();
   let template = initialTemplate;
   if (style && HEADER_STYLE_TO_TEMPLATE_MAP[style]) {
     template = HEADER_STYLE_TO_TEMPLATE_MAP[style];
@@ -248,16 +248,17 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
   // 0.1 Academic Medical Center & Hospital
   if (template === 'ACADEMIC_HOSPITAL') {
     const emblemType = settings.labEmblem || 'microscope';
+    const hdrCol = settings.headerBgColor || primaryCol || '#0f172a';
     return `
-      <div class="academic-hospital-header" style="border-bottom: 3px double #0f172a; padding-bottom: 10px; margin-bottom: 14px; position: relative; z-index: 1;">
+      <div class="academic-hospital-header" style="border-bottom: 3px double ${hdrCol}; padding-bottom: 10px; margin-bottom: 14px; position: relative; z-index: 1;">
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
           <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-            <div style="width: 44px; height: 44px; border: 2px solid #0f172a; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #0f172a;">
-              ${renderEmblemSvg(emblemType, '#0f172a', 26)}
+            <div style="width: 44px; height: 44px; border: 2px solid ${hdrCol}; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: ${hdrCol};">
+              ${renderEmblemSvg(emblemType, hdrCol, 26)}
             </div>
             <div style="flex: 1; ${labNameAlignStyle}">
               
-              ${showLabName && safeLabName ? `<h1 style="margin: 0; ${getLabNameStyleCss(false, '#0f172a')}">${safeLabName}</h1>` : ''}
+              ${showLabName && safeLabName ? `<h1 style="margin: 0; ${getLabNameStyleCss(false, hdrCol)}">${safeLabName}</h1>` : ''}
               ${showLabSubtitle && safeLabSubtitle ? `<div style="font-size: 10px; color: #475569; margin-top: 1px;">${safeLabSubtitle}</div>` : ''}
             </div>
           </div>
@@ -273,12 +274,13 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
 
   // 0.2 Mayo Executive Clinical
   if (template === 'MAYO_EXECUTIVE') {
+    const hdrCol = settings.headerBgColor || primaryCol || '#1e3a8a';
     return `
-      <div class="mayo-executive-header" style="border-bottom: 2px solid #1e3a8a; padding-bottom: 8px; margin-bottom: 12px; position: relative; z-index: 1;">
+      <div class="mayo-executive-header" style="border-bottom: 2px solid ${hdrCol}; padding-bottom: 8px; margin-bottom: 12px; position: relative; z-index: 1;">
         <div style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%;">
           <div style="flex: 1; ${labNameAlignStyle}">
             
-            ${showLabName && safeLabName ? `<h1 style="margin: 0; ${getLabNameStyleCss(false, '#0f172a')}">${safeLabName}</h1>` : ''}
+            ${showLabName && safeLabName ? `<h1 style="margin: 0; ${getLabNameStyleCss(false, hdrCol)}">${safeLabName}</h1>` : ''}
             ${showLabSubtitle && safeLabSubtitle ? `<div style="font-size: 10px; color: #64748b; margin-top: 1px;">${safeLabSubtitle}</div>` : ''}
             ${showContactInfo ? `<div style="font-size: 8.5px; color: #94a3b8; margin-top: 1px;">${safeAddress} | ${safePhone}</div>` : ''}
           </div>
@@ -297,17 +299,18 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
   // 1. Authentic Indian Dual-Wing Clinical Header (Dr Lal PathLabs / Metropolis / NABL Aligned)
   if (template === 'INDIAN_DUAL_WING' || template === 'DR_LAL_CLINICAL') {
     const emblemType = settings.labEmblem || 'microscope';
+    const hdrCol = settings.headerBgColor || primaryCol || '#0f172a';
     return `
-      <div class="indian-dual-wing-header" style="border-bottom: 2.5px solid #0f172a; padding-bottom: 12px; margin-bottom: 14px; position: relative; z-index: 1;">
+      <div class="indian-dual-wing-header" style="border-bottom: 2.5px solid ${hdrCol}; padding-bottom: 12px; margin-bottom: 14px; position: relative; z-index: 1;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
           <!-- Right Wing: Clinical Identity & Microscope Emblem -->
           <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-            <div style="width: 52px; height: 52px; border-radius: 10px; background: #0f172a; color: #fbbf24; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.15); border: 1px solid #334155;">
+            <div style="width: 52px; height: 52px; border-radius: 10px; background: ${hdrCol}; color: #fbbf24; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.15); border: 1px solid #334155; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
               ${renderEmblemSvg(emblemType, '#fbbf24', 32)}
             </div>
             <div style="flex: 1; ${labNameAlignStyle}">
               <div style="display: inline-flex; align-items: center; gap: 8px;">
-                ${showLabName && safeLabName ? `<h1 style="margin: 0; ${getLabNameStyleCss(false, '#0f172a')}">${safeLabName}</h1>` : ''}
+                ${showLabName && safeLabName ? `<h1 style="margin: 0; ${getLabNameStyleCss(false, hdrCol)}">${safeLabName}</h1>` : ''}
                 
               </div>
               ${showLabSubtitle && safeLabSubtitle ? `<div style="font-size: 10.5px; font-weight: 700; color: #475569; margin-top: 2px;">${safeLabSubtitle}</div>` : ''}
@@ -340,8 +343,10 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
   // 2. Regal Gold Frame (Executive Navy & Gold)
   if (template === 'REGAL_GOLD_FRAME') {
     const emblemType = settings.labEmblem || 'microscope';
+    const regalBg = settings.headerBgColor || '#0f172a';
+    const regalSec = settings.secondaryColor || '#1e293b';
     return `
-      <div class="regal-gold-header" style="border: 2px solid #0f172a; border-top: 5px solid #d97706; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important; color: #ffffff !important; position: relative; z-index: 1;">
+      <div class="regal-gold-header" style="border: 2px solid ${regalBg}; border-top: 5px solid #d97706; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; background: linear-gradient(135deg, ${regalBg} 0%, ${regalSec} 100%) !important; color: #ffffff !important; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
           <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
             <div style="width: 48px; height: 48px; border-radius: 8px; background: rgba(217, 119, 6, 0.2); border: 1px solid #fbbf24; display: flex; align-items: center; justify-content: center; color: #fbbf24; flex-shrink: 0;">
@@ -375,15 +380,16 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
   // 3. Minimal Pure Line (100% Ink-Saver Clean)
   if (template === 'MINIMAL_PURE_LINE') {
     const emblemType = settings.labEmblem || 'microscope';
+    const lineColor = settings.headerBgColor || primaryCol || '#000000';
     return `
-      <div class="minimal-pure-header" style="border-bottom: 1.5px solid #000000; padding-bottom: 10px; margin-bottom: 12px; position: relative; z-index: 1;">
+      <div class="minimal-pure-header" style="border-bottom: 1.5px solid ${lineColor}; padding-bottom: 10px; margin-bottom: 12px; position: relative; z-index: 1;">
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
           <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
-            <div style="width: 44px; height: 44px; border: 1.5px solid #000000; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #000000; flex-shrink: 0;">
-              ${renderEmblemSvg(emblemType, '#000000', 26)}
+            <div style="width: 44px; height: 44px; border: 1.5px solid ${lineColor}; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: ${lineColor}; flex-shrink: 0;">
+              ${renderEmblemSvg(emblemType, lineColor, 26)}
             </div>
             <div style="flex: 1; ${labNameAlignStyle}">
-              ${showLabName && safeLabName ? `<h1 style="margin: 0; ${getLabNameStyleCss(false, '#000000')}">${safeLabName}</h1>` : ''}
+              ${showLabName && safeLabName ? `<h1 style="margin: 0; ${getLabNameStyleCss(false, lineColor)}">${safeLabName}</h1>` : ''}
               ${showLabSubtitle && safeLabSubtitle ? `<div style="font-size: 10px; color: #334155; margin-top: 1px;">${safeLabSubtitle}</div>` : ''}
               ${showContactInfo ? `<div style="font-size: 9px; color: #475569; margin-top: 1px;">${safeAddress} | ${safePhone}</div>` : ''}
             </div>
@@ -407,13 +413,14 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
   // 4. Compact Micro Strip (Ultra-Dense Space Saver)
   if (template === 'COMPACT_MICRO_STRIP') {
     const emblemType = settings.labEmblem || 'microscope';
+    const hdrCol = settings.headerBgColor || primaryCol || '#0f172a';
     return `
       <div class="compact-micro-header" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1;">
         <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
-          <div style="width: 28px; height: 28px; background: #0f172a; color: #fbbf24; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+          <div style="width: 28px; height: 28px; background: ${hdrCol}; color: #fbbf24; border-radius: 4px; display: flex; align-items: center; justify-content: center; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
             ${renderEmblemSvg(emblemType, '#fbbf24', 18)}
           </div>
-          ${showLabName && safeLabName ? `<span style="${getLabNameStyleCss(false, '#0f172a')} font-size: 14px !important;">${safeLabName}</span>` : ''}
+          ${showLabName && safeLabName ? `<span style="${getLabNameStyleCss(false, hdrCol)} font-size: 14px !important;">${safeLabName}</span>` : ''}
           <span style="font-size: 9.5px; color: #64748b; margin-right: 8px;">${safeAddress} | ${safePhone}</span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px; font-size: 9.5px; font-family: monospace;" dir="ltr">
@@ -432,10 +439,14 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
     let wavePath = 'M0,25 C150,75 350,-20 500,35 C650,90 900,10 1200,40 L1200,120 L0,120 Z';
 
     if (template === 'EMERALD_WAVE') {
-      waveBg = 'linear-gradient(135deg, #064e3b 0%, #047857 50%, #10b981 100%)';
+      const emStart = settings.headerBgColor || '#064e3b';
+      const emEnd = settings.secondaryColor || '#10b981';
+      waveBg = `linear-gradient(135deg, ${emStart} 0%, #047857 50%, ${emEnd} 100%)`;
       wavePath = 'M0,30 C300,95 600,-15 900,60 C1050,95 1150,15 1200,35 L1200,120 L0,120 Z';
     } else if (template === 'INDIGO_WAVE') {
-      waveBg = 'linear-gradient(135deg, #1e1b4b 0%, #4338ca 50%, #7c3aed 100%)';
+      const inStart = settings.headerBgColor || '#1e1b4b';
+      const inEnd = settings.secondaryColor || '#7c3aed';
+      waveBg = `linear-gradient(135deg, ${inStart} 0%, #4338ca 50%, ${inEnd} 100%)`;
       wavePath = 'M0,50 C350,-15 700,90 1200,20 L1200,120 L0,120 Z';
     }
 
@@ -529,7 +540,7 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
 
     // Custom Logo in Modern Template
     return `
-      <div class="modern-header-banner" style="background: linear-gradient(135deg, ${primaryCol} 0%, #06b6d4 100%) !important; color: #ffffff !important; padding: 14px 18px; border-radius: 8px; margin-bottom: 16px; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; overflow: hidden;">
+      <div class="modern-header-banner" style="background: linear-gradient(135deg, ${gradStart} 0%, ${gradEnd} 100%) !important; color: #ffffff !important; padding: 14px 18px; border-radius: 8px; margin-bottom: 16px; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; overflow: hidden;">
         ${customAlign === 'center' ? `<div style="text-align: center; margin-bottom: 8px;">${renderCustomLogoBlock()}</div>` : ''}
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
           ${customAlign === 'left' ? `<div style="margin-right: 14px; flex-shrink: 0;">${renderCustomLogoBlock()}</div>` : ''}
@@ -602,8 +613,10 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
 
   // Pediatric & Family Care
   if (template === 'PEDIATRIC_CARE') {
+    const pedStart = settings.headerBgColor || primaryCol || '#f97316';
+    const pedEnd = settings.secondaryColor || '#38bdf8';
     return `
-      <div class="pediatric-header-banner" style="background: linear-gradient(135deg, ${settings.headerBgColor || primaryCol || '#f97316'} 0%, #38bdf8 100%) !important; color: #ffffff !important; padding: 12px 18px; border-radius: 12px; margin-bottom: 14px; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; overflow: hidden;">
+      <div class="pediatric-header-banner" style="background: linear-gradient(135deg, ${pedStart} 0%, ${pedEnd} 100%) !important; color: #ffffff !important; padding: 12px 18px; border-radius: 12px; margin-bottom: 14px; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; overflow: hidden;">
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
           ${hasCustomLogo && customAlign === 'left' ? `<div style="margin-right: 14px; flex-shrink: 0;">${renderCustomLogoBlock()}</div>` : ''}
           <div style="flex: 1; ${labNameAlignStyle}">
@@ -637,8 +650,10 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
 
   // Smart Digital & QR Header
   if (template === 'SMART_DIGITAL') {
+    const smartBg = settings.headerBgColor || '#0f172a';
+    const smartBorder = settings.secondaryColor || primaryCol || '#38bdf8';
     return `
-      <div class="smart-digital-header" style="background: #0f172a !important; color: #ffffff !important; border-bottom: 3px solid ${settings.headerBgColor || primaryCol || '#38bdf8'} !important; padding: 12px 18px; border-radius: 8px; margin-bottom: 14px; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; overflow: hidden;">
+      <div class="smart-digital-header" style="background: ${smartBg} !important; color: #ffffff !important; border-bottom: 3px solid ${smartBorder} !important; padding: 12px 18px; border-radius: 8px; margin-bottom: 14px; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; overflow: hidden;">
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
           ${hasCustomLogo && customAlign === 'left' ? `<div style="margin-right: 14px; flex-shrink: 0;">${renderCustomLogoBlock()}</div>` : ''}
           <div style="flex: 1; ${labNameAlignStyle}">
@@ -648,8 +663,8 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
                 ${safeLabName}
               </div>
             ` : ''}
-            ${showLabSubtitle && safeLabSubtitle ? `<p style="margin: 2px 0 0 0; font-size: 10.5px; color: #94a3b8 !important;">${safeLabSubtitle}</p>` : ''}
-            ${showContactInfo ? `<p style="margin: 3px 0 0 0; font-size: 9.5px; color: #64748b !important;">${safeAddress} | ${safePhone}</p>` : ''}
+            ${showLabSubtitle && safeLabSubtitle ? `<p style="margin: 2px 0 0 0; font-size: 10.5px; color: #e2e8f0 !important;">${safeLabSubtitle}</p>` : ''}
+            ${showContactInfo ? `<p style="margin: 3px 0 0 0; font-size: 9.5px; color: #cbd5e1 !important;">${safeAddress} | ${safePhone}</p>` : ''}
           </div>
           <div style="display: flex; gap: 10px; align-items: center; margin-right: 12px;">
             <div style="background: #ffffff; padding: 4px; border-radius: 6px; text-align: center;">
@@ -657,9 +672,9 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
               
             </div>
             ${showDoctorInfo ? `
-              <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); padding: 6px 10px; border-radius: 6px; text-align: left;" dir="ltr">
+              <div style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); padding: 6px 10px; border-radius: 6px; text-align: left;" dir="ltr">
                 <h4 style="font-size: 11px; font-weight: 900; color: #ffffff !important; margin: 0;">${safeDocName}</h4>
-                <p style="font-size: 9px; color: #94a3b8 !important; margin: 1px 0 0 0;">${safeDocTitle}</p>
+                <p style="font-size: 9px; color: #e2e8f0 !important; margin: 1px 0 0 0;">${safeDocTitle}</p>
               </div>
             ` : ''}
           </div>
@@ -689,12 +704,13 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
 
   // Swiss Minimalist Clean
   if (template === 'SWISS_MINIMAL' || template === 'MINIMAL_CLEAN') {
+    const swissCol = settings.headerBgColor || '#0f172a';
     return `
-      <div class="swiss-minimal-header" style="border-bottom: 2.5px solid #0f172a; padding: 12px 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-end; background: #ffffff !important; position: relative; z-index: 1;">
+      <div class="swiss-minimal-header" style="border-bottom: 2.5px solid ${swissCol}; padding: 12px 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-end; background: #ffffff !important; position: relative; z-index: 1;">
         <div style="flex: 1; ${labNameAlignStyle}">
           
           ${showLabName && safeLabName ? `
-            <div style="${getLabNameStyleCss(false, '#0f172a')} margin: 0; letter-spacing: -0.5px;">
+            <div style="${getLabNameStyleCss(false, swissCol)} margin: 0; letter-spacing: -0.5px;">
               ${safeLabName}
             </div>
           ` : ''}
@@ -717,7 +733,7 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
   if (template === 'MULTI_ACCREDITED') {
     return `
       <div class="multi-accredited-header" style="border-radius: 8px; overflow: hidden; margin-bottom: 14px; border: 1px solid #cbd5e1; position: relative; z-index: 1;">
-        <div style="background: ${settings.headerBgColor || primaryCol || '#0c4a6e'} !important; color: #ffffff !important; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="background: ${settings.headerBgColor || primaryCol || '#0c4a6e'} !important; color: #ffffff !important; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
           <div style="flex: 1; ${labNameAlignStyle}">
             ${showLabName && safeLabName ? `<div style="${getLabNameStyleCss(true)} margin-bottom: 2px;">${safeLabName}</div>` : ''}
             ${showLabSubtitle && safeLabSubtitle ? `<div style="font-size: 10.5px; opacity: 0.9; margin-top: 2px;">${safeLabSubtitle}</div>` : ''}
@@ -744,11 +760,12 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
 
   // Bauhaus Modular Grid
   if (template === 'BAUHAUS_GRID') {
+    const bauCol = settings.headerBgColor || '#0f172a';
     return `
-      <div class="bauhaus-grid-header" style="display: grid; grid-template-columns: 2fr 1fr 1fr; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; overflow: hidden; margin-bottom: 14px; position: relative; z-index: 1;">
+      <div class="bauhaus-grid-header" style="display: grid; grid-template-columns: 2fr 1fr 1fr; background: #f8fafc; border: 1.5px solid ${bauCol}; border-radius: 8px; overflow: hidden; margin-bottom: 14px; position: relative; z-index: 1;">
         <div style="padding: 12px 14px; border-left: 1px solid #cbd5e1;">
           <div style="font-size: 9px; color: #64748b; font-weight: 800;">CLINICAL DIAGNOSTIC INSTITUTION</div>
-          ${showLabName && safeLabName ? `<div style="${getLabNameStyleCss(false, '#0f172a')} margin-bottom: 2px;">${safeLabName}</div>` : ''}
+          ${showLabName && safeLabName ? `<div style="${getLabNameStyleCss(false, bauCol)} margin-bottom: 2px;">${safeLabName}</div>` : ''}
           ${showLabSubtitle && safeLabSubtitle ? `<div style="font-size: 10px; color: #475569; margin-top: 2px;">${safeLabSubtitle}</div>` : ''}
           ${showContactInfo ? `<div style="font-size: 9px; color: #94a3b8; margin-top: 2px;">${safeAddress} | ${safePhone}</div>` : ''}
         </div>
@@ -768,13 +785,15 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
 
   // Vertical Spine Accent
   if (template === 'VERTICAL_SPINE') {
+    const spineStart = settings.headerBgColor || primaryCol || '#7c3aed';
+    const spineEnd = settings.secondaryColor || '#4f46e5';
     return `
       <div class="vertical-spine-header" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 14px; display: flex; position: relative; z-index: 1;">
-        <div style="width: 14px; background: linear-gradient(180deg, ${settings.headerBgColor || primaryCol || '#7c3aed'} 0%, #4f46e5 100%) !important;"></div>
+        <div style="width: 14px; background: linear-gradient(180deg, ${spineStart} 0%, ${spineEnd} 100%) !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;"></div>
         <div style="flex: 1; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
           <div style="flex: 1; ${labNameAlignStyle}">
             
-            ${showLabName && safeLabName ? `<div style="${getLabNameStyleCss(false, '#0f172a')} margin-bottom: 2px;">${safeLabName}</div>` : ''}
+            ${showLabName && safeLabName ? `<div style="${getLabNameStyleCss(false, spineStart)} margin-bottom: 2px;">${safeLabName}</div>` : ''}
             ${showLabSubtitle && safeLabSubtitle ? `<div style="font-size: 10px; color: #64748b; margin-top: 2px;">${safeLabSubtitle}</div>` : ''}
             ${showContactInfo ? `<div style="font-size: 9px; color: #94a3b8; margin-top: 2px;">${safeAddress} | ${safePhone}</div>` : ''}
           </div>
@@ -793,8 +812,10 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
 
   // Aurora Fluid Flow
   if (template === 'AURORA_FLOW') {
+    const aurStart = settings.headerBgColor || primaryCol || '#4338ca';
+    const aurEnd = settings.secondaryColor || '#06b6d4';
     return `
-      <div class="aurora-flow-header" style="background: linear-gradient(135deg, ${settings.headerBgColor || primaryCol || '#4338ca'} 0%, #6366f1 50%, #06b6d4 100%) !important; color: #ffffff !important; padding: 14px 18px; border-radius: 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+      <div class="aurora-flow-header" style="background: linear-gradient(135deg, ${aurStart} 0%, #6366f1 50%, ${aurEnd} 100%) !important; color: #ffffff !important; padding: 14px 18px; border-radius: 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
         <div style="flex: 1; ${labNameAlignStyle}">
           
           ${showLabName && safeLabName ? `<div style="${getLabNameStyleCss(true)} margin-bottom: 2px;">${safeLabName}</div>` : ''}
@@ -856,8 +877,10 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
 
   // Executive Luxury Template
   if (template === 'EXECUTIVE' || template === 'EXECUTIVE_LUXURY') {
+    const execStart = settings.headerBgColor || '#0f172a';
+    const execEnd = settings.secondaryColor || '#1e293b';
     return `
-      <div class="executive-header-banner" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important; color: #f8fafc !important; border-bottom: 3.5px solid #b45309 !important; padding: 14px 18px; border-radius: 6px; margin-bottom: 16px; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; overflow: hidden;">
+      <div class="executive-header-banner" style="background: linear-gradient(135deg, ${execStart} 0%, ${execEnd} 100%) !important; color: #f8fafc !important; border-bottom: 3.5px solid #b45309 !important; padding: 14px 18px; border-radius: 6px; margin-bottom: 16px; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; overflow: hidden;">
         ${hasCustomLogo && customAlign === 'center' ? `<div style="text-align: center; margin-bottom: 8px;">${renderCustomLogoBlock()}</div>` : ''}
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
           ${hasCustomLogo && customAlign === 'left' ? `<div style="margin-right: 14px; flex-shrink: 0;">${renderCustomLogoBlock()}</div>` : ''}
@@ -898,8 +921,10 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
 
   // CBC Diagnostic Template
   if (template === 'CBC_DIAGNOSTIC' || template === 'DIAGNOSTIC_ACCENT') {
+    const cbcStart = settings.headerBgColor || '#7f1d1d';
+    const cbcEnd = settings.secondaryColor || '#dc2626';
     return `
-      <div class="cbc-header-banner" style="background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%) !important; color: #ffffff !important; border-bottom: 3px solid #991b1b !important; padding: 14px 18px; border-radius: 8px; margin-bottom: 16px; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; overflow: hidden;">
+      <div class="cbc-header-banner" style="background: linear-gradient(135deg, ${cbcStart} 0%, ${cbcEnd} 100%) !important; color: #ffffff !important; border-bottom: 3px solid ${cbcStart} !important; padding: 14px 18px; border-radius: 8px; margin-bottom: 16px; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; overflow: hidden;">
         ${hasCustomLogo && customAlign === 'center' ? `<div style="text-align: center; margin-bottom: 8px;">${renderCustomLogoBlock()}</div>` : ''}
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
           ${hasCustomLogo && customAlign === 'left' ? `<div style="margin-right: 14px; flex-shrink: 0;">${renderCustomLogoBlock()}</div>` : ''}
@@ -941,8 +966,10 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
 
   // Multi-Section Specialized Template
   if (template === 'SPECIALIZED' || template === 'MULTI_SECTION') {
+    const specStart = settings.headerBgColor || '#881337';
+    const specEnd = settings.secondaryColor || '#e11d48';
     return `
-      <div class="multi-section-header" style="background: linear-gradient(135deg, #881337 0%, #e11d48 100%) !important; color: #ffffff !important; border-bottom: 3px solid #be123c !important; padding: 14px 18px; border-radius: 8px; margin-bottom: 16px; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; overflow: hidden;">
+      <div class="multi-section-header" style="background: linear-gradient(135deg, ${specStart} 0%, ${specEnd} 100%) !important; color: #ffffff !important; border-bottom: 3px solid ${specStart} !important; padding: 14px 18px; border-radius: 8px; margin-bottom: 16px; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; overflow: hidden;">
         ${hasCustomLogo && customAlign === 'center' ? `<div style="text-align: center; margin-bottom: 8px;">${renderCustomLogoBlock()}</div>` : ''}
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
           ${hasCustomLogo && customAlign === 'left' ? `<div style="margin-right: 14px; flex-shrink: 0;">${renderCustomLogoBlock()}</div>` : ''}
@@ -984,15 +1011,16 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
 
   // Royal Classic Template
   if (template === 'ROYAL_CLASSIC') {
+    const royalCol = settings.headerBgColor || primaryCol || '#1e3a8a';
     return `
-      <div class="royal-classic-header" style="border: 2px solid #1e3a8a; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; background: #f8fafc !important; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+      <div class="royal-classic-header" style="border: 2px solid ${royalCol}; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; background: #f8fafc !important; position: relative; z-index: 1; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
         ${hasCustomLogo && customAlign === 'center' ? `<div style="text-align: center; margin-bottom: 8px;">${renderCustomLogoBlock()}</div>` : ''}
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
           ${hasCustomLogo && customAlign === 'left' ? `<div style="margin-right: 14px; flex-shrink: 0;">${renderCustomLogoBlock()}</div>` : ''}
           <div style="flex: 1; ${labNameAlignStyle}">
             
             ${showLabName && safeLabName ? `
-              <div style="${getLabNameStyleCss(false, '#1e3a8a')} margin-bottom: 2px;">
+              <div style="${getLabNameStyleCss(false, royalCol)} margin-bottom: 2px;">
                 ${!hasCustomLogo && settings.logoUrl ? `<img src="${escapeHtml(settings.logoUrl)}" alt="Logo" style="height: ${Math.min(36, labNameFontSize + 8)}px; max-width: 60px; object-fit: contain; margin-left: 8px; vertical-align: middle;" />` : ''}
                 <span style="vertical-align: middle;">${safeLabName}</span>
               </div>
@@ -1007,14 +1035,14 @@ export function renderPrintHeader(params: PrintHeaderParams): string {
 
           <div style="display: flex; gap: 10px; align-items: center; margin-right: 14px;">
             ${qrEnabled && qrPosition === 'HEADER' ? `
-              <div style="background: #ffffff; padding: 4px; border: 1px solid #1e3a8a; border-radius: 6px; display: flex; flex-direction: column; align-items: center;">
+              <div style="background: #ffffff; padding: 4px; border: 1px solid ${royalCol}; border-radius: 6px; display: flex; flex-direction: column; align-items: center;">
                 ${generateQrSvg(verifyUrl, 44)}
-                <div style="font-size: 8px; font-weight: 800; color: #1e3a8a; margin-top: 2px; letter-spacing: 0.5px;">VERIFY</div>
+                <div style="font-size: 8px; font-weight: 800; color: ${royalCol}; margin-top: 2px; letter-spacing: 0.5px;">VERIFY</div>
               </div>
             ` : ''}
             ${showDoctorInfo ? `
-              <div style="background: #ffffff; border: 1.5px solid #1e3a8a; padding: 8px 12px; border-radius: 6px; text-align: left;" dir="ltr">
-                <h4 style="font-size: 12px; font-weight: 900; color: #1e3a8a !important; margin: 0;">${safeDocName || 'Dr. Laboratory Director'}</h4>
+              <div style="background: #ffffff; border: 1.5px solid ${royalCol}; padding: 8px 12px; border-radius: 6px; text-align: left;" dir="ltr">
+                <h4 style="font-size: 12px; font-weight: 900; color: ${royalCol} !important; margin: 0;">${safeDocName || 'Dr. Laboratory Director'}</h4>
                 <p style="font-size: 10px; color: #475569 !important; margin: 2px 0 0 0; font-weight: 600;">${safeDocTitle || 'Consultant Clinical Pathologist'}</p>
                 ${safeLicense ? `<p style="font-size: 9px; color: #64748b !important; margin: 2px 0 0 0;">${safeLicense}</p>` : ''}
               </div>

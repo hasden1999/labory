@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getStore, saveStoreToFile } from '../../../../../lib/serverStore';
+import { getStore, saveStoreToFile, getNextVoucherNumber } from '../../../../../lib/serverStore';
 import { syncSampleToSqlite, deleteSampleTestFromSqlite } from '../../../../../lib/sqliteSync';
 
 export const dynamic = 'force-dynamic';
@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
     const body = await request.json();
-    const { testIds } = body || {};
+    const { testIds, paymentMode = 'DEBT' } = body || {};
 
     if (!testIds || !Array.isArray(testIds) || testIds.length === 0) {
       return NextResponse.json({ message: 'يرجى اختيار فحص واحد على الأقل لإضافته' }, { status: 400 });
@@ -47,17 +47,54 @@ export async function POST(request: Request, { params }: { params: { id: string 
         isAbnormal: false,
         interpretation: null,
         status: 'PENDING',
+        priceAtTime: catTest.price || 0,
+        costAtTime: catTest.costEstimate || 0,
+        refRangeLow: catTest.refRangeLow ?? null,
+        refRangeHigh: catTest.refRangeHigh ?? null,
+        refRangeText: catTest.refRangeText || (catTest.refRangeLow != null && catTest.refRangeHigh != null ? `${catTest.refRangeLow} - ${catTest.refRangeHigh}` : null),
+        unit: catTest.unit || null,
       });
     }
 
     sample.priceTotal = (sample.priceTotal || 0) + addedTotal;
-    sample.remainingAmount = Math.max(0, (sample.remainingAmount || 0) + addedTotal);
-    
+    const now = new Date().toISOString();
+
+    if (paymentMode === 'CASH') {
+      sample.paidAmount = (sample.paidAmount || 0) + addedTotal;
+      sample.remainingAmount = Math.max(0, sample.remainingAmount || 0);
+      (sample as any).isPaid = (sample.remainingAmount || 0) <= 0;
+      sample.paymentStatus = (sample.remainingAmount || 0) <= 0 ? 'PAID' : 'PARTIAL';
+
+      if (addedTotal > 0) {
+        if (!Array.isArray(store.financialTransactions)) {
+          store.financialTransactions = [];
+        }
+        const voucherNumber = getNextVoucherNumber();
+        const addedNames = catalogTests.map(t => t.code || t.name).join('، ');
+        store.financialTransactions.unshift({
+          id: 'ft-addtest-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+          voucherNumber,
+          type: 'INCOME',
+          amount: addedTotal,
+          category: 'إضافة فحص لعينة',
+          description: `قبض فوري لإضافة فحوصات (${addedNames}) للعينة #${sample.sampleNumber} - المريض: ${sample.patient?.name || ''}`,
+          paymentMethod: 'CASH',
+          date: now,
+          sampleId: sample.id,
+          patientId: sample.patientId,
+        });
+      }
+    } else {
+      sample.remainingAmount = Math.max(0, (sample.remainingAmount || 0) + addedTotal);
+      (sample as any).isPaid = false;
+      sample.paymentStatus = (sample.paidAmount || 0) > 0 ? 'PARTIAL' : 'PENDING';
+    }
+
     // If sample was previously ready or delivered, revert to IN_PROGRESS since new pending tests were added
-    if (sample.status === 'READY' || sample.status === 'DELIVERED') {
+    if (sample.status === 'READY' || sample.status === 'DELIVERED' || sample.status === 'COMPLETED') {
       sample.status = 'IN_PROGRESS';
     }
-    (sample as any).updatedAt = new Date().toISOString();
+    (sample as any).updatedAt = now;
 
     // Sync patient recent test metadata
     if (sample.patientId) {
@@ -131,4 +168,3 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     return NextResponse.json({ message: err.message || 'فشل حذف الفحص' }, { status: 500 });
   }
 }
-

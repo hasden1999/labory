@@ -1,0 +1,4148 @@
+import { INITIAL_TESTS_CATALOG, INITIAL_PANELS, INITIAL_DOCTORS } from './catalogData';
+import { DEVICE_PRESETS, DevicePreset } from './devicePresets';
+import { parseDeviceMessage, ParsedAnalyzerMessage, ParsedItem } from './deviceEngine';
+import { calculateConversionMultiplier, roundPriceForCurrency, findCurrency } from './currencies';
+import {
+  loadStoreFromSqlite,
+  syncPatientToSqlite,
+  deletePatientFromSqlite,
+  syncDoctorToSqlite,
+  deleteDoctorFromSqlite,
+  syncSampleToSqlite,
+  deleteSampleFromSqlite,
+  syncSettingsToSqlite,
+  syncExpenseToSqlite,
+  deleteExpenseFromSqlite,
+  syncTestToSqlite,
+  deleteTestFromSqlite,
+  syncPanelToSqlite,
+  deletePanelFromSqlite,
+  syncSpecialtyToSqlite,
+  deleteSpecialtyFromSqlite,
+  syncTestGroupToSqlite,
+  deleteTestGroupFromSqlite,
+  syncTestSpecialtyAssignmentToSqlite,
+} from './sqliteSync';
+import { broadcastEvent } from './networkDeviceManager';
+import { normalizeAgeToBirthDate } from '@lab/domain';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import crypto from 'crypto';
+
+const DATA_DIR = process.env.LABRYO_DATA_DIR
+  ? path.resolve(process.env.LABRYO_DATA_DIR)
+  : (process.env.VERCEL
+      ? path.join('/tmp', 'labryo_data')
+      : path.resolve(process.cwd().includes('apps') ? process.cwd() : path.join(process.cwd(), 'apps', 'web'), 'data'));
+const DATA_FILE = path.join(DATA_DIR, 'lab_store.json');
+
+export function getLocalIpAddress(): string {
+  try {
+    const interfaces = os.networkInterfaces();
+    const fallbackIps: string[] = [];
+
+    for (const name of Object.keys(interfaces)) {
+      const lowerName = name.toLowerCase();
+      const isVirtual = lowerName.includes('vethernet') || lowerName.includes('virtual') || lowerName.includes('wsl');
+
+      for (const iface of interfaces[name] || []) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          if (!isVirtual && (iface.address.startsWith('192.168.') || iface.address.startsWith('10.') || iface.address.startsWith('172.16.'))) {
+            return iface.address;
+          }
+          if (!isVirtual) {
+            fallbackIps.unshift(iface.address);
+          } else {
+            fallbackIps.push(iface.address);
+          }
+        }
+      }
+    }
+
+    if (fallbackIps.length > 0) {
+      return fallbackIps[0];
+    }
+  } catch (e) {
+    console.warn('[ServerStore] Error detecting local IP:', e);
+  }
+  return '127.0.0.1';
+}
+
+export interface LabSettings {
+  labName: string;
+  labSubtitle?: string;
+  address?: string;
+  phone?: string;
+  reportTemplate: 'AZURE_WAVE' | 'EMERALD_WAVE' | 'INDIGO_WAVE' | 'ROYAL_CLASSIC' | 'CLINICAL_FRAME' | 'EXECUTIVE_LUXURY' | 'COMPACT_GRID' | 'MONOCHROME_LASER' | 'CBC_DIAGNOSTIC' | 'MULTI_SECTION' | 'MINIMAL_CLEAN' | 'CLASSIC' | 'MODERN' | 'EXECUTIVE' | 'COMPACT' | 'SPECIALIZED' | 'BLACK_WHITE' | 'BLANK_WHITE' | 'PREPRINTED' | string;
+  headerHeightScale?: number;
+  headerPaddingY?: number;
+  headerMode?: 'DIGITAL' | 'PREPRINTED' | string;
+  customLetterheadUrl?: string;
+  useLetterheadBackground?: boolean;
+  letterheadMode?: 'PREPRINTED' | 'DIGITAL_BACKGROUND';
+  topMarginMm: number; // e.g. 35 for pre-printed letterhead
+  bottomMarginMm: number; // e.g. 25
+  leftMarginMm: number;
+  rightMarginMm: number;
+  primaryColor?: string;
+  doctorLicense?: string;
+  doctorName?: string;
+  doctorTitle?: string;
+  labLicense?: string;
+  whatsappNumber?: string;
+  whatsappAutoSendEnabled?: boolean;
+  autoUpdateEnabled?: boolean;
+  currency?: string;
+  reportHeader?: string;
+  reportFooter?: string;
+  accreditationBadge?: string;
+  enableQrCode: boolean;
+  qrCodePosition?: 'HEADER' | 'FOOTER';
+  defaultDiscountPercent?: number;
+  isConfigured?: boolean;
+  serverBaseUrl?: string; // Optional custom public URL or specific LAN address
+
+  // CBC & Clinical Reporting Flags
+  cbcLayoutTemplate?: string;
+  showPanicFlags?: boolean;
+  showClinicalComments?: boolean;
+  showReferenceRanges?: boolean;
+  installedVersion?: string;
+
+  // Sheet Elements & Watermark Customization
+  showLabName?: boolean;
+  labNameFontSize?: number;
+  labNameColor?: string;
+  labNameAlignment?: 'RIGHT' | 'CENTER' | 'LEFT';
+  labNameStyle?: 'DEFAULT' | 'BOLD' | 'MODERN_BADGE' | 'ELEGANT_BORDER';
+  showLabSubtitle?: boolean;
+  showContactInfo?: boolean;
+  showDoctorInfo?: boolean;
+  showPatientBox?: boolean;
+  showReportBorder?: boolean;
+  showFooter?: boolean;
+  showFooterSignature?: boolean;
+  enableWatermark?: boolean;
+  watermarkType?: 'TEXT' | 'IMAGE';
+  watermarkText?: string;
+  watermarkImage?: string;
+  watermarkOpacity?: number;
+  watermarkAngle?: number;
+  watermarkSize?: number;
+  watermarkColor?: string;
+
+  // Typography Settings
+  fontFamily?: 'Tajawal' | 'Cairo' | 'IBM Plex Sans Arabic' | 'Almarai' | 'System';
+  fontSize?: 'SMALL' | 'MEDIUM' | 'LARGE';
+
+  // Form Design System (Visual Styling & Columns Layout)
+  formBgColor?: string;
+  headerBgColor?: string;
+  headerTextColor?: string;
+  textColor?: string;
+  borderColor?: string;
+  reportTitleFontSize?: number;
+  testNameFontSize?: number;
+  resultValueFontSize?: number;
+  unitFontSize?: number;
+  refRangeFontSize?: number;
+  specialFormFontSize?: number;
+  print_special_form_font_size?: number;
+  patientNameFontSize?: number;
+  patientInfoFontSize?: number;
+  watermarkEnabled?: boolean;
+  testNameFontWeight?: 'normal' | 'bold';
+  resultValueFontWeight?: 'normal' | 'bold';
+  tableColumns?: {
+    id: 'testName' | 'result' | 'unit' | 'refRange' | 'notes' | 'method';
+    label: string;
+    visible: boolean;
+    align: 'left' | 'center' | 'right';
+  }[];
+  groupByCategory?: boolean;
+  groupingStyle?: 'category' | 'specialty';
+  logoWidthMm?: number | null;
+  logoAlign?: 'left' | 'center' | 'right' | null;
+  logoOffsetXMm?: number | null;
+  logoOffsetYMm?: number | null;
+  tableRowBorders?: boolean;
+  tableZebraStriping?: boolean;
+  tableRowSpacing?: 'COMPACT' | 'COMFORTABLE' | 'RELAXED';
+
+  // Flexible Clinical Design Architecture (Indian Diagnostic Standard & Emblems)
+  labEmblem?: 'microscope' | 'tubes' | 'dna' | 'badge' | 'blood' | 'none';
+  emblemPlacement?: 'header_corner' | 'with_logo' | 'watermark' | 'both';
+  secondaryColor?: string;
+  showRangeBar?: boolean;
+  patientLayout?: 'grid' | 'cards' | 'compact';
+  headerStyle?: 'dual_wing' | 'gradient_banner' | 'minimal_pure' | 'regal_box' | 'compact_strip' | 'gold_frame' | 'smart_digital' | 'accredited_badge' | 'bauhaus_grid' | 'aurora_wave' | 'executive_dark' | 'vertical_accent' | 'glass_capsule' | 'default' | string;
+}
+
+export interface LicenseStore {
+  isActivated: boolean;
+  hardwareId: string;
+  licenseKey?: string;
+  tier?: 'TWO_DAYS' | 'WEEKLY' | 'TRIAL' | 'MONTHLY' | 'YEARLY' | 'LIFETIME' | string;
+  expiryDate?: string;
+  activatedAt?: string;
+  labName?: string;
+  firstRunDate?: string;
+  trialExpiresAt?: string;
+  lastClockCheck?: string;
+  maxMonotonicTime?: string;
+  tamperSeal?: string;
+  isTampered?: boolean;
+  isClockTampered?: boolean;
+  trialFinished?: boolean;
+}
+
+export interface PatientRecord {
+  id: string;
+  name: string;
+  phone?: string;
+  age?: number | null;
+  ageMonths?: number | null;
+  ageDays?: number | null;
+  gender: 'MALE' | 'FEMALE';
+  birthDate?: string | null;
+  birthDateEstimated?: boolean | null;
+  referringDoctorId?: string | null;
+  address?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+
+export interface DoctorRecord {
+  id: string;
+  name: string;
+  phone?: string;
+  specialty?: string;
+  commissionPercent: number;
+  clinicAddress?: string;
+  notes?: string;
+  isActive?: boolean;
+  createdAt?: string;
+}
+
+export interface SampleTestRecord {
+  id: string;
+  sampleId: string;
+  testId: string;
+  test: any;
+  resultValue?: string | null;
+  isAbnormal?: boolean;
+  interpretation?: string | null;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  notes?: string;
+  completedAt?: string;
+  previousValue?: string | null;
+  previousDate?: string | null;
+  previousSampleNumber?: number | null;
+  [key: string]: any;
+}
+
+export interface CriticalCallLog {
+  id: string;
+  sampleId: string;
+  testName: string;
+  resultValue: string;
+  physicianName: string;
+  physicianPhone?: string;
+  callerName: string;
+  calledAt: string;
+  readBackConfirmed: boolean;
+  actionTaken?: string;
+  notes?: string;
+}
+
+export interface SampleRecord {
+  id: string;
+  sampleNumber: number;
+  patientId: string;
+  patient: PatientRecord;
+  doctorId?: string | null;
+  doctor?: DoctorRecord | null;
+  doctorCommission?: number;
+  status: 'RECEIVED' | 'IN_PROGRESS' | 'READY' | 'DELIVERED' | 'REJECTED' | 'COMPLETED';
+  isUrgent: boolean;
+  priceTotal: number;
+  discount: number;
+  discountPercent: number;
+  paidAmount: number;
+  remainingAmount: number;
+  paymentStatus?: 'PAID' | 'PARTIAL' | 'PENDING' | string;
+  paymentMethod: 'CASH' | 'DEBT' | 'CARD';
+  notes?: string;
+  rejectionReason?: string | null;
+  rejectionNotes?: string | null;
+  rejectedAt?: string | null;
+  rejectedBy?: string | null;
+  criticalCallLogs?: CriticalCallLog[];
+  reagentAlerts?: { itemId: string; name: string; remainingQuantity: number; minStockLevel: number; unit: string }[];
+  createdAt: string;
+  tests: SampleTestRecord[];
+}
+
+export interface ExpenseRecord {
+  id: string;
+  description: string;
+  amount: number;
+  category: string;
+  createdAt: string;
+  date?: string;
+  staff?: { name: string };
+}
+
+export interface DeviceMappingRecord {
+  id: string;
+  deviceId: string;
+  deviceTestCode: string;
+  deviceTestName: string;
+  testCatalogId: string;
+  testCatalogCode?: string;
+  testCatalogName?: string;
+  unit?: string;
+  multiplier?: number;
+  createdAt: string;
+}
+
+export interface DeviceRecord {
+  id: string;
+  name: string;
+  brand: string;
+  model: string;
+  category: 'CBC' | 'CHEMISTRY' | 'IMMUNOLOGY' | 'URINE' | 'ELECTROLYTES' | 'OTHER';
+  connectionType: 'TCP_IP' | 'SERIAL_PORT' | 'FILE_WATCHER';
+  protocol: 'ASTM_1394' | 'HL7_V2' | 'CSV_DELIMITED' | 'CUSTOM_TEXT';
+  ipAddress?: string | null;
+  port?: number | null;
+  comPort?: string | null;
+  baudRate?: number | null;
+  dataBits?: number | null;
+  stopBits?: number | null;
+  parity?: string | null;
+  apiKey: string;
+  status: 'ONLINE' | 'OFFLINE' | 'BUSY' | 'ERROR';
+  autoMatchSample: boolean;
+  notes?: string;
+  lastCommunication?: string;
+  mappings: DeviceMappingRecord[];
+  createdAt: string;
+}
+
+export interface IncomingResultRecord {
+  id: string;
+  deviceId: string;
+  deviceName: string;
+  protocol: string;
+  sampleBarcode?: string;
+  sampleNumber?: number;
+  patientName?: string;
+  testCode: string;
+  testName?: string;
+  value: string;
+  unit?: string;
+  flags?: string;
+  isAbnormal: boolean;
+  status: 'APPLIED' | 'PENDING' | 'REJECTED' | 'UNMATCHED';
+  matchedSampleId?: string;
+  matchedSampleNumber?: number;
+  matchedTestCatalogId?: string;
+  appliedAt?: string;
+  createdAt: string;
+}
+
+export interface DeviceRawLogRecord {
+  id: string;
+  deviceId: string;
+  direction: 'INBOUND' | 'OUTBOUND';
+  protocol: string;
+  rawPayload: string;
+  summary: string;
+  parsedCount: number;
+  createdAt: string;
+}
+
+export interface DebtorRecord {
+  id: string;
+  name: string;
+  phone?: string | null;
+  notes?: string | null;
+  type: 'PATIENT' | 'SUPPLIER' | 'CLINIC' | 'OTHER';
+  patientId?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface DebtTransactionRecord {
+  id: string;
+  debtorId: string;
+  sampleId?: string | null;
+  type: 'DEBT' | 'PAYMENT';
+  amount: number;
+  paymentMethod?: string;
+  voucherNumber?: number | null;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface CashShiftRecord {
+  id: string;
+  shiftNumber: number;
+  openedById?: string;
+  closedById?: string;
+  openedAt: string;
+  closedAt?: string | null;
+  startingCash: number;
+  expectedCash?: number;
+  actualCash?: number;
+  discrepancy?: number;
+  status: 'OPEN' | 'CLOSED';
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface SpecialtyRecord {
+  id: string;
+  nameEn: string;
+  nameAr?: string | null;
+  sortOrder: number;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  groups?: TestGroupRecord[];
+}
+
+export interface TestGroupRecord {
+  id: string;
+  specialtyId: string;
+  nameEn: string;
+  nameAr?: string | null;
+  sortOrder: number;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ServerStore {
+  tests: any[];
+  panels: any[];
+  doctors: DoctorRecord[];
+  patients: PatientRecord[];
+  samples: SampleRecord[];
+  expenses: ExpenseRecord[];
+  settings: LabSettings;
+  license?: LicenseStore;
+  devices?: DeviceRecord[];
+  deviceMappings?: DeviceMappingRecord[];
+  incomingResults?: IncomingResultRecord[];
+  deviceRawLogs?: DeviceRawLogRecord[];
+  debtors?: DebtorRecord[];
+  debtTransactions?: DebtTransactionRecord[];
+  financialTransactions?: any[];
+  shifts?: CashShiftRecord[];
+  specialties?: SpecialtyRecord[];
+  testGroups?: TestGroupRecord[];
+  inventoryItems?: InventoryItemRecord[];
+  inventoryTransactions?: InventoryTransactionRecord[];
+  staff?: StaffRecord[];
+}
+
+export interface InventoryTransactionRecord {
+  id: string;
+  itemId: string;
+  type: 'IN' | 'OUT' | 'ADJUST' | 'WASTE';
+  quantity: number;
+  reason?: string | null;
+  sampleId?: string | null;
+  createdAt: string;
+}
+
+export interface InventoryItemRecord {
+  id: string;
+  name: string;
+  code?: string | null;
+  catalogCode?: string | null;
+  category: 'REAGENT' | 'CONSUMABLE' | 'CALIBRATOR' | 'CONTROL' | string;
+  unit: string;
+  quantity: number;
+  minStockLevel: number;
+  lotNumber?: string | null;
+  expiryDate?: string | null;
+  openedAt?: string | null;
+  onBoardStabilityDays?: number | null;
+  calculatedStabilityExpiry?: string | null;
+  supplierName?: string | null;
+  costPerUnit?: number | null;
+  isActive?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  transactions?: InventoryTransactionRecord[];
+}
+
+export interface StaffRecord {
+  id: string;
+  name: string;
+  email: string;
+  role: 'ADMIN' | 'RECEPTION' | 'TECH' | 'DOCTOR' | string;
+  phone?: string;
+  active: boolean;
+  createdAt: string;
+}
+
+export function getInitialDevices(): DeviceRecord[] {
+  const now = new Date().toISOString();
+  
+  // 1. Mindray BC-5000 (CBC)
+  const mindrayPreset = DEVICE_PRESETS.find(p => p.id === 'mindray_bc5000');
+  const mindrayMappings: DeviceMappingRecord[] = (mindrayPreset?.defaultMappings || []).map((m, idx) => ({
+    id: `map-bc5000-${idx + 1}`,
+    deviceId: 'dev-mindray-bc5000',
+    deviceTestCode: m.deviceTestCode,
+    deviceTestName: m.deviceTestName,
+    testCatalogId: m.testCatalogCode === 'HB' ? 't-hb' : (m.testCatalogCode === 'PLT' ? 't-plt' : 't-cbc'),
+    testCatalogCode: m.testCatalogCode,
+    testCatalogName: m.testCatalogName,
+    unit: m.unit,
+    multiplier: 1.0,
+    createdAt: now,
+  }));
+
+  const devMindray: DeviceRecord = {
+    id: 'dev-mindray-bc5000',
+    name: 'Mindray BC-5000 (5-Part CBC)',
+    brand: 'Mindray',
+    model: 'BC-5000 Auto Hematology',
+    category: 'CBC',
+    connectionType: 'TCP_IP',
+    protocol: 'HL7_V2',
+    ipAddress: '192.168.1.150',
+    port: 5100,
+    apiKey: crypto.randomBytes(24).toString('hex'),
+    status: 'ONLINE',
+    autoMatchSample: true,
+    notes: 'موصول عبر كابل شبكة LAN مخصص - بروتوكول HL7 v2.3.1 السريع مع تفريق خماسي كريات الدم',
+    lastCommunication: now,
+    mappings: mindrayMappings,
+    createdAt: now,
+  };
+
+  // 2. Roche Cobas c311 (Chemistry)
+  const cobasPreset = DEVICE_PRESETS.find(p => p.id === 'roche_cobas_c111');
+  const cobasMappings: DeviceMappingRecord[] = (cobasPreset?.defaultMappings || []).map((m, idx) => {
+    let catId = 't-fbs';
+    if (m.deviceTestCode.includes('UREA')) catId = 't-urea';
+    else if (m.deviceTestCode.includes('CRE')) catId = 't-creat';
+    else if (m.deviceTestCode.includes('ALT')) catId = 't-gpt';
+    else if (m.deviceTestCode.includes('AST')) catId = 't-got';
+    else if (m.deviceTestCode.includes('CHOL')) catId = 't-chol';
+    else if (m.deviceTestCode.includes('TRIG')) catId = 't-tg';
+    else if (m.deviceTestCode.includes('ALB')) catId = 't-alb';
+
+    return {
+      id: `map-cobas-${idx + 1}`,
+      deviceId: 'dev-roche-cobas-c311',
+      deviceTestCode: m.deviceTestCode,
+      deviceTestName: m.deviceTestName,
+      testCatalogId: catId,
+      testCatalogCode: m.testCatalogCode,
+      testCatalogName: m.testCatalogName,
+      unit: m.unit,
+      multiplier: 1.0,
+      createdAt: now,
+    };
+  });
+
+  const devCobas: DeviceRecord = {
+    id: 'dev-roche-cobas-c311',
+    name: 'Roche Cobas c311 (Clinical Chemistry)',
+    brand: 'Roche Diagnostics',
+    model: 'Cobas c311 Auto Analyzer',
+    category: 'CHEMISTRY',
+    connectionType: 'SERIAL_PORT',
+    protocol: 'ASTM_1394',
+    comPort: 'COM1',
+    baudRate: 9600,
+    dataBits: 8,
+    stopBits: 1,
+    parity: 'none',
+    apiKey: crypto.randomBytes(24).toString('hex'),
+    status: 'ONLINE',
+    autoMatchSample: true,
+    notes: 'موصول عبر كابل سيريال تسلسلي RS-232 COM1 - بروتوكول ASTM E1381/E1394 القياسي لكيمياء الدم',
+    lastCommunication: now,
+    mappings: cobasMappings,
+    createdAt: now,
+  };
+
+  // 3. Biolyte 2000 (Electrolytes)
+  const bioPreset = DEVICE_PRESETS.find(p => p.id === 'biolyte_2000');
+  const bioMappings: DeviceMappingRecord[] = (bioPreset?.defaultMappings || []).map((m, idx) => {
+    let catId = 't-na';
+    if (m.deviceTestCode === 'K') catId = 't-k';
+    else if (m.deviceTestCode === 'Cl') catId = 't-cl';
+
+    return {
+      id: `map-biolyte-${idx + 1}`,
+      deviceId: 'dev-biolyte-2000',
+      deviceTestCode: m.deviceTestCode,
+      deviceTestName: m.deviceTestName,
+      testCatalogId: catId,
+      testCatalogCode: m.testCatalogCode,
+      testCatalogName: m.testCatalogName,
+      unit: m.unit,
+      multiplier: 1.0,
+      createdAt: now,
+    };
+  });
+
+  const devBiolyte: DeviceRecord = {
+    id: 'dev-biolyte-2000',
+    name: 'Biolyte 2000 (Electrolytes ISE)',
+    brand: 'Biolyte',
+    model: 'Biolyte 2000 ISE Analyzer',
+    category: 'ELECTROLYTES',
+    connectionType: 'SERIAL_PORT',
+    protocol: 'ASTM_1394',
+    comPort: 'COM2',
+    baudRate: 9600,
+    dataBits: 8,
+    stopBits: 1,
+    parity: 'none',
+    apiKey: crypto.randomBytes(24).toString('hex'),
+    status: 'ONLINE',
+    autoMatchSample: true,
+    notes: 'محلل شوارد وأملاح الدم الإلكترولايتية (الصوديوم، البوتاسيوم، والكلورايد) عبر COM2',
+    lastCommunication: now,
+    mappings: bioMappings,
+    createdAt: now,
+  };
+
+  return [devMindray, devCobas, devBiolyte];
+}
+
+/**
+ * Ensures all registered devices have genuine, cryptographically secure 48-char hex API keys.
+ * Automatically rotates and replaces any legacy dev_*_live default keys.
+ */
+export function ensureDeviceApiKeys(store: ServerStore): boolean {
+  if (!store || !Array.isArray(store.devices)) return false;
+  let updated = false;
+  for (const device of store.devices) {
+    if (!device.apiKey || (typeof device.apiKey === 'string' && device.apiKey.startsWith('dev_') && device.apiKey.includes('_live'))) {
+      device.apiKey = crypto.randomBytes(24).toString('hex');
+      updated = true;
+    }
+  }
+  return updated;
+}
+
+declare global {
+  var __labStore: ServerStore | undefined;
+}
+
+function initStore(): ServerStore {
+  return {
+    tests: INITIAL_TESTS_CATALOG,
+    panels: INITIAL_PANELS,
+    doctors: INITIAL_DOCTORS,
+    patients: [],
+    samples: [],
+    expenses: [],
+    settings: {
+      labName: '',
+      labSubtitle: 'فحوصات مرضية وتطبيقية دقيقة - تشخيص إلكتروني متكامل ومعتمد',
+      doctorName: '',
+      doctorTitle: 'استشاري التحليلات المرضية والمناعة السريرية',
+      doctorLicense: '',
+      labLicense: '',
+      whatsappNumber: '',
+      whatsappAutoSendEnabled: false,
+      autoUpdateEnabled: true,
+      currency: 'د.ع',
+      address: '',
+      phone: '',
+      reportHeader: '',
+      reportFooter: 'هذا التقرير تم إخراجه وتدقيقه إلكترونياً، ويعتبر معتمداً رسمياً ومطابقاً لمواصفات الجودة المخبرية الدولية (ISO 15189).',
+      headerMode: 'DIGITAL',
+      reportTemplate: 'CLASSIC',
+      topMarginMm: 35,
+      bottomMarginMm: 25,
+      leftMarginMm: 15,
+      rightMarginMm: 15,
+      primaryColor: '#0284c7',
+      accreditationBadge: 'ISO 15189 CERTIFIED',
+      enableQrCode: true,
+      qrCodePosition: 'FOOTER',
+      defaultDiscountPercent: 0,
+      isConfigured: false,
+      serverBaseUrl: '',
+      cbcLayoutTemplate: 'CLASSIC_5PART',
+      showPanicFlags: true,
+      showClinicalComments: true,
+      showReferenceRanges: true,
+      installedVersion: 'v1.1.3',
+      showLabName: true,
+      labNameFontSize: 22,
+      labNameColor: '#0284c7',
+      labNameAlignment: 'RIGHT',
+      labNameStyle: 'DEFAULT',
+      showLabSubtitle: true,
+      showContactInfo: true,
+      showDoctorInfo: true,
+      showPatientBox: true,
+      showReportBorder: true,
+      showFooter: true,
+      showFooterSignature: true,
+      enableWatermark: false,
+      watermarkType: 'TEXT',
+      watermarkText: '',
+      watermarkOpacity: 0.08,
+      watermarkAngle: -30,
+      watermarkSize: 46,
+      watermarkColor: '#0f172a',
+      fontFamily: 'Tajawal',
+      fontSize: 'MEDIUM',
+      groupByCategory: true,
+      groupingStyle: 'specialty',
+      logoWidthMm: null,
+      logoAlign: null,
+      logoOffsetXMm: null,
+      logoOffsetYMm: null,
+    },
+    license: undefined,
+    devices: getInitialDevices(),
+    incomingResults: [],
+    deviceRawLogs: [],
+    debtors: [],
+    debtTransactions: [],
+    specialties: [],
+    testGroups: [],
+  };
+}
+
+const BACKUP_DIR = path.join(DATA_DIR, 'backups');
+
+// -------------------------------------------------------------
+// High-Performance Asynchronous Persistence Layer (Non-blocking I/O)
+// -------------------------------------------------------------
+let saveTimeout: NodeJS.Timeout | null = null;
+let isSaving = false;
+let pendingSave = false;
+
+// Graceful shutdown hooks to guarantee zero data loss
+if (typeof process !== 'undefined') {
+  const handleExit = () => {
+    try {
+      flushStoreSync();
+    } catch {}
+  };
+  process.once('beforeExit', handleExit);
+  process.once('SIGINT', () => { handleExit(); process.exit(0); });
+  process.once('SIGTERM', () => { handleExit(); process.exit(0); });
+}
+
+function renameWithRetrySync(tempFile: string, targetFile: string, maxRetries = 3, delayMs = 50): void {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      fs.renameSync(tempFile, targetFile);
+      return;
+    } catch (err: any) {
+      const isLockError = err?.code === 'EBUSY' || err?.code === 'EPERM' || err?.code === 'EACCES';
+      if (attempt === maxRetries || !isLockError) {
+        throw err;
+      }
+      const end = Date.now() + delayMs * attempt;
+      while (Date.now() < end) {}
+    }
+  }
+}
+
+async function renameWithRetryAsync(tempFile: string, targetFile: string, maxRetries = 3, delayMs = 50): Promise<void> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await fs.promises.rename(tempFile, targetFile);
+      return;
+    } catch (err: any) {
+      const isLockError = err?.code === 'EBUSY' || err?.code === 'EPERM' || err?.code === 'EACCES';
+      if (attempt === maxRetries || !isLockError) {
+        throw err;
+      }
+      await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+    }
+  }
+}
+
+export function flushStoreSync(): void {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+  let tempFile: string | null = null;
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
+
+    if (global.__labStore) {
+      const payload = JSON.stringify(global.__labStore, null, 2);
+      tempFile = `${DATA_FILE}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
+      const bakFile = `${DATA_FILE}.bak`;
+
+      fs.writeFileSync(tempFile, payload, 'utf-8');
+      if (fs.existsSync(DATA_FILE)) {
+        try { fs.copyFileSync(DATA_FILE, bakFile); } catch {}
+      }
+      renameWithRetrySync(tempFile, DATA_FILE);
+      tempFile = null;
+      rotateDailySnapshot(payload);
+    }
+  } catch (err) {
+    console.error('[ServerStore] Synchronous flush error:', err);
+    if (tempFile && fs.existsSync(tempFile)) {
+      try { fs.unlinkSync(tempFile); } catch {}
+    }
+  }
+}
+
+async function executeAsyncSave(): Promise<void> {
+  if (isSaving) {
+    pendingSave = true;
+    return;
+  }
+  isSaving = true;
+
+  let tempFile: string | null = null;
+  try {
+    if (!fs.existsSync(DATA_DIR)) await fs.promises.mkdir(DATA_DIR, { recursive: true });
+    if (!fs.existsSync(BACKUP_DIR)) await fs.promises.mkdir(BACKUP_DIR, { recursive: true });
+
+    if (global.__labStore) {
+      const payload = JSON.stringify(global.__labStore, null, 2);
+      tempFile = `${DATA_FILE}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
+      const bakFile = `${DATA_FILE}.bak`;
+
+      await fs.promises.writeFile(tempFile, payload, 'utf-8');
+      if (fs.existsSync(DATA_FILE)) {
+        try { await fs.promises.copyFile(DATA_FILE, bakFile); } catch {}
+      }
+      await renameWithRetryAsync(tempFile, DATA_FILE);
+      tempFile = null;
+      rotateDailySnapshot(payload);
+    }
+  } catch (err) {
+    console.error('[ServerStore] Async persistence error:', err);
+    if (tempFile && fs.existsSync(tempFile)) {
+      try { await fs.promises.unlink(tempFile); } catch {}
+    }
+  } finally {
+    isSaving = false;
+    if (pendingSave) {
+      pendingSave = false;
+      scheduleSaveStore(50);
+    }
+  }
+}
+
+export async function flushStoreAsync(): Promise<void> {
+  return executeAsyncSave();
+}
+
+export function scheduleSaveStore(delayMs = 250): void {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    saveTimeout = null;
+    executeAsyncSave().catch((e) => console.error('[ServerStore] Unhandled async save:', e));
+  }, delayMs);
+}
+
+// Backward-compatible saveStoreToFile: now non-blocking by default (0ms latency for HTTP requests)
+export function saveStoreToFile(forceSync = false): void {
+  if (forceSync) {
+    flushStoreSync();
+  } else {
+    scheduleSaveStore(250);
+  }
+}
+
+// Helper: automatic daily snapshot rotation
+function rotateDailySnapshot(payload: string) {
+  try {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todaySnapshot = path.join(BACKUP_DIR, `auto_snapshot_${todayStr}.json`);
+
+    if (!fs.existsSync(todaySnapshot)) {
+      fs.writeFileSync(todaySnapshot, payload, 'utf-8');
+      console.log(`[ServerStore] Daily auto-snapshot created: ${todaySnapshot}`);
+
+      // Prune snapshots if count > 30
+      const files = fs.readdirSync(BACKUP_DIR)
+        .filter(f => f.endsWith('.json'))
+        .map(f => ({
+          name: f,
+          path: path.join(BACKUP_DIR, f),
+          time: fs.statSync(path.join(BACKUP_DIR, f)).mtime.getTime(),
+        }))
+        .sort((a, b) => b.time - a.time);
+
+      if (files.length > 30) {
+        files.slice(30).forEach(f => {
+          try { fs.unlinkSync(f.path); } catch {}
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ServerStore] Snapshot rotation warning:', e);
+  }
+}
+
+// Multi-layered recovery: Primary -> .bak -> Backups folder -> Never wipe data
+export function loadStoreFromFile(): ServerStore | null {
+  // Step 1: Try reading primary DATA_FILE
+  if (fs.existsSync(DATA_FILE)) {
+    try {
+      const content = fs.readFileSync(DATA_FILE, 'utf-8');
+      if (content && content.trim().length > 0) {
+        const parsed = JSON.parse(content);
+        if (parsed && Array.isArray(parsed.patients) && Array.isArray(parsed.samples)) {
+          if (!Array.isArray(parsed.expenses)) parsed.expenses = [];
+          return parsed;
+        }
+      }
+    } catch (err: any) {
+      console.error('[ServerStore] Primary DATA_FILE corrupted! Initiating emergency recovery...', err?.message);
+      try {
+        const corruptArchive = path.join(DATA_DIR, `lab_store_corrupt_${Date.now()}.json`);
+        fs.copyFileSync(DATA_FILE, corruptArchive);
+        console.log(`[ServerStore] Corrupted file preserved at: ${corruptArchive}`);
+      } catch {}
+    }
+  }
+
+  // Step 2: Emergency fallback to .bak file
+  const bakFile = `${DATA_FILE}.bak`;
+  if (fs.existsSync(bakFile)) {
+    try {
+      console.warn('[ServerStore] Attempting restore from .bak file...');
+      const bakContent = fs.readFileSync(bakFile, 'utf-8');
+      const parsed = JSON.parse(bakContent);
+      if (parsed && Array.isArray(parsed.patients) && Array.isArray(parsed.samples)) {
+        if (!Array.isArray(parsed.expenses)) parsed.expenses = [];
+        fs.writeFileSync(DATA_FILE, bakContent, 'utf-8');
+        console.log('[ServerStore] Successfully recovered database from .bak!');
+        return parsed;
+      }
+    } catch (e) {}
+  }
+
+  // Step 3: Emergency fallback to latest snapshot in backups/
+  if (fs.existsSync(BACKUP_DIR)) {
+    try {
+      const snapshots = fs.readdirSync(BACKUP_DIR)
+        .filter(f => f.endsWith('.json'))
+        .map(f => ({
+          path: path.join(BACKUP_DIR, f),
+          time: fs.statSync(path.join(BACKUP_DIR, f)).mtime.getTime(),
+        }))
+        .sort((a, b) => b.time - a.time);
+
+      for (const snap of snapshots) {
+        try {
+          const snapContent = fs.readFileSync(snap.path, 'utf-8');
+          const parsed = JSON.parse(snapContent);
+          if (parsed && Array.isArray(parsed.patients) && Array.isArray(parsed.samples)) {
+            if (Array.isArray(parsed.tests) && parsed.tests.length < 140) {
+              console.warn(`[ServerStore] Skipping snapshot ${snap.path} because it contains only ${parsed.tests.length} tests (< 140).`);
+              continue;
+            }
+            if (!Array.isArray(parsed.expenses)) parsed.expenses = [];
+            fs.writeFileSync(DATA_FILE, snapContent, 'utf-8');
+            console.log(`[ServerStore] Successfully recovered database from snapshot: ${snap.path}`);
+            return parsed;
+          }
+        } catch {}
+      }
+    } catch (e) {}
+  }
+
+  // Step 4: Fallback to bundled seed lab_store.json (e.g. on Vercel or fresh installation)
+  const bundledCandidates = [
+    path.resolve(process.cwd().includes('apps') ? process.cwd() : path.join(process.cwd(), 'apps', 'web'), 'data', 'lab_store.json'),
+    path.resolve(process.cwd(), 'data', 'lab_store.json'),
+    path.resolve(process.cwd(), 'apps', 'web', 'data', 'lab_store.json'),
+    path.join(__dirname, '..', '..', '..', 'data', 'lab_store.json'),
+  ];
+
+  for (const seedPath of bundledCandidates) {
+    if (fs.existsSync(seedPath) && seedPath !== DATA_FILE) {
+      try {
+        const seedContent = fs.readFileSync(seedPath, 'utf-8');
+        const parsed = JSON.parse(seedContent);
+        if (parsed && Array.isArray(parsed.tests) && parsed.tests.length >= 140) {
+          if (!Array.isArray(parsed.expenses)) parsed.expenses = [];
+          try {
+            if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+            fs.writeFileSync(DATA_FILE, seedContent, 'utf-8');
+          } catch {}
+          console.log(`[ServerStore] Successfully hydrated store from bundled seed: ${seedPath} (${parsed.tests.length} tests)`);
+          return parsed;
+        }
+      } catch (e) {}
+    }
+  }
+
+  return null;
+}
+
+let sqliteSyncTriggered = false;
+
+export function triggerSqliteSync(): void {
+  if (sqliteSyncTriggered) return;
+  sqliteSyncTriggered = true;
+  loadStoreFromSqlite().then((fromSqlite) => {
+    if (fromSqlite && fromSqlite.tests && fromSqlite.tests.length > 0) {
+      const existingSettings = global.__labStore?.settings || loadStoreFromFile()?.settings || {};
+      const existingLicense = global.__labStore?.license || loadStoreFromFile()?.license;
+      if ((existingSettings as any)?.labLicense === 'MOH-IQ-2026-8842') (existingSettings as any).labLicense = '';
+      if (fromSqlite.settings?.labLicense === 'MOH-IQ-2026-8842') fromSqlite.settings.labLicense = '';
+      fromSqlite.settings = { ...existingSettings, ...fromSqlite.settings };
+      if (fromSqlite.settings?.labLicense === 'MOH-IQ-2026-8842') fromSqlite.settings.labLicense = '';
+      if (existingLicense) {
+        fromSqlite.license = existingLicense;
+      }
+      const existingStore = global.__labStore || loadStoreFromFile();
+      if (existingStore?.devices?.length) fromSqlite.devices = existingStore.devices;
+      if (existingStore?.inventoryItems?.length) fromSqlite.inventoryItems = existingStore.inventoryItems;
+      if (existingStore?.inventoryTransactions?.length) fromSqlite.inventoryTransactions = existingStore.inventoryTransactions;
+      if (existingStore?.staff?.length) fromSqlite.staff = existingStore.staff;
+      if (existingStore?.debtors?.length) fromSqlite.debtors = existingStore.debtors;
+      if (existingStore?.debtTransactions?.length) fromSqlite.debtTransactions = existingStore.debtTransactions;
+      if (existingStore?.shifts?.length) fromSqlite.shifts = existingStore.shifts;
+      if (existingStore?.incomingResults?.length) fromSqlite.incomingResults = existingStore.incomingResults;
+      if (existingStore?.deviceRawLogs?.length) fromSqlite.deviceRawLogs = existingStore.deviceRawLogs;
+      global.__labStore = fromSqlite;
+      console.log(`💎 [ServerStore] Authoritative state active from SQLite lab.db (${fromSqlite.tests.length} tests)`);
+      try {
+        saveStoreToFile();
+      } catch {}
+    }
+  }).catch((e) => console.warn('[ServerStore] SQLite load warning:', e?.message));
+}
+
+// Eagerly initiate SQLite database load
+triggerSqliteSync();
+
+export async function getStoreAsync(): Promise<ServerStore> {
+  if (!global.__labStore || !global.__labStore.tests || global.__labStore.tests.length === 0) {
+    const fromSqlite = await loadStoreFromSqlite();
+    if (fromSqlite) {
+      const existingSettings = global.__labStore?.settings || loadStoreFromFile()?.settings || {};
+      const existingLicense = global.__labStore?.license || loadStoreFromFile()?.license;
+      if ((existingSettings as any)?.labLicense === 'MOH-IQ-2026-8842') (existingSettings as any).labLicense = '';
+      if (fromSqlite.settings?.labLicense === 'MOH-IQ-2026-8842') fromSqlite.settings.labLicense = '';
+      fromSqlite.settings = { ...existingSettings, ...fromSqlite.settings };
+      if (fromSqlite.settings?.labLicense === 'MOH-IQ-2026-8842') fromSqlite.settings.labLicense = '';
+      if (existingLicense) {
+        fromSqlite.license = existingLicense;
+      }
+      const existingStore = global.__labStore || loadStoreFromFile();
+      if (existingStore?.devices?.length) fromSqlite.devices = existingStore.devices;
+      if (existingStore?.inventoryItems?.length) fromSqlite.inventoryItems = existingStore.inventoryItems;
+      if (existingStore?.inventoryTransactions?.length) fromSqlite.inventoryTransactions = existingStore.inventoryTransactions;
+      if (existingStore?.staff?.length) fromSqlite.staff = existingStore.staff;
+      if (existingStore?.debtors?.length) fromSqlite.debtors = existingStore.debtors;
+      if (existingStore?.debtTransactions?.length) fromSqlite.debtTransactions = existingStore.debtTransactions;
+      if (existingStore?.shifts?.length) fromSqlite.shifts = existingStore.shifts;
+      if (existingStore?.incomingResults?.length) fromSqlite.incomingResults = existingStore.incomingResults;
+      if (existingStore?.deviceRawLogs?.length) fromSqlite.deviceRawLogs = existingStore.deviceRawLogs;
+      global.__labStore = fromSqlite;
+    }
+  }
+  return getStore();
+}
+
+export function getStore(): ServerStore {
+  triggerSqliteSync();
+  if (!global.__labStore) {
+    const fromFile = loadStoreFromFile();
+    if (fromFile) {
+      if (fromFile.settings) {
+        if (fromFile.settings.labName && fromFile.settings.labName.trim().length > 0) {
+          fromFile.settings.isConfigured = true;
+          if (fromFile.settings.labLicense === 'MOH-IQ-2026-8842') fromFile.settings.labLicense = '';
+        }
+      }
+      global.__labStore = fromFile;
+    } else {
+      global.__labStore = initStore();
+      saveStoreToFile();
+    }
+  }
+  if (!Array.isArray(global.__labStore.expenses)) {
+    global.__labStore.expenses = [];
+  }
+  if (!Array.isArray(global.__labStore.devices) || global.__labStore.devices.length === 0) {
+    global.__labStore.devices = getInitialDevices();
+  }
+  const rotated = ensureDeviceApiKeys(global.__labStore);
+  if (rotated) {
+    try {
+      saveStoreToFile();
+    } catch {}
+  }
+  if (!Array.isArray(global.__labStore.incomingResults)) {
+    global.__labStore.incomingResults = [];
+  }
+  if (!Array.isArray(global.__labStore.deviceRawLogs)) {
+    global.__labStore.deviceRawLogs = [];
+  }
+  if (!Array.isArray(global.__labStore.debtors)) {
+    global.__labStore.debtors = [];
+  }
+  if (!Array.isArray(global.__labStore.debtTransactions)) {
+    global.__labStore.debtTransactions = [];
+  }
+
+  // Ensure all tests from INITIAL_TESTS_CATALOG are present in tests catalog
+  // (dedupe by id AND code — item 3: never create duplicates)
+  const currentStore = global.__labStore;
+  if (currentStore && Array.isArray(currentStore.tests) && !(currentStore as any).__catalogHydrated) {
+    Object.defineProperty(currentStore, '__catalogHydrated', { value: true, enumerable: false, configurable: true, writable: true });
+    if (!Array.isArray(currentStore.inventoryItems) || currentStore.inventoryItems.length === 0) {
+      currentStore.inventoryItems = getInitialInventoryItems();
+    }
+    if (!Array.isArray(currentStore.inventoryTransactions)) {
+      currentStore.inventoryTransactions = [];
+    }
+    if (!Array.isArray(currentStore.staff) || currentStore.staff.length === 0) {
+      currentStore.staff = getInitialStaff();
+    }
+    let storeUpdated = false;
+    INITIAL_TESTS_CATALOG.forEach(catalogItem => {
+      const found = currentStore.tests.find((t: any) => t.id === catalogItem.id || (t.code && catalogItem.code && t.code === catalogItem.code));
+      if (!found) {
+        currentStore.tests.push(catalogItem);
+        storeUpdated = true;
+      } else {
+        let touched = false;
+        if ((catalogItem as any).loincCode && !(found as any).loincCode) { (found as any).loincCode = (catalogItem as any).loincCode; touched = true; }
+        // Sync reference ranges/sources for guideline-verified tests (item 5/9) without overwriting prices
+        const syncKeys = ['refRangeLow','refRangeHigh','normalMaleLow','normalMaleHigh','normalFemaleLow','normalFemaleHigh','refRangeText','normalRange','unit','referenceSource','isCalculated','sampleType'] as const;
+        for (const k of syncKeys) {
+          const cv = (catalogItem as any)[k];
+          if (cv !== undefined && cv !== null && (found as any)[k] !== cv) {
+            // Only auto-sync when catalog carries an authoritative value (non-null) to avoid wiping custom edits with nulls
+            (found as any)[k] = cv;
+            touched = true;
+          }
+        }
+        // Authoritative sync for structured reference ranges (e.g. Male 35-80, Female 40-80)
+        if (Array.isArray((catalogItem as any).referenceRanges) && (catalogItem as any).referenceRanges.length > 0) {
+          if (!Array.isArray((found as any).referenceRanges) || (found as any).referenceRanges.length === 0) {
+            (found as any).referenceRanges = JSON.parse(JSON.stringify((catalogItem as any).referenceRanges));
+            touched = true;
+          }
+        }
+        // Ensure calculated tests stay free (item 9: add nothing to price/revenue)
+        if ((catalogItem as any).isCalculated && (found as any).price !== 0) {
+          (found as any).price = 0;
+          touched = true;
+        }
+        if (touched) storeUpdated = true;
+      }
+    });
+
+    // Ensure demo seed doctors (doc-1 through doc-4) are purged from active list
+    if (Array.isArray(currentStore.doctors)) {
+      const demoDoctorIds = new Set(['doc-1', 'doc-2', 'doc-3', 'doc-4']);
+      const beforeDocCount = currentStore.doctors.length;
+      currentStore.doctors = currentStore.doctors.filter((d) => !demoDoctorIds.has(d.id));
+      if (currentStore.doctors.length !== beforeDocCount) {
+        storeUpdated = true;
+      }
+    }
+
+    // Ensure only canonical diagnostic panels and user custom panels exist
+    if (Array.isArray(currentStore.panels)) {
+      const canonicalIds = new Set(INITIAL_PANELS.map((p) => p.id));
+      const beforeCount = currentStore.panels.length;
+      currentStore.panels = currentStore.panels.filter((p: any) => {
+        if (!p || !p.id) return false;
+        if (canonicalIds.has(p.id)) return true;
+        if (String(p.id).startsWith('panel_')) return true;
+        return false;
+      });
+      if (currentStore.panels.length !== beforeCount) {
+        storeUpdated = true;
+      }
+
+      INITIAL_PANELS.forEach((panelItem) => {
+        const foundIndex = currentStore.panels.findIndex((p: any) => p.id === panelItem.id);
+        const canonicalTestIds = Array.from(new Set(panelItem.testIds || []));
+        if (foundIndex === -1) {
+          currentStore.panels.push({
+            ...panelItem,
+            testIds: canonicalTestIds,
+            items: canonicalTestIds.map((tId: string) => ({
+              panelId: panelItem.id,
+              testId: tId,
+              test: currentStore.tests.find((t: any) => t.id === tId),
+            })),
+          });
+          storeUpdated = true;
+        } else {
+          const existing = currentStore.panels[foundIndex];
+          const currentTestIds = Array.isArray(existing.testIds) ? existing.testIds : [];
+          if (
+            canonicalTestIds.length !== currentTestIds.length ||
+            canonicalTestIds.some((id, idx) => id !== currentTestIds[idx])
+          ) {
+            existing.testIds = canonicalTestIds;
+            existing.items = canonicalTestIds.map((tId: string) => ({
+              panelId: existing.id,
+              testId: tId,
+              test: currentStore.tests.find((t: any) => t.id === tId),
+            }));
+            storeUpdated = true;
+          }
+        }
+      });
+
+      // Deduplicate testIds in custom user panels
+      currentStore.panels.forEach((p: any) => {
+        if (p && String(p.id).startsWith('panel_') && Array.isArray(p.testIds)) {
+          const uniqueIds = Array.from(new Set(p.testIds.map(String)));
+          if (uniqueIds.length !== p.testIds.length) {
+            p.testIds = uniqueIds;
+            p.items = uniqueIds.map((tId: string) => ({
+              panelId: p.id,
+              testId: tId,
+              test: currentStore.tests.find((t: any) => t.id === tId),
+            }));
+            storeUpdated = true;
+          }
+        }
+      });
+    }
+
+    if (storeUpdated) {
+      saveStoreToFile();
+    }
+
+    // Self-Healing: Ensure every patient referenced in samples exists in patients array
+    if (Array.isArray(currentStore.samples) && Array.isArray(currentStore.patients)) {
+      const pMap = new Set(currentStore.patients.map((p: any) => p?.id));
+      let patientsAdded = false;
+      for (const s of currentStore.samples) {
+        const pId = s.patientId || s.patient?.id;
+        if (pId && !pMap.has(pId) && s.patient) {
+          const newP = {
+            id: pId,
+            name: s.patient.name || 'مريض',
+            phone: s.patient.phone || '',
+            age: s.patient.age ?? null,
+            gender: s.patient.gender || 'MALE',
+            address: s.patient.address || '',
+            notes: s.patient.notes || '',
+            createdAt: s.patient.createdAt || s.createdAt || new Date().toISOString(),
+            updatedAt: s.patient.updatedAt || s.createdAt || new Date().toISOString(),
+          };
+          currentStore.patients.push(newP);
+          pMap.add(pId);
+          patientsAdded = true;
+        }
+      }
+      if (patientsAdded) {
+        saveStoreToFile();
+      }
+    }
+  }
+
+  return global.__labStore!;
+}
+
+// -------------------------------------------------------------
+// Backup & Restore Engine
+// -------------------------------------------------------------
+
+export function createBackupSnapshot(label?: string): string {
+  if (!fs.existsSync(BACKUP_DIR)) {
+    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+  }
+  const store = getStore();
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const cleanLabel = label ? `_${label.replace(/[^a-zA-Z0-9_-]/g, '')}` : '';
+  const fileName = `manual_backup_${timestamp}${cleanLabel}.json`;
+  const destPath = path.join(BACKUP_DIR, fileName);
+
+  const payload = JSON.stringify(store, null, 2);
+  fs.writeFileSync(destPath, payload, 'utf-8');
+  pruneBackupSnapshots(15);
+  return fileName;
+}
+
+export function pruneBackupSnapshots(maxKeep = 15): number {
+  if (!fs.existsSync(BACKUP_DIR)) return 0;
+  try {
+    const files = fs.readdirSync(BACKUP_DIR)
+      .filter(f => f.endsWith('.json'))
+      .map(f => {
+        const fullPath = path.join(BACKUP_DIR, f);
+        try {
+          return { name: f, path: fullPath, time: fs.statSync(fullPath).mtime.getTime() };
+        } catch {
+          return null;
+        }
+      })
+      .filter((item): item is { name: string; path: string; time: number } => item !== null)
+      .sort((a, b) => b.time - a.time);
+
+    let removed = 0;
+    if (files.length > maxKeep) {
+      const toDelete = files.slice(maxKeep);
+      for (const file of toDelete) {
+        try {
+          fs.unlinkSync(file.path);
+          removed++;
+        } catch {}
+      }
+    }
+
+    // Also clean up older corrupt dumps in DATA_DIR if any
+    if (fs.existsSync(DATA_DIR)) {
+      const corruptFiles = fs.readdirSync(DATA_DIR)
+        .filter(f => f.startsWith('lab_store_corrupt_') && f.endsWith('.json'))
+        .map(f => path.join(DATA_DIR, f));
+      if (corruptFiles.length > 3) {
+        for (const cf of corruptFiles.slice(3)) {
+          try { fs.unlinkSync(cf); } catch {}
+        }
+      }
+    }
+
+    return removed;
+  } catch {
+    return 0;
+  }
+}
+
+export function listBackupSnapshots() {
+  if (!fs.existsSync(BACKUP_DIR)) {
+    return [];
+  }
+  return fs.readdirSync(BACKUP_DIR)
+    .filter(f => f.endsWith('.json'))
+    .map(f => {
+      const fullPath = path.join(BACKUP_DIR, f);
+      const stat = fs.statSync(fullPath);
+      return {
+        fileName: f,
+        sizeBytes: stat.size,
+        createdAt: stat.mtime.toISOString(),
+      };
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+export function restoreBackupFromFile(jsonContent: string): { success: boolean; message: string } {
+  try {
+    const parsed = JSON.parse(jsonContent);
+    if (!parsed || !Array.isArray(parsed.patients) || !Array.isArray(parsed.samples) || !parsed.settings) {
+      return { success: false, message: 'ملف النسخة الاحتياطية غير صالح أو بنيته غير مطابقة للنظام' };
+    }
+
+    // Safety snapshot of current state before overwrite
+    createBackupSnapshot('pre_restore_safety');
+
+    // Apply restored store
+    global.__labStore = parsed;
+    saveStoreToFile();
+
+    return {
+      success: true,
+      message: `تم استعادة النسخة الاحتياطية بنجاح! تم استرجاع (${parsed.patients.length}) مريض و(${parsed.samples.length}) عينة فحص.`,
+    };
+  } catch (err: any) {
+    return { success: false, message: 'فشل استرجاع النسخة الاحتياطية: ' + (err?.message || 'خطأ غير معروف') };
+  }
+}
+
+// -------------------------------------------------------------
+// License Store Helpers
+// -------------------------------------------------------------
+
+export function getLicenseStore(): LicenseStore | null {
+  const store = getStore();
+  return store.license || null;
+}
+
+export function updateLicenseStore(lic: Partial<LicenseStore>): LicenseStore {
+  const store = getStore();
+  const current = store.license || {
+    isActivated: false,
+    hardwareId: '',
+  };
+  const updated: LicenseStore = {
+    ...current,
+    ...lic,
+  };
+  store.license = updated;
+  saveStoreToFile();
+  return updated;
+}
+
+
+// -------------------------------------------------------------
+// Patients CRUD Helpers
+// -------------------------------------------------------------
+
+export function findPatient(idOrPhone: string): PatientRecord | undefined {
+  const store = getStore();
+  return store.patients.find(p => p.id === idOrPhone || p.phone === idOrPhone);
+}
+
+export function addPatient(data: Partial<PatientRecord> & { name: string; gender?: 'MALE' | 'FEMALE' }): PatientRecord {
+  const store = getStore();
+  const newPatient: PatientRecord = {
+    id: data.id || `pat-${Date.now()}`,
+    name: data.name.trim(),
+    phone: data.phone?.trim() || '',
+    age: data.age !== undefined && data.age !== null ? Number(data.age) : null,
+    ageMonths: data.ageMonths !== undefined && data.ageMonths !== null ? Number(data.ageMonths) : null,
+    ageDays: data.ageDays !== undefined && data.ageDays !== null ? Number(data.ageDays) : null,
+    gender: data.gender || 'MALE',
+    birthDate: data.birthDate ? String(data.birthDate) : null,
+    birthDateEstimated: data.birthDateEstimated != null ? Boolean(data.birthDateEstimated) : null,
+    referringDoctorId: data.referringDoctorId ? String(data.referringDoctorId) : null,
+    address: data.address || '',
+    notes: data.notes || '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  store.patients.unshift(newPatient);
+  saveStoreToFile();
+  syncPatientToSqlite(newPatient).catch((e) => console.warn('[SqliteSync] addPatient error:', e?.message));
+  broadcastEvent('PATIENT', 'CREATE', newPatient.id, { name: newPatient.name });
+  return newPatient;
+}
+
+export function updatePatient(id: string, data: Partial<PatientRecord>): PatientRecord | null {
+  const store = getStore();
+  const index = store.patients.findIndex(p => p.id === id);
+  if (index === -1) return null;
+  const updated: PatientRecord = {
+    ...store.patients[index],
+    ...data,
+    updatedAt: new Date().toISOString(),
+  };
+  store.patients[index] = updated;
+
+  // Also sync in-memory patient in existing samples
+  store.samples.forEach(s => {
+    if (s.patientId === id) {
+      s.patient = { ...s.patient, ...updated };
+    }
+  });
+
+  saveStoreToFile();
+  syncPatientToSqlite(updated).catch((e) => console.warn('[SqliteSync] updatePatient error:', e?.message));
+  broadcastEvent('PATIENT', 'UPDATE', updated.id, { name: updated.name });
+  return updated;
+}
+
+export function deletePatient(id: string): boolean {
+  const store = getStore();
+  const index = store.patients.findIndex(p => p.id === id);
+  if (index === -1) return false;
+  store.patients.splice(index, 1);
+  saveStoreToFile();
+  deletePatientFromSqlite(id).catch((e) => console.warn('[SqliteSync] deletePatient error:', e?.message));
+  broadcastEvent('PATIENT', 'DELETE', id);
+  return true;
+}
+
+export function createTestInStore(data: any): any {
+  const store = getStore();
+  const id = data.id || `test_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const newTest = {
+    id,
+    code: data.code || null,
+    name: data.name,
+    arabicName: data.arabicName || null,
+    category: data.category || 'عام',
+    price: Number(data.price) || 0,
+    costEstimate: data.costEstimate !== undefined && data.costEstimate !== null ? Number(data.costEstimate) : 0,
+    refRangeLow: data.refRangeLow !== undefined && data.refRangeLow !== null && data.refRangeLow !== '' ? Number(data.refRangeLow) : null,
+    refRangeHigh: data.refRangeHigh !== undefined && data.refRangeHigh !== null && data.refRangeHigh !== '' ? Number(data.refRangeHigh) : null,
+    normalMaleLow: data.normalMaleLow !== undefined && data.normalMaleLow !== null && data.normalMaleLow !== '' ? Number(data.normalMaleLow) : null,
+    normalMaleHigh: data.normalMaleHigh !== undefined && data.normalMaleHigh !== null && data.normalMaleHigh !== '' ? Number(data.normalMaleHigh) : null,
+    normalFemaleLow: data.normalFemaleLow !== undefined && data.normalFemaleLow !== null && data.normalFemaleLow !== '' ? Number(data.normalFemaleLow) : null,
+    normalFemaleHigh: data.normalFemaleHigh !== undefined && data.normalFemaleHigh !== null && data.normalFemaleHigh !== '' ? Number(data.normalFemaleHigh) : null,
+    criticalLow: data.criticalLow !== undefined && data.criticalLow !== null && data.criticalLow !== '' ? Number(data.criticalLow) : null,
+    criticalHigh: data.criticalHigh !== undefined && data.criticalHigh !== null && data.criticalHigh !== '' ? Number(data.criticalHigh) : null,
+    refRangeText: data.refRangeText ? String(data.refRangeText).trim() : null,
+    unit: data.unit ? String(data.unit).trim() : null,
+    sampleType: data.sampleType || 'مصل الدم (Serum)',
+    active: data.active !== undefined ? Boolean(data.active) : true,
+    referenceSource: data.referenceSource || null,
+    isCalculated: data.isCalculated !== undefined ? Boolean(data.isCalculated) : false,
+    referenceRanges: data.referenceRanges || [],
+    specialtyId: data.specialtyId || null,
+    groupId: data.groupId || null,
+    sortOrder: data.sortOrder !== undefined && data.sortOrder !== null ? Number(data.sortOrder) : null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (!newTest.refRangeText && (newTest.refRangeLow !== null || newTest.refRangeHigh !== null)) {
+    if (newTest.refRangeLow !== null && newTest.refRangeHigh !== null) {
+      newTest.refRangeText = `${newTest.refRangeLow} - ${newTest.refRangeHigh}`;
+    } else if (newTest.refRangeLow !== null) {
+      newTest.refRangeText = `>= ${newTest.refRangeLow}`;
+    } else if (newTest.refRangeHigh !== null) {
+      newTest.refRangeText = `<= ${newTest.refRangeHigh}`;
+    }
+  }
+
+  store.tests.push(newTest);
+  saveStoreToFile();
+  syncTestToSqlite(newTest).catch((e) => console.warn('[SqliteSync] createTest error:', e?.message));
+  return newTest;
+}
+
+export function updateTestInStore(id: string, data: any): any | null {
+  const store = getStore();
+  const index = store.tests.findIndex(t => t.id === id || (t.code && String(t.code).trim().toUpperCase() === String(id).trim().toUpperCase()));
+  if (index === -1) return null;
+  const existing = store.tests[index];
+  const updated = {
+    ...existing,
+    ...(data.code !== undefined ? { code: data.code || null } : {}),
+    ...(data.name !== undefined ? { name: data.name } : {}),
+    ...(data.arabicName !== undefined ? { arabicName: data.arabicName || null } : {}),
+    ...(data.category !== undefined ? { category: data.category } : {}),
+    ...(data.price !== undefined ? { price: Number(data.price) } : {}),
+    ...(data.costEstimate !== undefined ? { costEstimate: Number(data.costEstimate) } : {}),
+    ...(data.refRangeLow !== undefined ? { refRangeLow: data.refRangeLow !== '' && data.refRangeLow !== null ? Number(data.refRangeLow) : null } : {}),
+    ...(data.refRangeHigh !== undefined ? { refRangeHigh: data.refRangeHigh !== '' && data.refRangeHigh !== null ? Number(data.refRangeHigh) : null } : {}),
+    ...(data.normalMaleLow !== undefined ? { normalMaleLow: data.normalMaleLow !== '' && data.normalMaleLow !== null ? Number(data.normalMaleLow) : null } : {}),
+    ...(data.normalMaleHigh !== undefined ? { normalMaleHigh: data.normalMaleHigh !== '' && data.normalMaleHigh !== null ? Number(data.normalMaleHigh) : null } : {}),
+    ...(data.normalFemaleLow !== undefined ? { normalFemaleLow: data.normalFemaleLow !== '' && data.normalFemaleLow !== null ? Number(data.normalFemaleLow) : null } : {}),
+    ...(data.normalFemaleHigh !== undefined ? { normalFemaleHigh: data.normalFemaleHigh !== '' && data.normalFemaleHigh !== null ? Number(data.normalFemaleHigh) : null } : {}),
+    ...(data.criticalLow !== undefined ? { criticalLow: data.criticalLow !== '' && data.criticalLow !== null ? Number(data.criticalLow) : null } : {}),
+    ...(data.criticalHigh !== undefined ? { criticalHigh: data.criticalHigh !== '' && data.criticalHigh !== null ? Number(data.criticalHigh) : null } : {}),
+    ...(data.refRangeText !== undefined ? { refRangeText: data.refRangeText ? String(data.refRangeText).trim() : null } : {}),
+    ...(data.unit !== undefined ? { unit: data.unit ? String(data.unit).trim() : null } : {}),
+    ...(data.sampleType !== undefined ? { sampleType: data.sampleType } : {}),
+    ...(data.active !== undefined ? { active: Boolean(data.active) } : {}),
+    ...(data.referenceSource !== undefined ? { referenceSource: data.referenceSource || null } : {}),
+    ...(data.isCalculated !== undefined ? { isCalculated: Boolean(data.isCalculated) } : {}),
+    ...(data.referenceRanges !== undefined ? { referenceRanges: data.referenceRanges } : {}),
+    ...(data.specialtyId !== undefined ? { specialtyId: data.specialtyId || null } : {}),
+    ...(data.groupId !== undefined ? { groupId: data.groupId || null } : {}),
+    ...(data.sortOrder !== undefined ? { sortOrder: data.sortOrder !== null && data.sortOrder !== undefined ? Number(data.sortOrder) : null } : {}),
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Auto-sync refRangeText if empty but low/high are present
+  if (!updated.refRangeText && (updated.refRangeLow !== null || updated.refRangeHigh !== null)) {
+    if (updated.refRangeLow !== null && updated.refRangeHigh !== null) {
+      updated.refRangeText = `${updated.refRangeLow} - ${updated.refRangeHigh}`;
+    } else if (updated.refRangeLow !== null) {
+      updated.refRangeText = `>= ${updated.refRangeLow}`;
+    } else if (updated.refRangeHigh !== null) {
+      updated.refRangeText = `<= ${updated.refRangeHigh}`;
+    }
+  }
+
+  store.tests[index] = updated;
+
+  // Live update all in-memory sample test references to prevent stale reference ranges and metadata
+  if (Array.isArray(store.samples)) {
+    store.samples.forEach(s => {
+      if (Array.isArray(s.tests)) {
+        s.tests.forEach(st => {
+          if (st.testId === id || st.test?.id === id) {
+            st.test = { ...st.test, ...updated };
+            st.refRangeText = updated.refRangeText;
+            st.refRangeLow = updated.refRangeLow;
+            st.refRangeHigh = updated.refRangeHigh;
+            if (updated.unit) st.unit = updated.unit;
+          }
+        });
+      }
+    });
+  }
+
+  saveStoreToFile();
+  syncTestToSqlite(updated).catch((e) => console.warn('[SqliteSync] updateTest error:', e?.message));
+  return updated;
+}
+
+export function deleteTestInStore(id: string): boolean {
+  const store = getStore();
+  const index = store.tests.findIndex(t => t.id === id);
+  if (index === -1) return false;
+  store.tests[index].active = false;
+  saveStoreToFile();
+  deleteTestFromSqlite(id).catch((e) => console.warn('[SqliteSync] deleteTest error:', e?.message));
+  return true;
+}
+
+export function createPanelInStore(data: any): any {
+  const store = getStore();
+  const id = data.id || `panel_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const newPanel = {
+    id,
+    name: data.name,
+    code: data.code || null,
+    shortName: data.shortName || null,
+    category: data.category || null,
+    department: data.department || null,
+    isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
+    description: data.description || null,
+    price: Number(data.price) || 0,
+    testIds: Array.from(new Set(data.testIds || [])),
+    items: Array.from(new Set(data.testIds || [])).map((tId: string) => ({
+      panelId: id,
+      testId: tId,
+      test: store.tests.find(t => t.id === tId),
+    })),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  store.panels.push(newPanel);
+  saveStoreToFile();
+  syncPanelToSqlite(newPanel).catch((e) => console.warn('[SqliteSync] createPanel error:', e?.message));
+  return newPanel;
+}
+
+export function updatePanelInStore(id: string, data: any): any | null {
+  const store = getStore();
+  const index = store.panels.findIndex(p => p.id === id);
+  if (index === -1) return null;
+  const existing = store.panels[index];
+  const testIds = data.testIds !== undefined ? data.testIds : existing.testIds;
+  const updated = {
+    ...existing,
+    ...(data.name !== undefined ? { name: data.name } : {}),
+    ...(data.code !== undefined ? { code: data.code } : {}),
+    ...(data.shortName !== undefined ? { shortName: data.shortName } : {}),
+    ...(data.category !== undefined ? { category: data.category } : {}),
+    ...(data.department !== undefined ? { department: data.department } : {}),
+    ...(data.isActive !== undefined ? { isActive: Boolean(data.isActive) } : {}),
+    ...(data.description !== undefined ? { description: data.description } : {}),
+    ...(data.price !== undefined ? { price: Number(data.price) } : {}),
+    testIds,
+    items: (testIds || []).map((tId: string) => ({
+      panelId: id,
+      testId: tId,
+      test: store.tests.find(t => t.id === tId),
+    })),
+    updatedAt: new Date().toISOString(),
+  };
+
+  store.panels[index] = updated;
+  saveStoreToFile();
+  syncPanelToSqlite(updated).catch((e) => console.warn('[SqliteSync] updatePanel error:', e?.message));
+  return updated;
+}
+
+export function deletePanelInStore(id: string): boolean {
+  const store = getStore();
+  const index = store.panels.findIndex(p => p.id === id);
+  if (index === -1) return false;
+  store.panels.splice(index, 1);
+  saveStoreToFile();
+  deletePanelFromSqlite(id).catch((e) => console.warn('[SqliteSync] deletePanel error:', e?.message));
+  return true;
+}
+
+export function normalizeArabic(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/[أإآء]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/[\u064B-\u065F]/g, '') // remove Arabic diacritics / tashkeel
+    .toLowerCase()
+    .trim();
+}
+
+export function searchPatients(q: string) {
+  const store = getStore();
+  const query = (q || '').trim().toLowerCase();
+  const normQ = normalizeArabic(query);
+
+  // If query is empty or less than 2 chars, NEVER return all patients; return empty array
+  if (!query || query.length < 2) {
+    return [];
+  }
+
+  const queryDigits = query.replace(/[^0-9]/g, '');
+
+  const matched = store.patients.filter(p => {
+    const normName = normalizeArabic(p.name || '');
+    const rawName = (p.name || '').toLowerCase();
+
+    // Match name (either normalized Arabic or raw text)
+    const nameMatch = normName.includes(normQ) || rawName.includes(query);
+
+    // Match phone only if the query has at least 3 digits
+    const phoneDigits = (p.phone || '').replace(/[^0-9]/g, '');
+    const phoneMatch = queryDigits.length >= 3 && phoneDigits.includes(queryDigits);
+
+    // ID match ONLY if user typed 'pat-' or explicit exact ID
+    const idMatch = query.startsWith('pat-') && (p.id?.toLowerCase().includes(query) || false);
+
+    return nameMatch || phoneMatch || idMatch;
+  });
+
+  // Sort strictly by relevance:
+  // 1. Name starts with query
+  // 2. Sub-words start with query
+  // 3. Alphabetical
+  matched.sort((a, b) => {
+    const normA = normalizeArabic(a.name || '');
+    const normB = normalizeArabic(b.name || '');
+    const aStarts = normA.startsWith(normQ);
+    const bStarts = normB.startsWith(normQ);
+    if (aStarts && !bStarts) return -1;
+    if (!aStarts && bStarts) return 1;
+
+    const aWord = normA.split(/\s+/).some(w => w.startsWith(normQ));
+    const bWord = normB.split(/\s+/).some(w => w.startsWith(normQ));
+    if (aWord && !bWord) return -1;
+    if (!aWord && bWord) return 1;
+
+    return normA.localeCompare(normB);
+  });
+
+  // Limit suggestions to max 7 most relevant patients
+  const topMatches = matched.slice(0, 7);
+
+  return topMatches.map(p => {
+    // Find all samples for this patient
+    const patientSamples = store.samples
+      .filter(s => s.patientId === p.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const totalBilled = patientSamples.reduce((sum, s) => sum + (s.priceTotal - (s.discount || 0)), 0);
+    const totalPaid = patientSamples.reduce((sum, s) => sum + (s.paidAmount || 0), 0);
+    const outstandingDebt = patientSamples.reduce((sum, s) => sum + (s.remainingAmount || 0), 0);
+
+    const lastVisit = patientSamples[0] || null;
+    const lastTestIds = lastVisit ? lastVisit.tests.map(t => t.testId) : [];
+    const lastTestNames = lastVisit ? lastVisit.tests.map(t => t.test?.name || t.test?.code || t.testId) : [];
+
+    // Extract abnormal flags across past tests
+    const abnormalList: string[] = [];
+    patientSamples.forEach(s => {
+      s.tests.forEach(t => {
+        if (t.isAbnormal) {
+          const testName = t.test?.name || t.test?.code || 'Test';
+          abnormalList.push(`${testName} (${t.resultValue || 'Abnormal'})`);
+        }
+      });
+    });
+
+    return {
+      ...p,
+      visitCount: patientSamples.length,
+      priorVisits: patientSamples.slice(0, 5).map(s => ({
+        id: s.id,
+        sampleNumber: s.sampleNumber,
+        status: s.status,
+        createdAt: s.createdAt,
+        priceTotal: s.priceTotal,
+        discount: s.discount,
+        paidAmount: s.paidAmount,
+        remainingAmount: s.remainingAmount,
+        isUrgent: s.isUrgent,
+        testsCount: s.tests.length,
+        testsSummary: s.tests.map(t => t.test?.code || t.test?.name).join(', '),
+        tests: (s.tests || []).map((t: any) => ({
+          testId: t.testId || t.test?.id,
+          code: t.test?.code || t.code,
+          name: t.test?.name || t.name,
+          resultValue: t.resultValue,
+          unit: t.test?.unit || t.unit,
+          isAbnormal: t.isAbnormal,
+        })),
+      })),
+      lastVisit: lastVisit ? {
+        id: lastVisit.id,
+        sampleNumber: lastVisit.sampleNumber,
+        createdAt: lastVisit.createdAt,
+        status: lastVisit.status,
+      } : null,
+      lastTestIds,
+      lastTestNames,
+      abnormalFlags: Array.from(new Set(abnormalList)),
+      outstandingDebt: Math.max(0, outstandingDebt),
+      totalBilled,
+      totalPaid,
+    };
+  });
+}
+
+// -------------------------------------------------------------
+// Doctors CRUD Helpers
+// -------------------------------------------------------------
+
+export function getDoctors(): DoctorRecord[] {
+  return getStore().doctors;
+}
+
+export function findDoctor(id: string): DoctorRecord | undefined {
+  return getStore().doctors.find(d => d.id === id);
+}
+
+export function addDoctor(data: Partial<DoctorRecord> & { name: string }): DoctorRecord {
+  const store = getStore();
+  const newDoctor: DoctorRecord = {
+    id: data.id || `doc-${Date.now()}`,
+    name: data.name.trim(),
+    phone: data.phone?.trim() || '',
+    specialty: data.specialty?.trim() || 'General Medicine',
+    commissionPercent: typeof data.commissionPercent === 'number' ? data.commissionPercent : 10,
+    clinicAddress: data.clinicAddress?.trim() || '',
+    notes: data.notes?.trim() || '',
+    isActive: data.isActive !== false,
+    createdAt: new Date().toISOString(),
+  };
+  store.doctors.push(newDoctor);
+  saveStoreToFile();
+  syncDoctorToSqlite(newDoctor).catch((e) => console.warn('[SqliteSync] addDoctor error:', e?.message));
+  return newDoctor;
+}
+
+export function updateDoctor(id: string, data: Partial<DoctorRecord>): DoctorRecord | null {
+  const store = getStore();
+  const index = store.doctors.findIndex(d => d.id === id);
+  if (index === -1) return null;
+  const updated: DoctorRecord = {
+    ...store.doctors[index],
+    ...data,
+    isActive: data.isActive !== undefined ? data.isActive : (store.doctors[index].isActive !== false),
+  };
+  store.doctors[index] = updated;
+
+  // Also update in-memory samples referencing this doctor
+  store.samples.forEach(s => {
+    if (s.doctorId === id) {
+      s.doctor = updated;
+    }
+  });
+
+  saveStoreToFile();
+  syncDoctorToSqlite(updated).catch((e) => console.warn('[SqliteSync] updateDoctor error:', e?.message));
+  return updated;
+}
+
+export function isDoctorInUse(id: string): boolean {
+  const store = getStore();
+  return store.samples.some(s => s.doctorId === id) || store.patients.some(p => (p as any).referringDoctorId === id);
+}
+
+export function deleteDoctor(id: string): { success: boolean; inUse?: boolean } {
+  const store = getStore();
+  if (isDoctorInUse(id)) {
+    return { success: false, inUse: true };
+  }
+  const index = store.doctors.findIndex(d => d.id === id);
+  if (index === -1) return { success: false };
+  store.doctors.splice(index, 1);
+  saveStoreToFile();
+  deleteDoctorFromSqlite(id).catch((e) => console.warn('[SqliteSync] deleteDoctor error:', e?.message));
+  return { success: true };
+}
+
+// -------------------------------------------------------------
+// Samples CRUD Helpers
+// -------------------------------------------------------------
+
+export function getSamples(): SampleRecord[] {
+  return enrichSamplesWithDeltaCheck(getStore().samples);
+}
+
+export function findSample(idOrNumber: string): SampleRecord | undefined {
+  const store = getStore();
+  const found = store.samples.find(s => s.id === idOrNumber || String(s.sampleNumber) === idOrNumber);
+  if (!found) return undefined;
+  enrichSamplesWithDeltaCheck(store.samples, found.id);
+  return found;
+}
+
+export function enrichSamplesWithDeltaCheck(samples: SampleRecord[], targetSampleId?: string): SampleRecord[] {
+  if (!Array.isArray(samples) || samples.length === 0) return samples;
+  for (const sample of samples) {
+    if (targetSampleId && sample.id !== targetSampleId) continue;
+    if (!Array.isArray(sample.tests)) continue;
+    const patId = sample.patientId || sample.patient?.id;
+    const patName = sample.patient?.name ? normalizeArabic(sample.patient.name) : '';
+    const sampleCreatedMs = sample.createdAt ? new Date(sample.createdAt).getTime() : Date.now();
+    for (const st of sample.tests) {
+      if (st.previousValue !== undefined && st.previousValue !== null && String(st.previousValue).trim() !== '') {
+        continue;
+      }
+      let latestPrevVal: string | null = null;
+      let latestPrevDate: string | null = null;
+      let latestPrevNum: number | null = null;
+      let latestMs = -1;
+      for (const other of samples) {
+        if (other.id === sample.id) continue;
+        const otherPatId = other.patientId || other.patient?.id;
+        const otherPatName = other.patient?.name ? normalizeArabic(other.patient.name) : '';
+        const samePatient = (patId && otherPatId && patId === otherPatId) || (patName && otherPatName && patName === otherPatName);
+        if (!samePatient) continue;
+        const otherMs = other.createdAt ? new Date(other.createdAt).getTime() : 0;
+        if (otherMs >= sampleCreatedMs || otherMs <= latestMs) continue;
+        const stCode = (st.test?.code || st.code || '').toUpperCase().trim();
+        const stName = (st.test?.name || st.name || '').toLowerCase().trim();
+        const matchTest = (other.tests || []).find(
+          ot => {
+            const otCode = (ot.test?.code || ot.code || '').toUpperCase().trim();
+            const otName = (ot.test?.name || ot.name || '').toLowerCase().trim();
+            const idMatch = (st.testId && (ot.testId === st.testId || ot.test?.id === st.testId)) || (st.test?.id && (ot.testId === st.test.id || ot.test?.id === st.test.id));
+            const codeMatch = stCode && otCode && stCode === otCode;
+            const nameMatch = stName && otName && stName === otName;
+            return (idMatch || codeMatch || nameMatch) && ot.resultValue !== null && ot.resultValue !== undefined && String(ot.resultValue).trim() !== '';
+          }
+        );
+        if (matchTest) {
+          latestMs = otherMs;
+          latestPrevVal = String(matchTest.resultValue);
+          latestPrevDate = other.createdAt;
+          latestPrevNum = other.sampleNumber;
+        }
+      }
+      if (latestPrevVal !== null) {
+        st.previousValue = latestPrevVal;
+        st.previousDate = latestPrevDate;
+        st.previousSampleNumber = latestPrevNum;
+      }
+    }
+  }
+  return samples;
+}
+
+export function addSample(data: any): SampleRecord {
+  const store = getStore();
+
+  const candidateName = (data.patient?.name || data.patientName || data.name || '').trim();
+  const normCandidateName = normalizeArabic(candidateName);
+  const rawTestIds: string[] = (data.testIds && Array.isArray(data.testIds))
+    ? data.testIds
+    : (data.tests && Array.isArray(data.tests)
+      ? data.tests.map((t: any) => typeof t === 'string' ? t : (t?.id || t?.testId))
+      : []);
+  const testIds: string[] = Array.from(new Set(rawTestIds.filter(Boolean)));
+  const sortedTestIds = [...testIds].sort().join(',');
+
+  // Duplicate Prevention Check (Protection Window: 3 minutes = 180,000 ms)
+  if (!data.forceDuplicate) {
+    const now = Date.now();
+    const duplicate = store.samples.find(s => {
+      const createdTime = new Date(s.createdAt).getTime();
+      const diffMs = now - createdTime;
+      if (isNaN(diffMs) || diffMs > 180000) return false;
+
+      // Same patient check: either patientId matches or normalized name matches
+      const samePatientId = data.patientId && s.patientId === data.patientId;
+      const samePatientName = normCandidateName && normalizeArabic(s.patient?.name || '') === normCandidateName;
+      if (!samePatientId && !samePatientName) return false;
+
+      // Same tests check
+      const sTestIds = (s.tests || []).map(t => t.testId).sort().join(',');
+      return sTestIds === sortedTestIds;
+    });
+
+    if (duplicate) {
+      const err: any = new Error(
+        `تم تسجيل هذا المريض للتو (عينة رقم #${duplicate.sampleNumber}) بنفس الفحوصات قبل أقل من 3 دقائق. تم تفعيل نظام الحماية لمنع التكرار العرضي.`
+      );
+      err.code = 'DUPLICATE_ENTRY';
+      err.duplicateSampleNumber = duplicate.sampleNumber;
+      throw err;
+    }
+  }
+
+  let patient = store.patients.find(p => p.id === (data.patient?.id || data.patientId));
+  if (!patient && candidateName) {
+    patient = store.patients.find(p => {
+      const matchName = normalizeArabic(p.name) === normCandidateName;
+      const cleanPhone1 = (p.phone || '').replace(/[^0-9]/g, '');
+      const cleanPhone2 = (data.patient?.phone || data.patientPhone || data.phone || '').replace(/[^0-9]/g, '');
+      if (cleanPhone1 && cleanPhone2) {
+        return matchName && cleanPhone1 === cleanPhone2;
+      }
+      return matchName;
+    });
+  }
+
+  const rawYears = data.patient?.age ?? data.patientAge ?? data.age;
+  const rawMonths = data.patient?.ageMonths ?? data.patientAgeMonths ?? data.ageMonths;
+  const rawDays = data.patient?.ageDays ?? data.patientAgeDays ?? data.ageDays;
+  let resolvedBirthDate = data.patient?.birthDate || data.patientBirthDate || data.birthDate || null;
+  let resolvedBirthDateEstimated = data.patient?.birthDateEstimated ?? data.patientBirthDateEstimated ?? data.birthDateEstimated ?? false;
+
+  if (!resolvedBirthDate && (rawYears != null || rawMonths != null || rawDays != null)) {
+    try {
+      const norm = normalizeAgeToBirthDate({
+        years: rawYears !== undefined && rawYears !== null && rawYears !== '' ? Number(rawYears) : 0,
+        months: rawMonths !== undefined && rawMonths !== null && rawMonths !== '' ? Number(rawMonths) : 0,
+        days: rawDays !== undefined && rawDays !== null && rawDays !== '' ? Number(rawDays) : 0,
+      });
+      if (norm && norm.birthDate) {
+        resolvedBirthDate = norm.birthDate;
+        resolvedBirthDateEstimated = norm.birthDateEstimated ?? true;
+      }
+    } catch (e) {
+      console.warn('[ServerStore] Failed to normalize age to birthDate:', e);
+    }
+  }
+
+  if (!patient) {
+    patient = addPatient({
+      name: candidateName || 'مريض جديد',
+      phone: data.patient?.phone || data.patientPhone || data.phone || '',
+      age: rawYears !== undefined && rawYears !== null && rawYears !== '' ? Number(rawYears) : null,
+      ageMonths: rawMonths !== undefined && rawMonths !== null && rawMonths !== '' ? Number(rawMonths) : null,
+      ageDays: rawDays !== undefined && rawDays !== null && rawDays !== '' ? Number(rawDays) : null,
+      gender: data.patient?.gender || data.patientGender || data.gender || 'MALE',
+      birthDate: resolvedBirthDate ? String(resolvedBirthDate) : null,
+      birthDateEstimated: resolvedBirthDateEstimated,
+      referringDoctorId: data.patient?.referringDoctorId || data.doctorId || null,
+    });
+  } else {
+    const updates: Partial<PatientRecord> = {};
+    if (resolvedBirthDate && (!patient.birthDate || resolvedBirthDate !== patient.birthDate)) {
+      updates.birthDate = String(resolvedBirthDate);
+      updates.birthDateEstimated = resolvedBirthDateEstimated;
+    }
+    if (rawYears !== undefined && rawYears !== null && rawYears !== '') {
+      updates.age = Number(rawYears);
+    }
+    if (rawMonths !== undefined && rawMonths !== null && rawMonths !== '') {
+      updates.ageMonths = Number(rawMonths);
+    }
+    if (rawDays !== undefined && rawDays !== null && rawDays !== '') {
+      updates.ageDays = Number(rawDays);
+    }
+    if (data.doctorId && !patient.referringDoctorId) {
+      updates.referringDoctorId = data.doctorId;
+    }
+    if (Object.keys(updates).length > 0) {
+      patient = updatePatient(patient.id, updates) || patient;
+    }
+  }
+
+  const sampleNum = store.samples.length > 0
+    ? Math.max(...store.samples.map(s => s.sampleNumber || 1000)) + 1
+    : 1001;
+
+  const sampleTests: SampleTestRecord[] = testIds.map((tId, idx) => {
+    const catalogTest = store.tests.find(t => t.id === tId || t.code === tId) || store.tests[0];
+    return {
+      id: `st-${Date.now()}-${idx}`,
+      sampleId: `s-${sampleNum}`,
+      testId: catalogTest.id,
+      test: catalogTest,
+      resultValue: null,
+      isAbnormal: false,
+      status: 'PENDING',
+      priceAtTime: catalogTest.price || 0,
+      costAtTime: catalogTest.costEstimate || 0,
+      refRangeLow: catalogTest.refRangeLow ?? null,
+      refRangeHigh: catalogTest.refRangeHigh ?? null,
+      refRangeText: catalogTest.refRangeText || (catalogTest.refRangeLow != null && catalogTest.refRangeHigh != null ? `${catalogTest.refRangeLow} - ${catalogTest.refRangeHigh}` : null),
+      unit: catalogTest.unit || null,
+    };
+  });
+
+  const doctor = data.doctorId ? store.doctors.find(d => d.id === data.doctorId) || null : null;
+  // FIN-01: Authoritative server-side price recalculation from catalog
+  const catalogCalculatedTotal = sampleTests.reduce((sum, st) => sum + (st.priceAtTime || 0), 0);
+  const priceTotal = catalogCalculatedTotal > 0 ? catalogCalculatedTotal : Math.round(Number(data.priceTotal || data.totalPrice || 0));
+  const rawDiscount = Math.round(Number(data.discount || 0));
+  const discount = Math.min(priceTotal, Math.max(0, rawDiscount));
+  const discountPercent = priceTotal > 0 ? Math.round((discount / priceTotal) * 100) : 0;
+  const netPayable = Math.max(0, priceTotal - discount);
+  const rawPaid = Math.round(Number(data.paidAmount || 0));
+  const paidAmount = Math.min(netPayable, Math.max(0, rawPaid));
+  const remainingAmount = Math.max(0, netPayable - paidAmount);
+
+  // Commission calculation
+  const commissionPercent = doctor ? (doctor.commissionPercent || 0) : 0;
+  const doctorCommission = doctor ? Math.round((netTotalCommissionBase(priceTotal, discount) * commissionPercent) / 100) : 0;
+
+  const newSample: SampleRecord = {
+    id: `s-${sampleNum}`,
+    sampleNumber: sampleNum,
+    patientId: patient.id,
+    patient,
+    doctorId: data.doctorId || null,
+    doctor,
+    doctorCommission,
+    status: 'RECEIVED',
+    isUrgent: !!data.isUrgent,
+    priceTotal,
+    discount,
+    discountPercent,
+    paidAmount,
+    remainingAmount,
+    paymentMethod: data.paymentMethod || 'CASH',
+    notes: data.notes || '',
+    createdAt: new Date().toISOString(),
+    tests: sampleTests,
+  };
+
+  store.samples.unshift(newSample);
+
+  // Feature 3: Enrich new sample tests with Delta Check (previous patient results)
+  enrichSamplesWithDeltaCheck(store.samples, newSample.id);
+
+  // Feature 1: Auto-Reagent Deduction on sample creation
+  const reagentAlerts = deductReagentsForSample(store, newSample);
+  if (reagentAlerts.length > 0) {
+    newSample.reagentAlerts = reagentAlerts;
+  }
+  saveStoreToFile();
+  syncSampleToSqlite(newSample).catch((e) => console.warn('[SqliteSync] addSample error:', e?.message));
+  broadcastEvent('SAMPLE', 'CREATE', newSample.id, { sampleNumber: newSample.sampleNumber, status: newSample.status });
+  return newSample;
+}
+
+function netTotalCommissionBase(priceTotal: number, discount: number): number {
+  return Math.max(0, priceTotal - discount);
+}
+
+export function updateSample(id: string, data: Partial<SampleRecord>): SampleRecord | null {
+  const store = getStore();
+  const index = store.samples.findIndex(s => s.id === id || String(s.sampleNumber) === id);
+  if (index === -1) return null;
+
+  const updated: SampleRecord = {
+    ...store.samples[index],
+    ...data,
+  };
+  store.samples[index] = updated;
+  saveStoreToFile();
+  syncSampleToSqlite(updated).catch((e) => console.warn('[SqliteSync] updateSample error:', e?.message));
+  broadcastEvent('SAMPLE', 'UPDATE', updated.id, { sampleNumber: updated.sampleNumber, status: updated.status });
+  return updated;
+}
+
+export function deleteSample(id: string): boolean {
+  const store = getStore();
+  const index = store.samples.findIndex(s => s.id === id || String(s.sampleNumber) === id);
+  if (index === -1) return false;
+  store.samples.splice(index, 1);
+  saveStoreToFile();
+  deleteSampleFromSqlite(id).catch((e) => console.warn('[SqliteSync] deleteSample error:', e?.message));
+  broadcastEvent('SAMPLE', 'DELETE', id);
+  return true;
+}
+
+// -------------------------------------------------------------
+// Settings Helper & Margin Safety Clamping
+// -------------------------------------------------------------
+
+export function clampMargin(val: any, min = 0, max = 100, defaultVal = 10): number {
+  if (val === null || val === undefined) return defaultVal;
+  const num = typeof val === 'number' ? val : parseFloat(String(val));
+  if (isNaN(num) || !isFinite(num)) return defaultVal;
+  return Math.min(max, Math.max(min, num));
+}
+
+export function getSettings(): LabSettings {
+  return getStore().settings;
+}
+
+export function updateSettings(data: Partial<LabSettings>): LabSettings {
+  const store = getStore();
+  const sanitized = { ...data };
+  if (sanitized.topMarginMm !== undefined) {
+    sanitized.topMarginMm = clampMargin(sanitized.topMarginMm, 0, 100, 35);
+  }
+  if (sanitized.bottomMarginMm !== undefined) {
+    sanitized.bottomMarginMm = clampMargin(sanitized.bottomMarginMm, 0, 100, 25);
+  }
+  if (sanitized.leftMarginMm !== undefined) {
+    sanitized.leftMarginMm = clampMargin(sanitized.leftMarginMm, 0, 50, 15);
+  }
+  if (sanitized.rightMarginMm !== undefined) {
+    sanitized.rightMarginMm = clampMargin(sanitized.rightMarginMm, 0, 50, 15);
+  }
+  const hasLabName = Boolean((sanitized.labName || store.settings.labName)?.trim());
+  const finalConfigured = sanitized.isConfigured ?? (store.settings.isConfigured || hasLabName);
+
+  store.settings = {
+    ...store.settings,
+    ...sanitized,
+    isConfigured: finalConfigured,
+  };
+  saveStoreToFile();
+  syncSettingsToSqlite(store.settings).catch((e) => console.warn('[SqliteSync] updateSettings error:', e?.message));
+  return store.settings;
+}
+
+/**
+ * تحويل وتعديل أسعار جميع الفحوصات والباقات في الكتالوج بما يتناسب مع العملة الجديدة
+ */
+export function convertAllTestPrices(targetCurrency: string, customMultiplier?: number) {
+  const store = getStore();
+  const fromCurrency = store.settings.currency || 'د.ع';
+  const targetCurrDef = findCurrency(targetCurrency);
+  const targetSymbol = targetCurrDef?.symbol || targetCurrency.trim();
+
+  const multiplier = customMultiplier !== undefined && customMultiplier > 0
+    ? customMultiplier
+    : calculateConversionMultiplier(fromCurrency, targetCurrency);
+
+  let updatedTestsCount = 0;
+  if (Array.isArray(store.tests)) {
+    store.tests = store.tests.map((test) => {
+      const oldPrice = Number(test.price) || 0;
+      const newPrice = roundPriceForCurrency(oldPrice * multiplier, targetCurrency);
+      let newCost = test.costEstimate;
+      if (test.costEstimate !== undefined && test.costEstimate !== null) {
+        newCost = roundPriceForCurrency(Number(test.costEstimate) * multiplier, targetCurrency);
+      }
+      updatedTestsCount++;
+      return {
+        ...test,
+        price: newPrice,
+        ...(newCost !== undefined ? { costEstimate: newCost } : {}),
+      };
+    });
+  }
+
+  let updatedPanelsCount = 0;
+  if (Array.isArray(store.panels)) {
+    store.panels = store.panels.map((panel) => {
+      const oldPrice = Number(panel.price) || 0;
+      const newPrice = roundPriceForCurrency(oldPrice * multiplier, targetCurrency);
+      updatedPanelsCount++;
+      return {
+        ...panel,
+        price: newPrice,
+      };
+    });
+  }
+
+  // Update currency in settings
+  store.settings.currency = targetSymbol;
+  saveStoreToFile();
+
+  return {
+    success: true,
+    fromCurrency,
+    toCurrency: targetSymbol,
+    multiplier,
+    updatedTestsCount,
+    updatedPanelsCount,
+    tests: store.tests,
+    panels: store.panels,
+  };
+}
+
+/**
+ * استعادة أسعار وتكاليف كافة الفحوصات والباقات إلى التسعير العراقي الأصلي المعتمد (IQD - د.ع)
+ */
+export function resetAllTestPricesToDefault() {
+  const store = getStore();
+  store.tests = JSON.parse(JSON.stringify(INITIAL_TESTS_CATALOG));
+  store.panels = JSON.parse(JSON.stringify(INITIAL_PANELS));
+  store.settings.currency = 'د.ع';
+  saveStoreToFile();
+
+  return {
+    success: true,
+    currency: 'د.ع',
+    testsCount: store.tests.length,
+    panelsCount: store.panels.length,
+    tests: store.tests,
+    panels: store.panels,
+  };
+}
+
+// -------------------------------------------------------------
+// Expenses & Financials Helpers
+// -------------------------------------------------------------
+
+export function addExpense(data: { description: string; amount: number; category?: string; staffName?: string }): ExpenseRecord {
+  const store = getStore();
+  const now = new Date().toISOString();
+  const newExp: ExpenseRecord = {
+    id: 'exp-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+    description: data.description.trim(),
+    amount: Number(data.amount),
+    category: data.category || 'مصاريف تشغيلية',
+    createdAt: now,
+    date: now,
+    staff: { name: data.staffName || 'مدير المختبر' },
+  };
+  store.expenses = [newExp, ...(store.expenses || [])];
+  saveStoreToFile();
+  syncExpenseToSqlite(newExp).catch((e) => console.warn('[SqliteSync] addExpense error:', e?.message));
+  return newExp;
+}
+
+export function deleteExpense(id: string): boolean {
+  const store = getStore();
+  const initialLen = store.expenses.length;
+  store.expenses = store.expenses.filter((e) => e.id !== id);
+  if (store.expenses.length !== initialLen) {
+    saveStoreToFile();
+    deleteExpenseFromSqlite(id).catch((e) => console.warn('[SqliteSync] deleteExpense error:', e?.message));
+    return true;
+  }
+  return false;
+}
+
+export function getFinancialSummary() {
+  const store = getStore();
+  const samples = store.samples || [];
+  const expenses = store.expenses || [];
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
+
+  let totalGrossRevenue = 0;
+  let totalPaid = 0;
+  let totalDiscounts = 0;
+  let totalRemainingDebts = 0;
+  let todayRevenue = 0;
+  let totalDoctorCommissions = 0;
+
+  let directReagentCost = 0;
+  samples.forEach((s) => {
+    totalGrossRevenue += s.priceTotal || 0;
+    totalPaid += s.paidAmount || 0;
+    totalDiscounts += s.discount || 0;
+    totalRemainingDebts += s.remainingAmount || 0;
+    totalDoctorCommissions += s.doctorCommission || 0;
+
+    (s.tests || []).forEach((st: any) => {
+      directReagentCost += st.costAtTime || st.test?.costEstimate || ((st.priceAtTime || st.test?.price || 0) * 0.25);
+    });
+
+    const t = new Date(s.createdAt).getTime();
+    if (t >= todayStart && t <= todayEnd) {
+      todayRevenue += s.paidAmount || 0;
+    }
+  });
+
+  const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const netSalesRevenue = Math.max(0, totalGrossRevenue - totalDiscounts);
+  const grossOperatingProfit = Math.max(0, netSalesRevenue - directReagentCost - totalDoctorCommissions);
+  const clinicalNetProfit = grossOperatingProfit - totalExpenses;
+  const netProfit = totalPaid - (totalExpenses + totalDoctorCommissions);
+
+  // Debt Aging calculation
+  const nowMs = Date.now();
+  let agingCurrent = 0;
+  let agingMedium = 0;
+  let agingCritical = 0;
+  (store.debtors || []).forEach((d) => {
+    let dTotal = 0;
+    let pTotal = 0;
+    let earliestDebtDate: number | null = null;
+    (store.debtTransactions || []).filter((tx) => tx.debtorId === d.id).forEach((tx) => {
+      if (tx.type === 'DEBT') {
+        dTotal += tx.amount;
+        const txTime = new Date(tx.createdAt).getTime();
+        if (!earliestDebtDate || txTime < earliestDebtDate) {
+          earliestDebtDate = txTime;
+        }
+      } else {
+        pTotal += tx.amount;
+      }
+    });
+    const bal = Math.max(0, dTotal - pTotal);
+    if (bal > 0) {
+      const ageDays = earliestDebtDate ? Math.floor((nowMs - earliestDebtDate) / 86400000) : 0;
+      if (ageDays <= 15) agingCurrent += bal;
+      else if (ageDays <= 30) agingMedium += bal;
+      else agingCritical += bal;
+    }
+  });
+
+  return {
+    totalRevenue: totalGrossRevenue,
+    totalPaid,
+    totalExpenses,
+    totalDoctorCommissions,
+    netProfit,
+    todayRevenue,
+    totalDiscounts,
+    totalRemainingDebts,
+    recentExpenses: expenses.slice(0, 8),
+    expensesList: expenses,
+    autoRevenues: {
+      samplePaidTotal: totalPaid,
+      debtPaymentsTotal: 0,
+      totalRevenues: totalPaid,
+      sampleRemainingDebts: totalRemainingDebts,
+    },
+    outgoings: {
+      operationalExpenses: totalExpenses,
+      doctorCommissions: totalDoctorCommissions,
+      inventoryStockCost: 0,
+      totalTestCosts: directReagentCost,
+      totalOutgoings: totalExpenses + totalDoctorCommissions,
+    },
+    pnl: {
+      grossRevenue: totalGrossRevenue,
+      discounts: totalDiscounts,
+      netSalesRevenue,
+      directReagentCost,
+      doctorCommissions: totalDoctorCommissions,
+      grossOperatingProfit,
+      operatingExpenses: totalExpenses,
+      netProfit: clinicalNetProfit,
+      operatingMarginPct: netSalesRevenue > 0 ? Math.round((clinicalNetProfit / netSalesRevenue) * 100) : 0,
+    },
+    debtAging: {
+      current: agingCurrent,
+      medium: agingMedium,
+      critical: agingCritical,
+      total: totalRemainingDebts,
+    },
+  };
+}
+
+export function getCurrentShift() {
+  const store = getStore();
+  const activeShift = (store.shifts || []).find((s) => s.status === 'OPEN');
+  if (!activeShift) return { activeShift: null };
+
+  const shiftOpenTime = new Date(activeShift.openedAt).getTime();
+  let cashIn = 0;
+  let cardIn = 0;
+  let zainCashIn = 0;
+  let cashOut = 0;
+
+  (store.samples || []).forEach((s) => {
+    const sTime = new Date(s.createdAt).getTime();
+    if (sTime >= shiftOpenTime && s.paidAmount) {
+      const method = (s.paymentMethod || 'نقداً').trim();
+      if (method === 'نقداً' || method.toLowerCase() === 'cash') cashIn += s.paidAmount;
+      else if (method.toLowerCase().includes('zain')) zainCashIn += s.paidAmount;
+      else cardIn += s.paidAmount;
+    }
+  });
+
+  (store.expenses || []).forEach((e) => {
+    const eTime = new Date(e.createdAt || e.date || 0).getTime();
+    if (eTime >= shiftOpenTime && e.amount) {
+      cashOut += e.amount;
+    }
+  });
+
+  const expectedCash = activeShift.startingCash + cashIn - cashOut;
+  return {
+    activeShift: {
+      ...activeShift,
+      expectedCash,
+      cashIn,
+      cardIn,
+      zainCashIn,
+      cashOut,
+      netCashFlow: cashIn - cashOut,
+    },
+  };
+}
+
+export function getShiftHistory() {
+  const store = getStore();
+  return (store.shifts || []).slice().reverse();
+}
+
+export function openShift(startingCash: number, notes?: string) {
+  const store = getStore();
+  if (!store.shifts) store.shifts = [];
+  const openExists = store.shifts.some((s) => s.status === 'OPEN');
+  if (openExists) {
+    throw new Error('توجد وردية مفتوحة بالفعل، يرجى إغلاقها أولاً');
+  }
+  const nextNum = store.shifts.length + 1;
+  const newShift: CashShiftRecord = {
+    id: `shift-${Date.now()}`,
+    shiftNumber: nextNum,
+    openedAt: new Date().toISOString(),
+    startingCash: Number(startingCash) || 0,
+    status: 'OPEN',
+    notes: notes || null,
+    createdAt: new Date().toISOString(),
+  };
+  store.shifts.push(newShift);
+  saveStoreToFile();
+  return newShift;
+}
+
+export function closeShift(actualCash: number, notes?: string) {
+  const store = getStore();
+  if (!store.shifts) store.shifts = [];
+  const active = store.shifts.find((s) => s.status === 'OPEN');
+  if (!active) throw new Error('لا توجد وردية مفتوحة لإغلاقها');
+
+  const currentInfo = getCurrentShift();
+  const expectedCash = currentInfo.activeShift?.expectedCash || active.startingCash;
+  const counted = Number(actualCash) || 0;
+  const discrepancy = counted - expectedCash;
+
+  active.status = 'CLOSED';
+  active.closedAt = new Date().toISOString();
+  active.expectedCash = expectedCash;
+  active.actualCash = counted;
+  active.discrepancy = discrepancy;
+  if (notes) active.notes = `${active.notes || ''} | إغلاق: ${notes}`;
+
+  saveStoreToFile();
+  return active;
+}
+
+export function getTestProfitability(timeframe?: string) {
+  const store = getStore();
+  const samples = store.samples || [];
+  const catalogTests = store.tests || [];
+
+  const now = new Date();
+  let startTime: number | null = null;
+
+  if (timeframe === 'today') {
+    startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+  } else if (timeframe === 'week') {
+    startTime = now.getTime() - 7 * 86400000;
+  } else if (timeframe === 'month') {
+    startTime = now.getTime() - 30 * 86400000;
+  }
+
+  const testMap: Record<string, { count: number; totalRevenue: number; totalCost: number }> = {};
+
+  samples.forEach((s) => {
+    const sTime = new Date(s.createdAt).getTime();
+    if (startTime && sTime < startTime) return;
+
+    (s.tests || []).forEach((st) => {
+      const tid = st.testId || st.test?.id;
+      if (!tid) return;
+      if (!testMap[tid]) {
+        testMap[tid] = { count: 0, totalRevenue: 0, totalCost: 0 };
+      }
+      const unitPrice = st.test?.price || 0;
+      const unitCost = st.test?.costEstimate || (unitPrice * 0.25);
+      testMap[tid].count += 1;
+      testMap[tid].totalRevenue += unitPrice;
+      testMap[tid].totalCost += unitCost;
+    });
+  });
+
+  const breakdown = catalogTests.map((ct) => {
+    const stats = testMap[ct.id] || { count: 0, totalRevenue: 0, totalCost: 0 };
+    const unitPrice = ct.price || 0;
+    const unitCost = ct.costEstimate || Math.round(unitPrice * 0.25);
+    const unitProfit = unitPrice - unitCost;
+    const profitMargin = unitPrice > 0 ? Math.round((unitProfit / unitPrice) * 100) : 0;
+    const totalProfit = stats.totalRevenue - stats.totalCost;
+
+    return {
+      testId: ct.id,
+      testName: ct.name,
+      name: ct.name,
+      category: ct.category || 'عام',
+      price: unitPrice,
+      unitPrice,
+      costEstimate: unitCost,
+      unitCost,
+      unitProfit,
+      profitMargin,
+      count: stats.count,
+      totalRevenue: stats.totalRevenue,
+      totalCost: stats.totalCost,
+      netProfit: totalProfit,
+      totalProfit,
+    };
+  });
+
+  breakdown.sort((a, b) => b.count - a.count);
+  return breakdown;
+}
+
+// -------------------------------------------------------------
+// LIS Devices & Analyzer Interfacing Helpers
+// -------------------------------------------------------------
+
+export function getDevices(): DeviceRecord[] {
+  const store = getStore();
+  return store.devices || [];
+}
+
+export function findDevice(idOrKey: string): DeviceRecord | undefined {
+  const store = getStore();
+  return (store.devices || []).find(d => d.id === idOrKey || d.apiKey === idOrKey);
+}
+
+export function addDevice(data: any): DeviceRecord {
+  const store = getStore();
+  const now = new Date().toISOString();
+  const newId = data.id || `dev-${Date.now()}`;
+  const apiKey = data.apiKey || `key_${Math.random().toString(36).substring(2, 10)}`;
+
+  let mappings: DeviceMappingRecord[] = [];
+  if (data.presetId) {
+    const preset = DEVICE_PRESETS.find(p => p.id === data.presetId);
+    if (preset) {
+      mappings = (preset.defaultMappings || []).map((m, idx) => ({
+        id: `map-${newId}-${idx + 1}`,
+        deviceId: newId,
+        deviceTestCode: m.deviceTestCode,
+        deviceTestName: m.deviceTestName,
+        testCatalogId: m.testCatalogCode === 'HB' ? 't-hb' : (m.testCatalogCode === 'PLT' ? 't-plt' : 't-cbc'),
+        testCatalogCode: m.testCatalogCode,
+        testCatalogName: m.testCatalogName,
+        unit: m.unit,
+        multiplier: 1.0,
+        createdAt: now,
+      }));
+    }
+  }
+
+  const newDevice: DeviceRecord = {
+    id: newId,
+    name: (data.name || 'جهاز تحليلات جديد').trim(),
+    brand: (data.brand || 'Generic').trim(),
+    model: (data.model || data.name || '').trim(),
+    category: data.category || 'CBC',
+    connectionType: data.connectionType || 'TCP_IP',
+    protocol: data.protocol || 'HL7_V2',
+    ipAddress: data.ipAddress || null,
+    port: data.port ? Number(data.port) : null,
+    comPort: data.comPort || null,
+    baudRate: data.baudRate ? Number(data.baudRate) : null,
+    dataBits: data.dataBits ? Number(data.dataBits) : 8,
+    stopBits: data.stopBits ? Number(data.stopBits) : 1,
+    parity: data.parity || 'none',
+    apiKey,
+    status: 'ONLINE',
+    autoMatchSample: data.autoMatchSample !== false,
+    notes: data.notes || '',
+    lastCommunication: now,
+    mappings,
+    createdAt: now,
+  };
+
+  if (!store.devices) store.devices = [];
+  store.devices.push(newDevice);
+  saveStoreToFile();
+  return newDevice;
+}
+
+export function updateDevice(id: string, data: Partial<DeviceRecord>): DeviceRecord | null {
+  const store = getStore();
+  if (!store.devices) store.devices = [];
+  const index = store.devices.findIndex(d => d.id === id);
+  if (index === -1) return null;
+
+  const updated: DeviceRecord = {
+    ...store.devices[index],
+    ...data,
+  };
+  store.devices[index] = updated;
+  saveStoreToFile();
+  return updated;
+}
+
+export function deleteDevice(id: string): boolean {
+  const store = getStore();
+  if (!store.devices) return false;
+  const index = store.devices.findIndex(d => d.id === id);
+  if (index === -1) return false;
+  store.devices.splice(index, 1);
+  saveStoreToFile();
+  return true;
+}
+
+export function addDeviceMapping(deviceId: string, mappingData: any): DeviceMappingRecord | null {
+  const store = getStore();
+  const device = (store.devices || []).find(d => d.id === deviceId);
+  if (!device) return null;
+
+  const catalogTest = store.tests.find(t => t.id === mappingData.testCatalogId || t.code === mappingData.testCatalogId);
+
+  const newMapping: DeviceMappingRecord = {
+    id: `map-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    deviceId,
+    deviceTestCode: (mappingData.deviceTestCode || '').trim().toUpperCase(),
+    deviceTestName: (mappingData.deviceTestName || mappingData.deviceTestCode || '').trim(),
+    testCatalogId: mappingData.testCatalogId,
+    testCatalogCode: catalogTest?.code,
+    testCatalogName: catalogTest?.name,
+    unit: mappingData.unit || catalogTest?.unit || '',
+    multiplier: mappingData.multiplier !== undefined ? Number(mappingData.multiplier) : 1.0,
+    createdAt: new Date().toISOString(),
+  };
+
+  if (!device.mappings) device.mappings = [];
+  const existingIdx = device.mappings.findIndex(m => m.deviceTestCode === newMapping.deviceTestCode);
+  if (existingIdx >= 0) {
+    device.mappings[existingIdx] = newMapping;
+  } else {
+    device.mappings.push(newMapping);
+  }
+
+  saveStoreToFile();
+  return newMapping;
+}
+
+export function deleteDeviceMapping(deviceId: string, mappingId: string): boolean {
+  const store = getStore();
+  const device = (store.devices || []).find(d => d.id === deviceId);
+  if (!device || !device.mappings) return false;
+
+  const idx = device.mappings.findIndex(m => m.id === mappingId);
+  if (idx === -1) return false;
+  device.mappings.splice(idx, 1);
+  saveStoreToFile();
+  return true;
+}
+
+export function getIncomingResults(params?: { limit?: number; status?: string; deviceId?: string }): IncomingResultRecord[] {
+  const store = getStore();
+  let list = store.incomingResults || [];
+  if (params?.deviceId) {
+    list = list.filter(r => r.deviceId === params.deviceId);
+  }
+  if (params?.status && params.status !== 'ALL') {
+    list = list.filter(r => r.status === params.status);
+  }
+  const limit = params?.limit || 50;
+  return list.slice(0, limit);
+}
+
+export function applyIncomingResult(incomingResultId: string, sampleId: string, testCatalogId: string): { success: boolean; message: string } {
+  const store = getStore();
+  const inc = (store.incomingResults || []).find(r => r.id === incomingResultId);
+  if (!inc) {
+    return { success: false, message: 'النتيجة غير موجودة في سجل الاستقبال' };
+  }
+
+  const sample = store.samples.find(s => s.id === sampleId || String(s.sampleNumber) === sampleId);
+  if (!sample) {
+    return { success: false, message: 'العينة غير موجودة في النظام' };
+  }
+
+  const st = sample.tests.find(t => t.testId === testCatalogId || t.test?.id === testCatalogId || t.test?.code === testCatalogId);
+  if (!st) {
+    return { success: false, message: 'الفحص المطلوب غير مدرج في هذه العينة' };
+  }
+
+  st.resultValue = inc.value;
+  st.isAbnormal = inc.isAbnormal;
+  st.status = 'COMPLETED';
+  st.notes = `[مستورد يدوياً من جهاز ${inc.deviceName}]`;
+
+  inc.status = 'APPLIED';
+  inc.matchedSampleId = sample.id;
+  inc.matchedSampleNumber = sample.sampleNumber;
+  inc.matchedTestCatalogId = testCatalogId;
+  inc.appliedAt = new Date().toISOString();
+
+  // Check if sample ready
+  const allCompleted = sample.tests.every(t => t.status === 'COMPLETED');
+  if (allCompleted) {
+    sample.status = 'READY';
+  } else if (sample.status === 'RECEIVED') {
+    sample.status = 'IN_PROGRESS';
+  }
+
+  saveStoreToFile();
+  return { success: true, message: 'تم إسناد النتيجة وتحديث العينة بنجاح' };
+}
+
+export function buildCbcStringFromItems(itemsMap: Record<string, string>): string {
+  const rbc = itemsMap['RBC'] || '4.80';
+  const hgb = itemsMap['HGB'] || itemsMap['HB'] || '14.5';
+  const hct = itemsMap['HCT'] || itemsMap['PCV'] || '43.5';
+  const mcv = itemsMap['MCV'] || '90.6';
+  const mch = itemsMap['MCH'] || '30.2';
+  const mchc = itemsMap['MCHC'] || '33.3';
+  const rdw = itemsMap['RDW-CV'] || itemsMap['RDW'] || '12.5';
+  const plt = itemsMap['PLT'] || '250';
+  const mpv = itemsMap['MPV'] || '9.8';
+  const pdw = itemsMap['PDW'] || '11.2';
+  const pct = itemsMap['PCT'] || '0.245';
+  const wbc = itemsMap['WBC'] || '7.2';
+  const neu = itemsMap['NEU%'] || itemsMap['GRAN%'] || '60.0';
+  const lym = itemsMap['LYM%'] || '30.0';
+  const mon = itemsMap['MON%'] || itemsMap['MID%'] || '6.0';
+  const eos = itemsMap['EOS%'] || '3.0';
+  const bas = itemsMap['BAS%'] || '1.0';
+
+  const diffSum = Math.round((parseFloat(neu) + parseFloat(lym) + parseFloat(mon) + parseFloat(eos) + parseFloat(bas)) * 10) / 10;
+
+  const parts = [
+    '[CBC - COMPLETE BLOOD COUNT & 5-PART DIFFERENTIAL]',
+    `ERYTHROID: RBC: ${rbc} 10^6/uL | HGB: ${hgb} g/dL | HCT: ${hct} % | MCV: ${mcv} fL | MCH: ${mch} pg | MCHC: ${mchc} g/dL | RDW: ${rdw} %`,
+    `PLATELETS: PLT: ${plt} 10^3/uL | MPV: ${mpv} fL | PDW: ${pdw} % | PCT: ${pct} %`,
+    `LEUKOCYTES: Total WBC: ${wbc} 10^3/uL`,
+    `DIFFERENTIAL: Neut: ${neu}% | Lymph: ${lym}% | Mono: ${mon}% | Eos: ${eos}% | Baso: ${bas}% (Sum: ${diffSum}%)`,
+  ];
+  return parts.join('\n');
+}
+
+export function processDeviceIngest(params: {
+  deviceIdOrKey?: string;
+  rawPayload: string;
+  protocol?: string;
+  overrideSampleNumber?: number;
+  overridePatientName?: string;
+}) {
+  const store = getStore();
+  const now = new Date().toISOString();
+
+  // 1. Locate and Authenticate Device
+  const key = (params.deviceIdOrKey || '').trim();
+  if (!key) {
+    return {
+      success: false,
+      message: 'جهاز غير مصرح به: مفتاح API مطلوب (Device API Key Required)',
+      status: 'UNAUTHORIZED'
+    };
+  }
+
+  const device = (store.devices || []).find(d => d.id === key || d.apiKey === key);
+  if (!device) {
+    return {
+      success: false,
+      message: 'جهاز غير مصرح به: مفتاح API غير صالح أو غير مسجل (Unauthorized Device API Key)',
+      status: 'UNAUTHORIZED'
+    };
+  }
+
+  // 2. Parse Raw Payload
+  const protocol = (params.protocol || device.protocol || 'ASTM_1394') as any;
+  const parsed = parseDeviceMessage(protocol, params.rawPayload);
+
+  if (params.overrideSampleNumber) {
+    parsed.sampleNumber = params.overrideSampleNumber;
+  }
+  if (params.overridePatientName) {
+    parsed.patientName = params.overridePatientName;
+  }
+
+  // 3. Locate Patient Sample
+  let targetSample: SampleRecord | undefined = undefined;
+  if (parsed.sampleNumber) {
+    targetSample = store.samples.find(s => s.sampleNumber === parsed.sampleNumber);
+  }
+  if (!targetSample && parsed.sampleBarcode) {
+    targetSample = store.samples.find(s => s.id === parsed.sampleBarcode || String(s.sampleNumber) === parsed.sampleBarcode);
+    if (!targetSample) {
+      const numMatch = parsed.sampleBarcode.match(/\d+/);
+      if (numMatch) {
+        const num = parseInt(numMatch[0], 10);
+        targetSample = store.samples.find(s => s.sampleNumber === num);
+      }
+    }
+  }
+
+  // SECURITY / CLINICAL SAFETY: never guess a patient's sample.
+  // An unmatched analyzer result must be rejected and reviewed by a human.
+  if (!targetSample) {
+    return {
+      success: false,
+      status: 'UNMATCHED_SAMPLE',
+      message: 'لم يتم العثور على عينة مطابقة لرقم العينة أو الباركود الوارد من الجهاز. تم رفض النتيجة ولم تُنسب لأي مريض.',
+      deviceId: device?.id,
+      deviceName: device?.name,
+      parsedSampleNumber: parsed.sampleNumber,
+      parsedSampleBarcode: parsed.sampleBarcode,
+      totalItems: parsed.items.length,
+    };
+  }
+
+  // Prepare Items Map for CBC or multi-analyte bundling
+  const itemsMap: Record<string, string> = {};
+  let anyAbnormalInBatch = false;
+  parsed.items.forEach(item => {
+    itemsMap[item.testCode.toUpperCase()] = item.value;
+    if (item.isAbnormal) anyAbnormalInBatch = true;
+  });
+
+  let appliedCount = 0;
+  const recordedIncoming: IncomingResultRecord[] = [];
+
+  // 4. Ingest Each Item
+  parsed.items.forEach(item => {
+    const code = item.testCode.toUpperCase();
+    const mapping = device?.mappings?.find(m => m.deviceTestCode.toUpperCase() === code);
+    const targetCatalogId = mapping?.testCatalogId;
+    const targetCatalogCode = mapping?.testCatalogCode || code;
+
+    let applied = false;
+    let matchedSampleTest: SampleTestRecord | undefined = undefined;
+
+    if (targetSample) {
+      // Look for direct test ID or code match
+      matchedSampleTest = targetSample.tests.find(st => {
+        const cId = st.testId || st.test?.id;
+        const cCode = (st.test?.code || '').toUpperCase();
+        return (targetCatalogId && cId === targetCatalogId) ||
+               (cCode && (cCode === targetCatalogCode.toUpperCase() || cCode === code));
+      });
+
+      // Special handling: if sample has CBC panel/test (t-cbc or code CBC) and item is a CBC parameter
+      const cbcTestInSample = targetSample.tests.find(st => st.testId === 't-cbc' || st.test?.code === 'CBC');
+      if (cbcTestInSample && ['WBC', 'RBC', 'HGB', 'HCT', 'MCV', 'MCH', 'MCHC', 'PLT', 'NEU%', 'LYM%', 'MON%', 'EOS%', 'BAS%', 'RDW-CV'].includes(code)) {
+        cbcTestInSample.resultValue = buildCbcStringFromItems(itemsMap);
+        cbcTestInSample.isAbnormal = anyAbnormalInBatch;
+        cbcTestInSample.status = 'COMPLETED';
+        cbcTestInSample.notes = `[مستورد آلياً من جهاز ${device?.name || 'التحليل'}]`;
+        applied = true;
+      }
+
+      // Also if this specific item has its own row in the sample
+      if (matchedSampleTest) {
+        matchedSampleTest.resultValue = item.value;
+        matchedSampleTest.isAbnormal = item.isAbnormal;
+        matchedSampleTest.status = 'COMPLETED';
+        matchedSampleTest.notes = `[مستورد آلياً من جهاز ${device?.name || 'التحليل'}]`;
+        applied = true;
+      }
+
+      // Smart Auto-Addition: if test is sent by machine but not yet in targetSample, add it and fill result!
+      if (!applied) {
+        if (['WBC', 'RBC', 'HGB', 'HCT', 'MCV', 'MCH', 'MCHC', 'PLT', 'NEU%', 'LYM%', 'MON%', 'EOS%', 'BAS%', 'RDW-CV'].includes(code)) {
+          let cbcRow = targetSample.tests.find(st => st.testId === 't-cbc' || st.test?.code === 'CBC');
+          if (!cbcRow) {
+            const cbcCatalog = store.tests.find(t => t.id === 't-cbc' || t.code === 'CBC') || {
+              id: 't-cbc',
+              code: 'CBC',
+              name: 'Complete Blood Count (CBC)',
+              arabicName: 'صورة الدم الكاملة',
+              category: 'أمراض الدم',
+              price: 15000,
+            };
+            cbcRow = {
+              id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+              sampleId: targetSample.id,
+              testId: cbcCatalog.id,
+              test: cbcCatalog as any,
+              resultValue: buildCbcStringFromItems(itemsMap),
+              isAbnormal: anyAbnormalInBatch,
+              status: 'COMPLETED',
+              notes: `[مستورد ومضاف آلياً من جهاز ${device?.name || 'التحليل'}]`,
+            };
+            targetSample.tests.push(cbcRow);
+            targetSample.priceTotal = (targetSample.priceTotal || 0) + (cbcCatalog.price || 0);
+            applied = true;
+          } else {
+            cbcRow.resultValue = buildCbcStringFromItems(itemsMap);
+            cbcRow.isAbnormal = anyAbnormalInBatch;
+            cbcRow.status = 'COMPLETED';
+            applied = true;
+          }
+        } else {
+          // Look up in catalog by ID or code
+          const catalogTest = store.tests.find(t =>
+            (targetCatalogId && t.id === targetCatalogId) ||
+            t.code.toUpperCase() === code ||
+            t.code.toUpperCase() === targetCatalogCode.toUpperCase()
+          );
+          if (catalogTest) {
+            const newSt: SampleTestRecord = {
+              id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+              sampleId: targetSample.id,
+              testId: catalogTest.id,
+              test: catalogTest,
+              resultValue: item.value,
+              isAbnormal: item.isAbnormal,
+              status: 'COMPLETED',
+              notes: `[مستورد ومضاف آلياً من جهاز ${device?.name || 'التحليل'}]`,
+            };
+            targetSample.tests.push(newSt);
+            targetSample.priceTotal = (targetSample.priceTotal || 0) + (catalogTest.price || 0);
+            applied = true;
+          }
+        }
+      }
+    }
+
+    if (applied) {
+      appliedCount++;
+    }
+
+    const incRecord: IncomingResultRecord = {
+      id: `inc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      deviceId: device?.id || 'dev-unknown',
+      deviceName: device?.name || 'محلل مخبري',
+      protocol,
+      sampleBarcode: parsed.sampleBarcode,
+      sampleNumber: targetSample?.sampleNumber || parsed.sampleNumber,
+      patientName: targetSample?.patient?.name || parsed.patientName,
+      testCode: code,
+      testName: item.testName || mapping?.deviceTestName || code,
+      value: item.value,
+      unit: item.unit || mapping?.unit,
+      flags: item.flags,
+      isAbnormal: !!item.isAbnormal,
+      status: applied ? 'APPLIED' : 'PENDING',
+      matchedSampleId: applied ? targetSample?.id : undefined,
+      matchedSampleNumber: applied ? targetSample?.sampleNumber : undefined,
+      matchedTestCatalogId: targetCatalogId,
+      appliedAt: applied ? now : undefined,
+      createdAt: now,
+    };
+
+    recordedIncoming.push(incRecord);
+  });
+
+  if (!store.incomingResults) store.incomingResults = [];
+  store.incomingResults.unshift(...recordedIncoming);
+  if (store.incomingResults.length > 200) {
+    store.incomingResults = store.incomingResults.slice(0, 200);
+  }
+
+  // Update sample status if all/any completed
+  if (targetSample) {
+    (targetSample as any).updatedAt = now;
+    const allDone = targetSample.tests.every(t => t.status === 'COMPLETED');
+    if (allDone) {
+      targetSample.status = 'READY';
+    } else if (targetSample.status === 'RECEIVED') {
+      targetSample.status = 'IN_PROGRESS';
+    }
+  }
+
+  // Raw communication log
+  const rawLog: DeviceRawLogRecord = {
+    id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    deviceId: device?.id || 'dev-unknown',
+    direction: 'INBOUND',
+    protocol,
+    rawPayload: params.rawPayload,
+    summary: `استقبال حزمة ${protocol} تحوي (${parsed.items.length}) فحص لعينة #${targetSample?.sampleNumber || parsed.sampleNumber || 'غير محددة'}`,
+    parsedCount: parsed.items.length,
+    createdAt: now,
+  };
+
+  if (!store.deviceRawLogs) store.deviceRawLogs = [];
+  store.deviceRawLogs.unshift(rawLog);
+  if (store.deviceRawLogs.length > 100) {
+    store.deviceRawLogs = store.deviceRawLogs.slice(0, 100);
+  }
+
+  // Update device health / communication timestamp
+  if (device) {
+    device.lastCommunication = now;
+    device.status = 'ONLINE';
+  }
+
+  saveStoreToFile();
+
+  return {
+    success: true,
+    deviceId: device?.id,
+    deviceName: device?.name,
+    sampleMatched: !!targetSample,
+    sampleNumber: targetSample?.sampleNumber,
+    patientName: targetSample?.patient?.name || parsed.patientName,
+    totalItems: parsed.items.length,
+    appliedItems: appliedCount,
+    rawLog,
+    sample: targetSample,
+  };
+}
+
+// ==========================================
+// 💳 DEBTS & RECEIVABLES LEDGER (الديون والذمم)
+// ==========================================
+
+export function getNextVoucherNumber(): number {
+  const store = getStore();
+  const txs = store.debtTransactions || [];
+  const finTxs = store.financialTransactions || [];
+  let maxVoucher = 1000;
+  txs.forEach((t) => {
+    if (t.voucherNumber && t.voucherNumber > maxVoucher) {
+      maxVoucher = t.voucherNumber;
+    }
+  });
+  finTxs.forEach((t: any) => {
+    if (t.voucherNumber && Number(t.voucherNumber) > maxVoucher) {
+      maxVoucher = Number(t.voucherNumber);
+    }
+  });
+  return maxVoucher + 1;
+}
+
+export function syncPatientDebtors(): void {
+  const store = getStore();
+  if (!store.debtors) store.debtors = [];
+  if (!store.debtTransactions) store.debtTransactions = [];
+
+  const patients = store.patients || [];
+  const samples = store.samples || [];
+
+  patients.forEach((p) => {
+    const patientSamples = samples.filter(
+      (s) => (s.patientId === p.id || s.patient?.id === p.id) && s.status !== 'REJECTED'
+    );
+    const hasUnpaid = patientSamples.some((s) => (s.remainingAmount || 0) > 0);
+
+    let debtor = store.debtors!.find((d) => d.patientId === p.id);
+
+    if (hasUnpaid && !debtor) {
+      debtor = {
+        id: `debtor-pat-${p.id}`,
+        name: p.name,
+        phone: p.phone || null,
+        type: 'PATIENT',
+        patientId: p.id,
+        notes: `حساب مريض تلقائي (${p.name})`,
+        createdAt: p.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      store.debtors!.push(debtor);
+    } else if (debtor) {
+      // Sync phone or name if changed
+      if (p.name && debtor.name !== p.name) debtor.name = p.name;
+      if (p.phone && debtor.phone !== p.phone) debtor.phone = p.phone;
+    }
+  });
+
+  saveStoreToFile();
+}
+
+export function getDebtorsSummary(type?: string, status?: string, query?: string) {
+  syncPatientDebtors();
+  const store = getStore();
+  const debtors = store.debtors || [];
+  const transactions = store.debtTransactions || [];
+  const samples = store.samples || [];
+  const now = Date.now();
+
+  let totalReceivables = 0; // ديون لنا (مرضى، عيادات)
+  let totalPayables = 0;    // ديون علينا (موردين)
+  let patientDebtsTotal = 0;
+  let supplierDebtsTotal = 0;
+
+  const debtorSummaries = debtors.map((d) => {
+    let totalDebt = 0;
+    let totalPaid = 0;
+    let lastDate = d.createdAt;
+
+    if (d.patientId) {
+      // Aggregate debt directly from patient's samples
+      const patientSamples = samples.filter(
+        (s) => (s.patientId === d.patientId || s.patient?.id === d.patientId) && s.status !== 'REJECTED'
+      );
+      patientSamples.forEach((s) => {
+        totalDebt += s.priceTotal - (s.discount || 0);
+        totalPaid += s.paidAmount || 0;
+        if (s.createdAt && new Date(s.createdAt).getTime() > new Date(lastDate).getTime()) {
+          lastDate = s.createdAt;
+        }
+      });
+
+      // Also include standalone transactions not tied to individual samples
+      const debtorTxs = transactions.filter((tx) => tx.debtorId === d.id && !tx.sampleId);
+      debtorTxs.forEach((tx) => {
+        if (tx.type === 'DEBT') totalDebt += tx.amount;
+        if (tx.type === 'PAYMENT') totalPaid += tx.amount;
+        if (tx.createdAt && new Date(tx.createdAt).getTime() > new Date(lastDate).getTime()) {
+          lastDate = tx.createdAt;
+        }
+      });
+    } else {
+      // Non-patient debtor (Supplier, Clinic, Manual)
+      const debtorTxs = transactions.filter((tx) => tx.debtorId === d.id);
+      debtorTxs.forEach((tx) => {
+        if (tx.type === 'DEBT') totalDebt += tx.amount;
+        if (tx.type === 'PAYMENT') totalPaid += tx.amount;
+        if (tx.createdAt && new Date(tx.createdAt).getTime() > new Date(lastDate).getTime()) {
+          lastDate = tx.createdAt;
+        }
+      });
+    }
+
+    const remainingBalance = Math.max(0, totalDebt - totalPaid);
+    const isSupplier = d.type === 'SUPPLIER';
+
+    if (isSupplier) {
+      totalPayables += remainingBalance;
+      supplierDebtsTotal += remainingBalance;
+    } else {
+      totalReceivables += remainingBalance;
+      if (d.type === 'PATIENT') {
+        patientDebtsTotal += remainingBalance;
+      }
+    }
+
+    const dTransactions = transactions.filter((tx) => tx.debtorId === d.id);
+    const agingDays = Math.max(0, Math.floor((now - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24)));
+
+    return {
+      id: d.id,
+      name: d.name,
+      phone: d.phone,
+      type: d.type || 'PATIENT',
+      patientId: d.patientId,
+      notes: d.notes,
+      createdAt: d.createdAt,
+      totalDebt,
+      totalPaid,
+      remainingBalance,
+      lastTransaction: dTransactions[0] || null,
+      transactionCount: dTransactions.length,
+      agingDays,
+      isSettled: remainingBalance <= 0,
+    };
+  });
+
+  // Filter by category type
+  let filtered = debtorSummaries;
+  if (type && type !== 'ALL') {
+    filtered = filtered.filter((d) => d.type === type);
+  }
+
+  // Filter by status
+  if (status === 'ACTIVE') {
+    filtered = filtered.filter((d) => d.remainingBalance > 0);
+  } else if (status === 'SETTLED') {
+    filtered = filtered.filter((d) => d.remainingBalance <= 0);
+  }
+
+  // Filter by search query
+  if (query && query.trim()) {
+    const q = query.trim().toLowerCase();
+    filtered = filtered.filter(
+      (d) =>
+        d.name.toLowerCase().includes(q) ||
+        (d.phone && d.phone.includes(q)) ||
+        (d.notes && d.notes.toLowerCase().includes(q))
+    );
+  }
+
+  return {
+    debtors: filtered,
+    totals: {
+      totalReceivables,
+      totalPayables,
+      patientDebtsTotal,
+      supplierDebtsTotal,
+      totalAccounts: debtors.length,
+      activeAccounts: debtorSummaries.filter((d) => d.remainingBalance > 0).length,
+    },
+  };
+}
+
+export function createDebtor(data: {
+  name: string;
+  phone?: string | null;
+  notes?: string | null;
+  type?: 'PATIENT' | 'SUPPLIER' | 'CLINIC' | 'OTHER';
+  patientId?: string | null;
+  initialDebt?: number;
+  paymentMethod?: string;
+}): DebtorRecord {
+  const store = getStore();
+  if (!store.debtors) store.debtors = [];
+  if (!store.debtTransactions) store.debtTransactions = [];
+
+  const id = `debtor-${Date.now()}`;
+  const now = new Date().toISOString();
+
+  const newDebtor: DebtorRecord = {
+    id,
+    name: data.name.trim(),
+    phone: data.phone || null,
+    notes: data.notes || null,
+    type: data.type || 'PATIENT',
+    patientId: data.patientId || null,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  store.debtors.unshift(newDebtor);
+
+  if (data.initialDebt && Number(data.initialDebt) > 0) {
+    store.debtTransactions.unshift({
+      id: `tx-debt-${Date.now()}`,
+      debtorId: id,
+      type: 'DEBT',
+      amount: Number(data.initialDebt),
+      paymentMethod: data.paymentMethod || 'آجل',
+      notes: 'رصيد دَيْن افتتاحي عند فتح الحساب',
+      createdAt: now,
+    });
+  }
+
+  saveStoreToFile();
+  return newDebtor;
+}
+
+export function recordDebtTransaction(
+  debtorId: string,
+  params: {
+    type: 'DEBT' | 'PAYMENT';
+    amount: number;
+    notes?: string;
+    sampleId?: string;
+    paymentMethod?: string;
+  }
+) {
+  const store = getStore();
+  if (!store.debtors) store.debtors = [];
+  if (!store.debtTransactions) store.debtTransactions = [];
+
+  const debtor = store.debtors.find((d) => d.id === debtorId);
+  if (!debtor) {
+    throw new Error('الحساب غير موجود');
+  }
+
+  const amount = Number(params.amount);
+  if (!amount || amount <= 0) {
+    throw new Error('مبلغ العملية يجب أن يكون أكبر من صفر');
+  }
+
+  const now = new Date().toISOString();
+  let voucherNumber: number | null = null;
+
+  if (params.type === 'PAYMENT') {
+    voucherNumber = getNextVoucherNumber();
+
+    // If debtor is linked to a patient, distribute payment to their samples
+    if (debtor.patientId) {
+      if (params.sampleId) {
+        const s = store.samples.find((sample) => sample.id === params.sampleId);
+        if (s) {
+          s.paidAmount = (s.paidAmount || 0) + amount;
+          s.remainingAmount = Math.max(0, s.priceTotal - (s.discount || 0) - s.paidAmount);
+        }
+      } else {
+        // Distribute to patient's unpaid samples (oldest first)
+        const unpaid = store.samples
+          .filter((s) => (s.patientId === debtor.patientId || s.patient?.id === debtor.patientId) && (s.remainingAmount || 0) > 0)
+          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+        let remainingToDistribute = amount;
+        for (const s of unpaid) {
+          if (remainingToDistribute <= 0) break;
+          const toPay = Math.min(s.remainingAmount, remainingToDistribute);
+          s.paidAmount = (s.paidAmount || 0) + toPay;
+          s.remainingAmount = Math.max(0, s.priceTotal - (s.discount || 0) - s.paidAmount);
+          remainingToDistribute -= toPay;
+        }
+      }
+    }
+  }
+
+  const tx: DebtTransactionRecord = {
+    id: `tx-${Date.now()}`,
+    debtorId,
+    sampleId: params.sampleId || null,
+    type: params.type,
+    amount,
+    paymentMethod: params.paymentMethod || 'نقداً',
+    voucherNumber,
+    notes: params.notes || (params.type === 'PAYMENT' ? 'استلام دفعة مالية' : 'إضافة دَيْن مالي'),
+    createdAt: now,
+  };
+
+  store.debtTransactions.unshift(tx);
+  saveStoreToFile();
+
+  return {
+    transaction: tx,
+    voucherNumber,
+    amount,
+  };
+}
+
+export function settleAllDebtor(
+  debtorId: string,
+  params: { amount?: number; paymentMethod?: string; notes?: string }
+) {
+  const store = getStore();
+  const summary = getDebtorsSummary();
+  const debtorSummary = summary.debtors.find((d) => d.id === debtorId);
+
+  if (!debtorSummary) {
+    throw new Error('الحساب غير موجود');
+  }
+
+  const currentRemaining = debtorSummary.remainingBalance;
+  if (currentRemaining <= 0) {
+    throw new Error('هذا الحساب مسدد بالكامل ولا يوجد عليه رصيد متبقي');
+  }
+
+  const payAmount = params.amount && Number(params.amount) > 0 ? Math.min(Number(params.amount), currentRemaining) : currentRemaining;
+  const voucherNumber = getNextVoucherNumber();
+  const now = new Date().toISOString();
+
+  // If debtor is linked to a patient, mark all their unpaid samples as fully settled
+  if (debtorSummary.patientId) {
+    const unpaid = store.samples
+      .filter((s) => (s.patientId === debtorSummary.patientId || s.patient?.id === debtorSummary.patientId) && (s.remainingAmount || 0) > 0)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    let remainingToDistribute = payAmount;
+    for (const s of unpaid) {
+      if (remainingToDistribute <= 0) break;
+      const toPay = Math.min(s.remainingAmount, remainingToDistribute);
+      s.paidAmount = (s.paidAmount || 0) + toPay;
+      s.remainingAmount = Math.max(0, s.priceTotal - (s.discount || 0) - s.paidAmount);
+      remainingToDistribute -= toPay;
+    }
+  }
+
+  const tx: DebtTransactionRecord = {
+    id: `tx-settle-${Date.now()}`,
+    debtorId,
+    type: 'PAYMENT',
+    amount: payAmount,
+    paymentMethod: params.paymentMethod || 'نقداً',
+    voucherNumber,
+    notes: params.notes || `تسوية وتصفير حساب (${debtorSummary.name}) بالكامل`,
+    createdAt: now,
+  };
+
+  if (!store.debtTransactions) store.debtTransactions = [];
+  store.debtTransactions.unshift(tx);
+  saveStoreToFile();
+
+  return {
+    success: true,
+    voucherNumber,
+    paidAmount: payAmount,
+    newBalance: Math.max(0, currentRemaining - payAmount),
+  };
+}
+
+export function getDebtorStatement(debtorId: string) {
+  const store = getStore();
+  const debtor = (store.debtors || []).find((d) => d.id === debtorId);
+  if (!debtor) {
+    throw new Error('الحساب غير موجود');
+  }
+
+  const allTxs = (store.debtTransactions || []).filter((tx) => tx.debtorId === debtorId);
+  let patientSamples: any[] = [];
+  let totalDebt = 0;
+  let totalPaid = 0;
+
+  if (debtor.patientId) {
+    patientSamples = (store.samples || []).filter(
+      (s) => (s.patientId === debtor.patientId || s.patient?.id === debtor.patientId) && s.status !== 'REJECTED'
+    );
+    patientSamples.forEach((s) => {
+      totalDebt += s.priceTotal - (s.discount || 0);
+      totalPaid += s.paidAmount || 0;
+    });
+
+    const extraTxs = allTxs.filter((t) => !t.sampleId);
+    extraTxs.forEach((tx) => {
+      if (tx.type === 'DEBT') totalDebt += tx.amount;
+      if (tx.type === 'PAYMENT') totalPaid += tx.amount;
+    });
+  } else {
+    allTxs.forEach((tx) => {
+      if (tx.type === 'DEBT') totalDebt += tx.amount;
+      if (tx.type === 'PAYMENT') totalPaid += tx.amount;
+    });
+  }
+
+  return {
+    debtor: {
+      ...debtor,
+      transactions: allTxs,
+    },
+    patientSamples,
+    summary: {
+      totalDebt,
+      totalPaid,
+      remainingBalance: Math.max(0, totalDebt - totalPaid),
+      transactionCount: allTxs.length,
+    },
+  };
+}
+
+export function paySampleRemaining(
+  sampleId: string,
+  params: { paidAmount: number; paymentMethod?: string; notes?: string }
+) {
+  const store = getStore();
+  const sample = store.samples.find((s) => s.id === sampleId);
+  if (!sample) {
+    throw new Error('العينة غير موجودة');
+  }
+
+  const amount = Math.round(Number(params.paidAmount));
+  if (!amount || amount <= 0) {
+    throw new Error('الرجاء إدخال مبلغ دفع صالح أكبر من صفر');
+  }
+
+  // FIN-02: Cap payment strictly at remaining balance
+  const currentRemaining = Math.max(0, sample.remainingAmount !== undefined ? sample.remainingAmount : (sample.priceTotal - (sample.discount || 0) - (sample.paidAmount || 0)));
+  const actualPay = Math.min(amount, currentRemaining);
+  if (actualPay <= 0) {
+    throw new Error('تم سداد كامل المبلغ المتبقي على هذه العينة مسبقاً');
+  }
+  const newPaid = Math.round((sample.paidAmount || 0) + actualPay);
+  const newRemaining = Math.max(0, currentRemaining - actualPay);
+  sample.paidAmount = newPaid;
+  sample.remainingAmount = newRemaining;
+  sample.paymentStatus = newRemaining <= 0 ? 'PAID' : 'PARTIAL';
+
+  const voucherNumber = getNextVoucherNumber();
+  const now = new Date().toISOString();
+
+  // Find or create debtor for this patient
+  if (!store.debtors) store.debtors = [];
+  if (!store.debtTransactions) store.debtTransactions = [];
+
+  let debtor = store.debtors.find((d) => d.patientId === sample.patientId);
+  if (!debtor && sample.patient) {
+    debtor = {
+      id: `debtor-pat-${sample.patientId}`,
+      name: sample.patient.name,
+      phone: sample.patient.phone || null,
+      type: 'PATIENT',
+      patientId: sample.patientId,
+      notes: `حساب مريض تلقائي (${sample.patient.name})`,
+      createdAt: sample.patient.createdAt || now,
+      updatedAt: now,
+    };
+    store.debtors.push(debtor);
+  }
+
+  if (debtor) {
+    store.debtTransactions.unshift({
+      id: `tx-sample-pay-${Date.now()}`,
+      debtorId: debtor.id,
+      sampleId: sample.id,
+      type: 'PAYMENT',
+      amount,
+      paymentMethod: params.paymentMethod || 'نقداً',
+      voucherNumber,
+      notes: params.notes || `سداد متبقي فحص عينة #${sample.sampleNumber}`,
+      createdAt: now,
+    });
+  }
+
+  // Record Financial Transaction (Cash Drawer Entry)
+  if (!store.financialTransactions) store.financialTransactions = [];
+  const finTx: any = {
+    id: 'ft-pay-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+    voucherNumber,
+    type: 'INCOME',
+    amount,
+    category: 'تسديد دين عينة',
+    description: 'سداد دين عينة #' + sample.sampleNumber + ' - المريض: ' + (sample.patient?.name || ''),
+    paymentMethod: params.paymentMethod || 'CASH',
+    date: now,
+    sampleId: sample.id,
+    patientId: sample.patientId,
+  };
+  store.financialTransactions.unshift(finTx);
+
+  saveStoreToFile();
+  syncSampleToSqlite(sample).catch((e) => console.warn('[SqliteSync] paySampleRemaining error:', e?.message));
+  broadcastEvent('SAMPLE', 'UPDATE', sample.id, { sampleNumber: sample.sampleNumber, paymentStatus: sample.paymentStatus, remainingAmount: newRemaining });
+
+  return {
+    success: true,
+    sample,
+    voucherNumber,
+    paidAmount: amount,
+    newRemaining,
+  };
+}
+
+export function getSpecialties() {
+  const store = getStore();
+  return store.specialties || [];
+}
+
+export function getTestGroups() {
+  const store = getStore();
+  return store.testGroups || [];
+}
+
+export function addSpecialty(data: { nameEn: string; nameAr?: string; sortOrder?: number; isActive?: boolean }) {
+  const store = getStore();
+  if (!store.specialties) store.specialties = [];
+  const id = `spec-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const now = new Date().toISOString();
+  const spec: SpecialtyRecord = {
+    id,
+    nameEn: data.nameEn.trim(),
+    nameAr: data.nameAr ? data.nameAr.trim() : null,
+    sortOrder: data.sortOrder ?? store.specialties.length + 1,
+    isActive: data.isActive !== false,
+    createdAt: now,
+    updatedAt: now,
+  };
+  store.specialties.push(spec);
+  saveStoreToFile();
+  syncSpecialtyToSqlite(spec).catch(e => console.warn('[SqliteSync] addSpecialty error:', e?.message));
+  return spec;
+}
+
+export function updateSpecialty(id: string, data: Partial<{ nameEn: string; nameAr?: string; sortOrder?: number; isActive?: boolean }>) {
+  const store = getStore();
+  const spec = (store.specialties || []).find(s => s.id === id);
+  if (!spec) throw new Error('الاختصاص غير موجود');
+  if (data.nameEn !== undefined) spec.nameEn = data.nameEn.trim();
+  if (data.nameAr !== undefined) spec.nameAr = data.nameAr ? data.nameAr.trim() : null;
+  if (data.sortOrder !== undefined) spec.sortOrder = Number(data.sortOrder);
+  if (data.isActive !== undefined) spec.isActive = Boolean(data.isActive);
+  spec.updatedAt = new Date().toISOString();
+  saveStoreToFile();
+  syncSpecialtyToSqlite(spec).catch(e => console.warn('[SqliteSync] updateSpecialty error:', e?.message));
+  return spec;
+}
+
+export function deleteSpecialty(id: string) {
+  const store = getStore();
+  const idx = (store.specialties || []).findIndex(s => s.id === id);
+  if (idx === -1) throw new Error('الاختصاص غير موجود');
+  if (store.specialties) store.specialties.splice(idx, 1);
+  (store.tests || []).forEach(t => {
+    if (t.specialtyId === id) {
+      t.specialtyId = null;
+      t.groupId = null;
+      t.sortOrder = null;
+      syncTestSpecialtyAssignmentToSqlite(t.id, null, null, null).catch(() => {});
+    }
+  });
+  if (store.testGroups) {
+    store.testGroups = store.testGroups.filter(g => g.specialtyId !== id);
+  }
+  saveStoreToFile();
+  deleteSpecialtyFromSqlite(id).catch(e => console.warn('[SqliteSync] deleteSpecialty error:', e?.message));
+  return { success: true };
+}
+
+export function addTestGroup(data: { specialtyId: string; nameEn: string; nameAr?: string; sortOrder?: number; isActive?: boolean }) {
+  const store = getStore();
+  if (!store.testGroups) store.testGroups = [];
+  const id = `grp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const now = new Date().toISOString();
+  const grp: TestGroupRecord = {
+    id,
+    specialtyId: data.specialtyId,
+    nameEn: data.nameEn.trim(),
+    nameAr: data.nameAr ? data.nameAr.trim() : null,
+    sortOrder: data.sortOrder ?? store.testGroups.filter(g => g.specialtyId === data.specialtyId).length + 1,
+    isActive: data.isActive !== false,
+    createdAt: now,
+    updatedAt: now,
+  };
+  store.testGroups.push(grp);
+  saveStoreToFile();
+  syncTestGroupToSqlite(grp).catch(e => console.warn('[SqliteSync] addTestGroup error:', e?.message));
+  return grp;
+}
+
+export function updateTestGroup(id: string, data: Partial<{ nameEn: string; nameAr?: string; sortOrder?: number; isActive?: boolean }>) {
+  const store = getStore();
+  const grp = (store.testGroups || []).find(g => g.id === id);
+  if (!grp) throw new Error('المجموعة غير موجودة');
+  if (data.nameEn !== undefined) grp.nameEn = data.nameEn.trim();
+  if (data.nameAr !== undefined) grp.nameAr = data.nameAr ? data.nameAr.trim() : null;
+  if (data.sortOrder !== undefined) grp.sortOrder = Number(data.sortOrder);
+  if (data.isActive !== undefined) grp.isActive = Boolean(data.isActive);
+  grp.updatedAt = new Date().toISOString();
+  saveStoreToFile();
+  syncTestGroupToSqlite(grp).catch(e => console.warn('[SqliteSync] updateTestGroup error:', e?.message));
+  return grp;
+}
+
+export function deleteTestGroup(id: string) {
+  const store = getStore();
+  const idx = (store.testGroups || []).findIndex(g => g.id === id);
+  if (idx === -1) throw new Error('المجموعة غير موجودة');
+  if (store.testGroups) store.testGroups.splice(idx, 1);
+  (store.tests || []).forEach(t => {
+    if (t.groupId === id) {
+      t.groupId = null;
+      t.sortOrder = null;
+      syncTestSpecialtyAssignmentToSqlite(t.id, t.specialtyId || null, null, null).catch(() => {});
+    }
+  });
+  saveStoreToFile();
+  deleteTestGroupFromSqlite(id).catch(e => console.warn('[SqliteSync] deleteTestGroup error:', e?.message));
+  return { success: true };
+}
+
+// -------------------------------------------------------------
+// Inventory & Reagents + Feature 1 (Auto-Reagent Deduction)
+// -------------------------------------------------------------
+
+export function getInitialInventoryItems(): InventoryItemRecord[] {
+  const now = new Date();
+  const in6Months = new Date(now.getTime() + 180 * 86400000).toISOString();
+  const in15Days = new Date(now.getTime() + 15 * 86400000).toISOString();
+  return [
+    {
+      id: 'inv-cbc-diluent',
+      name: 'Mindray M-52D Diluent (محلول تخفيف CBC)',
+      code: 'REAG-CBC-01',
+      catalogCode: 'CBC',
+      category: 'REAGENT',
+      unit: 'فحص',
+      quantity: 250,
+      minStockLevel: 40,
+      lotNumber: 'MD-2026-08',
+      expiryDate: in6Months,
+      onBoardStabilityDays: 60,
+      supplierName: 'الوكيل الطبي المعتمد',
+      costPerUnit: 500,
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 'inv-glucose-kit',
+      name: 'Glucose Hexokinase Reagent Kit (كاشف السكر)',
+      code: 'REAG-GLU-02',
+      catalogCode: 'FBS',
+      category: 'REAGENT',
+      unit: 'فحص',
+      quantity: 180,
+      minStockLevel: 30,
+      lotNumber: 'RC-99412',
+      expiryDate: in6Months,
+      onBoardStabilityDays: 30,
+      supplierName: 'Roche Diagnostics',
+      costPerUnit: 450,
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 'inv-urea-kit',
+      name: 'Urea / BUN UV Kinetic Reagent (كاشف اليوريا)',
+      code: 'REAG-UREA-03',
+      catalogCode: 'UREA',
+      category: 'REAGENT',
+      unit: 'فحص',
+      quantity: 120,
+      minStockLevel: 25,
+      lotNumber: 'RC-88210',
+      expiryDate: in6Months,
+      onBoardStabilityDays: 30,
+      supplierName: 'Roche Diagnostics',
+      costPerUnit: 600,
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 'inv-creat-kit',
+      name: 'Creatinine Jaffe Gen.2 Reagent (كاشف الكرياتينين)',
+      code: 'REAG-CREA-04',
+      catalogCode: 'CREAT',
+      category: 'REAGENT',
+      unit: 'فحص',
+      quantity: 140,
+      minStockLevel: 25,
+      lotNumber: 'RC-77105',
+      expiryDate: in6Months,
+      onBoardStabilityDays: 28,
+      supplierName: 'Roche Diagnostics',
+      costPerUnit: 600,
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 'inv-vitd-clia',
+      name: '25-OH Vitamin D CLIA Kit (كاشف فيتامين د)',
+      code: 'REAG-VITD-05',
+      catalogCode: 'VITD',
+      category: 'REAGENT',
+      unit: 'فحص',
+      quantity: 18,
+      minStockLevel: 20,
+      lotNumber: 'MG-2026-02',
+      expiryDate: in15Days,
+      onBoardStabilityDays: 28,
+      supplierName: 'Snibe Maglumi',
+      costPerUnit: 3500,
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 'inv-tsh-clia',
+      name: 'TSH 3rd Gen CLIA Reagent (كاشف الغدة الدرقية)',
+      code: 'REAG-TSH-06',
+      catalogCode: 'TSH',
+      category: 'REAGENT',
+      unit: 'فحص',
+      quantity: 85,
+      minStockLevel: 20,
+      lotNumber: 'MG-2026-04',
+      expiryDate: in6Months,
+      onBoardStabilityDays: 28,
+      supplierName: 'Snibe Maglumi',
+      costPerUnit: 2500,
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 'inv-edta-tubes',
+      name: 'أنابيب سحب دم EDTA K3 (غطاء بنفسجي)',
+      code: 'CONS-EDTA-01',
+      catalogCode: null,
+      category: 'CONSUMABLE',
+      unit: 'أنبوب',
+      quantity: 450,
+      minStockLevel: 100,
+      lotNumber: 'VAC-2026',
+      expiryDate: in6Months,
+      onBoardStabilityDays: null,
+      supplierName: 'مستلزمات المختبر الحديث',
+      costPerUnit: 150,
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+  ];
+}
+
+export function deductReagentsForSample(
+  store: ServerStore,
+  sample: SampleRecord
+): { itemId: string; name: string; remainingQuantity: number; minStockLevel: number; unit: string }[] {
+  if (!Array.isArray(store.inventoryItems) || !Array.isArray(sample.tests)) return [];
+  if (!Array.isArray(store.inventoryTransactions)) store.inventoryTransactions = [];
+  const alerts: { itemId: string; name: string; remainingQuantity: number; minStockLevel: number; unit: string }[] = [];
+  const now = new Date().toISOString();
+
+  for (const st of sample.tests) {
+    const testCode = String(st.test?.code || '').trim().toUpperCase();
+    const testId = String(st.testId || st.test?.id || '').trim().toUpperCase();
+    if (!testCode && !testId) continue;
+
+    const matchingItem = store.inventoryItems.find(item => {
+      if (item.isActive === false) return false;
+      const catCode = String(item.catalogCode || '').trim().toUpperCase();
+      if (!catCode) return false;
+      return catCode === testCode || catCode === testId || `T-${catCode}` === testId;
+    });
+
+    if (matchingItem) {
+      matchingItem.quantity = Math.max(0, Number(matchingItem.quantity || 0) - 1);
+      matchingItem.updatedAt = now;
+      const tx: InventoryTransactionRecord = {
+        id: `invtx-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        itemId: matchingItem.id,
+        type: 'OUT',
+        quantity: 1,
+        reason: `استهلاك تلقائي - عينة #${sample.sampleNumber} (${st.test?.code || st.test?.name || ''})`,
+        sampleId: sample.id,
+        createdAt: now,
+      };
+      store.inventoryTransactions.unshift(tx);
+
+      if (matchingItem.quantity <= matchingItem.minStockLevel) {
+        alerts.push({
+          itemId: matchingItem.id,
+          name: matchingItem.name,
+          remainingQuantity: matchingItem.quantity,
+          minStockLevel: matchingItem.minStockLevel,
+          unit: matchingItem.unit,
+        });
+      }
+    }
+  }
+  return alerts;
+}
+
+export function getInventoryItems(): any[] {
+  const store = getStore();
+  if (!Array.isArray(store.inventoryItems) || store.inventoryItems.length === 0) {
+    store.inventoryItems = getInitialInventoryItems();
+    saveStoreToFile();
+  }
+  const txs = store.inventoryTransactions || [];
+  const nowMs = Date.now();
+  return store.inventoryItems
+    .filter(item => item.isActive !== false)
+    .map(item => {
+      const effectiveExp = item.calculatedStabilityExpiry || item.expiryDate || null;
+      const daysUntilExpiry = effectiveExp ? Math.ceil((new Date(effectiveExp).getTime() - nowMs) / 86400000) : null;
+      const expiryStatus =
+        daysUntilExpiry === null
+          ? 'VALID'
+          : daysUntilExpiry <= 0
+          ? 'EXPIRED'
+          : daysUntilExpiry <= 30
+          ? 'APPROACHING_EXPIRY'
+          : 'VALID';
+      const reorderThreshold = item.minStockLevel ?? (item as any).reorderThreshold ?? 5;
+      return {
+        ...item,
+        reorderThreshold,
+        minStockLevel: reorderThreshold,
+        openVialDays: item.onBoardStabilityDays ?? (item as any).openVialDays ?? null,
+        effectiveExpiry: effectiveExp,
+        daysUntilExpiry,
+        expiryStatus,
+        supplier: item.supplierName || (item as any).supplier || '',
+        transactions: txs.filter(t => t.itemId === item.id).slice(0, 10),
+      };
+    });
+}
+
+export function getInventoryAlerts() {
+  const items = getInventoryItems();
+  const expired = items.filter(i => i.expiryStatus === 'EXPIRED');
+  const expiring = items.filter(i => i.expiryStatus === 'APPROACHING_EXPIRY');
+  const lowStock = items.filter(i => i.quantity <= i.reorderThreshold);
+
+  return {
+    expiredCount: expired.length,
+    expiringCount: expiring.length,
+    expiringSoonCount: expiring.length,
+    lowStockCount: lowStock.length,
+    expired,
+    lowStock,
+    expiring,
+  };
+}
+
+export function addInventoryItem(data: any): InventoryItemRecord {
+  const store = getStore();
+  if (!Array.isArray(store.inventoryItems)) store.inventoryItems = getInitialInventoryItems();
+  if (!Array.isArray(store.inventoryTransactions)) store.inventoryTransactions = [];
+  const now = new Date().toISOString();
+  const initialQty = Number(data.quantity ?? 0);
+  const minStock = Number(data.minStockLevel ?? data.reorderThreshold ?? 5);
+  const stabDays = data.onBoardStabilityDays ?? data.openVialDays;
+
+  const newItem: InventoryItemRecord = {
+    id: `inv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    name: String(data.name || '').trim(),
+    code: data.code ? String(data.code).trim() : null,
+    catalogCode: data.catalogCode ? String(data.catalogCode).trim().toUpperCase() : null,
+    category: data.category || 'REAGENT',
+    unit: data.unit || 'فحص',
+    quantity: initialQty,
+    minStockLevel: minStock,
+    lotNumber: data.lotNumber ? String(data.lotNumber).trim() : null,
+    expiryDate: data.expiryDate ? new Date(data.expiryDate).toISOString() : null,
+    onBoardStabilityDays: stabDays ? Number(stabDays) : null,
+    supplierName: (data.supplierName || data.supplier) ? String(data.supplierName || data.supplier).trim() : null,
+    costPerUnit: data.costPerUnit != null ? Number(data.costPerUnit) : null,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  store.inventoryItems.unshift(newItem);
+  if (initialQty > 0) {
+    store.inventoryTransactions.unshift({
+      id: `invtx-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      itemId: newItem.id,
+      type: 'IN',
+      quantity: initialQty,
+      reason: 'رصيد افتتاحي عند الإضافة',
+      createdAt: now,
+    });
+  }
+  saveStoreToFile();
+  return newItem;
+}
+
+export function openInventoryVial(id: string): InventoryItemRecord {
+  const store = getStore();
+  const items = store.inventoryItems || [];
+  const item = items.find(i => i.id === id);
+  if (!item) throw new Error('الصنف غير موجود في المخزون');
+  const now = new Date();
+  let calculatedStabilityExpiry: string | null = item.calculatedStabilityExpiry || null;
+  if (item.onBoardStabilityDays && item.onBoardStabilityDays > 0) {
+    const stabDate = new Date(now.getTime() + item.onBoardStabilityDays * 86400000);
+    if (item.expiryDate && new Date(item.expiryDate) < stabDate) {
+      calculatedStabilityExpiry = item.expiryDate;
+    } else {
+      calculatedStabilityExpiry = stabDate.toISOString();
+    }
+  }
+  item.openedAt = now.toISOString();
+  item.calculatedStabilityExpiry = calculatedStabilityExpiry;
+  item.updatedAt = now.toISOString();
+  saveStoreToFile();
+  return item;
+}
+
+export function updateInventoryItem(
+  id: string,
+  data: Partial<InventoryItemRecord> & { adjustQuantity?: number; transactionType?: 'IN' | 'OUT' | 'ADJUST' | 'WASTE'; reason?: string }
+): InventoryItemRecord {
+  const store = getStore();
+  const items = store.inventoryItems || [];
+  const item = items.find(i => i.id === id);
+  if (!item) throw new Error('الصنف غير موجود في المخزون');
+  if (!Array.isArray(store.inventoryTransactions)) store.inventoryTransactions = [];
+  const now = new Date().toISOString();
+
+  if (data.adjustQuantity !== undefined && data.transactionType) {
+    const delta = Number(data.adjustQuantity);
+    if (data.transactionType === 'IN') item.quantity += delta;
+    else if (data.transactionType === 'OUT' || data.transactionType === 'WASTE') item.quantity = Math.max(0, item.quantity - Math.abs(delta));
+    else item.quantity = delta;
+
+    store.inventoryTransactions.unshift({
+      id: `invtx-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      itemId: item.id,
+      type: data.transactionType,
+      quantity: Math.abs(delta),
+      reason: data.reason || 'تعديل مخزني يدوي',
+      createdAt: now,
+    });
+  }
+
+  if (data.name !== undefined) item.name = data.name.trim();
+  if ((data as any).quantity !== undefined && data.adjustQuantity === undefined) {
+    item.quantity = Math.max(0, Number((data as any).quantity));
+  }
+  if ((data as any).reorderThreshold !== undefined && data.minStockLevel === undefined) {
+    item.minStockLevel = Number((data as any).reorderThreshold);
+  }
+  if (data.code !== undefined) item.code = data.code ? String(data.code).trim() : null;
+  if (data.catalogCode !== undefined) item.catalogCode = data.catalogCode ? String(data.catalogCode).trim().toUpperCase() : null;
+  if (data.category !== undefined) item.category = data.category;
+  if (data.unit !== undefined) item.unit = data.unit;
+  if (data.minStockLevel !== undefined) item.minStockLevel = Number(data.minStockLevel);
+  if (data.lotNumber !== undefined) item.lotNumber = data.lotNumber;
+  if (data.expiryDate !== undefined) item.expiryDate = data.expiryDate ? new Date(data.expiryDate).toISOString() : null;
+  if (data.onBoardStabilityDays !== undefined) item.onBoardStabilityDays = data.onBoardStabilityDays ? Number(data.onBoardStabilityDays) : null;
+  if (data.supplierName !== undefined) item.supplierName = data.supplierName;
+  if (data.costPerUnit !== undefined) item.costPerUnit = data.costPerUnit != null ? Number(data.costPerUnit) : null;
+  if (data.isActive !== undefined) item.isActive = Boolean(data.isActive);
+  item.updatedAt = now;
+
+  saveStoreToFile();
+  return item;
+}
+
+export function deleteInventoryItem(id: string): boolean {
+  const store = getStore();
+  const items = store.inventoryItems || [];
+  const item = items.find(i => i.id === id);
+  if (!item) return false;
+  item.isActive = false;
+  item.updatedAt = new Date().toISOString();
+  saveStoreToFile();
+  return true;
+}
+
+// -------------------------------------------------------------
+// Staff Management Helpers
+// -------------------------------------------------------------
+
+export function getInitialStaff(): StaffRecord[] {
+  const now = new Date().toISOString();
+  return [
+    {
+      id: 'staff-admin-1',
+      name: 'مدير المختبر الرئيسي',
+      email: 'admin@lab.local',
+      role: 'ADMIN',
+      phone: '07700000000',
+      active: true,
+      createdAt: now,
+    },
+    {
+      id: 'staff-tech-1',
+      name: 'محلل مختبر أقدم',
+      email: 'tech@lab.local',
+      role: 'TECH',
+      phone: '07800000000',
+      active: true,
+      createdAt: now,
+    },
+    {
+      id: 'staff-rec-1',
+      name: 'موظف الاستقبال والسحب',
+      email: 'reception@lab.local',
+      role: 'RECEPTION',
+      phone: '07900000000',
+      active: true,
+      createdAt: now,
+    },
+  ];
+}
+
+export function getStaffList(): StaffRecord[] {
+  const store = getStore();
+  if (!Array.isArray(store.staff) || store.staff.length === 0) {
+    store.staff = getInitialStaff();
+    saveStoreToFile();
+  }
+  return store.staff;
+}
+
+export function addStaffMember(data: { name: string; email?: string; role?: string; phone?: string }): StaffRecord {
+  const store = getStore();
+  if (!Array.isArray(store.staff)) store.staff = getInitialStaff();
+  const member: StaffRecord = {
+    id: `staff-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    name: data.name.trim(),
+    email: (data.email || `user${Date.now()}@lab.local`).trim(),
+    role: data.role || 'TECH',
+    phone: data.phone?.trim() || '',
+    active: true,
+    createdAt: new Date().toISOString(),
+  };
+  store.staff.push(member);
+  saveStoreToFile();
+  return member;
+}
+
+export function updateStaffMember(id: string, data: Partial<StaffRecord>): StaffRecord | null {
+  const store = getStore();
+  if (!Array.isArray(store.staff)) store.staff = getInitialStaff();
+  const idx = store.staff.findIndex(s => s.id === id);
+  if (idx === -1) return null;
+  store.staff[idx] = { ...store.staff[idx], ...data };
+  saveStoreToFile();
+  return store.staff[idx];
+}
+
+export function deleteStaffMember(id: string): boolean {
+  const store = getStore();
+  if (!Array.isArray(store.staff)) return false;
+  const idx = store.staff.findIndex(s => s.id === id);
+  if (idx === -1) return false;
+  store.staff.splice(idx, 1);
+  saveStoreToFile();
+  return true;
+}
+
+export function updateTestSpecialty(
+  testId: string,
+  data: { specialtyId: string | null; groupId: string | null; sortOrder?: number | null }
+) {
+  const store = getStore();
+  const test = (store.tests || []).find(t => t.id === testId);
+  if (!test) throw new Error('الفحص غير موجود');
+  test.specialtyId = data.specialtyId || null;
+  test.groupId = data.groupId || null;
+  test.sortOrder = data.sortOrder !== undefined ? data.sortOrder : null;
+  saveStoreToFile();
+  syncTestSpecialtyAssignmentToSqlite(test.id, test.specialtyId, test.groupId, test.sortOrder).catch(e =>
+    console.warn('[SqliteSync] updateTestSpecialty error:', e?.message)
+  );
+  return test;
+}
+
+

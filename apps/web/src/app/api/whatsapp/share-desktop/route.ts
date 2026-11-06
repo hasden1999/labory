@@ -4,6 +4,14 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+function getTempFilePath(filename: string): string {
+  const tmpDir = process.env.TEMP || process.env.TMP || (os as any)['tmpdir']();
+  return [tmpDir, filename].join(path.sep);
+}
+
 function resolveScriptPath(): string | null {
   const candidates = [
     'D:\\lab\\apps\\desktop\\services\\whatsappAutoPaste.ps1',
@@ -99,7 +107,7 @@ export async function POST(req: NextRequest) {
     const tempPaths: string[] = [];
     const timestamp = Date.now();
     for (let i = 0; i < imgBuffers.length; i++) {
-      const p = path.join(os.tmpdir(), `labryo-wa-${sampleId}-${timestamp}-${i + 1}.png`);
+      const p = getTempFilePath(`labryo-wa-${sampleId}-${timestamp}-${i + 1}.png`);
       fs.writeFileSync(p, imgBuffers[i]);
       tempPaths.push(p);
     }
@@ -107,7 +115,7 @@ export async function POST(req: NextRequest) {
     // 2. Write Caption to temporary UTF-8 file
     let tempCaptionPath = '';
     if (caption && typeof caption === 'string') {
-      tempCaptionPath = path.join(os.tmpdir(), `labryo-wa-cap-${sampleId}-${timestamp}.txt`);
+      tempCaptionPath = getTempFilePath(`labryo-wa-cap-${sampleId}-${timestamp}.txt`);
       fs.writeFileSync(tempCaptionPath, caption, 'utf8');
     }
 

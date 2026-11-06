@@ -131,13 +131,36 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Synchronize local search query and suggestions when patient state is reset externally
+  useEffect(() => {
+    if (!patient.name && !patient.id) {
+      setSearchQuery('');
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setHighlightedIndex(-1);
+      setIsDoctorOpen(false);
+      setDoctorSearch('');
+    }
+  }, [patient.name, patient.id]);
+
+  // Initial auto-focus on patient name input upon mounting
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInputRef.current && document.activeElement !== searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
+    }, 80);
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleSelectPatient = useCallback(
     (p: any) => {
       selectExistingPatient(p);
       setSearchQuery('');
+      setSuggestions([]);
       setShowSuggestions(false);
       setHighlightedIndex(-1);
-      toast.success(`Loaded patient: ${p.name}`);
+      toast.success(`تم اختيار المريض: ${p.name}`);
     },
     [selectExistingPatient, toast]
   );

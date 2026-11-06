@@ -1,0 +1,289 @@
+{
+  "PSA": {
+    "unit": "ng/mL",
+    "refRangeLow": 0,
+    "refRangeHigh": 4,
+    "refRangeText": "< 4.0",
+    "normalRange": "< 4.0 ng/mL"
+  },
+  "FPSA": {
+    "unit": "ng/mL",
+    "refRangeLow": 0,
+    "refRangeHigh": 0.5,
+    "refRangeText": "< 0.5",
+    "normalRange": "< 0.5 ng/mL"
+  },
+  "CEA": {
+    "unit": "ng/mL",
+    "refRangeLow": 0,
+    "refRangeHigh": 5,
+    "refRangeText": "< 5.0 (Non-smokers < 3.0)",
+    "normalRange": "< 5.0 ng/mL"
+  },
+  "AFP": {
+    "unit": "ng/mL",
+    "refRangeLow": 0,
+    "refRangeHigh": 10,
+    "refRangeText": "< 10.0",
+    "normalRange": "< 10.0 ng/mL"
+  },
+  "CA125": {
+    "unit": "U/mL",
+    "refRangeLow": 0,
+    "refRangeHigh": 35,
+    "refRangeText": "< 35.0",
+    "normalRange": "< 35.0 U/mL"
+  },
+  "CA15-3": {
+    "unit": "U/mL",
+    "refRangeLow": 0,
+    "refRangeHigh": 30,
+    "refRangeText": "< 30.0",
+    "normalRange": "< 30.0 U/mL"
+  },
+  "CA19-9": {
+    "unit": "U/mL",
+    "refRangeLow": 0,
+    "refRangeHigh": 37,
+    "refRangeText": "< 37.0",
+    "normalRange": "< 37.0 U/mL"
+  },
+  "BHCG": {
+    "unit": "mIU/mL",
+    "refRangeLow": 0,
+    "refRangeHigh": 5,
+    "refRangeText": "< 5.0 (Non-pregnant)",
+    "normalRange": "< 5.0 mIU/mL"
+  },
+  "TT3": {
+    "unit": "ng/dL",
+    "refRangeLow": 80,
+    "refRangeHigh": 200,
+    "refRangeText": "80 - 200",
+    "normalRange": "80 - 200 ng/dL"
+  },
+  "TT4": {
+    "unit": "µg/dL",
+    "refRangeLow": 5,
+    "refRangeHigh": 12,
+    "refRangeText": "5.0 - 12.0",
+    "normalRange": "5.0 - 12.0 µg/dL"
+  },
+  "ALT": {
+    "unit": "U/L",
+    "refRangeLow": 7,
+    "refRangeHigh": 45,
+    "refRangeText": "Male: 10 - 45 | Female: 7 - 35",
+    "normalRange": "7 - 45 U/L"
+  },
+  "AST": {
+    "unit": "U/L",
+    "refRangeLow": 8,
+    "refRangeHigh": 40,
+    "refRangeText": "Male: 10 - 40 | Female: 8 - 35",
+    "normalRange": "8 - 40 U/L"
+  },
+  "DBIL": {
+    "unit": "mg/dL",
+    "refRangeLow": 0,
+    "refRangeHigh": 0.3,
+    "refRangeText": "0.0 - 0.3",
+    "normalRange": "0.0 - 0.3 mg/dL"
+  },
+  "IBIL": {
+    "unit": "mg/dL",
+    "refRangeLow": 0.2,
+    "refRangeHigh": 0.8,
+    "refRangeText": "0.2 - 0.8",
+    "normalRange": "0.2 - 0.8 mg/dL"
+  },
+  "CA": {
+    "unit": "mg/dL",
+    "refRangeLow": 8.5,
+    "refRangeHigh": 10.5,
+    "refRangeText": "8.5 - 10.5",
+    "normalRange": "8.5 - 10.5 mg/dL"
+  },
+  "FERR": {
+    "unit": "ng/mL",
+    "refRangeLow": 15,
+    "refRangeHigh": 300,
+    "refRangeText": "Male: 30 - 300 | Female: 15 - 150",
+    "normalRange": "15 - 300 ng/mL"
+  },
+  "G6PD": {
+    "unit": "U/g Hb",
+    "refRangeLow": 4.6,
+    "refRangeHigh": 13.5,
+    "refRangeText": "4.6 - 13.5",
+    "normalRange": "4.6 - 13.5 U/g Hb"
+  },
+  "HBA2": {
+    "unit": "%",
+    "refRangeLow": 2.2,
+    "refRangeHigh": 3.5,
+    "refRangeText": "2.2 - 3.5",
+    "normalRange": "2.2 - 3.5 %"
+  },
+  "HBF": {
+    "unit": "%",
+    "refRangeLow": 0,
+    "refRangeHigh": 2,
+    "refRangeText": "< 2.0 %",
+    "normalRange": "< 2.0 %"
+  },
+  "NRBC": {
+    "unit": "/100 WBC",
+    "refRangeLow": 0,
+    "refRangeHigh": 0,
+    "refRangeText": "0",
+    "normalRange": "0 /100 WBC"
+  },
+  "TRF": {
+    "unit": "mg/dL",
+    "refRangeLow": 200,
+    "refRangeHigh": 360,
+    "refRangeText": "200 - 360",
+    "normalRange": "200 - 360 mg/dL"
+  },
+  "PFHB": {
+    "unit": "mg/dL",
+    "refRangeLow": 0,
+    "refRangeHigh": 5,
+    "refRangeText": "< 5.0",
+    "normalRange": "< 5.0 mg/dL"
+  },
+  "LAP": {
+    "unit": "Score",
+    "refRangeLow": 20,
+    "refRangeHigh": 100,
+    "refRangeText": "20 - 100",
+    "normalRange": "20 - 100 Score"
+  },
+  "SICKLE": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "Negative",
+    "normalRange": "Negative"
+  },
+  "MALARIA": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "Negative (No parasites seen)",
+    "normalRange": "Negative (No parasites seen)"
+  },
+  "MICROFIL": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "Negative (Not seen)",
+    "normalRange": "Negative (Not seen)"
+  },
+  "LEISH-BF": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "Negative (Not seen)",
+    "normalRange": "Negative (Not seen)"
+  },
+  "LE-CELL": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "Negative",
+    "normalRange": "Negative"
+  },
+  "HEMOSID": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "Negative",
+    "normalRange": "Negative"
+  },
+  "CRYOGLOB": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "Negative",
+    "normalRange": "Negative"
+  },
+  "COLDAG": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "< 1:32",
+    "normalRange": "< 1:32"
+  },
+  "JAK2": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "Not detected (Negative)",
+    "normalRange": "Not detected (Negative)"
+  },
+  "CALR": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "Not detected (Negative)",
+    "normalRange": "Not detected (Negative)"
+  },
+  "MPL": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "Not detected (Negative)",
+    "normalRange": "Not detected (Negative)"
+  },
+  "BCRABL": {
+    "unit": "%",
+    "refRangeLow": 0,
+    "refRangeHigh": 0.1,
+    "refRangeText": "Not detected (< 0.1% IS)",
+    "normalRange": "Not detected (< 0.1% IS)"
+  },
+  "BCRABL-Q": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "Not detected (Negative)",
+    "normalRange": "Not detected (Negative)"
+  },
+  "FLT3": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "Not detected (Negative)",
+    "normalRange": "Not detected (Negative)"
+  },
+  "NPM1": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "Not detected (Negative)",
+    "normalRange": "Not detected (Negative)"
+  },
+  "PMLRARA": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "Not detected (Negative)",
+    "normalRange": "Not detected (Negative)"
+  },
+  "CEBPA": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "Not detected (Negative)",
+    "normalRange": "Not detected (Negative)"
+  },
+  "IGH": {
+    "unit": null,
+    "refRangeLow": null,
+    "refRangeHigh": null,
+    "refRangeText": "Polyclonal (Negative)",
+    "normalRange": "Polyclonal (Negative)"
+  }
+}

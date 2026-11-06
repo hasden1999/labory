@@ -27,7 +27,7 @@ class UpdateService {
       releaseNotes: null,
       releaseDate: null,
       isCritical: false,
-      channel: 'stable',
+      channel: (process.arch === 'ia32' || (process.versions.electron && process.versions.electron.startsWith('22.')) || process.env.LABRYO_LEGACY_EDITION === '1') ? 'legacy' : 'stable',
       progress: {
         percent: 0,
         bytesPerSecond: 0,
@@ -141,8 +141,9 @@ class UpdateService {
       if (fs.existsSync(settingsPath)) {
         const raw = fs.readFileSync(settingsPath, 'utf-8');
         const data = JSON.parse(raw);
+        const isLegacyMachine = process.arch === 'ia32' || (process.versions.electron && process.versions.electron.startsWith('22.')) || process.env.LABRYO_LEGACY_EDITION === '1';
         if (data.channel === 'beta' || data.channel === 'stable' || data.channel === 'legacy') {
-          this.state.channel = data.channel;
+          this.state.channel = isLegacyMachine ? 'legacy' : data.channel;
         }
         if (data.updateHistory) {
           this.updateHistory = data.updateHistory;
@@ -197,7 +198,11 @@ class UpdateService {
   }
 
   configureAutoUpdater() {
-    const isLegacyProfile = app.getName().toLowerCase().includes('legacy') || process.env.LABRYO_LEGACY_EDITION === '1';
+    const isLegacyProfile =
+      app.getName().toLowerCase().includes('legacy') ||
+      process.env.LABRYO_LEGACY_EDITION === '1' ||
+      process.arch === 'ia32' ||
+      (process.versions.electron && process.versions.electron.startsWith('22.'));
     if (isLegacyProfile) {
       this.state.channel = 'legacy';
       this.log('Legacy profile detected: auto-update channel set to legacy');

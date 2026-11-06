@@ -1,0 +1,71 @@
+{
+  "total": 9,
+  "passed": 9,
+  "failed": 0,
+  "skipped": 0,
+  "checks": [
+    {
+      "suite": "devices",
+      "name": "opens the devices and inventory workspace",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 15125
+    },
+    {
+      "suite": "devices",
+      "name": "switches inventory filters",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 5524
+    },
+    {
+      "suite": "devices",
+      "name": "searches inventory by reagent or test code",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1309
+    },
+    {
+      "suite": "devices",
+      "name": "opens and cancels the add-device dialog",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 938
+    },
+    {
+      "suite": "devices",
+      "name": "opens and cancels the add-inventory dialog",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 956
+    },
+    {
+      "suite": "devices",
+      "name": "opens the device connection guide and closes it",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 432
+    },
+    {
+      "suite": "devices",
+      "name": "runs a device connectivity check without crashing",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 3099
+    },
+    {
+      "suite": "devices",
+      "name": "opens the delete-device confirmation and cancels it",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 5340
+    },
+    {
+      "suite": "devices",
+      "name": "opens an inventory package and cancels it",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 4384
+    }
+  ]
+}

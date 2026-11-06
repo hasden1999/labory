@@ -348,9 +348,10 @@ function getStartCommand(projectRoot, portToUse = WEB_PORT) {
       NODE_SKIP_PLATFORM_CHECK: '1',
     };
 
-    // Cap V8 memory on 32-bit architectures to prevent VirtualAlloc OOM crashes on 2GB RAM PCs
-    if (process.arch === 'ia32') {
+    // Cap V8 memory on 32-bit/legacy architectures to prevent VirtualAlloc OOM crashes on 2GB RAM PCs
+    if (process.arch === 'ia32' || (process.versions.electron && process.versions.electron.startsWith('22.'))) {
       extraEnv.NODE_OPTIONS = '--max-old-space-size=768';
+      delete extraEnv.NODE_COMPILE_CACHE;
     }
 
     return {
@@ -1760,6 +1761,29 @@ ipcMain.handle('clipboard:write-image', async (_event, payload) => {
   }
 });
 
+function resolveWhatsAppAutoPasteScript() {
+  const candidates = [];
+  if (app.isPackaged) {
+    // electron-builder unpacks services/** via "asarUnpack" so external processes (PowerShell) can read the script.
+    candidates.push(path.join(process.resourcesPath, 'app.asar.unpacked', 'services', 'whatsappAutoPaste.ps1'));
+    candidates.push(path.join(process.resourcesPath, 'services', 'whatsappAutoPaste.ps1'));
+    candidates.push(
+      path.join(process.resourcesPath, 'engine', 'standalone', 'apps', 'desktop', 'services', 'whatsappAutoPaste.ps1')
+    );
+  }
+  candidates.push(path.join(__dirname, 'services', 'whatsappAutoPaste.ps1'));
+  const found = candidates.find((candidate) => fs.existsSync(candidate)) || null;
+  if (!found) return null;
+  if (found.includes('app.asar')) {
+    try {
+      const tempScript = path.join(require('os').tmpdir(), 'labryo-whatsappAutoPaste.ps1');
+      fs.writeFileSync(tempScript, fs.readFileSync(found));
+      return tempScript;
+    } catch (e) {}
+  }
+  return found;
+}
+
 ipcMain.handle('whatsapp:share-direct', async (_event, { phone, imageBase64, imagesBase64, caption }) => {
   const trace = (m) => {
     try {
@@ -1844,34 +1868,66 @@ ipcMain.handle('whatsapp:share-direct', async (_event, { phone, imageBase64, ima
     }
     if (!opened) return { success: false, error: 'تطبيق واتساب لسطح المكتب غير مثبت أو لا يستجيب' };
 
+    if (allImages.length > 0 && tempPaths.length === 0) {
+      trace('no valid report images could be decoded');
+      return { success: false, error: 'تعذر تجهيز صور التقرير الطبي للإرسال. أعد المحاولة.' };
+    }
+
     if (tempPaths.length > 0) {
-      setTimeout(() => {
-        try {
-          const autoPasteScript = path.join(__dirname, 'services', 'whatsappAutoPaste.ps1');
-          if (fs.existsSync(autoPasteScript)) {
-            const { exec } = require('child_process');
-            const joinedPaths = tempPaths.join('|');
-            let args = ` -Phone "${cleanPhone}" -SkipProtocolLaunch -ImagePath "${tempPaths[0]}" -ImagePaths "${joinedPaths}"`;
-            if (caption) {
-              const captionFile = path.join(require('os').tmpdir(), 'labryo-wa-caption-' + ts + '.txt');
-              fs.writeFileSync(captionFile, caption, 'utf8');
-              args += ` -CaptionFile "${captionFile}"`;
+      const autoPasteScript = resolveWhatsAppAutoPasteScript();
+      trace('auto-paste script resolved: ' + (autoPasteScript || 'NOT FOUND'));
+      if (!autoPasteScript) {
+        return {
+          success: false,
+          error: 'تعذر العثور على ملف أتمتة اللصق (whatsappAutoPaste.ps1). يرجى تحديث التطبيق.',
+        };
+      }
+
+      const captionFile = path.join(require('os').tmpdir(), 'labryo-wa-caption-' + ts + '.txt');
+      if (caption) fs.writeFileSync(captionFile, caption, 'utf8');
+
+      const pasteArgs = [
+        '-STA',
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        autoPasteScript,
+        '-Phone',
+        cleanPhone,
+        '-SkipProtocolLaunch',
+        '-ImagePath',
+        tempPaths[0],
+        '-ImagePaths',
+        tempPaths.join('|'),
+      ];
+      if (caption) pasteArgs.push('-CaptionFile', captionFile);
+
+      const pasteResult = await new Promise((resolve) => {
+        const { execFile } = require('child_process');
+        execFile(
+          'powershell.exe',
+          pasteArgs,
+          { windowsHide: true, timeout: 60000 },
+          (err, _stdout, stderr) => {
+            if (err) {
+              trace('auto-paste failed: ' + (stderr || err.message) + ' (code=' + (err.code || '?') + ')');
+              resolve({
+                success: false,
+                error: 'تم فتح واتساب لكن تعذر لصق صور التقرير تلقائياً. أعد المحاولة أو أرفق الصور يدوياً.',
+              });
+            } else {
+              trace('auto-paste completed successfully');
+              resolve({ success: true });
             }
-            exec(
-              'powershell -STA -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' +
-                autoPasteScript +
-                '"' +
-                args,
-              { windowsHide: true }
-            );
-            trace('auto-paste script launched with args: ' + args);
-          } else {
-            trace('auto-paste script missing: ' + autoPasteScript);
           }
-        } catch (e) {
-          trace('auto-paste launch error: ' + (e && e.message));
-        }
-      }, 300);
+        );
+      });
+
+      if (!pasteResult.success) {
+        return { success: false, mode: 'desktop', error: pasteResult.error };
+      }
     }
 
     return { success: true, mode: 'desktop' };

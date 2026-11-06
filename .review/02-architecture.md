@@ -1,134 +1,162 @@
-# تقرير وكيل الهيكلة وجودة الكود (02-Architecture & Code Quality)
+# تقرير وكيل المعمارية وجودة الكود (02-Architecture & Code Quality Agent)
 
-**تاريخ الفحص:** 2026-09-30  
+**تاريخ الفحص:** 2026-11-05  
 **المشرف العام:** رئيس فريق هندسة البرمجيات والمراجعة الفنية  
-**حالة الفحص:** مكتمل بدقة وقراءة فقط (Read-Only)
+**حالة الفحص:** مكتمل بدقة وقراءة فقط (Read-Only)  
+**نسخة النظام الخاضعة للفحص:** Labryo LIMS v2.1.1
 
 ---
 
 ## 📌 ملخص النتائج المعمارية (Executive Architecture Summary)
-- 🔴 **حرج (Critical):** 0 ملاحظات.
-- 🟠 **عالٍ (High):** 2 ملاحظات (ازدواجية مصدر الحقيقة وغياب المعاملات الذرية ACID، والملف الإلهي الضخم Monolithic God File).
-- 🟡 **متوسط (Medium):** 3 ملاحظات (تكرار معادلات التحاليل الطبية بين الواجهة والخادم، استيراد دوال مساعدة من مسارات API ديناميكية، وتضخم معمارية Electron main.js).
-- 🟢 **منخفض (Low):** 1 ملاحظة (عدم توحيد هيكل استجابات الـ API بين المسارات).
+- 🔴 **حرج (Critical):** 1 ملاحظة (ازدواجية مخزن البيانات والانفصال بين ذاكرة Next.js وقاعدة SQLite).
+- 🟠 **عالٍ (High):** 2 ملاحظات (تكرار المعادلات السريرية خارج حزمة Domain، وغياب المعاملات الذرية والتحديثات المجمعة في حفظ النتائج).
+- 🟡 **متوسط (Medium):** 4 ملاحظات (ازدواجية ملف schema.prisma، غياب الفهرسة عن sampleId في المعاملات المالية، غياب توحيد وإصدارات API، وغياب مسار CI لاختبارات الـ PRs).
+- 🟢 **منخفض (Low):** 1 ملاحظة (الكائن المتضخم God Object serverStore.ts وبقاء 35 مكوناً بانتظار ترحيل FSD).
 
 ---
 
 ## 🔍 الملاحظات التفصيلية بالأدلة البرمجية
 
-### [ARC-001] ازدواجية مصدر الحقيقة وانعدام المعاملات الذرية (Dual Source of Truth & Non-ACID Sync) 🟠 عالٍ (High)
-- **الموقع:** `apps/web/src/lib/serverStore.ts:760-785` و `apps/web/src/lib/serverStore.ts:990, 1332`
+### [ARC-001] ازدواجية مخزن البيانات والانفصال المعماري بين العمليات 🔴 حرج (Critical)
+- **الموقع:** `apps/web/src/lib/serverStore.ts:1041-1045` و `apps/server/src/routes/samples.ts:13`
 - **المشكلة:**
-  يعتمد النظام على مخزن عام في الذاكرة (`global.__labStore`) متزامن مع ملف JSON (`lab_store.json`)، بينما يقوم في الخلفية بتمرير العمليات إلى قاعدة بيانات SQLite (`lab.db`) عبر وعود غير متزامنة وغير منتظرة (Fire-and-Forget Promises):
+  يحتفظ تطبيق الواجهة `apps/web` بنسخة كائن كاملة للبيانات في ذاكرة العملية العشوائية `global.__labStore` مع حفظها في ملف JSON محلي، بينما يقوم خادم الباكند المستقل Fastify `apps/server` بالقراءة والكتابة المباشرة في قاعدة بيانات SQLite `lab.db`:
   ```typescript
-  // إضافة مريض
-  store.patients.push(newPatient);
-  saveStoreToFile();
-  syncPatientToSqlite(newPatient).catch((e) => console.warn('[SqliteSync] addPatient error:', e?.message));
-  return newPatient;
+  // apps/web/src/lib/serverStore.ts:1041
+  global.__labStore = fromSqlite;
+  console.log(`💎 [ServerStore] Authoritative state active from SQLite lab.db (${fromSqlite.tests.length} tests)`);
   ```
 - **الأثر:**
-  1. **فقدان الذرية (No ACID Transactions):** عند تسجيل عينة تتضمن إدخال عينة + فحوصات + ديون مالية، إذا نجح الحفظ في الذاكرة وفشل في SQLite (بسبب قفل الملف أو خطأ قيود)، تصبح البيانات غير متسقة (Split-Brain).
-  2. **فقدان البيانات عند إعادة التشغيل:** في دالة `getStoreAsync` يتم تحميل البيانات من SQLite أو الملف بحسب الأسبقية، مما يؤدي إلى ظهور بيانات شبحية (Ghost Records) أو فقدان تحديثات لم تُكتب في SQLite بنجاح.
+  1. خطر الانفصال والتضارب اللحظي (Split-Brain Desynchronization)؛ فإذا قام خادم Fastify بتحديث عينة أو نتيجة فحص قادمة من جهاز مخبري، فإن كاش Next.js في الذاكرة لا يعلم بالتحديث إلا بعد إعادة تحميل كاملة.
+  2. استهلاك الذاكرة المفرط: في المختبرات النشطة التي تحوي عشرات الآلاف من العينات والمرضى، الاحتفاظ بكامل السجلات كمصفوفات JavaScript في الـ RAM يهدد بانهيار المتصفح أو المحرك بنفاذ الذاكرة (Out Of Memory - OOM)، ولا سيما على بيئات 32-bit المحددة بـ 768MB.
 - **الحل المقترح:**
-  جعل قاعدة بيانات SQLite عبر Prisma هي المصدر الوحيد والنهائي للحقيقة (`Single Source of Truth`)، واستخدام معاملات Prisma الذرية (`prisma.$transaction`) لكافة العمليات المالية والطبية الحساسة، وإلغاء الاعتماد على الـ JSON store المتزامن يدوياً.
+  إلغاء طبقة `global.__labStore` وملف `lab_store.json` نهائياً، وجعل Prisma SQLite هو المصدر الأوحد والنهائي للحقيقة (Single Source of Truth) لكافة التطبيقات عبر استعلامات علائقية مباشرة مفهرسة ومجزأة (Paginated).
 - **الجهد:** كبير (Large).
 
 ---
 
-### [ARC-002] انتهاك مبدأ المسؤولية الواحدة وتضخم الملف المركزي (Monolithic God Store) 🟠 عالٍ (High)
-- **الموقع:** `apps/web/src/lib/serverStore.ts` (أكثر من 2,750 سطراً برمجياً)
+### [ARC-002] تكرار المعادلات السريرية خارج حزمة النطاق الطبية 🟠 عالٍ (High)
+- **الموقع:** `apps/server/src/routes/results.ts:95-225` مقابل `packages/domain/src/clinicalIntelligence.ts:1-200`
 - **المشكلة:**
-  يحتوي ملف `serverStore.ts` على مسؤوليات متباينة تماماً مجمعة في ملف واحد:
-  - إدارة المرضى والبحث الصوتي والتعريب (`normalizeArabic`).
-  - إدارة العينات وحالات التحاليل ونقاط إدخال النتائج.
-  - حساب عمولات الأطباء والنسب المالية.
-  - إدارة الورديات المالية (Shifts) والمصروفات اليومية.
-  - استقبال حزم الأجهزة الطبية وتفسير بروتوكول ASTM و HL7.
-  - محرك النسخ الاحتياطي التلقائي وضغط الملفات.
-  - مزامنة SQLite الثنائية.
+  تمت إعادة كتابة وتضمين معادلات سريرية معقدة مثل معادلة وظائف الكلى 2021 CKD-EPI Race-Free ومعادلة فريدوالد للدهون وحساب البيليروبين غير المباشر يدوياً داخل مسارات Fastify بدلاً من استيراد الدوال النقية الموثقة من حزمة `@lab/domain`:
+  ```typescript
+  // apps/server/src/routes/results.ts:199
+  const egfrVal = Math.round(
+    142 *
+    Math.pow(Math.min(cr / k, 1), a) *
+    Math.pow(Math.max(cr / k, 1), -1.200) *
+    Math.pow(0.9938, age) *
+    fMultiplier
+  );
+  ```
 - **الأثر:**
-  صعوبة كتابة اختبارات وحدة مستقلة (Unit Tests)، وارتفاع خطورة حدوث آثار جانبية غير مقصودة (Side Effects) عند تعديل أي جزء من النظام، وتعقيد عملية الصيانة والتطوير المستقبلي.
+  انتهاك صريح لمبدأ DRY وفصل المسؤوليات؛ وأي تعديل أو تصحيح لمعايير سريرية (مثل تحديثات KDIGO أو IFCC) في حزمة `domain` لن ينعكس على السيرفر، مما يسبب صدور نتائج وتقارير متباينة لنفس المريض.
 - **الحل المقترح:**
-  تقسيم الملف إلى وحدات خدمة مستقلة ضمن مجلد `apps/web/src/services/`:
-  - `patient.service.ts`
-  - `sample.service.ts`
-  - `billing.service.ts`
-  - `device-ingest.service.ts`
-  - `backup.service.ts`
+  استيراد واستدعاء دوال الحساب السريري مباشرة من `@lab/domain` وحذف الكود المكرر في `results.ts`.
+- **الجهد:** صغير (Small).
+
+---
+
+### [DB-001] غياب المعاملات الذرية والتحديثات المجمعة لحفظ النتائج 🟠 عالٍ (High)
+- **الموقع:** `apps/server/src/routes/results.ts:44-86`
+- **المشكلة:**
+  عند حفظ نتائج استمارة مريض تحوي عدة تحاليل (مثل صورة الدم الكاملة CBC التي تحوي 20-30 معاملاً)، يتم تنفيذ استعلامات `prisma.sampleTest.update` فردية متتالية داخل حلقة `for` دون تجميعها داخل معاملة قاعدة بيانات ذرية:
+  ```typescript
+  for (const item of results) {
+    ...
+    await prisma.sampleTest.update({
+      where: { id: item.sampleTestId },
+      data: { ... },
+    });
+  }
+  ```
+- **الأثر:**
+  1. بطء شديد في الأداء وزيادة زمن قفل قاعدة البيانات (SQLite File Lock) بتكرار فتح وغلق المعاملات الفردية 30 مرة متتالية.
+  2. خطر تلف حالة السجل: إذا فشل الاتصال أو حدث استثناء عند العنصر رقم 15، تظل العينة محفوظة جزئياً بنصف النتائج فقط دون إمكانية التراجع (No Rollback).
+- **الحل المقترح:**
+  استخدام `prisma.$transaction` لتنفيذ كافة التحديثات في ضربة واحدة ذرية إما أن تنجح معاً أو تتراجع بالكامل:
+  ```typescript
+  const updates = results.map(item => prisma.sampleTest.update({ ... }));
+  await prisma.$transaction(updates);
+  ```
+- **الجهد:** صغير (Small).
+
+---
+
+### [DB-002] ازدواجية ملف المخطط schema.prisma وانعدام المصدر الموحد للمعلومة 🟡 متوسط (Medium)
+- **الموقع:** `apps/server/prisma/schema.prisma` و `apps/web/prisma/schema.prisma`
+- **المشكلة:**
+  وجود نسختين متطابقتين تقريباً من ملف `schema.prisma` داخل مجلدين مختلفين بدلاً من الاعتماد على ملف مخطط موحد ومشترك.
+- **الأثر:**
+  خطر حدوث انحراف في المخطط (Schema Drift)؛ حيث يؤدي تعديل أحد الملفين دون الآخر إلى تباين النماذج المولدة لعملاء Prisma في السيرفر والويب وظهور أخطاء وقت التشغيل.
+- **الحل المقترح:**
+  نقل `schema.prisma` إلى حزمة مركزية (مثل `packages/db` أو إبقائه في `apps/server/prisma` فقط) مع توجيه `prisma generate` في كلا التطبيقين لنفس المسار.
+- **الجهد:** صغير (Small).
+
+---
+
+### [DB-003] نقص الفهرسة على المفتاح الأجنبي sampleId في المعاملات المالية 🟡 متوسط (Medium)
+- **الموقع:** `apps/server/prisma/schema.prisma:281-306`
+- **المشكلة:**
+  يحتوي جدول `FinancialTransaction` على فهارس لـ `patientId` و `debtorId` و `doctorId`، ولكنه يفتقر إلى فهرس مخصص لـ `sampleId`:
+  ```prisma
+  @@index([type, createdAt(sort: Desc)])
+  @@index([patientId, createdAt(sort: Desc)])
+  @@index([debtorId, createdAt(sort: Desc)])
+  @@index([doctorId, createdAt(sort: Desc)])
+  // مفقود: @@index([sampleId])
+  ```
+- **الأثر:**
+  عند جلب سندات القبض والدفع الخاصة بعينة معينة (`where: { sampleId }`)، يضطر محرك SQLite لإجراء مسح تسلسلي لكامل الجدول (Full Table Scan)، مما يسبب تباطؤاً ملحوظاً مع نمو عدد المعاملات.
+- **الحل المقترح:**
+  إضافة `@@index([sampleId])` إلى نموذج `FinancialTransaction`.
+- **الجهد:** صغير (Small).
+
+---
+
+### [API-001] غياب ترقيم الإصدارات وتوحيد مغلف الاستجابات للـ API 🟡 متوسط (Medium)
+- **الموقع:** `apps/server/src/routes/*.ts`
+- **المشكلة:**
+  تفتقر نقاط النهاية إلى التوحيد في بنية الاستجابة ومعالجة الأخطاء؛ فبعض المسارات تعيد مصفوفات مباشرة (`reply.send(patients)` في `patients.ts`)، وبعضها يعيد كائنات `{ success, data }`، وبعضها يرمي استثناءات نصية مباشرة، دون وجود إصدار رسمي للـ API (مثل `/api/v1/`).
+- **الأثر:**
+  صعوبة بناء مستهلكين خارجيين أو معالجة الأخطاء بطريقة قياسية وموحدة في الواجهة، وصعوبة إجراء ترقيات غير كاسرة (Non-breaking changes) مستقبلاً.
+- **الحل المقترح:**
+  اعتماد مغلف موحد لكافة الاستجابات `{ success: boolean, data?: T, error?: { code, message }, meta?: any }` مع بادئة إصدار واضحة `/api/v1/`.
 - **الجهد:** متوسط (Medium).
 
 ---
 
-### [ARC-003] تكرار المنطق الطبي والمعادلات الحسابية بين الواجهات والخادم (DRY Violation in Clinical Math) 🟡 متوسط (Medium)
-- **الموقع:** `apps/web/src/app/results/page.tsx:640-738` ومكونات `apps/web/src/components/workstations/`
+### [OPS-001] غياب خط أنابيب CI للاختبارات وفحوصات التكامل الآلية 🟡 متوسط (Medium)
+- **الموقع:** `.github/workflows/release.yml`
 - **المشكلة:**
-  معادلات الكيمياء السريرية، مثل حساب البيليروبين غير المباشر (`IBIL = TBIL - DBIL`) ومعادلة فريدفالد للدهون (`LDL = Total Cholesterol - HDL - TG/5`) وتدقيق المجالات الطبيعية لكرات الدم في الإدرار، مكتوبة ومكررة داخل مكونات الـ React الأمامية:
-  ```typescript
-  // تكرار داخل results/page.tsx
-  const tbilCalc = currentDBIL + currentIBIL;
-  if (!isNaN(tbilCalc) && isFinite(tbilCalc)) {
-    const tbilVal = tbilCalc.toFixed(2);
-    nextResults[tbilTest.id] = { resultValue: tbilVal, isAbnormal: parseFloat(tbilVal) > 1.2 };
-  }
-  ```
+  المستودع يحتوي فقط على workflow للتوزيع عند إطلاق Tag (`release.yml`)، ولا يوجد أي workflow مخصص للفحص الآلي (CI Pipeline) يعمل عند كل Commit أو Pull Request لتشغيل `npm run typecheck` و `npm run lint:boundaries` و `npm test`.
 - **الأثر:**
-  إذا تم إدخال نتائج من تطبيق الموبايل، أو عبر ربط جهاز تحليل تلقائي عبر الـ API، فإن هذه الحسابات والتدقيقات السريرية لا تُطبق تلقائياً لأنها محبوسة داخل واجهة المستخدم في صفحة `results/page.tsx`.
+  إمكانية دمج أكواد تكسر قواعد FSD أو تعطل الاختبارات الذهبية واختبارات الـ E2E دون أن يكتشفها نظام فحص مؤتمت قبل مرحلة الإصدار.
 - **الحل المقترح:**
-  نقل كافة محركات الحسابات الطبية والسريرية إلى حزمة مشتركة `packages/shared/src/clinicalCalculations.ts` لتكون دالة نقية (Pure Functions) يتم استدعاؤها في الواجهة والخادم ومعالج الأجهزة الطبية على حد سواء.
+  إنشاء ملف `.github/workflows/ci.yml` يعمل عند كل Push و PR لتشغيل حزمة `npm run verify`.
 - **الجهد:** صغير (Small).
 
 ---
 
-### [ARC-004] تسريب التجريد: استيراد منطق الأعمال من مسار صفحة API ديناميكية (Leaky Abstraction) 🟡 متوسط (Medium)
-- **الموقع:** `apps/web/src/app/api/whatsapp/send-result/route.ts:3`
+### [CODE-001] الكائن المتضخم serverStore.ts وبقاء 35 مكوناً بانتظار ترحيل FSD 🟢 منخفض (Low)
+- **الموقع:** `apps/web/src/lib/serverStore.ts` (4,243 سطراً) و `apps/web/src/components/` (35 ملفاً)
 - **المشكلة:**
-  يقوم مسار إرسال الواتساب باستيراد دوال التحقق من تصنيفات الفحوصات الطبية من مسار طباعة التقارير الديناميكي:
-  ```typescript
-  import { isCbcTest, isGueTest, isGseTest, isSfaTest, isGeneralTest } from '../../samples/[id]/print/route';
-  ```
+  ملف `serverStore.ts` يمثل "God Object" يجمع أكثر من 15 مسؤولية مختلفة، وبقاء 35 مكوّناً في مجلد `components/` القديم لم تكتمل إعادة هيكلتها إلى شرائح FSD المعزولة.
 - **الأثر:**
-  كسر مبادئ تنظيم Next.js App Router؛ حيث يُفترض ألا تعتمد مسارات الـ API على ملفات مسارات أخرى داخل شجرة التوجيه (`Route Tree`)، مما يعقد عملية الـ Tree Shaking وقد يسبب دورات تجميعية غير متوقعة.
+  زيادة التعقيد الإدراكي وصعوبة الصيانة والاختبار المستقل لوحدات النظام.
 - **الحل المقترح:**
-  نقل دوال تصنيف الفحوصات (`isCbcTest`, `isGueTest`, etc.) إلى `apps/web/src/lib/testClassifier.ts` واستيرادها من هناك.
-- **الجهد:** صغير (Small).
+  استكمال خطة ترحيل المكونات تدريجياً وتفتيت المهام المتبقية في `serverStore.ts` إلى خدمات متخصصة صغيرة.
+- **الجهد:** كبير (Large).
 
 ---
 
-### [ARC-005] تضخم ملف العملية الرئيسية لتطبيق سطح المكتب (`main.js`) 🟡 متوسط (Medium)
-- **الموقع:** `apps/desktop/main.js` (أكثر من 1,420 سطراً)
-- **المشكلة:**
-  ملف `main.js` يدير دورة حياة النافذة، والإشراف على خادم Node.js المدمج (Process Supervision)، وقنوات الـ IPC للطباعة والتحكم بالنوافذ، ونظام التحديث التلقائي `autoUpdater`، وأيقونة شريط المهام (Tray)، وأعلام تحسين الرسومات GPU في مكان واحد.
-- **الأثر:**
-  صعوبة تتبع أخطاء الإقلاع البارد ومشاكل الذاكرة وإغلاق التطبيق.
-- **الحل المقترح:**
-  تفكيك `main.js` إلى وحدات معيارية:
-  - `src/server-supervisor.js`
-  - `src/ipc-handlers.js`
-  - `src/tray-manager.js`
-  - `src/updater.js`
-- **الجهد:** صغير (Small).
+## 📊 نطاق التغطية المثبتة (Inspection Scope)
 
----
-
-### [ARC-006] عدم توحيد غلاف الاستجابات في مسارات الـ API (Inconsistent Response Envelope) 🟢 منخفض (Low)
-- **الموقع:** مسارات `apps/web/src/app/api/`
-- **المشكلة:**
-  بعض المسارات ترجع مصفوفات مجردة `NextResponse.json(patients)`، وبعضها يرجع كائن `{ message: '...' }`، وأخرى ترجع `{ success: true, data: ... }`.
-- **الأثر:**
-  اضطرار دوال الواجهة الأمامية (`lib/api.ts`) لكتابة شروط استثنائية متعددة لفحص شكل الاستجابة.
-- **الحل المقترح:**
-  اعتماد معيار موحد مثل `ApiResponse<T> = { success: boolean; data?: T; error?: string; timestamp: string }`.
-- **الجهد:** صغير (Small).
-
----
-
-## 🏛️ التغطية المُثبتة (Architecture Coverage)
-- **الملفات والمكونات المفحوصة:**
-  - `apps/web/src/lib/serverStore.ts` (فحص شامل للمصدر المزدوج ومنطق العمل).
-  - `apps/web/src/lib/prisma.ts` و `apps/server/src/prisma.ts` (إعدادات اتصال وعزل SQLite).
-  - مسارات `apps/web/src/app/api/` (44 مساراً وتدقيق ترابطها واستيراداتها).
-  - `apps/desktop/main.js` (فحص معمارية بيئة سطح المكتب).
-  - `packages/shared/` (فحص حجم المنطق المشترك بين المشاريع).
-- **ما لم يتم فحصه ولماذا:**
-  - لم يتم فحص توزيع الـ Microservices لكون النظام مبنياً كـ Monolith محلي (On-Premise Desktop LIMS).
+- **الملفات والمجلدات التي تم فحصها فعلياً:**
+  - معمارية FSD والحدود: `tools/lint_boundaries.js`، `apps/web/src/widgets/`، `apps/web/src/features/`، `apps/web/src/components/`.
+  - المخططات ونماذج البيانات: `apps/server/prisma/schema.prisma`، `apps/web/prisma/schema.prisma`، `apps/web/src/lib/prisma.ts`.
+  - إدارة الحالة ومخزن البيانات: `apps/web/src/lib/serverStore.ts`، `apps/web/src/lib/sqliteSync.ts`.
+  - مسارات الخادم ومنطق الأعمال: `apps/server/src/routes/*.ts` (خاصة `results.ts`, `samples.ts`, `financials.ts`)، و `packages/domain/src/*`.
+  - البنية التحتية وDevOps: `.github/workflows/*`، `package.json`، `apps/desktop/package.json`.
+- **ما لم يتم فحصه والسبب:**
+  - النسخ المولدة في مجلدات البناء `apps/desktop/dist/` لكونها مخرجات مجمعة وليست كوداً مصدرياً.

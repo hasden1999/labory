@@ -119,13 +119,16 @@ function UnifiedFinancialsView({
       const dateStr = s.collectionTime || s.createdAt || new Date().toISOString();
       if (!isWithinTimeframe(dateStr)) return;
       const paid = Number(s.paidAmount ?? s.finalAmount ?? 0);
+      const discount = Number(s.discount ?? 0);
       if (paid > 0) {
         items.push({
           id: `sample-${s.id}`,
           rawId: s.id,
           type: 'INCOME',
           title: s.patient?.name || 'مراجع مختبر',
-          subtitle: `عينة #${s.sampleNumber || s.id.slice(-4)}`,
+          subtitle: discount > 0 
+            ? `عينة #${s.sampleNumber || s.id.slice(-4)} (خصم: ${discount.toLocaleString()} ${currency})`
+            : `عينة #${s.sampleNumber || s.id.slice(-4)}`,
           category: 'فحوصات طبية',
           amount: paid,
           date: dateStr,
@@ -168,13 +171,19 @@ function UnifiedFinancialsView({
       const rem = Math.max(0, Number(s.remainingAmount ?? finalAmt - paidAmt));
       return acc + rem;
     }, 0);
+    const totalDiscounts = samples.reduce((acc, s) => {
+      const dateStr = s.collectionTime || s.createdAt || '';
+      if (!isWithinTimeframe(dateStr)) return acc;
+      return acc + Number(s.discount || 0);
+    }, 0);
     return {
       income,
       expense,
       net: income - expense,
       totalDebt,
+      totalDiscounts,
     };
-  }, [ledgerItems, samples]);
+  }, [ledgerItems, samples, isWithinTimeframe]);
 
   // Unpaid Samples (Debts List)
   const unpaidSamples = useMemo(() => {
@@ -502,6 +511,28 @@ function UnifiedFinancialsView({
               {summary.net.toLocaleString()} {currency}
             </strong>
           </div>
+
+          {summary.totalDiscounts > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 14px',
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                borderRadius: '9px',
+                fontSize: '12.5px',
+                fontWeight: 700,
+              }}
+            >
+              <span style={{ color: '#f59e0b', fontSize: '13px', fontWeight: 900 }}>%</span>
+              <span style={{ color: 'var(--text-muted)' }}>التخفيضات الممنوحة:</span>
+              <strong style={{ color: '#f59e0b', fontSize: '14px' }}>
+                {summary.totalDiscounts.toLocaleString()} {currency}
+              </strong>
+            </div>
+          )}
 
           <button
             type="button"

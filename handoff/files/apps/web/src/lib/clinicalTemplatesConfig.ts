@@ -1,0 +1,91 @@
+export interface PillFieldConfig {
+  options: string[];
+  abnormalValues?: string[];
+  refRange?: string;
+  allowCustomInput?: boolean;
+  isNumericOnly?: boolean;
+  customInputPlaceholder?: string;
+}
+
+export interface UrineTemplatesConfig {
+  bilirubin: PillFieldConfig;
+  urobilinogen: PillFieldConfig;
+  pusCells: PillFieldConfig;
+  rbcs: PillFieldConfig;
+}
+
+export interface StoolTemplatesConfig {
+  parasiteSuggestions: string[];
+  stageSuggestions: string[];
+}
+
+export interface ClinicalTemplates {
+  version: string;
+  updatedAt: string;
+  urine: UrineTemplatesConfig;
+  stool: StoolTemplatesConfig;
+}
+
+export const DEFAULT_CLINICAL_TEMPLATES: ClinicalTemplates = {
+  version: '1.0.0',
+  updatedAt: '2026-10-01T00:00:00.000Z',
+  urine: {
+    bilirubin: {
+      options: ['Negative', 'Positive'],
+      abnormalValues: ['Positive'],
+      refRange: 'Negative',
+      allowCustomInput: false,
+      isNumericOnly: false,
+    },
+    urobilinogen: {
+      options: ['Normal', 'Increased'],
+      abnormalValues: ['Increased'],
+      refRange: 'Normal',
+      allowCustomInput: false,
+      isNumericOnly: false,
+    },
+    pusCells: {
+      options: ['0-2', '2-4', '4-6', '8-10', '15-20', '25-35', '40-50', 'Full Slide'],
+      abnormalValues: ['8-10', '15-20', '25-35', '40-50', 'Full Slide'],
+      refRange: '0 - 5 /HPF',
+      allowCustomInput: true,
+      isNumericOnly: false,
+      customInputPlaceholder: 'اكتب أي قيمة (مثال: 2-4 أو 10-15 أو many)...',
+    },
+    rbcs: {
+      options: ['0-2', '2-4', '5-10', '15-25', 'Packed / Bloody'],
+      abnormalValues: ['5-10', '15-25', 'Packed / Bloody'],
+      refRange: '0 - 2 /HPF',
+      allowCustomInput: true,
+      isNumericOnly: false,
+      customInputPlaceholder: 'اكتب أي قيمة (مثال: 0-2 أو 10-15 أو packed)...',
+    },
+  },
+  stool: {
+    parasiteSuggestions: [
+      'Entamoeba histolytica',
+      'Entamoeba coli',
+      'Giardia lamblia',
+      'Blastocystis hominis',
+      'Cryptosporidium spp.',
+      'Cyclospora cayetanensis',
+      'Ascaris lumbricoides',
+      'Enterobius vermicularis',
+      'Trichuris trichiura',
+      'Hookworm',
+      'Strongyloides stercoralis',
+      'Hymenolepis nana',
+      'Taenia spp.',
+      'Schistosoma mansoni',
+    ],
+    stageSuggestions: [
+      'Cyst',
+      'Trophozoite',
+      'Ova (Egg)',
+      'Larva',
+      'Adult worm',
+      'Proglottid (segment)',
+      'Oocyst',
+    ],
+  },
+};

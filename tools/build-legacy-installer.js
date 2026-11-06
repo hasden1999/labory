@@ -21,6 +21,7 @@ const https = require('https');
 const { execSync, spawn, execFileSync } = require('child_process');
 const { DatabaseSync } = require('node:sqlite');
 const crypto = require('crypto');
+const { copyWhatsAppRuntime, verifyWhatsAppRuntimeClosure } = require('./lib/whatsapp-runtime-bundler');
 
 function logStep(step, message) {
   console.log(`\n======================================================`);
@@ -56,6 +57,31 @@ function safeWriteFileSync(filePath, content, options) {
 // -------------------------------------------------------------
 // Download portable Node 18 executable if not cached locally
 // -------------------------------------------------------------
+
+function patchNodeBinaryForLegacyWindows(nodeExePath) {
+  try {
+    if (!fs.existsSync(nodeExePath)) return;
+    const buf = fs.readFileSync(nodeExePath);
+    const target = Buffer.from('EventSetInformation\0');
+    const replacement = Buffer.from('EventRegister\0\0\0\0\0\0\0');
+    let idx = 0;
+    let count = 0;
+    while ((idx = buf.indexOf(target, idx)) !== -1) {
+      replacement.copy(buf, idx);
+      count++;
+      idx += replacement.length;
+    }
+    if (count > 0) {
+      fs.writeFileSync(nodeExePath, buf);
+      console.log(`  🔧 [Win7 PE Patch] تم استبدال EventSetInformation -> EventRegister بنجاح (${count} موضع) في ${path.basename(nodeExePath)} لضمان التوافق مع Windows 7 SP1.`);
+    } else {
+      console.log(`  ✅ [Win7 PE Check] محرك Node.js خالي تماماً من EventSetInformation ومتوافق 100% مع Windows 7 SP1.`);
+    }
+  } catch (err) {
+    console.warn(`  ⚠️ تحذير أثناء فحص ترقيع Node.js:`, err.message);
+  }
+}
+
 async function ensureNode18Binary(rootDir, arch = 'ia32') {
   const isX86 = arch === 'ia32' || arch === 'x86';
   const subDir = isX86 ? 'x86' : 'x64';
@@ -68,6 +94,7 @@ async function ensureNode18Binary(rootDir, arch = 'ia32') {
 
   if (fs.existsSync(targetNode) && fs.statSync(targetNode).size > 25000000) {
     console.log(`  ✅ تم العثور على محرك Node.js v18.20.7 (${subDir}) محلياً: ${targetNode}`);
+    patchNodeBinaryForLegacyWindows(targetNode);
     return targetNode;
   }
 
@@ -120,6 +147,7 @@ async function ensureNode18Binary(rootDir, arch = 'ia32') {
   }
 
   console.log(`  ✅ تم تنزيل وحفظ node.exe بنجاح (${formatBytes(fs.statSync(targetNode).size)}).`);
+  patchNodeBinaryForLegacyWindows(targetNode);
   return targetNode;
 }
 
@@ -303,6 +331,18 @@ function pruneEngineContents(rootDir, targetStandalone, targetArch = 'ia32') {
       fs.cpSync(pkgSrc, pkgDest, { recursive: true });
     }
   }
+
+  // Ensure WhatsApp Web engine (@whiskeysockets/baileys, qrcode, pino) and the FULL runtime
+  // dependency closure is bundled, preserving nested node_modules versions (e.g. keyv@5 -> @keyv/serialize).
+  const waResult = copyWhatsAppRuntime({ rootDir, targetStandalone, log: console.log });
+  console.log(`  ✅ تم تجهيز ${waResult.copied} حزمة لمحرك واتساب ويب المدمج.`);
+  if (waResult.missing.length > 0) {
+    console.log(`  ℹ️ حزم اختيارية غير مثبتة (سيتم تجاهلها): ${Array.from(new Set(waResult.missing)).join(', ')}`);
+  }
+
+  // Packaging gate: every required WhatsApp dependency must exist INSIDE the bundle.
+  const waClosure = verifyWhatsAppRuntimeClosure({ targetStandalone });
+  console.log(`  ✅ تم التحقق من اكتمال شجرة اعتماديات واتساب داخل الحزمة (${waClosure.packages} حزمة).`);
 
   function removeForbiddenFiles(dir) {
     if (!fs.existsSync(dir)) return;
@@ -503,7 +543,9 @@ async function run() {
 
   logStep('2/5', 'تجهيز وبناء نسخة الخادم المستقلة (Next.js Standalone)...');
   const standaloneWebDir = path.join(webDir, '.next', 'standalone');
-  if (process.argv.includes('--skip-web-build') && fs.existsSync(standaloneWebDir)) {
+  const hasFreshStandalone = fs.existsSync(path.join(standaloneWebDir, 'apps', 'web', 'server.js'));
+
+  if (process.argv.includes('--skip-web-build') && hasFreshStandalone) {
     console.log('⚡ تم تجاوز بناء الويب (--skip-web-build) واستخدام النسخة المبنية الحالية.');
   } else {
     console.log('جاري تشغيل بناء الويب: npm run build:web ...');
@@ -527,16 +569,30 @@ async function run() {
   // Copy portable Node 18 binary
   const targetNode = path.join(engineDir, 'node.exe');
   fs.copyFileSync(nodeBinary, targetNode);
-  console.log(`  ✅ تم نسخ محرك Node 18 المحمول إلى: ${targetNode}`);
+  patchNodeBinaryForLegacyWindows(targetNode);
+  console.log(`  ✅ تم نسخ وتأكيد ترقيع محرك Node 18 المحمول في: ${targetNode}`);
 
-  // Copy standalone server
-  console.log(`  نسخ مجلد الخادم المستقل إلى: ${targetStandalone} ...`);
-  fs.cpSync(standaloneWebDir, targetStandalone, { recursive: true });
+  // Copy standalone server from the most complete source
+  const sourceStandalone = fs.existsSync(path.join(standaloneWebDir, 'apps', 'web', 'server.js'))
+    ? standaloneWebDir
+    : desktopEngineStandalone;
+  console.log(`  نسخ مجلد الخادم المستقل من ${sourceStandalone} إلى: ${targetStandalone} ...`);
+  fs.cpSync(sourceStandalone, targetStandalone, { recursive: true });
 
   // Copy static assets
-  const staticSrc = path.join(webDir, '.next', 'static');
-  const staticDest = path.join(targetStandalone, 'apps', 'web', '.next', 'static');
-  fs.cpSync(staticSrc, staticDest, { recursive: true });
+  const staticSrcCandidates = [
+    path.join(webDir, '.next', 'static'),
+    path.join(rootDir, '.next', 'static'),
+    path.join(desktopDir, 'engine', 'standalone', 'apps', 'web', '.next', 'static'),
+  ];
+  const foundStaticSrc = staticSrcCandidates.find((p) => fs.existsSync(p));
+  if (foundStaticSrc) {
+    const staticDest = path.join(targetStandalone, 'apps', 'web', '.next', 'static');
+    console.log(`  نسخ الأصول الثابتة من ${foundStaticSrc} إلى ${staticDest}...`);
+    fs.cpSync(foundStaticSrc, staticDest, { recursive: true });
+    const rootStaticDest = path.join(targetStandalone, '.next', 'static');
+    try { fs.cpSync(foundStaticSrc, rootStaticDest, { recursive: true }); } catch (e) {}
+  }
 
   // Copy public assets to both apps/web/public and standalone/public
   const publicSrc = path.join(webDir, 'public');

@@ -1,0 +1,222 @@
+export interface Patient {
+  id: string;
+  name: string;
+  phone?: string;
+  age?: number | string | null;
+  gender: 'MALE' | 'FEMALE';
+  birthDate?: string | null;
+  birthDateEstimated?: boolean | null;
+  referringDoctorId?: string | null;
+  visitCount?: number;
+  visitsCount?: number;
+  outstandingDebt?: number;
+  lastTestIds?: string[];
+  lastTestNames?: string[];
+  abnormalFlags?: string[];
+  createdAt?: string;
+  samples?: Sample[];
+  totalBilled?: number;
+  totalPaid?: number;
+  address?: string;
+  notes?: string;
+}
+
+export interface ReferenceRange {
+  id: string;
+  testId: string;
+  label: string;
+  sex: 'M' | 'F' | 'any';
+  ageMin?: number | null;
+  ageMax?: number | null;
+  ageUnit: 'days' | 'months' | 'years';
+  low?: number | null;
+  high?: number | null;
+  text?: string | null;
+  unit?: string | null;
+  note?: string | null;
+  source?: string | null;
+  sourceUrl?: string | null;
+  isUserEdited?: boolean;
+  sortOrder?: number;
+}
+
+export interface Test {
+  id: string;
+  code: string;
+  name: string;
+  arabicName?: string | null;
+  price: number;
+  category: string;
+  unit?: string;
+  refRangeLow?: number | null;
+  refRangeHigh?: number | null;
+  refRangeText?: string;
+  panicLow?: number | null;
+  panicHigh?: number | null;
+  loincCode?: string;
+  active?: boolean;
+  referenceRanges?: ReferenceRange[];
+  referenceSource?: string | null;
+  isCalculated?: boolean;
+}
+
+export interface SampleTest {
+  id: string;
+  testId: string;
+  test: Test;
+  resultValue?: string;
+  isAbnormal?: boolean;
+  isCritical?: boolean;
+  interpretation?: string;
+}
+
+export interface CriticalCallLog {
+  id: string;
+  sampleId: string;
+  testName: string;
+  resultValue: string;
+  physicianName: string;
+  physicianPhone?: string;
+  callerName: string;
+  calledAt: string;
+  readBackConfirmed: boolean;
+  actionTaken?: string;
+  notes?: string;
+}
+
+export interface Doctor {
+  id: string;
+  name: string;
+  phone?: string;
+  clinic?: string;
+  commissionPercent: number;
+}
+
+export interface Sample {
+  id: string;
+  sampleNumber: number | string;
+  patientId?: string;
+  patient?: Patient;
+  doctorId?: string;
+  doctor?: Doctor;
+  tests: SampleTest[];
+  status: 'RECEIVED' | 'IN_PROGRESS' | 'READY' | 'DELIVERED' | 'REJECTED';
+  isUrgent: boolean;
+  priceTotal: number;
+  discount?: number;
+  discountPercent?: number;
+  paidAmount?: number;
+  remainingAmount?: number;
+  paymentMethod?: 'CASH' | 'DEBT' | 'CARD';
+  notes?: string;
+  rejectionReason?: string;
+  rejectionNotes?: string;
+  rejectedAt?: string;
+  rejectedBy?: string;
+  criticalCallLogs?: CriticalCallLog[];
+  createdAt: string;
+}
+
+export interface DashboardSummary {
+  totalSamplesToday: number;
+  urgentCount: number;
+  readyCount: number;
+  pendingCount: number;
+  revenueToday: number;
+  debtToday: number;
+  totalSamplesCount?: number;
+  todaySamplesCount?: number;
+  totalRevenue?: number;
+  todayRevenue?: number;
+  totalPaidCash?: number;
+  todayPaidCash?: number;
+  totalRemainingDebts?: number;
+  totalExpenses?: number;
+  totalDoctorCommissions?: number;
+  netProfit?: number;
+  urgentPendingCount?: number;
+  criticalCount?: number;
+  averageTatMinutes?: number;
+  delayedCount?: number;
+  rejectedSamplesCount?: number;
+}
+
+export interface CriticalAlertItem {
+  id: string;
+  testName: string;
+  testCode: string;
+  resultValue: string;
+  unit: string;
+  refRange: string;
+  sampleNumber: number | string;
+  sampleId: string;
+  patientName: string;
+  patientPhone?: string;
+  isUrgent: boolean;
+  createdAt: string;
+}
+
+export interface OperationalCockpitData {
+  averageTatMinutes: number;
+  delayedCount: number;
+  hourlyArrivals: number[];
+  criticalAlerts: CriticalAlertItem[];
+  deviceStatus: {
+    totalDevices: number;
+    activeDevices: number;
+    devices: any[];
+    todayIncomingTotal: number;
+    todayIncomingApplied: number;
+    automationRate: number;
+  };
+}
+
+export interface DashboardData {
+  summary: DashboardSummary;
+  statusBreakdown?: Record<string, number>;
+  departmentCounts?: Record<string, number>;
+  doctorCommissionsSummary?: any[];
+  inventoryAlerts?: { expiredCount: number; expiringCount: number; lowStockCount: number };
+  recentExpenses?: any[];
+  operationalCockpit?: OperationalCockpitData;
+}
+
+export interface FinancialPnl {
+  grossRevenue: number;
+  discounts: number;
+  netSalesRevenue: number;
+  directReagentCost: number;
+  doctorCommissions: number;
+  grossOperatingProfit: number;
+  operatingExpenses: number;
+  netProfit: number;
+  operatingMarginPct: number;
+}
+
+export interface FinancialDebtAging {
+  current: number;
+  medium: number;
+  critical: number;
+  total: number;
+}
+
+export interface CashShift {
+  id: string;
+  shiftNumber: number;
+  openedById?: string;
+  closedById?: string;
+  openedAt: string;
+  closedAt?: string | null;
+  startingCash: number;
+  expectedCash?: number;
+  actualCash?: number;
+  discrepancy?: number;
+  status: 'OPEN' | 'CLOSED';
+  notes?: string | null;
+  cashIn?: number;
+  cardIn?: number;
+  zainCashIn?: number;
+  cashOut?: number;
+  netCashFlow?: number;
+}
+

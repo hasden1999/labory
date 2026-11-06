@@ -1,0 +1,26 @@
+{
+  "batch": "naming_quality",
+  "batch_index": 5,
+  "assessments": {
+    "naming_quality": 86.4
+  },
+  "dimension_notes": {
+    "naming_quality": {
+      "evidence": [
+        "Domain entities accurately reflect medical LIS terms: Patient, Sample, SampleTest, TestCatalog, ReferringDoctor",
+        "Workstation modals clearly named: CbcModal, ChemistryModal, GseModal, MicrobiologyModal"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Refining terminology in third-party ASTM device protocol drivers"
+    }
+  },
+  "dimension_judgment": {
+    "naming_quality": {
+      "dimension_character": "Naming accurately maps domain concepts to code with medical clarity.",
+      "score_rationale": "Score 86.0 reflects self-documenting clinical entity names and consistent verb/noun patterns."
+    }
+  },
+  "issues": []
+}

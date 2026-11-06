@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
 const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
 
-// SECURITY: never trace local runtime data or secrets into the standalone bundle.
+// SECURITY: never trace local runtime data, temp directories, or secrets into the standalone bundle.
 // `data/` holds patient stores, SQLite databases, backups and local device state.
 const SENSITIVE_TRACE_PATTERNS = [
   '**/apps/web/data/**/*',
@@ -12,6 +13,9 @@ const SENSITIVE_TRACE_PATTERNS = [
   '**/apps/desktop/**/standalone/**/data/**/*',
   '**/.env',
   '**/.env.*',
+  '**/AppData/**/*',
+  '**/Temp/**/*',
+  '**/*.tmp',
 ];
 
 const nextConfig = {
@@ -23,12 +27,9 @@ const nextConfig = {
   productionBrowserSourceMaps: false,
   experimental: {
     optimizePackageImports: ['lucide-react'],
-    // Applied by @vercel/nft while tracing each page. This is the only variant that
-    // reliably matches on Windows, because nft compares POSIX-normalized relative paths.
+    serverComponentsExternalPackages: ['@whiskeysockets/baileys', 'qrcode', 'pino'],
+    outputFileTracingRoot: path.join(__dirname, '../../'),
     outputFileTracingIgnores: SENSITIVE_TRACE_PATTERNS,
-    // Applied after tracing by collect-build-traces (Linux/macOS correctness).
-    // On Windows Next joins the globs with `\` and picomatch treats them as escapes,
-    // which is why `outputFileTracingIgnores` above is required as well.
     outputFileTracingExcludes: {
       '*': SENSITIVE_TRACE_PATTERNS,
     },

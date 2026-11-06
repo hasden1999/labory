@@ -1,0 +1,8 @@
+{
+  "name": "@lab-manager/messaging",
+  "version": "1.0.0",
+  "description": "WhatsApp Baileys messaging client",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {}
+}

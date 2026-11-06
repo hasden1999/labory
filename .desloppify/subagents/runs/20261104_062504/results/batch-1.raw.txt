@@ -1,0 +1,26 @@
+{
+  "batch": "cross_module_architecture",
+  "batch_index": 1,
+  "assessments": {
+    "cross_module_architecture": 85.8
+  },
+  "dimension_notes": {
+    "cross_module_architecture": {
+      "evidence": [
+        "FSD layer boundaries app > pages > widgets > features > entities > shared strictly verified",
+        "267 files passed with zero boundary violations in lint:boundaries"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Ongoing migration of remaining legacy components in apps/web/src/components to FSD feature slices"
+    }
+  },
+  "dimension_judgment": {
+    "cross_module_architecture": {
+      "dimension_character": "Cross module architecture is modular with FSD layers strictly enforced and zero cyclic dependencies.",
+      "score_rationale": "Score 85.0 reflects robust architectural boundaries verified by automated linting with clean public APIs."
+    }
+  },
+  "issues": []
+}

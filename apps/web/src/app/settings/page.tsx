@@ -102,6 +102,9 @@ function UnifiedSettingsCatalogView({
   const [updaterState, setUpdaterState] = useState<any>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [backingUp, setBackingUp] = useState(false);
+  const [backupList, setBackupList] = useState<{ fileName: string; sizeBytes: number; createdAt: string }[]>([]);
+  const [loadingBackups, setLoadingBackups] = useState(false);
+  const [restoringBackupFile, setRestoringBackupFile] = useState<string | null>(null);
   const [licenseStatus, setLicenseStatus] = useState<any>(null);
 
   // WhatsApp Web QR Pairing & Auto-Send State
@@ -232,6 +235,31 @@ function UnifiedSettingsCatalogView({
     }
   }, [toast]);
 
+  const fetchBackupToken = useCallback(async (): Promise<string> => {
+    const sessRes = await fetch('/api/backup/session', { cache: 'no-store' });
+    const sessJson = await sessRes.json().catch(() => ({}));
+    return sessJson?.token || '';
+  }, []);
+
+  const loadBackupSnapshots = useCallback(async () => {
+    setLoadingBackups(true);
+    try {
+      const token = await fetchBackupToken();
+      const res = await fetch('/api/backup/list', {
+        cache: 'no-store',
+        headers: token ? { 'x-backup-token': token } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setBackupList(data);
+        }
+      }
+    } catch {} finally {
+      setLoadingBackups(false);
+    }
+  }, [fetchBackupToken]);
+
   const loadSystemData = useCallback(async () => {
     try {
       const [staffRes, licRes, verRes] = await Promise.all([
@@ -242,9 +270,9 @@ function UnifiedSettingsCatalogView({
       setStaffList(Array.isArray(staffRes) ? staffRes : []);
       if (licRes) setLicenseStatus(licRes);
       if (verRes) setUpdaterState(verRes);
-      await fetchWaStatus();
+      await Promise.all([fetchWaStatus(), loadBackupSnapshots()]);
     } catch (e) {}
-  }, [fetchWaStatus]);
+  }, [fetchWaStatus, loadBackupSnapshots]);
 
   useEffect(() => {
     fetchWaStatus();
@@ -476,14 +504,54 @@ function UnifiedSettingsCatalogView({
       return;
     }
     try {
+      const cleanRef = toEnglishDigits(editRefRange || '').trim();
+      const prevRef = toEnglishDigits(t.refRangeText || t.referenceRange || t.normalRange || '').trim();
+      let syncedRanges = Array.isArray(t.referenceRanges) ? [...t.referenceRanges] : [];
+      let nextLow = t.refRangeLow ?? null;
+      let nextHigh = t.refRangeHigh ?? null;
+
+      if (cleanRef !== prevRef) {
+        if (!cleanRef) {
+          syncedRanges = [];
+          nextLow = null;
+          nextHigh = null;
+        } else {
+          const numMatch = cleanRef.match(/^\s*(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)\s*$/);
+          const parsedLow = numMatch ? Number(numMatch[1]) : null;
+          const parsedHigh = numMatch ? Number(numMatch[2]) : null;
+          nextLow = parsedLow;
+          nextHigh = parsedHigh;
+          // Protect multi-demographic reference ranges (Male/Female/Child) from being wiped out
+          if (syncedRanges.length <= 1) {
+            syncedRanges = [
+              {
+                id: syncedRanges[0]?.id || `inline-${t.id || Date.now()}`,
+                label: syncedRanges[0]?.label || 'للجميع',
+                sex: syncedRanges[0]?.sex || 'any',
+                ageUnit: syncedRanges[0]?.ageUnit || 'years',
+                ageMin: syncedRanges[0]?.ageMin ?? null,
+                ageMax: syncedRanges[0]?.ageMax ?? null,
+                low: parsedLow,
+                high: parsedHigh,
+                text: cleanRef,
+              },
+            ];
+          }
+        }
+      }
+
       const payload = {
         ...t,
         name: trimmedName,
         price: Number(toEnglishDigits(editPrice)) || 0,
-        referenceRange: editRefRange,
-        refRangeText: editRefRange,
-        normalRange: editRefRange,
+        referenceRange: cleanRef,
+        refRangeText: cleanRef,
+        normalRange: cleanRef,
+        refRangeLow: nextLow,
+        refRangeHigh: nextHigh,
+        referenceRanges: syncedRanges,
         unit: editUnit,
+        isUserEdited: true,
       };
       await apiRequest(`/tests/${t.id}`, 'PUT', payload);
       toast.success(`تم تحديث التحليل (${t.code || trimmedName}) بنجاح`);
@@ -609,15 +677,127 @@ function UnifiedSettingsCatalogView({
     }
   };
 
+  const formatBackupSize = (bytes: number) => {
+    if (!bytes || bytes <= 0) return '0 KB';
+    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  };
+
   const handleCreateBackup = async () => {
     setBackingUp(true);
     try {
-      await apiRequest('/backup', 'POST');
-      toast.success('تم إنشاء نسخة احتياطية كاملة لقاعدة البيانات بنجاح');
+      const token = await fetchBackupToken();
+      const res = await fetch('/api/backup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-backup-token': token } : {}),
+        },
+        body: JSON.stringify({ label: 'user_manual' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.message || 'تعذر إنشاء النسخة الاحتياطية');
+      }
+      const sizeStr = formatBackupSize(data?.sizeBytes || data?.backup?.sizeBytes || 0);
+      toast.success(`تم إنشاء النسخة الاحتياطية بنجاح: ${data?.fileName || ''} (${sizeStr})`);
+      await loadBackupSnapshots();
     } catch (err: any) {
       toast.error(err.message || 'تعذر إنشاء النسخة الاحتياطية');
     } finally {
       setBackingUp(false);
+    }
+  };
+
+  const handleDownloadBackup = async (fileName?: string) => {
+    try {
+      await fetchBackupToken();
+      const targetUrl = fileName
+        ? `/api/backup?fileName=${encodeURIComponent(fileName)}&download=1`
+        : `/api/backup/export${fileName ? `?fileName=${encodeURIComponent(fileName)}` : ''}`;
+      const a = document.createElement('a');
+      a.href = targetUrl;
+      if (fileName) a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر تنزيل النسخة الاحتياطية');
+    }
+  };
+
+  const handleRestoreSnapshot = async (fileName: string) => {
+    const confirmed = window.confirm(
+      `هل أنت متأكد من استعادة النسخة الاحتياطية (${fileName})؟\nسيتم أخذ نسخة أمان تلقائية للوضع الحالي قبل الاستعادة.`
+    );
+    if (!confirmed) return;
+
+    setRestoringBackupFile(fileName);
+    try {
+      const token = await fetchBackupToken();
+      const fileRes = await fetch(`/api/backup?fileName=${encodeURIComponent(fileName)}`, {
+        cache: 'no-store',
+        headers: token ? { 'x-backup-token': token } : {},
+      });
+      if (!fileRes.ok) {
+        throw new Error('تعذر قراءة ملف النسخة الاحتياطية المختارة');
+      }
+      const rawJson = await fileRes.text();
+      const restoreRes = await fetch('/api/backup/restore', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-backup-token': token } : {}),
+        },
+        body: rawJson,
+      });
+      const restoreData = await restoreRes.json().catch(() => ({}));
+      if (!restoreRes.ok || restoreData?.success === false) {
+        throw new Error(restoreData?.message || 'تعذر استعادة النسخة الاحتياطية');
+      }
+      toast.success(restoreData?.message || 'تم استعادة النسخة الاحتياطية بنجاح');
+      await loadBackupSnapshots();
+      await loadCatalog();
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر استعادة النسخة الاحتياطية');
+    } finally {
+      setRestoringBackupFile(null);
+    }
+  };
+
+  const handleRestoreFromExternalFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    const confirmed = window.confirm(
+      `هل أنت متأكد من استعادة قاعدة البيانات من الملف الخارجي (${file.name})؟\nسيتم أخذ نسخة أمان تلقائية للبيانات الحالية قبل الاستعادة.`
+    );
+    if (!confirmed) return;
+
+    setRestoringBackupFile(file.name);
+    try {
+      const rawJson = await file.text();
+      const token = await fetchBackupToken();
+      const restoreRes = await fetch('/api/backup/restore', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-backup-token': token } : {}),
+        },
+        body: rawJson,
+      });
+      const restoreData = await restoreRes.json().catch(() => ({}));
+      if (!restoreRes.ok || restoreData?.success === false) {
+        throw new Error(restoreData?.message || 'تعذر استعادة النسخة الاحتياطية من الملف');
+      }
+      toast.success(restoreData?.message || 'تم استعادة النسخة الاحتياطية بنجاح');
+      await loadBackupSnapshots();
+      await loadCatalog();
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر استعادة النسخة الاحتياطية');
+    } finally {
+      setRestoringBackupFile(null);
     }
   };
 
@@ -1243,7 +1423,12 @@ function UnifiedSettingsCatalogView({
                               </button>
                             ) : (
                               <span style={{ fontSize: '12px', fontWeight: 600 }} dir="ltr">
-                                {t.referenceRange || t.refRangeText || t.normalRange || '-'}
+                                {(() => {
+                                  const raw = String(t.referenceRange || t.refRangeText || t.normalRange || '').trim();
+                                  if (raw && raw.toLowerCase() !== 'normal') return raw;
+                                  if (t.refRangeLow != null && t.refRangeHigh != null) return `${t.refRangeLow} - ${t.refRangeHigh}`;
+                                  return '—';
+                                })()}
                               </span>
                             )}
                           </td>
@@ -1668,7 +1853,7 @@ function UnifiedSettingsCatalogView({
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     onClick={handleCreateBackup}
@@ -1693,6 +1878,31 @@ function UnifiedSettingsCatalogView({
                     <span>{backingUp ? 'جاري الحفظ...' : 'حفظ نسخة احتياطية الآن'}</span>
                   </button>
 
+                  <label
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #0284c7',
+                      backgroundColor: 'rgba(2, 132, 199, 0.08)',
+                      color: '#0284c7',
+                      fontSize: '12.5px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <input
+                      type="file"
+                      accept=".json,application/json"
+                      onChange={handleRestoreFromExternalFile}
+                      style={{ display: 'none' }}
+                    />
+                    <span>استعادة من ملف خارجي</span>
+                  </label>
+
                   <button
                     type="button"
                     onClick={handleCheckUpdate}
@@ -1716,6 +1926,160 @@ function UnifiedSettingsCatalogView({
                     <RefreshCw size={15} />
                     <span>{checkingUpdate ? 'جاري الفحص...' : 'فحص التحديثات'}</span>
                   </button>
+                </div>
+
+                {/* Available Backups List */}
+                <div
+                  style={{
+                    marginTop: '4px',
+                    borderTop: '1px solid var(--border-subtle)',
+                    paddingTop: '10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      النسخ الاحتياطية المتاحة ({backupList.length})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={loadBackupSnapshots}
+                      disabled={loadingBackups}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#0f766e',
+                        fontSize: '11.5px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <RefreshCw size={12} />
+                      <span>{loadingBackups ? 'تحديث...' : 'تحديث القائمة'}</span>
+                    </button>
+                  </div>
+
+                  {backupList.length === 0 ? (
+                    <div
+                      style={{
+                        padding: '10px',
+                        borderRadius: '8px',
+                        backgroundColor: 'var(--bg-input)',
+                        color: 'var(--text-muted)',
+                        fontSize: '12px',
+                        textAlign: 'center',
+                        fontWeight: 600,
+                      }}
+                    >
+                      لا توجد نسخ احتياطية محفوظة حالياً. اضغط «حفظ نسخة احتياطية الآن» لإنشاء أول نسخة.
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                        maxHeight: '190px',
+                        overflowY: 'auto',
+                      }}
+                    >
+                      {backupList.map((b) => {
+                        const isRestoring = restoringBackupFile === b.fileName;
+                        const dateFormatted = b.createdAt
+                          ? new Date(b.createdAt).toLocaleString('ar-IQ', {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : '';
+                        return (
+                          <div
+                            key={b.fileName}
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--border-subtle)',
+                              backgroundColor: 'var(--bg-input)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '8px',
+                              flexWrap: 'wrap',
+                            }}
+                          >
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div
+                                dir="ltr"
+                                style={{
+                                  fontSize: '12px',
+                                  fontWeight: 800,
+                                  color: 'var(--text-main)',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  textAlign: 'right',
+                                }}
+                                title={b.fileName}
+                              >
+                                {b.fileName}
+                              </div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '2px' }}>
+                                الحجم: <span dir="ltr">{formatBackupSize(b.sizeBytes)}</span>
+                                {dateFormatted ? ` • ${dateFormatted}` : ''}
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadBackup(b.fileName)}
+                                style={{
+                                  padding: '5px 10px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #0f766e',
+                                  backgroundColor: 'rgba(15, 118, 110, 0.08)',
+                                  color: '#0f766e',
+                                  fontSize: '11.5px',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <Download size={12} />
+                                <span>تنزيل</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRestoreSnapshot(b.fileName)}
+                                disabled={Boolean(restoringBackupFile)}
+                                style={{
+                                  padding: '5px 10px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #d97706',
+                                  backgroundColor: 'rgba(217, 119, 6, 0.1)',
+                                  color: '#b45309',
+                                  fontSize: '11.5px',
+                                  fontWeight: 800,
+                                  cursor: restoringBackupFile ? 'wait' : 'pointer',
+                                }}
+                              >
+                                {isRestoring ? 'جاري الاستعادة...' : 'استعادة'}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
 

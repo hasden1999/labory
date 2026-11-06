@@ -1,0 +1,94 @@
+{
+  "total": 12,
+  "passed": 11,
+  "failed": 1,
+  "skipped": 0,
+  "checks": [
+    {
+      "suite": "intake",
+      "name": "opens the intake workspace",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 4964
+    },
+    {
+      "suite": "intake",
+      "name": "save is disabled until name, age, sex, and a test are present",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 3569
+    },
+    {
+      "suite": "intake",
+      "name": "registers patient demographics and Iraqi phone",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 5759
+    },
+    {
+      "suite": "intake",
+      "name": "searches the catalog and adds CBC with its EDTA tube badge",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2833
+    },
+    {
+      "suite": "intake",
+      "name": "adds a chemistry test and renders an inline result input",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1797
+    },
+    {
+      "suite": "intake",
+      "name": "enters a critical glucose value and surfaces a panic/flag",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 950
+    },
+    {
+      "suite": "intake",
+      "name": "opens and closes the specialized CBC form from the results grid",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 30807,
+      "details": "TimeoutError: Waiting failed: 30000ms exceeded\n    at new WaitTask (D:\\lab\\node_modules\\puppeteer-core\\src\\common\\WaitTask.ts:82:28)\n    at IsolatedWorld.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Realm.ts:74:22)\n    at CdpFrame.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:789:36)\n    at CdpFrame.<anonymous> (D:\\lab\\node_modules\\puppeteer-core\\src\\util\\decorators.ts:63:21)\n    at CdpPage.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2928:29)\n    at UiHarness.waitForModal (D:\\lab\\tests\\ui-e2e\\harness.ts:379:21)\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\intake.ts:150:16)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:462:7)\n    at async Object.run (D:\\lab\\tests\\ui-e2e\\suites\\intake.ts:148:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:125:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-37-58-955Z\\FAIL-intake-opens-and-closes-the-specialized-CBC-form-from-the-results-grid.png"
+    },
+    {
+      "suite": "intake",
+      "name": "applies a 10% discount and recalculates the net total",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 816
+    },
+    {
+      "suite": "intake",
+      "name": "saves the order (F9) and shows the success toast",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 6858
+    },
+    {
+      "suite": "intake",
+      "name": "persists the new order in the patients registry",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 10696
+    },
+    {
+      "suite": "intake",
+      "name": "opens the new patient file and shows the saved order",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 32
+    },
+    {
+      "suite": "intake",
+      "name": "resets the workspace with F1 (new patient)",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 8153
+    }
+  ]
+}

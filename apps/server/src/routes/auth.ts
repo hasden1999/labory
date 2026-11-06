@@ -231,4 +231,167 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     return reply.send(updated);
   });
+
+  // Dedicated Admin Login Endpoint
+  fastify.post('/auth/admin/login', async (request, reply) => {
+    const { username, password } = request.body as { username?: string; password?: string };
+
+    if (!username || !password) {
+      return reply.status(400).send({ message: 'اسم المستخدم وكلمة المرور مطلوبة' });
+    }
+
+    const staff = await prisma.staff.findUnique({ where: { username } });
+    if (!staff || !staff.active) {
+      return reply.status(401).send({ message: 'حساب المدير غير موجود أو الحساب معطل' });
+    }
+
+    const isAdmin = staff.role === 'OWNER' || staff.role === 'ADMIN' || staff.role === 'SUPER_ADMIN';
+    if (!isAdmin) {
+      await writeAudit({
+        action: 'UNAUTHORIZED_ADMIN_ACCESS_ATTEMPT',
+        entity: 'AUTH',
+        entityId: staff.id,
+        details: `محاولة دخول غير مصرح بها لمنصة الإدارة من حساب (${staff.username} - ${staff.role})`,
+        userId: staff.id,
+        userName: staff.name,
+        ipAddress: request.ip,
+      });
+      return reply.status(403).send({
+        message: 'غير مصرح بالدخول: هذا الحساب مخصص للموظفين ولا يمتلك صلاحيات إدارة النظام العليا',
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, staff.passwordHash);
+    if (!isMatch) {
+      return reply.status(401).send({ message: 'كلمة المرور غير صحيحة' });
+    }
+
+    const sessionId = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + SESSION_TTL_HOURS * 60 * 60 * 1000);
+
+    try {
+      await prisma.session.create({
+        data: {
+          id: sessionId,
+          userId: staff.id,
+          userName: staff.name,
+          role: staff.role,
+          ipAddress: request.ip,
+          userAgent: request.headers['user-agent'] || null,
+          expiresAt,
+        },
+      });
+    } catch (err: any) {
+      request.log.error({ err }, 'Failed to create server-side session');
+      return reply.status(503).send({
+        message: 'تعذر إنشاء جلسة دخول آمنة. يرجى المحاولة مرة أخرى.',
+      });
+    }
+
+    const token = fastify.jwt.sign(
+      {
+        id: staff.id,
+        name: staff.name,
+        username: staff.username,
+        role: staff.role,
+        isAdmin: true,
+        sid: sessionId,
+      },
+      { expiresIn: `${SESSION_TTL_HOURS}h` }
+    );
+
+    void prisma.session
+      .deleteMany({
+        where: {
+          expiresAt: {
+            lt: new Date(Date.now() - SESSION_PRUNE_AFTER_DAYS * 24 * 60 * 60 * 1000),
+          },
+        },
+      })
+      .catch(() => {});
+
+    await writeAudit({
+      action: 'ADMIN_LOGIN',
+      entity: 'AUTH',
+      entityId: staff.id,
+      details: `تسجيل دخول ناجح لمنصة الإدارة للمدير ${staff.username}`,
+      userId: staff.id,
+      userName: staff.name,
+      ipAddress: request.ip,
+    });
+
+    return reply.send({
+      token,
+      user: {
+        id: staff.id,
+        name: staff.name,
+        username: staff.username,
+        role: staff.role,
+        isAdmin: true,
+      },
+    });
+  });
+
+  // Executive Admin Overview Stats
+  fastify.get('/admin/overview-stats', { onRequest: [fastify.authenticate, fastify.requireOwner] }, async (request, reply) => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const [
+      totalPatients,
+      totalSamples,
+      todaySamples,
+      monthSamples,
+      todayPaidSum,
+      monthPaidSum,
+      totalDebtsSum,
+      activeStaffCount,
+      activeDevicesCount,
+      recentAudits,
+      urgentPendingCount,
+    ] = await Promise.all([
+      prisma.patient.count({ where: { isDeleted: false } }),
+      prisma.sample.count({ where: { isDeleted: false } }),
+      prisma.sample.count({ where: { isDeleted: false, createdAt: { gte: startOfToday } } }),
+      prisma.sample.count({ where: { isDeleted: false, createdAt: { gte: startOfMonth } } }),
+      prisma.financialTransaction.aggregate({
+        where: { type: 'INCOME', createdAt: { gte: startOfToday } },
+        _sum: { amount: true },
+      }),
+      prisma.financialTransaction.aggregate({
+        where: { type: 'INCOME', createdAt: { gte: startOfMonth } },
+        _sum: { amount: true },
+      }),
+      prisma.sample.aggregate({
+        where: { isDeleted: false, remainingAmount: { gt: 0 } },
+        _sum: { remainingAmount: true },
+      }),
+      prisma.staff.count({ where: { active: true } }),
+      prisma.labDevice.count({ where: { isActive: true } }),
+      prisma.auditLog.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.sample.count({ where: { isDeleted: false, isUrgent: true, status: { in: ['RECEIVED', 'IN_PROGRESS'] } } }),
+    ]);
+
+    return reply.send({
+      totalPatients,
+      totalSamples,
+      todaySamples,
+      monthSamples,
+      todayRevenue: todayPaidSum._sum.amount || 0,
+      monthRevenue: monthPaidSum._sum.amount || 0,
+      totalDebts: totalDebtsSum._sum.remainingAmount || 0,
+      activeStaffCount,
+      activeDevicesCount,
+      recentAudits,
+      urgentPendingCount,
+    });
+  });
+
 }

@@ -1,73 +1,76 @@
 # تقرير وكيل البحث والابتكار التقني (06-Research & Innovation Agent)
 
-**تاريخ البحث:** 2026-09-30  
+**تاريخ البحث:** 2026-11-05  
 **المشرف العام:** رئيس فريق هندسة البرمجيات والمراجعة الفنية  
-**حالة الفحص:** أبحاث حية وموثقة بروابط وتواريخ حديثة (2024–2026)
+**حالة الفحص:** بحث حي عبر الإنترنت ومطابق لأحدث إصدارات 2025/2026
 
 ---
 
-## 📌 ملخص الاقتراحات الابتكارية (Innovation Radar)
-يقدم هذا التقرير حلولاً معمارية وتقنية مستخلصة من أحدث الممارسات العالمية في أنظمة المختبرات الطبية (LIMS) وتطبيقات سطح المكتب الهجينة غير المتصلة بالإنترنت (Offline-First Desktop Apps).
+## 📌 ملخص أبحاث الابتكار والتحديث التقني
+
+تم إجراء بحث استقصائي مكثف على أحدث المكتبات والأنماط المعمارية للأنظمة الطبية والمكتبية غير المتصلة (Local-First / Offline-First Monorepo)، مع استهداف مباشر للمشاكل المكتشفة في تقارير الأمان والمعمارية والأداء.
 
 ---
 
-## 💡 التوصيات والتقنيات المقترحة
+## 💡 التوصيات والحلول المبتكرة بالأدلة والمصادر
 
-### [IDEA-001] التحول إلى التوقيع اللاتناظري Ed25519 لحماية التراخيص دون تسريب المفتاح الخاص
-- **الأداة المقترحة:** `Ed25519 Asymmetric Cryptography` (عبر مكتبة Node.js الأصلية `crypto.verify` أو `@noble/curves`).
+### [IDEA-001] الاستغناء عن Puppeteer واعتماد محرك الطباعة المباشر المدمج في Electron
+- **الأداة/الفكرة:** الاستغناء عن تشغيل Headless Chrome عبر Puppeteer في الخادم الخلفي، واستخدام ميزة `webContents.printToPDF()` و `webContents.print()` المدمجة أصلاً في متصفح Electron داخل نافذة غير مرئية (Disposable Hidden Window).
 - **لماذا تناسب هذا المشروع:**
-  يحل الثغرة الحرجة `SEC-001` جذرياً؛ حيث يتم الاحتفاظ بالمفتاح الخاص (`Private Key`) حصراً في جهاز المطور/سيرفر التوليد، بينما يتم تضمين المفتاح العام (`Public Key`) فقط داخل تطبيق Electron المكتبي. حتى لو تم تفكيك ملفات التطبيق من قبل أي مستخدم، لا يمكنه رياضياً توليد أي ترخيص جديد.
-- **الجهد المتوقع:** صغير (Small - 1 إلى 2 يوم).
-- **المصدر والتاريخ:**
-  - [StackExchange: Offline license verification using asymmetric Ed25519 (2024)](https://security.stackexchange.com/questions/275330/best-way-to-implement-offline-software-licensing-with-asymmetric-cryptography)
-  - [Noble-curves Cryptography Audit & Standards (2025)](https://github.com/paulmillr/noble-curves)
+  النظام يعمل بالفعل داخل Electron 30، ويقوم خادم Fastify بتشغيل نسخة متصفح ثانية عبر Puppeteer تستهلك 350MB من الRAM في وضع السكون. الاعتماد على محرك Electron المدمج مع تدمير النافذة فور الطباعة (`win.destroy()`) يوفر أكثر من 300MB من الذاكرة ويقلص حجم ملف التثبيت Setup.exe بحذف حزم `puppeteer` و `chromium-bidi` البالغة ~15MB.
+- **الجهد المتوقع:** متوسط (Medium).
+- **المصدر وتاريخه:**
+  - وثائق Electron الرسمية: [Electron Printing API & printToPDF](https://www.electronjs.org/docs/latest/api/web-contents#contentsprinttopdfoptions) (محدث 2025/2026).
+  - تحليل إدارة الذاكرة في المتصفحات المضمنة: [Chromium Headless Memory Optimization Patterns](https://dev.to) (2025).
 
 ---
 
-### [IDEA-002] الطباعة الحرارية المباشرة لملصقات أنابيب العينات عبر ESC/POS Raw Streaming
-- **الأداة المقترحة:** `electron-pos-printer` / `@madrimov/electron-pos-printer` (تحديث 2025/2026).
+### [IDEA-002] اعتماد Vitest 3 بنمط المشاريع (Vitest Projects) لإدارة اختبارات الـ Monorepo
+- **الأداة/الفكرة:** استبدال سكربتات التشغيل اليدوية `npx tsx tests/...` بإطار الاختبارات الموحد `Vitest 3` مع تكوين `test.projects` لتغطية حزم `apps/*` و `packages/*` تحت أمر موحد مع تفعيل تقارير التغطية الآلية بـ `@vitest/coverage-v8`.
 - **لماذا تناسب هذا المشروع:**
-  حالياً يمر أمر طباعة ملصق الباركود الحراري (Thermal Barcode 50x25mm) عبر نافذة طباعة مصغرة `window.print()` ومحاكي رسومي، وهو ما يسبب بطئاً وتفاوتاً في ضبط الهوامش باختلاف طابعات Xprinter / Zebra / Bixolon. يتيح بروتوكول ESC/POS إرسال أوامر الباركود الثنائية (Raw Bytes) مباشرة لطابعة الباركود دون نوافذ وهمية وفي أقل من 50 ملي ثانية (Zero Spool Delay).
-- **الجهد المتوقع:** متوسط (Medium - 3 إلى 4 أيام).
-- **المصدر والتاريخ:**
-  - [NPM: @madrimov/electron-pos-printer with TypeScript & Windows Spool Support (2025/2026)](https://www.npmjs.com/package/@madrimov/electron-pos-printer)
+  يحتوي المشروع على 274 ملف TypeScript دون أي إطار اختبارات قياسي أو أداة لقياس التغطية (Code Coverage). يوفر `Vitest 3` دعماً أصلياً لـ TypeScript و ESM ومساحات العمل (Workspaces/Projects) وسرعة فائقة في تنفيذ اختبارات الدوال السريرية وتغطية الحالات الحدية لمعادلات الكلى والدهون دون الحاجة لبناء أو تجميع مسبق.
+- **الجهد المتوقع:** صغير (Small).
+- **المصدر وتاريخه:**
+  - وثائق Vitest الرسمية: [Vitest Projects & Monorepos Configuration](https://vitest.dev/guide/projects) (إصدار 2025/2026).
 
 ---
 
-### [IDEA-003] الانتقال إلى Prisma Accelerate / SQLite Single Source of Truth وإلغاء JSON Store
-- **الأداة المقترحة:** `Prisma SQLite WAL Engine` مع طبقة استعلامات مفهرسة وتصفح مقسم (Cursor Pagination).
+### [IDEA-003] دعم الربط برمز الاقتران (Pairing Code) في واتساب بدلاً من مسح الباركود
+- **الأداة/الفكرة:** تفعيل خاصية `sock.requestPairingCode(phoneNumber)` المدعومة رسمياً في مكتبة `@whiskeysockets/baileys` كبديل أسهل لمسح رمز الـ QR عبر الكاميرا.
 - **لماذا تناسب هذا المشروع:**
-  يقضي على المشكلة المعمارية `ARC-001` و `PERF-001`؛ حيث يتم التخلص نهائياً من كتابة ملف `lab_store.json` وتفادي حظر الـ Event Loop، وتفعيل استعلامات الـ ACID Transactions لضمان عدم ضياع عينات المرضى أو عمولات الأطباء تحت أي ظرف انقطاع للكهرباء في المختبر.
-- **الجهد المتوقع:** متوسط (Medium - 5 إلى 7 أيام).
-- **المصدر والتاريخ:**
-  - [Prisma Official Documentation: High-performance SQLite WAL Mode & Concurrency (2024/2025)](https://www.prisma.io/docs/orm/overview/databases/sqlite)
+  يواجه العديد من أصحاب المختبرات صعوبات متكررة في مسح باركود QR من شاشات الحواسيب بسبب انعكاس الإضاءة أو تعطل كاميرا الهاتف. تتيح هذه الميزة إدخال رقم هاتف المختبر في الواجهة وتوليد رمز نصي من 8 خانات يكتبه المستخدم مباشرة في تطبيق واتساب بالهاتف (الأجهزة المرتبطة ← ربط باستخدام رقم الهاتف).
+- **الجهد المتوقع:** صغير (Small).
+- **المصدر وتاريخه:**
+  - توثيق Baileys الرسمي: [Baileys Multi-Device Pairing Code Guide](https://baileys.wiki) (2025/2026).
 
 ---
 
-### [IDEA-004] استبدال الخطوط السحابية بخطوط محلية Next.js Local Fonts لمنع وميض الشاشة Offline
-- **الأداة المقترحة:** `next/font/local` مع خط `Tajawal-Variable.woff2`.
+### [IDEA-004] تفكيك الكائن المتضخم serverStore والاعتماد الحصري على Prisma SQLite
+- **الأداة/الفكرة:** إزالة طبقة التخزين المزدوجة `global.__labStore` وملف `lab_store.json` واستبدال الـ 4,243 سطراً في `serverStore.ts` باستعلامات Prisma مباشرة مدعومة بنظام اشتراك الأحداث (Fastify SSE / Event Emitter) لتحديث الواجهة لحظياً.
 - **لماذا تناسب هذا المشروع:**
-  يحل المشكلة `UI-001`؛ حيث يتم تضمين الخط داخل الحزمة الموزعة NSIS Installer، مما يلغي تماماً أي طلب خارجي إلى `fonts.googleapis.com`، ويسرع عرض واجهة الاستقبال والنتائج ويضمن ظهور الخطوط العربية الأصيلة بدقة 100% حتى في أجهزة المختبرات غير المتصلة بالشبكة.
-- **الجهد المتوقع:** صغير جداً (Very Small - ساعتان).
-- **المصدر والتاريخ:**
-  - [Next.js Documentation: Optimizing Local Fonts with zero layout shift (2025)](https://nextjs.org/docs/app/building-your-application/optimizing/fonts#local-fonts)
+  يقضي هذا التحول على أكبر خطر معماري يهدد النظام (Split-Brain وتضارب السجلات بين الويب والسيرفر)، ويمنع انهيار المتصفح بنفاذ الذاكرة عند نمو سجلات المرضى لعشرات الآلاف، مع ضمان اتساق المعاملات المصرفية والتحاليل الطبية بنسبة 100%.
+- **الجهد المتوقع:** كبير (Large).
+- **المصدر وتاريخه:**
+  - أبحاث الأنظمة المحلية المستقلة: [Local-First Architecture Patterns & SQLite WAL Concurrency](https://powersync.com/blog) (2025/2026).
 
 ---
 
-### [IDEA-005] اعتماد بروتوكول مزامنة الأجهزة اللوحية عبر PowerSync / Local-First Replicas
-- **الأداة المقترحة:** `PowerSync` للربط المحلي الموثوق بين محطة العمل المركزية وأجهزة الاستقبال وسحب الدم اللوحية (LAN Tablets).
+### [IDEA-005] تشغيل خط فحص التكامل الآلي (CI Pipeline) عبر GitHub Actions
+- **الأداة/الفكرة:** إضافة ملف سير عمل `.github/workflows/ci.yml` يعمل تلقائياً عند كل Commit أو Pull Request لتشغيل `npm run verify` (Typecheck + FSD Boundaries + Golden Tests + Build).
 - **لماذا تناسب هذا المشروع:**
-  يتيح لفنيي غرف سحب الدم العمل على أجهزة iPad/Android اللوحية حتى لو تذبذب اتصال شبكة الواي فاي الداخلية للمختبر، مع مزامنة فورية تلقائية لحالات العينات وأرقام الباركود فور عودة الإشارة.
-- **الجهد المتوقع:** كبير (Large - أسبوعان).
-- **المصدر والتاريخ:**
-  - [PowerSync Architectural Guide: Local-First SQLite Replication in Electron and Mobile (2025)](https://www.powersync.com/blog/local-first-architecture-guide)
+  يمنع تسلل أي أخطاء برمجية أو انتهاكات لقواعد FSD الصارمة أو كسر للاختبارات السريرية قبل دمج الأكواد في الفرع الرئيسي وإصدار النسخ للمختبرات.
+- **الجهد المتوقع:** صغير (Small).
+- **المصدر وتاريخه:**
+  - أفضل ممارسات GitHub Actions لمستودعات Monorepo: [GitHub Actions for Monorepos & Fast Feedback](https://docs.github.com/en/actions) (2025/2026).
 
 ---
 
-### [IDEA-006] ترقية أمن الـ IPC عبر حصر نطاقات الـ URL وتفعيل CSP صارم
-- **الأداة المقترحة:** `Electron Security Checklist 2025/2026` + `Content-Security-Policy`.
-- **لماذا تناسب هذا المشروع:**
-  يحل الثغرة `SEC-005` عبر فحص وتدقيق عناوين الـ URL قبل تمريرها لـ `shell.openExternal` وتطبيق جدار حماية لمنع تنفيذ أي سكربت خارجي داخل المتصفح المدمج.
-- **الجهد المتوقع:** صغير (Small - يوم واحد).
-- **المصدر والتاريخ:**
-  - [Electron Official Security Tutorial: Context Isolation and Protocol Filtering (2025)](https://www.electronjs.org/docs/latest/tutorial/security)
+## 📊 نطاق التغطية المثبتة (Research Scope)
+
+- **المجالات التي تم بحثها فعلياً عبر محركات البحث:**
+  - بدائل تشغيل المتصفحات وطباعة PDF في بيئة Node/Electron خفيفة الذاكرة.
+  - إطارات اختبارات Monorepo المتوافقة مع بنية Workspaces الحديثة في 2025/2026.
+  - وثائق Baileys v6 وطرق الاقتران الحديثة بـ Pairing Code.
+  - حلول التزامن المحلي لقواعد بيانات SQLite بدون ازدواجية الذاكرة.
+- **ما لم يتم بحثه والسبب:**
+  - حلول السحابة المتعددة (Multi-Cloud / AWS / GCP) لخروجها عن نطاق النظام المحلي Offline-First.

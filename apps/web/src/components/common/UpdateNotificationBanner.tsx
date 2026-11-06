@@ -25,6 +25,7 @@ export default function UpdateNotificationBanner() {
   const [dismissed, setDismissed] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [isRestarting, setIsRestarting] = useState(false);
+  const [isStartingDownload, setIsStartingDownload] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -91,6 +92,20 @@ export default function UpdateNotificationBanner() {
     }
   };
 
+  const handleDownloadNow = async () => {
+    setIsStartingDownload(true);
+    try {
+      const desktop = (window as any).electronDesktop;
+      if (desktop?.updater) {
+        await desktop.updater.download();
+      }
+    } catch (e) {
+      console.error('Failed to trigger update download:', e);
+    } finally {
+      setIsStartingDownload(false);
+    }
+  };
+
   return (
     <>
       {/* 1. TOP GLOBAL BANNER */}
@@ -136,6 +151,12 @@ export default function UpdateNotificationBanner() {
                 </span>
               )}
             </div>
+
+            {status === 'available' && !extState?.loopDetected && (
+              <div style={{ marginTop: '2px', fontSize: '11.5px', opacity: 0.9 }}>
+                انقر على "تنزيل التحديث الآن" للترقية المباشرة
+              </div>
+            )}
 
             {status === 'downloading' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', fontSize: '11.5px', opacity: 0.95 }}>
@@ -251,6 +272,57 @@ export default function UpdateNotificationBanner() {
                 لاحقاً (عند الإغلاق)
               </button>
             </>
+          ) : status === 'available' ? (
+            <>
+              <button
+                type="button"
+                onClick={handleDownloadNow}
+                disabled={isStartingDownload}
+                style={{
+                  background: '#ffffff',
+                  color: '#0369a1',
+                  border: 'none',
+                  padding: '6px 16px',
+                  borderRadius: '6px',
+                  cursor: isStartingDownload ? 'wait' : 'pointer',
+                  fontWeight: 800,
+                  fontSize: '12.5px',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {isStartingDownload ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>جاري بدء التنزيل...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download size={14} />
+                    <span>تنزيل التحديث الآن</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDismissed(true)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  opacity: 0.8,
+                  padding: '4px',
+                }}
+                title="إغلاق التنبيه المؤقت"
+              >
+                <X size={16} />
+              </button>
+            </>
           ) : (
             <button
               type="button"
@@ -351,6 +423,32 @@ export default function UpdateNotificationBanner() {
               >
                 إغلاق
               </button>
+              {status === 'available' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleDownloadNow();
+                    setShowNotesModal(false);
+                  }}
+                  disabled={isStartingDownload}
+                  style={{
+                    background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                    border: 'none',
+                    color: '#fff',
+                    padding: '8px 20px',
+                    borderRadius: '8px',
+                    cursor: isStartingDownload ? 'wait' : 'pointer',
+                    fontWeight: 800,
+                    fontSize: '13px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Download size={14} />
+                  <span>تنزيل وتثبيت التحديث الآن</span>
+                </button>
+              )}
               {status === 'downloaded' && (
                 <button
                   type="button"

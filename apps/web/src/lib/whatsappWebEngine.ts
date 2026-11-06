@@ -1,29 +1,88 @@
 import fs from 'fs';
 import path from 'path';
+import { pathToFileURL } from 'url';
 
 declare const __non_webpack_require__: any;
 
-function loadNodeModule(modName: string): any {
+// Hidden from bundlers: native dynamic import used as a fallback for ESM-only
+// packages on Node versions that do not support require(ESM) (e.g. Node 18).
+const nativeImport = new Function('specifier', 'return import(specifier)') as (
+  specifier: string
+) => Promise<any>;
+
+async function loadNodeModule(modName: string): Promise<any> {
   const baseReq = typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : eval('require');
+  let lastError: any = null;
   try {
     return baseReq(modName);
-  } catch {
+  } catch (err) {
+    lastError = err;
     const Module = baseReq('module');
-    const candidates = [
-      path.join(process.cwd(), 'package.json'),
-      path.join(process.cwd(), '..', '..', 'package.json'),
-      'D:\\lab\\package.json',
-      'C:\\lab\\package.json',
-    ];
+    const searchBases = new Set<string>();
+
+    const addBaseAndAncestors = (startPath: string | undefined, maxUp = 5) => {
+      if (!startPath) return;
+      let curr = path.resolve(startPath);
+      for (let i = 0; i <= maxUp; i++) {
+        searchBases.add(curr);
+        const parent = path.dirname(curr);
+        if (parent === curr) break;
+        curr = parent;
+      }
+    };
+
+    addBaseAndAncestors(process.cwd(), 5);
+    if (typeof __dirname !== 'undefined') {
+      addBaseAndAncestors(__dirname, 5);
+    }
+    if (process.env.PORTABLE_EXECUTABLE_DIR) {
+      addBaseAndAncestors(process.env.PORTABLE_EXECUTABLE_DIR, 2);
+    }
+    const resourcesPath = (process as any).resourcesPath;
+    if (resourcesPath) {
+      addBaseAndAncestors(resourcesPath, 2);
+      addBaseAndAncestors(path.join(resourcesPath, 'engine', 'standalone'), 2);
+      addBaseAndAncestors(path.join(resourcesPath, 'engine-legacy', 'standalone'), 2);
+    }
+    if (process.execPath) {
+      const execDir = path.dirname(process.execPath);
+      addBaseAndAncestors(execDir, 2);
+      addBaseAndAncestors(path.join(execDir, 'standalone'), 2);
+      addBaseAndAncestors(path.join(execDir, 'resources', 'engine', 'standalone'), 2);
+      addBaseAndAncestors(path.join(execDir, 'resources', 'engine-legacy', 'standalone'), 2);
+    }
+
+    const baseList = Array.from(searchBases);
+    const candidates: string[] = [];
+    for (const base of baseList) {
+      candidates.push(path.join(base, 'package.json'));
+      candidates.push(path.join(base, 'node_modules', modName, 'package.json'));
+    }
+
     for (const candidate of candidates) {
       if (fs.existsSync(candidate)) {
         try {
           const customReq = Module.createRequire(candidate);
           return customReq(modName);
-        } catch {}
+        } catch (err: any) {
+          lastError = err;
+        }
       }
     }
-    throw new Error(`تعذر تحميل وحدة محرك واتساب (${modName})`);
+
+    for (const base of baseList) {
+      const directModDir = path.join(base, 'node_modules', modName);
+      if (fs.existsSync(directModDir)) {
+        try {
+          return baseReq(directModDir);
+        } catch (err: any) {
+          lastError = err;
+        }
+      }
+    }
+
+    const detail = lastError?.message ? ` (${lastError.code || 'ERR'}: ${lastError.message})` : '';
+    throw new Error(`تعذر تحميل وحدة محرك واتساب (${modName})${detail}`);
   }
 }
 
@@ -52,6 +111,7 @@ export interface WhatsAppServiceStatus {
   qrDataUrl?: string;
   authDir: string;
   hasSavedSession?: boolean;
+  lastError?: string;
 }
 
 export interface SendMediaParams {
@@ -108,9 +168,40 @@ class WhatsAppWebEngine {
   private qrDataUrl: string | null = null;
   private connectedUser: { id: string; name?: string } | null = null;
   private isInitializing: boolean = false;
+  private initPromise: Promise<WhatsAppServiceStatus> | null = null;
+  private initialQrResolvers: Array<() => void> = [];
   private reconnectTimer: NodeJS.Timeout | null = null;
   private reconnectAttempts: number = 0;
   private hasCheckedSession: boolean = false;
+  private lastInitError: string | null = null;
+
+  private notifyInitialQrOrOpen() {
+    if (this.initialQrResolvers.length > 0) {
+      const resolvers = this.initialQrResolvers.splice(0, this.initialQrResolvers.length);
+      for (const resolve of resolvers) {
+        try {
+          resolve();
+        } catch {}
+      }
+    }
+  }
+
+  private waitForInitialQrOrOpen(timeoutMs = 6000): Promise<void> {
+    if (this.status === 'CONNECTED' || (this.status === 'PAIRING' && this.qrDataUrl)) {
+      return Promise.resolve();
+    }
+    return new Promise<void>((resolve) => {
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve();
+      };
+      const timer = setTimeout(done, timeoutMs);
+      this.initialQrResolvers.push(done);
+    });
+  }
 
   public hasSavedCredentials(): boolean {
     try {
@@ -141,139 +232,152 @@ class WhatsAppWebEngine {
       return this.getStatus();
     }
 
-    if (this.sock && this.status === 'PAIRING' && this.qrDataUrl && !forceRestart) {
+    if (this.status === 'PAIRING' && this.qrDataUrl && !forceRestart && this.sock) {
       return this.getStatus();
     }
 
-    if (this.isInitializing) {
-      await this.waitForQrOrConnect(4000);
-      return this.getStatus();
+    if (this.isInitializing && this.initPromise && !forceRestart) {
+      return await this.initPromise;
     }
 
-    this.isInitializing = true;
-    this.status = 'PAIRING';
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
+    const runInit = async (): Promise<WhatsAppServiceStatus> => {
+      this.isInitializing = true;
+      this.status = 'PAIRING';
+      this.lastInitError = null;
+      if (this.reconnectTimer) {
+        clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
+      }
 
-    if (forceRestart && this.sock) {
+      if (forceRestart && this.sock) {
+        try {
+          this.sock.end?.(undefined);
+        } catch {}
+        this.sock = null;
+        this.qrDataUrl = null;
+      }
+
       try {
-        this.sock.end?.(undefined);
-      } catch {}
-      this.sock = null;
-      this.qrDataUrl = null;
-    }
+        const baileysMod = await loadNodeModule('@whiskeysockets/baileys');
+        const makeWASocket =
+          (typeof baileysMod === 'function' ? baileysMod : null) ||
+          baileysMod.default?.default ||
+          baileysMod.default ||
+          baileysMod.makeWASocket ||
+          baileysMod;
+        const useMultiFileAuthState =
+          baileysMod.useMultiFileAuthState ||
+          baileysMod.default?.useMultiFileAuthState ||
+          baileysMod.default?.default?.useMultiFileAuthState;
+        const DisconnectReason =
+          baileysMod.DisconnectReason ||
+          baileysMod.default?.DisconnectReason ||
+          baileysMod.default?.default?.DisconnectReason;
+        const pinoMod = await loadNodeModule('pino');
+        const pino = pinoMod.default || pinoMod;
+        const qrMod = await loadNodeModule('qrcode');
+        const QRCode = qrMod.default || qrMod;
 
-    try {
-      const baileysMod = loadNodeModule('@whiskeysockets/baileys');
-      const makeWASocket = baileysMod.default || baileysMod.makeWASocket || baileysMod;
-      const { DisconnectReason, useMultiFileAuthState } = baileysMod;
-      const pinoMod = loadNodeModule('pino');
-      const pino = pinoMod.default || pinoMod;
-      const qrMod = loadNodeModule('qrcode');
-      const QRCode = qrMod.default || qrMod;
+        const authDir = getWhatsAppAuthDir();
+        const { state, saveCreds } = await useMultiFileAuthState(authDir);
 
-      const authDir = getWhatsAppAuthDir();
-      const { state, saveCreds } = await useMultiFileAuthState(authDir);
+        const socketConfig: any = {
+          auth: state,
+          printQRInTerminal: false,
+          logger: pino({ level: 'silent' }),
+          browser: ['Labryo Clinical LIMS', 'Chrome', '1.5.12'],
+          syncFullHistory: false,
+          connectTimeoutMs: 30000,
+          keepAliveIntervalMs: 25000,
+          defaultQueryTimeoutMs: 40000,
+        };
 
-      const socketConfig: any = {
-        auth: state,
-        printQRInTerminal: false,
-        logger: pino({ level: 'silent' }),
-        browser: ['Labryo Clinical LIMS', 'Chrome', '1.5.12'],
-        syncFullHistory: false,
-        connectTimeoutMs: 30000,
-        keepAliveIntervalMs: 25000,
-        defaultQueryTimeoutMs: 40000,
-      };
+        const sock = makeWASocket(socketConfig);
+        this.sock = sock;
 
-      const sock = makeWASocket(socketConfig);
-      this.sock = sock;
+        sock.ev.on('creds.update', saveCreds);
 
-      sock.ev.on('creds.update', saveCreds);
+        sock.ev.on('connection.update', async (update: any) => {
+          const { connection, lastDisconnect, qr } = update;
 
-      sock.ev.on('connection.update', async (update: any) => {
-        const { connection, lastDisconnect, qr } = update;
-
-        if (qr) {
-          try {
-            this.qrDataUrl = await QRCode.toDataURL(qr, {
-              margin: 2,
-              width: 300,
-              color: {
-                dark: '#0f172a',
-                light: '#ffffff',
-              },
-            });
-            this.status = 'PAIRING';
-            console.log('[WhatsAppWebEngine] QR code generated and ready for scanning.');
-          } catch (qrErr) {
-            console.error('[WhatsAppWebEngine] Error generating QR code:', qrErr);
-          }
-        }
-
-        if (connection === 'open') {
-          this.status = 'CONNECTED';
-          this.qrDataUrl = null;
-          this.reconnectAttempts = 0;
-          const rawId = sock.user?.id || '';
-          const cleanId = rawId.split(':')[0].split('@')[0];
-          this.connectedUser = {
-            id: cleanId,
-            name: sock.user?.name || undefined,
-          };
-          console.log(`✅ [WhatsAppWebEngine] Connected as: ${cleanId} (${sock.user?.name || 'Lab Account'})`);
-        }
-
-        if (connection === 'close') {
-          const statusCode =
-            lastDisconnect?.error?.output?.statusCode ||
-            lastDisconnect?.error?.statusCode;
-          const isLoggedOut = statusCode === DisconnectReason?.loggedOut || statusCode === 401;
-          const isBadMac = String(lastDisconnect?.error?.message || '').includes('Bad MAC');
-          console.log(`⚠️ [WhatsAppWebEngine] Connection closed. Status: ${statusCode}, LoggedOut: ${isLoggedOut}, BadMac: ${isBadMac}`);
-
-          if (isLoggedOut || isBadMac) {
-            console.warn('[WhatsAppWebEngine] Session corrupted or logged out, resetting session credentials.');
-            this.reconnectAttempts = 0;
-            await this.logout();
-          } else {
-            this.status = 'DISCONNECTED';
-            this.sock = null;
-            if (this.hasSavedCredentials() && this.reconnectAttempts < 15) {
-              const delay = Math.min(25000, 3500 * Math.pow(1.4, this.reconnectAttempts || 0));
-              this.reconnectAttempts = (this.reconnectAttempts || 0) + 1;
-              this.reconnectTimer = setTimeout(() => {
-                this.initSocket(false).catch((e) => {
-                  console.warn('[WhatsAppWebEngine] Reconnect attempt failed:', e?.message);
-                });
-              }, delay);
+          if (qr) {
+            try {
+              this.qrDataUrl = await QRCode.toDataURL(qr, {
+                margin: 2,
+                width: 300,
+                color: {
+                  dark: '#0f172a',
+                  light: '#ffffff',
+                },
+              });
+              this.status = 'PAIRING';
+              this.notifyInitialQrOrOpen();
+              console.log('[WhatsAppWebEngine] QR code generated and ready for scanning.');
+            } catch (qrErr) {
+              console.error('[WhatsAppWebEngine] Error generating QR code:', qrErr);
             }
           }
-        }
-      });
 
-      // Wait sufficiently so the initial QR code (or fast session resume) is ready in the response
-      await this.waitForQrOrConnect(12000);
-      return this.getStatus();
-    } catch (err: any) {
-      console.error('[WhatsAppWebEngine] initSocket error:', err);
-      this.status = 'DISCONNECTED';
-      throw err;
-    } finally {
-      this.isInitializing = false;
-    }
-  }
+          if (connection === 'open') {
+            this.status = 'CONNECTED';
+            this.qrDataUrl = null;
+            this.reconnectAttempts = 0;
+            const rawId = sock.user?.id || '';
+            const cleanId = rawId.split(':')[0].split('@')[0];
+            this.connectedUser = {
+              id: cleanId,
+              name: sock.user?.name || undefined,
+            };
+            this.notifyInitialQrOrOpen();
+            console.log(`✅ [WhatsAppWebEngine] Connected as: ${cleanId} (${sock.user?.name || 'Lab Account'})`);
+          }
 
-  private async waitForQrOrConnect(timeoutMs: number): Promise<void> {
-    const start = Date.now();
-    while (Date.now() - start < timeoutMs) {
-      if (this.status === 'CONNECTED' || (this.status === 'PAIRING' && this.qrDataUrl)) {
-        return;
+          if (connection === 'close') {
+            const statusCode =
+              lastDisconnect?.error?.output?.statusCode ||
+              lastDisconnect?.error?.statusCode;
+            const isLoggedOut = statusCode === DisconnectReason?.loggedOut || statusCode === 401;
+            const isBadMac = String(lastDisconnect?.error?.message || '').includes('Bad MAC');
+            console.log(`⚠️ [WhatsAppWebEngine] Connection closed. Status: ${statusCode}, LoggedOut: ${isLoggedOut}, BadMac: ${isBadMac}`);
+
+            if (isLoggedOut || isBadMac) {
+              console.warn('[WhatsAppWebEngine] Session corrupted or logged out, resetting session credentials.');
+              this.reconnectAttempts = 0;
+              await this.logout();
+            } else {
+              this.status = 'DISCONNECTED';
+              this.sock = null;
+              if (this.hasSavedCredentials() && this.reconnectAttempts < 15) {
+                const delay = Math.min(25000, 3500 * Math.pow(1.4, this.reconnectAttempts || 0));
+                this.reconnectAttempts = (this.reconnectAttempts || 0) + 1;
+                this.reconnectTimer = setTimeout(() => {
+                  this.initSocket(false).catch((e) => {
+                    console.warn('[WhatsAppWebEngine] Reconnect attempt failed:', e?.message);
+                  });
+                }, delay);
+              }
+            }
+            this.notifyInitialQrOrOpen();
+          }
+        });
+
+        await this.waitForInitialQrOrOpen(6000);
+        this.lastInitError = null;
+        return this.getStatus();
+      } catch (err: any) {
+        console.error('[WhatsAppWebEngine] initSocket error:', err);
+        this.status = 'DISCONNECTED';
+        this.lastInitError = err?.message || String(err);
+        this.notifyInitialQrOrOpen();
+        throw err;
+      } finally {
+        this.isInitializing = false;
+        this.initPromise = null;
       }
-      await new Promise((r) => setTimeout(r, 200));
-    }
+    };
+
+    this.initPromise = runInit();
+    return await this.initPromise;
   }
 
   public getStatus(): WhatsAppServiceStatus {
@@ -295,6 +399,7 @@ class WhatsAppWebEngine {
       qrDataUrl: this.qrDataUrl || undefined,
       authDir: getWhatsAppAuthDir(),
       hasSavedSession: this.hasSavedCredentials(),
+      lastError: this.lastInitError || undefined,
     };
   }
 
@@ -316,6 +421,7 @@ class WhatsAppWebEngine {
     this.qrDataUrl = null;
     this.connectedUser = null;
     this.reconnectAttempts = 0;
+    this.lastInitError = null;
 
     const authDir = getWhatsAppAuthDir();
     if (fs.existsSync(authDir)) {

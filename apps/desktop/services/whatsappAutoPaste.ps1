@@ -280,6 +280,8 @@ try {
     Log "Invoking WaMasterAutomator v6.1: Phone='$cleanPhone' TotalImages=$($finalImagePaths.Count) Caption='$capSnippet' SkipLaunch=$($SkipProtocolLaunch.IsPresent)"
     $res = [WaMasterAutomator]::Run([string[]]$finalImagePaths, $captionText, $cleanPhone, $SkipProtocolLaunch.IsPresent)
     Log "WaMasterAutomator v6.1 finished with result: $res"
+    if ($res) { exit 0 } else { exit 3 }
 } catch {
     Log ("ERROR in auto-paste: " + $_.Exception.Message)
+    exit 4
 }

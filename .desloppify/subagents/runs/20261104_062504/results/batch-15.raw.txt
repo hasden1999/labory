@@ -1,0 +1,26 @@
+{
+  "batch": "package_organization",
+  "batch_index": 15,
+  "assessments": {
+    "package_organization": 85.7
+  },
+  "dimension_notes": {
+    "package_organization": {
+      "evidence": [
+        "Clear monorepo boundaries: apps/web, apps/server, apps/desktop, packages/domain, packages/data, packages/core, packages/reports",
+        "Public APIs exported through root index.ts for each package"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Moving packages/reports into pure headless micro-package"
+    }
+  },
+  "dimension_judgment": {
+    "package_organization": {
+      "dimension_character": "Package boundaries are well-demarcated with domain logic completely isolated from framework code.",
+      "score_rationale": "Score 85.0 reflects clean separation between domain, core, data, and presentation layers."
+    }
+  },
+  "issues": []
+}

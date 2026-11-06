@@ -14,6 +14,11 @@ import {
 } from '@lab-manager/domain';
 import { resolveReferenceRange } from '../../../../../lib/orderHelpers';
 import {
+  renderCbcTemplate,
+  parseCbcData as parseCbcDataFromTemplates,
+  ParsedCbc as ParsedCbcFromTemplates,
+} from './cbc/CbcPrintTemplates';
+import {
   isCbcTest,
   isSfaTest,
   isGueTest,
@@ -377,6 +382,7 @@ export interface PrintBodyParams {
   store: any;
   settings: any;
   sectionParam: string;
+  cbcLayout?: string;
   template: string;
   primaryCol: string;
   textColor: string;
@@ -416,6 +422,7 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
     store,
     settings,
     sectionParam,
+    cbcLayout: explicitCbcLayout,
     primaryCol,
     textColor,
     borderColor,
@@ -700,9 +707,9 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
           : '';
 
         if (!engLbl) {
-          return `<div dir="ltr" style="white-space:nowrap;direction:ltr;unicode-bidi:isolate;${rowHighlight}">${matchDot}<span style="font-weight:${isMatchedRow ? 800 : 600};">${escapeHtml(cleanVal || '-')}</span></div>`;
+          return `<div dir="ltr" style="white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;direction:ltr;unicode-bidi:isolate;${rowHighlight}">${matchDot}<span style="font-weight:${isMatchedRow ? 800 : 600};">${escapeHtml(cleanVal || '-')}</span></div>`;
         }
-        return `<div style="white-space:nowrap;direction:ltr;unicode-bidi:isolate;${rowHighlight}" dir="ltr">${matchDot}<span style="font-weight:${isMatchedRow ? 800 : 700};">${escapeHtml(engLbl)}:</span> <span dir="ltr" style="unicode-bidi:isolate;display:inline-block;font-weight:${isMatchedRow ? 800 : 700};">${escapeHtml(cleanVal || '-')}</span></div>`;
+        return `<div style="white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;direction:ltr;unicode-bidi:isolate;${rowHighlight}" dir="ltr">${matchDot}<span style="font-weight:${isMatchedRow ? 800 : 700};">${escapeHtml(engLbl)}:</span> <span dir="ltr" style="unicode-bidi:isolate;display:inline-block;font-weight:${isMatchedRow ? 800 : 700};">${escapeHtml(cleanVal || '-')}</span></div>`;
       };
 
       const resolved = resolveReferenceRange(
@@ -731,9 +738,9 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
         if (colonIdx > 0) {
           const lbl = engLine.substring(0, colonIdx).trim();
           const val = engLine.substring(colonIdx + 1).trim();
-          return `<div style="white-space:nowrap;direction:ltr;unicode-bidi:isolate;${hl}" dir="ltr">${dot}<span style="font-weight:${isMatchedLine ? 800 : 700};">${escapeHtml(lbl)}:</span> <span dir="ltr" style="unicode-bidi:isolate;display:inline-block;font-weight:${isMatchedLine ? 800 : 700};">${escapeHtml(val)}</span></div>`;
+          return `<div style="white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;direction:ltr;unicode-bidi:isolate;${hl}" dir="ltr">${dot}<span style="font-weight:${isMatchedLine ? 800 : 700};">${escapeHtml(lbl)}:</span> <span dir="ltr" style="unicode-bidi:isolate;display:inline-block;font-weight:${isMatchedLine ? 800 : 700};">${escapeHtml(val)}</span></div>`;
         }
-        return `<div dir="ltr" style="white-space:nowrap;direction:ltr;unicode-bidi:isolate;${hl}">${dot}<span style="font-weight:${isMatchedLine ? 800 : 600};">${escapeHtml(engLine)}</span></div>`;
+        return `<div dir="ltr" style="white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;direction:ltr;unicode-bidi:isolate;${hl}">${dot}<span style="font-weight:${isMatchedLine ? 800 : 600};">${escapeHtml(engLine)}</span></div>`;
       };
 
       if (printScope === 'APPLICABLE_ONLY') {
@@ -879,7 +886,8 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
               return `<td style="padding: ${customCellPadding}; font-size: ${testNameFontSize}px; font-weight: ${testNameFontWeight === 'bold' ? 800 : 500}; color: ${textColor}; ${alignStyle}">${testName}</td>`;
             }
             if (col.id === 'result') {
-              return `<td style="padding: ${customCellPadding}; font-size: ${resultValueFontSize}px; ${alignStyle}">${displayValue}</td>`;
+              const formattedDisplayVal = displayValue.includes("\n") ? displayValue.replace(/\n/g, "<br/>") : displayValue;
+              return `<td style="padding: ${customCellPadding}; font-size: ${resultValueFontSize}px; word-break: break-word; overflow-wrap: anywhere; vertical-align: top; ${alignStyle}">${formattedDisplayVal}</td>`;
             }
             if (col.id === 'previous') {
               return `<td style="padding: ${customCellPadding}; ${alignStyle}">${priorHtml}</td>`;
@@ -888,7 +896,7 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
               return `<td style="padding: ${customCellPadding}; font-size: ${unitFontSize}px; color: ${textColor}; opacity: 0.85; ${alignStyle}">${testUnit}</td>`;
             }
             if (col.id === 'refRange') {
-              return `<td style="padding: ${customCellPadding}; font-size: ${refRangeFontSize}px; color: ${textColor}; opacity: 0.85; ${alignStyle}">${testRef}</td>`;
+              return `<td style="padding: ${customCellPadding}; font-size: ${refRangeFontSize}px; color: ${textColor}; opacity: 0.85; word-break: break-word; overflow-wrap: anywhere; vertical-align: top; ${alignStyle}">${testRef}</td>`;
             }
             if (col.id === 'notes') {
               return `<td style="padding: ${customCellPadding}; font-size: ${unitFontSize}px; color: ${textColor}; opacity: 0.85; ${alignStyle}">${escapeHtml(t.notes || '-')}</td>`;
@@ -1100,114 +1108,6 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
     });
   }
 
-  // 2. Dedicated Complete Blood Count (CBC) & 5-Part Differential Pages
-  interface ParsedCbc {
-    rbc: string;
-    hgb: string;
-    hct: string;
-    mcv: string;
-    mch: string;
-    mchc: string;
-    rdw: string;
-    plt: string;
-    mpv: string;
-    pdw: string;
-    pct: string;
-    wbc: string;
-    neutrophils: string;
-    lymphocytes: string;
-    monocytes: string;
-    eosinophils: string;
-    basophils: string;
-    morphology: string;
-    comments: string;
-  }
-
-  const parseCbcData = (rawVal: string): ParsedCbc => {
-    const res: ParsedCbc = {
-      rbc: '-', hgb: '-', hct: '-', mcv: '-', mch: '-', mchc: '-', rdw: '-',
-      plt: '-', mpv: '-', pdw: '-', pct: '-',
-      wbc: '-', neutrophils: '-', lymphocytes: '-', monocytes: '-', eosinophils: '-', basophils: '-',
-      morphology: '', comments: ''
-    };
-    if (!rawVal) return res;
-
-    const cleanVal = toEnglishDigits(rawVal);
-    const lines = cleanVal.split('\n');
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.toUpperCase().startsWith('ERYTHROID:')) {
-        const rbcM = trimmed.match(/RBC:\s*([^\s|]+)/i);
-        if (rbcM) res.rbc = rbcM[1];
-        const hgbM = trimmed.match(/HGB:\s*([^\s|]+)/i);
-        if (hgbM) res.hgb = hgbM[1];
-        const hctM = trimmed.match(/HCT:\s*([^\s|]+)/i);
-        if (hctM) res.hct = hctM[1];
-        const mcvM = trimmed.match(/MCV:\s*([^\s|]+)/i);
-        if (mcvM) res.mcv = mcvM[1];
-        const mchM = trimmed.match(/MCH:\s*([^\s|]+)/i);
-        if (mchM) res.mch = mchM[1];
-        const mchcM = trimmed.match(/MCHC:\s*([^\s|]+)/i);
-        if (mchcM) res.mchc = mchcM[1];
-        const rdwM = trimmed.match(/RDW:\s*([^\s|]+)/i);
-        if (rdwM) res.rdw = rdwM[1];
-      } else if (trimmed.toUpperCase().startsWith('PLATELETS:')) {
-        const pltM = trimmed.match(/PLT:\s*([^\s|]+)/i);
-        if (pltM) res.plt = pltM[1];
-        const mpvM = trimmed.match(/MPV:\s*([^\s|]+)/i);
-        if (mpvM) res.mpv = mpvM[1];
-        const pdwM = trimmed.match(/PDW:\s*([^\s|]+)/i);
-        if (pdwM) res.pdw = pdwM[1];
-        const pctM = trimmed.match(/PCT:\s*([^\s|]+)/i);
-        if (pctM) res.pct = pctM[1];
-      } else if (trimmed.toUpperCase().startsWith('LEUKOCYTES:')) {
-        const wbcM = trimmed.match(/WBC:\s*([^\s|]+)/i);
-        if (wbcM) res.wbc = wbcM[1];
-      } else if (trimmed.toUpperCase().startsWith('DIFFERENTIAL:')) {
-        const neutM = trimmed.match(/Neut:\s*([^\s%|]+)/i);
-        if (neutM) res.neutrophils = neutM[1];
-        const lymphM = trimmed.match(/Lymph:\s*([^\s%|]+)/i);
-        if (lymphM) res.lymphocytes = lymphM[1];
-        const monoM = trimmed.match(/Mono:\s*([^\s%|]+)/i);
-        if (monoM) res.monocytes = monoM[1];
-        const eosM = trimmed.match(/Eos:\s*([^\s%|]+)/i);
-        if (eosM) res.eosinophils = eosM[1];
-        const basoM = trimmed.match(/Baso:\s*([^\s%|]+)/i);
-        if (basoM) res.basophils = basoM[1];
-      } else if (trimmed.toUpperCase().startsWith('MORPHOLOGY:')) {
-        res.morphology = trimmed.replace(/MORPHOLOGY:/i, '').trim();
-      } else if (trimmed.toUpperCase().startsWith('COMMENTS:') || trimmed.toUpperCase().startsWith('COMMENT:')) {
-        res.comments = trimmed.replace(/COMMENTS?:/i, '').trim();
-      } else {
-        const rbcM = trimmed.match(/\bRBC\b[:\s=]+([0-9.]+)/i);
-        if (rbcM && res.rbc === '-') res.rbc = rbcM[1];
-        const hgbM = trimmed.match(/\b(HGB|HB)\b[:\s=]+([0-9.]+)/i);
-        if (hgbM && res.hgb === '-') res.hgb = hgbM[2];
-        const hctM = trimmed.match(/\b(HCT|PCV)\b[:\s=]+([0-9.]+)/i);
-        if (hctM && res.hct === '-') res.hct = hctM[2];
-        const mcvM = trimmed.match(/\bMCV\b[:\s=]+([0-9.]+)/i);
-        if (mcvM && res.mcv === '-') res.mcv = mcvM[1];
-        const mchM = trimmed.match(/\bMCH\b[:\s=]+([0-9.]+)/i);
-        if (mchM && res.mch === '-') res.mch = mchM[1];
-        const mchcM = trimmed.match(/\bMCHC\b[:\s=]+([0-9.]+)/i);
-        if (mchcM && res.mchc === '-') res.mchc = mchcM[1];
-        const rdwM = trimmed.match(/\bRDW\b[:\s=]+([0-9.]+)/i);
-        if (rdwM && res.rdw === '-') res.rdw = rdwM[1];
-        const pltM = trimmed.match(/\bPLT\b[:\s=]+([0-9.]+)/i);
-        if (pltM && res.plt === '-') res.plt = pltM[1];
-        const mpvM = trimmed.match(/\bMPV\b[:\s=]+([0-9.]+)/i);
-        if (mpvM && res.mpv === '-') res.mpv = mpvM[1];
-        const pdwM = trimmed.match(/\bPDW\b[:\s=]+([0-9.]+)/i);
-        if (pdwM && res.pdw === '-') res.pdw = pdwM[1];
-        const pctM = trimmed.match(/\bPCT\b[:\s=]+([0-9.]+)/i);
-        if (pctM && res.pct === '-') res.pct = pctM[1];
-        const wbcM = trimmed.match(/\bWBC\b[:\s=]+([0-9.]+)/i);
-        if (wbcM && res.wbc === '-') res.wbc = wbcM[1];
-      }
-    }
-    return res;
-  };
-
   const isFemale = patient.gender === 'FEMALE';
   const rbcRef = isFemale ? '4.00 - 5.20' : '4.50 - 5.90';
   const rbcLow = isFemale ? 4.0 : 4.5;
@@ -1219,12 +1119,12 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
   const hctLow = isFemale ? 36.0 : 40.0;
   const hctHigh = isFemale ? 48.0 : 52.0;
 
-  let priorCbcParsed: ParsedCbc | null = null;
+  let priorCbcParsed: ParsedCbcFromTemplates | null = null;
   let priorCbcDate = '';
   const cbcToggle = cbcTests.find((t: any) => (t as any).includePrevious);
   if (cbcToggle) {
     if ((cbcToggle as any).previousValue && String((cbcToggle as any).previousValue).trim() !== '') {
-      priorCbcParsed = parseCbcData(String((cbcToggle as any).previousValue));
+      priorCbcParsed = parseCbcDataFromTemplates(String((cbcToggle as any).previousValue));
       priorCbcDate = (cbcToggle as any).previousDate ? formatEnglishDate((cbcToggle as any).previousDate) : '';
     } else {
       const tid = (cbcToggle as any).testId || (cbcToggle as any).test?.id;
@@ -1237,7 +1137,7 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
           return isCbcTest(x.test || x);
         }) || (pick.tests || []).find((x: any) => isCbcTest(x.test || x));
         if (pCbc && pCbc.resultValue && String(pCbc.resultValue).trim() !== '') {
-          priorCbcParsed = parseCbcData(String(pCbc.resultValue));
+          priorCbcParsed = parseCbcDataFromTemplates(String(pCbc.resultValue));
           priorCbcDate = formatEnglishDate(pick.createdAt);
         }
       }
@@ -1245,7 +1145,7 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
         for (const ps of priorSamples) {
           const pCbc = (ps.tests || []).find((t: any) => isCbcTest(t.test || t));
           if (pCbc && pCbc.resultValue && String(pCbc.resultValue).trim() !== '') {
-            priorCbcParsed = parseCbcData(String(pCbc.resultValue));
+            priorCbcParsed = parseCbcDataFromTemplates(String(pCbc.resultValue));
             priorCbcDate = formatEnglishDate(ps.createdAt);
             break;
           }
@@ -1256,7 +1156,7 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
     for (const ps of priorSamples) {
       const pCbc = (ps.tests || []).find((t: any) => isCbcTest(t.test || t));
       if (pCbc && pCbc.resultValue && String(pCbc.resultValue).trim() !== '') {
-        priorCbcParsed = parseCbcData(String(pCbc.resultValue));
+        priorCbcParsed = parseCbcDataFromTemplates(String(pCbc.resultValue));
         priorCbcDate = formatEnglishDate(ps.createdAt);
         break;
       }
@@ -1342,34 +1242,46 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
   if (shouldRenderCbc) {
     for (const cbc of cbcTests) {
       const rawVal = cbc.resultValue ? String(cbc.resultValue) : '';
-      const parsed = parseCbcData(rawVal);
-      const rbcNum = parseFloat(parsed.rbc);
-      const mcvNum = parseFloat(parsed.mcv);
-      const wbcNum = parseFloat(parsed.wbc) || 0;
-
-      let mentzerHtml = '';
-      if (!isNaN(rbcNum) && !isNaN(mcvNum) && rbcNum > 0 && mcvNum > 0) {
-        const mIdx = Math.round((mcvNum / rbcNum) * 10) / 10;
-        if (mcvNum < 80) {
-          const isThal = mIdx < 13;
-          const desc = isThal ? 'Mentzer Index < 13: Suggests Beta-Thalassemia Trait' : 'Mentzer Index ≥ 13: Suggests Iron Deficiency Anemia';
-          const badgeBg = isThal ? '#eff6ff' : '#fefce8';
-          const badgeBdr = isThal ? '#bfdbfe' : '#fef08a';
-          const badgeCol = isThal ? '#1d4ed8' : '#854d0e';
-          mentzerHtml = `
-            <div style="background: ${badgeBg}; border: 1px solid ${badgeBdr}; color: ${badgeCol}; padding: 6px 10px; border-radius: 6px; font-size: ${specialFormFontSize}px; margin-top: 6px; text-align: left;" dir="ltr">
-              <strong>Mentzer Index (MCV/RBC):</strong> ${mIdx} &bull; <em>${desc}</em>
-            </div>`;
+      const parsed = parseCbcDataFromTemplates(rawVal);
+      let activeCbcLayout = explicitCbcLayout || (settings as any)?.cbcLayoutTemplate || 'CLASSIC_5PART';
+      const devName = String((cbc as any).importedFrom || (sample as any).importedFrom || (sample as any).deviceName || '').toLowerCase();
+      if (!explicitCbcLayout) {
+        if (rawVal.includes('DEVICE: SWELAB_3PART')) {
+          activeCbcLayout = 'SWELAB_3PART';
+        } else if (rawVal.includes('DEVICE: MINDRAY_3PART')) {
+          activeCbcLayout = 'MINDRAY_3PART';
+        } else if (rawVal.includes('DEVICE: MINDRAY_5PART')) {
+          activeCbcLayout = 'MINDRAY_5PART';
+        } else if (rawVal.includes('DEVICE: SYSMEX_3PART')) {
+          activeCbcLayout = 'SYSMEX_3PART';
+        } else if (devName) {
+          if (devName.includes('swelab') || devName.includes('boule')) {
+            activeCbcLayout = 'SWELAB_3PART';
+          } else if (devName.includes('mindray') || devName.includes('bc-') || devName.includes('bc3000')) {
+            activeCbcLayout = (devName.includes('5000') || devName.includes('5150') || devName.includes('5380')) ? 'MINDRAY_5PART' : 'MINDRAY_3PART';
+          } else if (devName.includes('sysmex')) {
+            activeCbcLayout = 'SYSMEX_3PART';
+          }
         }
       }
 
-      const nVal = parseFloat(parsed.neutrophils) || 0;
-      const lVal = parseFloat(parsed.lymphocytes) || 0;
-      const mVal = parseFloat(parsed.monocytes) || 0;
-      const eVal = parseFloat(parsed.eosinophils) || 0;
-      const bVal = parseFloat(parsed.basophils) || 0;
-      const hasDiffData = parsed.neutrophils !== '-' || parsed.lymphocytes !== '-';
-      const diffSum = Math.round((nVal + lVal + mVal + eVal + bVal) * 10) / 10;
+      const cbcContentHtml = renderCbcTemplate({
+        layout: activeCbcLayout,
+        cbc,
+        parsed,
+        priorCbcParsed,
+        priorCbcDate,
+        isFemale,
+        specialFormFontSize,
+        customCellPadding,
+        textColor,
+        headerBgColor,
+        borderColor,
+        settings,
+        generateHistogramSvg,
+        sample,
+        patient: sample?.patient,
+      });
 
       renderedPages.push(`
         <div class="${containerClass} ${renderedPages.length > 0 ? 'page-break' : ''}">
@@ -1377,151 +1289,7 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
           <div class="report-main-content">
             ${renderPrintHeader(headerParams)}
             ${renderPatientMetaBox(patientBoxParams)}
-
-            <!-- CBC Header Banner -->
-            <div style="background: linear-gradient(90deg, #be123c 0%, #e11d48 100%); color: #ffffff; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: ${specialFormFontSize + 1}px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
-              <span>COMPLETE BLOOD COUNT (CBC) &amp; 5-PART DIFFERENTIAL</span>
-              <span style="font-size: ${Math.max(9.5, specialFormFontSize - 1.5)}px; font-weight: 600; letter-spacing: 0.5px; opacity: 0.95;">AUTOMATED HEMATOLOGY REPORT</span>
-            </div>
-
-            <!-- 2-Column Clinical Grid -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px;" dir="ltr">
-              <!-- Column 1: Erythroid Series & Platelet Indices -->
-              <div>
-                <!-- Erythroid Series -->
-                <div style="border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; margin-bottom: 12px;">
-                  <div style="background: #f8fafc; padding: 6px 10px; font-weight: 800; font-size: ${specialFormFontSize}px; color: #be123c; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
-                    <span>1. ERYTHROID SERIES &amp; RED CELL INDICES</span>
-                  </div>
-                  <table style="width: 100%; border-collapse: collapse; font-size: ${specialFormFontSize}px; text-align: left;">
-                    <thead>
-                      <tr style="background: #f1f5f9; color: #475569; font-size: ${Math.max(9.5, specialFormFontSize - 1.5)}px; border-bottom: 1px solid #cbd5e1;">
-                        <th style="padding: 5px 10px; text-align: left;">INVESTIGATION</th>
-                        <th style="padding: 5px 10px; text-align: left;">RESULT</th>
-                        ${priorCbcParsed ? `<th style="padding: 5px 10px; text-align: left;">PREVIOUS (${priorCbcDate})</th>` : ''}
-                        <th style="padding: 5px 10px; text-align: left;">UNIT</th>
-                        <th style="padding: 5px 10px; text-align: left;">REFERENCE RANGE</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${renderCbcRow('R.B.C (Red Blood Cells)', parsed.rbc, '10^6/uL', rbcRef, rbcLow, rbcHigh, priorCbcParsed?.rbc)}
-                      ${renderCbcRow('HGB (Hemoglobin)', parsed.hgb, 'g/dL', hgbRef, hgbLow, hgbHigh, priorCbcParsed?.hgb)}
-                      ${renderCbcRow('HCT / PCV (Hematocrit)', parsed.hct, '%', hctRef, hctLow, hctHigh, priorCbcParsed?.hct)}
-                      ${renderCbcRow('MCV (Mean Corpuscular Vol)', parsed.mcv, 'fL', '80.0 - 100.0', 80.0, 100.0, priorCbcParsed?.mcv)}
-                      ${renderCbcRow('MCH (Mean Corpuscular Hb)', parsed.mch, 'pg', '27.0 - 33.0', 27.0, 33.0, priorCbcParsed?.mch)}
-                      ${renderCbcRow('MCHC (Mean Corpuscular Conc)', parsed.mchc, 'g/dL', '32.0 - 36.0', 32.0, 36.0, priorCbcParsed?.mchc)}
-                      ${renderCbcRow('RDW-CV (Red Cell Distribution)', parsed.rdw, '%', '11.5 - 14.5', 11.5, 14.5, priorCbcParsed?.rdw)}
-                    </tbody>
-                  </table>
-                  ${mentzerHtml ? `<div style="padding: 0 8px 8px 8px;">${mentzerHtml}</div>` : ''}
-                </div>
-
-                <!-- Platelet Indices -->
-                <div style="border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden;">
-                  <div style="background: #f8fafc; padding: 6px 10px; font-weight: 800; font-size: ${specialFormFontSize}px; color: #b45309; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
-                    <span>2. PLATELET INDICES (THROMBOCYTES)</span>
-                  </div>
-                  <table style="width: 100%; border-collapse: collapse; font-size: ${specialFormFontSize}px; text-align: left;">
-                    <thead>
-                      <tr style="background: #f1f5f9; color: #475569; font-size: ${Math.max(9.5, specialFormFontSize - 1.5)}px; border-bottom: 1px solid #cbd5e1;">
-                        <th style="padding: 5px 10px; text-align: left;">INVESTIGATION</th>
-                        <th style="padding: 5px 10px; text-align: left;">RESULT</th>
-                        ${priorCbcParsed ? `<th style="padding: 5px 10px; text-align: left;">PREVIOUS (${priorCbcDate})</th>` : ''}
-                        <th style="padding: 5px 10px; text-align: left;">UNIT</th>
-                        <th style="padding: 5px 10px; text-align: left;">REFERENCE RANGE</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${renderCbcRow('PLT (Platelet Count)', parsed.plt, '10^3/uL', '150 - 450', 150, 450, priorCbcParsed?.plt)}
-                      ${renderCbcRow('MPV (Mean Platelet Volume)', parsed.mpv, 'fL', '7.4 - 10.4', 7.4, 10.4, priorCbcParsed?.mpv)}
-                      ${renderCbcRow('PDW (Platelet Dist. Width)', parsed.pdw, '%', '9.0 - 17.0', 9.0, 17.0, priorCbcParsed?.pdw)}
-                      ${renderCbcRow('PCT (Plateletcrit)', parsed.pct, '%', '0.15 - 0.40', 0.15, 0.40, priorCbcParsed?.pct)}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <!-- Column 2: Total Leukocytes & 5-Part Differential -->
-              <div>
-                <!-- Total WBC & Differential -->
-                <div style="border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; margin-bottom: 12px;">
-                  <div style="background: #f8fafc; padding: 6px 10px; font-weight: 800; font-size: ${specialFormFontSize}px; color: #166534; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
-                    <span>3. TOTAL LEUKOCYTES &amp; 5-PART DIFFERENTIAL</span>
-                  </div>
-                  <table style="width: 100%; border-collapse: collapse; font-size: ${specialFormFontSize}px; text-align: left;">
-                    <thead>
-                      <tr style="background: #f1f5f9; color: #475569; font-size: ${Math.max(9.5, specialFormFontSize - 1.5)}px; border-bottom: 1px solid #cbd5e1;">
-                        <th style="padding: 5px 10px; text-align: left;">INVESTIGATION</th>
-                        <th style="padding: 5px 10px; text-align: left;">RESULT</th>
-                        ${priorCbcParsed ? `<th style="padding: 5px 10px; text-align: left;">PREVIOUS (${priorCbcDate})</th>` : ''}
-                        <th style="padding: 5px 10px; text-align: left;">UNIT</th>
-                        <th style="padding: 5px 10px; text-align: left;">REFERENCE RANGE</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${renderCbcRow('W.B.C (Total Leukocytes)', parsed.wbc, '10^3/uL', '4.0 - 11.0', 4.0, 11.0, priorCbcParsed?.wbc)}
-                    </tbody>
-                  </table>
-
-                  <!-- Differential Sub-table -->
-                  <div style="background: #f8fafc; padding: 4px 10px; font-weight: 700; font-size: ${Math.max(9.5, specialFormFontSize - 1.5)}px; color: #475569; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between;">
-                    <span>5-PART DIFFERENTIAL COUNT</span>
-                    ${hasDiffData ? `<span style="font-size: ${Math.max(9, specialFormFontSize - 2)}px; color: ${Math.abs(diffSum - 100) < 1 ? '#166534' : '#b91c1c'}; font-weight: 800;">Sum: ${diffSum}%</span>` : ''}
-                  </div>
-                  <table style="width: 100%; border-collapse: collapse; font-size: ${specialFormFontSize}px; text-align: left;">
-                    <thead>
-                      <tr style="background: #ffffff; color: #64748b; font-size: ${Math.max(9, specialFormFontSize - 2)}px; border-bottom: 1px solid #f1f5f9;">
-                        <th style="padding: 4px 10px; text-align: left;">PARAMETER</th>
-                        <th style="padding: 4px 10px; text-align: left;">RELATIVE (%)</th>
-                        ${priorCbcParsed ? `<th style="padding: 4px 10px; text-align: left;">PREV (%)</th>` : ''}
-                        <th style="padding: 4px 10px; text-align: left;">ABSOLUTE</th>
-                        <th style="padding: 4px 10px; text-align: left;">REF. RANGE (%)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${renderDiffRow('Neutrophils', parsed.neutrophils, '40.0 - 75.0 %', 40.0, 75.0, wbcNum, priorCbcParsed?.neutrophils)}
-                      ${renderDiffRow('Lymphocytes', parsed.lymphocytes, '20.0 - 45.0 %', 20.0, 45.0, wbcNum, priorCbcParsed?.lymphocytes)}
-                      ${renderDiffRow('Monocytes', parsed.monocytes, '2.0 - 10.0 %', 2.0, 10.0, wbcNum, priorCbcParsed?.monocytes)}
-                      ${renderDiffRow('Eosinophils', parsed.eosinophils, '1.0 - 6.0 %', 1.0, 6.0, wbcNum, priorCbcParsed?.eosinophils)}
-                      ${renderDiffRow('Basophils', parsed.basophils, '0.0 - 1.0 %', 0.0, 1.0, wbcNum, priorCbcParsed?.basophils)}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <!-- Graphical RBC, PLT & WBC Histograms -->
-            <div style="margin-bottom: 12px; display: flex; gap: 10px;" dir="ltr">
-              ${generateHistogramSvg('WBC', (cbc as any).wbcCurve)}
-              ${generateHistogramSvg('RBC', (cbc as any).rbcCurve)}
-              ${generateHistogramSvg('PLT', (cbc as any).pltCurve)}
-            </div>
-
-            <!-- Morphology & Clinical Comments Section -->
-            ${settings.showClinicalComments !== false ? `
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;" dir="ltr">
-                <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px;">
-                  <div style="font-size: ${specialFormFontSize}px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#be123c" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
-                    <span>PERIPHERAL BLOOD FILM MORPHOLOGY</span>
-                  </div>
-                  <div style="font-size: ${specialFormFontSize}px; color: #334155; line-height: 1.45;">
-                    ${escapeHtml(parsed.morphology || 'Normocytic Normochromic red blood cells. Normal leukocyte morphology and adequate platelets on peripheral smear.')}
-                  </div>
-                </div>
-
-                <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px;">
-                  <div style="font-size: ${specialFormFontSize}px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                    <span>CLINICAL COMMENTS &amp; INTERPRETATION</span>
-                  </div>
-                  <div style="font-size: ${specialFormFontSize}px; color: #334155; line-height: 1.45;">
-                    ${escapeHtml(parsed.comments || 'Normal hematological profile. Clinical correlation recommended.')}
-                  </div>
-                </div>
-              </div>
-            ` : ''}
-
+            ${cbcContentHtml}
           </div>
           <div class="report-footer-pinned">
             ${renderFooter(safeFooter, safeLabName)}

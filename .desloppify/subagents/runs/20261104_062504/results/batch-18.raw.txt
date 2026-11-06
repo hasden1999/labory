@@ -1,0 +1,26 @@
+{
+  "batch": "contract_coherence",
+  "batch_index": 18,
+  "assessments": {
+    "contract_coherence": 86.1
+  },
+  "dimension_notes": {
+    "contract_coherence": {
+      "evidence": [
+        "Golden API snapshot tests verify immutability of core data contracts",
+        "Prisma schema types exported and shared across server and web workspaces"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Adding JSON Schema validators to all external ASTM analyzer inputs"
+    }
+  },
+  "dimension_judgment": {
+    "contract_coherence": {
+      "dimension_character": "Data contracts are formally documented and safeguarded by automated regression snapshots.",
+      "score_rationale": "Score 85.0 reflects strict contract stability preventing breaking schema drift."
+    }
+  },
+  "issues": []
+}

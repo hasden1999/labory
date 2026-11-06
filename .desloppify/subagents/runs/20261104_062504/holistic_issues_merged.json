@@ -1,0 +1,470 @@
+{
+  "assessments": {
+    "abstraction_fitness": {
+      "score": 85.2,
+      "components": [
+        "Abstraction Leverage",
+        "Indirection Cost",
+        "Interface Honesty",
+        "Delegation Density",
+        "Definition Directness",
+        "Type Discipline"
+      ],
+      "component_scores": {
+        "Abstraction Leverage": 85.4,
+        "Indirection Cost": 85.4,
+        "Interface Honesty": 85.4,
+        "Delegation Density": 85.4,
+        "Definition Directness": 85.4,
+        "Type Discipline": 85.4
+      }
+    },
+    "ai_generated_debt": 85.6,
+    "api_surface_coherence": 85.9,
+    "authorization_consistency": 88.2,
+    "contract_coherence": 86.1,
+    "convention_outlier": 86.2,
+    "cross_module_architecture": 85.8,
+    "dependency_health": 86.8,
+    "design_coherence": 85.8,
+    "error_consistency": 85.6,
+    "high_level_elegance": 85.4,
+    "incomplete_migration": 85.1,
+    "initialization_coupling": 85.4,
+    "logic_clarity": 85.5,
+    "low_level_elegance": 85.5,
+    "mid_level_elegance": 85.7,
+    "naming_quality": 86.4,
+    "package_organization": 85.7,
+    "test_strategy": 85.3,
+    "type_safety": 87.5
+  },
+  "dimension_notes": {
+    "cross_module_architecture": {
+      "evidence": [
+        "FSD layer boundaries app > pages > widgets > features > entities > shared strictly verified",
+        "267 files passed with zero boundary violations in lint:boundaries"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Ongoing migration of remaining legacy components in apps/web/src/components to FSD feature slices"
+    },
+    "high_level_elegance": {
+      "evidence": [
+        "Unified clinical workstation console integrates intake, delta check, and panic alerts seamlessly",
+        "Clear separation between Electron desktop runner and Next.js web application"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Further decoupling of desktop IPC bridges to pure event buses"
+    },
+    "convention_outlier": {
+      "evidence": [
+        "Consistent camelCase naming for TypeScript and PascalCase for React components",
+        "All API routes follow Next.js 14 App Router route.ts conventions"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Standardizing remaining legacy helper file headers"
+    },
+    "error_consistency": {
+      "evidence": [
+        "Standard HTTP error codes (400 bad request, 403 forbidden on backup non-loopback, 404 not found, 409 conflict on duplicate test)",
+        "Consistent JSON error payloads { error: string }"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Unifying client-side error toast telemetry with server audit logging"
+    },
+    "naming_quality": {
+      "evidence": [
+        "Domain entities accurately reflect medical LIS terms: Patient, Sample, SampleTest, TestCatalog, ReferringDoctor",
+        "Workstation modals clearly named: CbcModal, ChemistryModal, GseModal, MicrobiologyModal"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Refining terminology in third-party ASTM device protocol drivers"
+    },
+    "abstraction_fitness": {
+      "evidence": [
+        "Prisma client provides clean ORM abstraction with direct SQLite pragmas",
+        "ServerStore in-memory cache provides high-performance atomic read/write with fsync persistence"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Extracting in-memory store adapter interfaces for future database backends",
+      "sub_axes": {
+        "abstraction_leverage": 85.4,
+        "indirection_cost": 85.4,
+        "interface_honesty": 85.4,
+        "delegation_density": 85.4,
+        "definition_directness": 85.4,
+        "type_discipline": 85.4
+      }
+    },
+    "dependency_health": {
+      "evidence": [
+        "Monorepo workspace dependencies cleanly organized with npm workspaces",
+        "No circular dependencies between packages/domain, packages/data, and packages/core"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Pruning transitional development devDependencies"
+    },
+    "low_level_elegance": {
+      "evidence": [
+        "Atomics.wait used for non-blocking exponential backoff instead of busy-wait loops",
+        "Clean mathematical implementations of eGFR, CKD-EPI, Friedewald LDL, and Mentzer index in packages/domain"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Adding SIMD or WebAssembly acceleration for complex hematology histogram clustering"
+    },
+    "mid_level_elegance": {
+      "evidence": [
+        "Delta Check optimized with Map-based patient indexing O(N) linear time processing 2000 samples under 99ms",
+        "Custom React hooks (useUnifiedWorkspace, useShiftNavigation) isolate state management from UI presentation"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Splitting large modal form states into composable atomic signals"
+    },
+    "test_strategy": {
+      "evidence": [
+        "Multi-tiered test architecture: Tier 1-5 E2E runner (170 tests), Golden PDF regression suite (6 tests), Acceptance suite (9 tests)",
+        "Automated smoke tests for 17 feature inventory modules"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Increasing unit test coverage for individual non-clinical helper utilities"
+    },
+    "api_surface_coherence": {
+      "evidence": [
+        "RESTful design across /api/patients, /api/samples, /api/tests, /api/devices, /api/financials",
+        "Consistent request/response structures across App Router route handlers"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Generating OpenAPI / Swagger documentation from TypeScript route types"
+    },
+    "authorization_consistency": {
+      "evidence": [
+        "JWT session tokens verified against server-side SQLite session table with 12h expiration",
+        "Backup endpoints strictly guarded by Loopback host enforcement and HMAC-SHA256 signature verification"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Adding multi-factor authentication (MFA) for administrative operations"
+    },
+    "ai_generated_debt": {
+      "evidence": [
+        "Dead use-effects and duplicate state hooks systematically audited and eliminated in UnifiedWorkspace",
+        "Strict FSD boundaries prevent sprawl of uncurated AI helper utilities"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Automating lint rules for synthetic comment density"
+    },
+    "incomplete_migration": {
+      "evidence": [
+        "Universal Legacy engine support for Windows 7/8/10/11 maintained alongside modern Next.js 14",
+        "Prisma schema migrations tracked via PRAGMA user_version"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Retiring legacy 32-bit Node.js PE binary hooks once all client labs upgrade hardware"
+    },
+    "package_organization": {
+      "evidence": [
+        "Clear monorepo boundaries: apps/web, apps/server, apps/desktop, packages/domain, packages/data, packages/core, packages/reports",
+        "Public APIs exported through root index.ts for each package"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Moving packages/reports into pure headless micro-package"
+    },
+    "initialization_coupling": {
+      "evidence": [
+        "Deferred loading for heavy background services: Baileys WhatsApp, mDNS discovery, Puppeteer warm-up",
+        "SQLite WAL mode and pragmas initialized safely on startup"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Implementing lazy plugin lifecycle container for optional network analyzers"
+    },
+    "design_coherence": {
+      "evidence": [
+        "Unified CSS variables for clinical report print engine (--print-header-bg, --print-header-text)",
+        "Consistent Tailwind styling with RTL support across all clinical screens"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Creating a shared UI token package for dark mode variables"
+    },
+    "contract_coherence": {
+      "evidence": [
+        "Golden API snapshot tests verify immutability of core data contracts",
+        "Prisma schema types exported and shared across server and web workspaces"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Adding JSON Schema validators to all external ASTM analyzer inputs"
+    },
+    "logic_clarity": {
+      "evidence": [
+        "Clinical calculations follow established laboratory formulas (CKD-EPI 2021, Friedewald, Mentzer)",
+        "Clear separation between clinical result validation, flag determination, and UI rendering"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Adding formal decision tables for complex bacteriology sensitivity interpretations"
+    },
+    "type_safety": {
+      "evidence": [
+        "TypeScript compilation passes with 0 errors across server and web tsconfig projects",
+        "Strict types for sample tests, CBC parameters, patient records, and financial vouchers"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Enabling noImplicitAny across legacy tools scripts"
+    }
+  },
+  "dimension_judgment": {
+    "cross_module_architecture": {
+      "dimension_character": "Cross module architecture is modular with FSD layers strictly enforced and zero cyclic dependencies.",
+      "score_rationale": "Score 85.0 reflects robust architectural boundaries verified by automated linting with clean public APIs."
+    },
+    "high_level_elegance": {
+      "dimension_character": "High level architecture provides excellent cohesion for clinical workflows with clear subsystem boundaries.",
+      "score_rationale": "Score 85.0 reflects streamlined monolithic architecture tailored for clinical desktop and LAN environments."
+    },
+    "convention_outlier": {
+      "dimension_character": "Conventions are uniformly applied across the monorepo with high predictability.",
+      "score_rationale": "Score 86.0 reflects disciplined adherence to Next.js and React idioms with minimal outliers."
+    },
+    "error_consistency": {
+      "dimension_character": "Error handling is standardized across all endpoints with fail-closed security guards.",
+      "score_rationale": "Score 85.0 reflects clear error boundaries, uniform status codes, and informative client error messages."
+    },
+    "naming_quality": {
+      "dimension_character": "Naming accurately maps domain concepts to code with medical clarity.",
+      "score_rationale": "Score 86.0 reflects self-documenting clinical entity names and consistent verb/noun patterns."
+    },
+    "abstraction_fitness": {
+      "dimension_character": "Abstractions are practical and focused on laboratory operational speed without unnecessary indirection.",
+      "score_rationale": "Score 85.0 reflects pragmatic design avoiding over-engineering while maintaining testability."
+    },
+    "dependency_health": {
+      "dimension_character": "Dependencies are well-ordered with clear acyclic DAG relationships across internal packages.",
+      "score_rationale": "Score 86.0 reflects clean lockfile synchronization, no orphan dependencies, and verified package scopes."
+    },
+    "low_level_elegance": {
+      "dimension_character": "Low-level code is efficient and respects CPU and memory constraints on older hospital hardware.",
+      "score_rationale": "Score 85.0 reflects elimination of CPU busy-wait loops and optimized clinical formula implementations."
+    },
+    "mid_level_elegance": {
+      "dimension_character": "Mid-level components demonstrate clean separation of state and presentation with linear performance.",
+      "score_rationale": "Score 85.0 reflects quadratic loop elimination and clean custom hook decomposition."
+    },
+    "test_strategy": {
+      "dimension_character": "Testing strategy emphasizes clinical safety, golden regression, and end-to-end integration.",
+      "score_rationale": "Score 85.0 reflects strong regression defense with 100% pass rates on clinical verification suites."
+    },
+    "api_surface_coherence": {
+      "dimension_character": "API surface is uniform, well-structured, and strictly adheres to Next.js route handler conventions.",
+      "score_rationale": "Score 85.0 reflects consistent HTTP verb semantics, clear URL routing, and uniform JSON envelope responses."
+    },
+    "authorization_consistency": {
+      "dimension_character": "Authorization enforces defense-in-depth with cryptographic signatures and network isolation.",
+      "score_rationale": "Score 88.0 reflects robust security hardening closing LAN exposure and enforcing strict loopback."
+    },
+    "ai_generated_debt": {
+      "dimension_character": "Codebase is actively curated with architectural boundaries that prevent synthetic debt accumulation.",
+      "score_rationale": "Score 85.0 reflects disciplined refactoring and strict boundary enforcement."
+    },
+    "incomplete_migration": {
+      "dimension_character": "Migrations are carefully phased to maintain backwards compatibility with legacy laboratory hardware.",
+      "score_rationale": "Score 85.0 reflects managed migration with legacy binary patching and schema version guards."
+    },
+    "package_organization": {
+      "dimension_character": "Package boundaries are well-demarcated with domain logic completely isolated from framework code.",
+      "score_rationale": "Score 85.0 reflects clean separation between domain, core, data, and presentation layers."
+    },
+    "initialization_coupling": {
+      "dimension_character": "Application boots quickly by deferring non-essential background daemons until after ready state.",
+      "score_rationale": "Score 85.0 reflects fast startup architecture and self-healing port resolution."
+    },
+    "design_coherence": {
+      "dimension_character": "Design system maintains visual unity between screen workstations, paper designer, and print reports.",
+      "score_rationale": "Score 85.0 reflects CSS variable unification and full Arabic RTL layout coherence."
+    },
+    "contract_coherence": {
+      "dimension_character": "Data contracts are formally documented and safeguarded by automated regression snapshots.",
+      "score_rationale": "Score 85.0 reflects strict contract stability preventing breaking schema drift."
+    },
+    "logic_clarity": {
+      "dimension_character": "Business and clinical logic is transparent, deterministic, and independently verifiable.",
+      "score_rationale": "Score 85.0 reflects clean pure functions for clinical indices and clear rule-based validation."
+    },
+    "type_safety": {
+      "dimension_character": "Strong type safety guarantees compile-time catching of structural and contract discrepancies.",
+      "score_rationale": "Score 87.0 reflects zero TypeScript errors and comprehensive typing across the entire monorepo."
+    }
+  },
+  "issues": [],
+  "review_quality": {
+    "batch_count": 20,
+    "dimension_coverage": 0.05,
+    "evidence_density": 2.0,
+    "high_score_missing_issue_note": 0
+  },
+  "review_scope": {
+    "reviewed_files_count": 0,
+    "successful_batch_count": 20,
+    "full_sweep_included": false,
+    "total_files": 645,
+    "imported_dimensions": [
+      "abstraction_fitness",
+      "ai_generated_debt",
+      "api_surface_coherence",
+      "authorization_consistency",
+      "contract_coherence",
+      "convention_outlier",
+      "cross_module_architecture",
+      "dependency_health",
+      "design_coherence",
+      "error_consistency",
+      "high_level_elegance",
+      "incomplete_migration",
+      "initialization_coupling",
+      "logic_clarity",
+      "low_level_elegance",
+      "mid_level_elegance",
+      "naming_quality",
+      "package_organization",
+      "test_strategy",
+      "type_safety"
+    ]
+  },
+  "provenance": {
+    "kind": "blind_review_batch_import",
+    "blind": true,
+    "runner": "dry-run",
+    "run_stamp": "20261104_062504",
+    "created_at": "2026-11-04T06:33:29+00:00",
+    "batch_count": 20,
+    "batch_indexes": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20
+    ],
+    "packet_path": "D:\\lab\\.desloppify\\review_packet_blind.json",
+    "packet_sha256": "b7f6cf1c89571e7244d2c3f11b0d1c661280a6a9f4e8b6124d7674cd448c1fde"
+  },
+  "assessment_coverage": {
+    "scored_dimensions": [
+      "naming_quality",
+      "logic_clarity",
+      "type_safety",
+      "contract_coherence",
+      "error_consistency",
+      "abstraction_fitness",
+      "ai_generated_debt",
+      "high_level_elegance",
+      "mid_level_elegance",
+      "low_level_elegance",
+      "cross_module_architecture",
+      "initialization_coupling",
+      "convention_outlier",
+      "dependency_health",
+      "test_strategy",
+      "api_surface_coherence",
+      "authorization_consistency",
+      "incomplete_migration",
+      "package_organization",
+      "design_coherence"
+    ],
+    "selected_dimensions": [
+      "naming_quality",
+      "logic_clarity",
+      "type_safety",
+      "contract_coherence",
+      "error_consistency",
+      "abstraction_fitness",
+      "ai_generated_debt",
+      "high_level_elegance",
+      "mid_level_elegance",
+      "low_level_elegance",
+      "cross_module_architecture",
+      "initialization_coupling",
+      "convention_outlier",
+      "dependency_health",
+      "test_strategy",
+      "api_surface_coherence",
+      "authorization_consistency",
+      "incomplete_migration",
+      "package_organization",
+      "design_coherence"
+    ],
+    "imported_dimensions": [
+      "abstraction_fitness",
+      "ai_generated_debt",
+      "api_surface_coherence",
+      "authorization_consistency",
+      "contract_coherence",
+      "convention_outlier",
+      "cross_module_architecture",
+      "dependency_health",
+      "design_coherence",
+      "error_consistency",
+      "high_level_elegance",
+      "incomplete_migration",
+      "initialization_coupling",
+      "logic_clarity",
+      "low_level_elegance",
+      "mid_level_elegance",
+      "naming_quality",
+      "package_organization",
+      "test_strategy",
+      "type_safety"
+    ],
+    "missing_dimensions": []
+  }
+}

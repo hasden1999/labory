@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مقترحات إعادة تصميم الشاشة الرئيسية — Labryo</title>
+<style>
+  :root{
+    --bg:#f1f5f9; --page:#f8fafc; --text:#0f172a; --text2:#475569; --text3:#94a3b8;
+    --border:#e2e8f0; --card:#ffffff;
+    --teal:#0d9488; --teal-d:#0f766e; --teal-l:#ccfbf1;
+    --sky:#0284c7; --blue:#2563eb; --violet:#7c3aed; --slate:#334155;
+    --rose:#ef4444; --amber:#d97706; --emerald:#059669;
+    --r:12px; --r-sm:8px;
+    --font:"Cairo","Almarai","IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;
+    --num:Inter,"Segoe UI",Tahoma,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);padding:32px 24px 64px}
+  .num{font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate;display:inline-block}
+
+  /* ===== intro ===== */
+  .intro{max-width:1240px;margin:0 auto 28px}
+  .intro h1{font-size:26px;font-weight:800;margin-bottom:8px}
+  .intro p{color:var(--text2);font-size:14px;line-height:1.9;max-width:900px}
+  .legend{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;border:1px solid var(--border);background:var(--card)}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+
+  /* ===== design sections ===== */
+  section.design{max-width:1240px;margin:0 auto 40px;scroll-margin-top:20px}
+  .design-head{display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+  .design-head .tag{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;color:#fff;font-weight:800;font-size:16px}
+  .design-head h2{font-size:20px;font-weight:800}
+  .effort{font-size:11.5px;font-weight:700;border-radius:999px;padding:4px 12px}
+  .design-notes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  .note{font-size:12.5px;color:var(--text2);background:var(--card);border:1px solid var(--border);border-radius:10px;padding:6px 12px;line-height:1.8}
+  .note b{color:var(--text)}
+
+  /* ===== window frame ===== */
+  .frame-wrap{background:#dde3ec;border:1px solid #cbd5e1;border-radius:16px;padding:14px;box-shadow:0 20px 50px rgba(15,23,42,.10);overflow-x:auto}
+  .win{width:1240px;min-width:1240px;height:760px;background:var(--page);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 1px rgba(15,23,42,.06)}
+  .titlebar{height:34px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;flex:none}
+  .titlebar .dots{display:flex;gap:6px}
+  .titlebar .dots i{width:10px;height:10px;border-radius:50%;display:block}
+  .titlebar .tname{font-size:11.5px;color:var(--text3);margin-inline-start:8px;font-weight:600}
+  .titlebar .spacer{flex:1}
+  .win-controls{display:flex;gap:14px;color:#94a3b8;font-size:11px;direction:ltr}
+
+  .body{flex:1;display:flex;min-height:0}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+
+  /* ===== sidebar (on the RIGHT in RTL) ===== */
+  .side{width:186px;flex:none;background:var(--card);border-inline-start:1px solid var(--border);display:flex;flex-direction:column;padding:12px 10px}
+  .side.rail{width:64px;align-items:center;padding:12px 0;gap:6px}
+  .logo{display:flex;align-items:center;gap:9px;padding:6px 8px 14px}
+  .side.rail .logo{padding:0 0 14px}
+  .logo .mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--teal-d),var(--teal));display:inline-flex;align-items:center;justify-content:center;color:#fff;flex:none;box-shadow:0 4px 10px rgba(13,148,136,.35)}
+  .logo .name{font-weight:800;font-size:15px;letter-spacing:.2px}
+  .logo .sub{font-size:9.5px;color:var(--text3);font-weight:600}
+  .nav{display:flex;flex-direction:column;gap:3px;flex:1}
+  .nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;font-size:12.5px;font-weight:700;color:var(--text2);text-decoration:none;border:1px solid transparent}
+  .nav a svg{flex:none}
+  .nav a.on{background:var(--teal-l);color:var(--teal-d);border-color:#99f6e4}
+  .nav .kcount{margin-inline-start:auto;font-size:9.5px;background:var(--rose);color:#fff;border-radius:999px;min-width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px}
+  .rail-ic{width:38px;height:38px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;color:var(--text3);text-decoration:none}
+  .rail-ic.on{background:var(--teal-l);color:var(--teal-d)}
+  .sidefoot{border-top:1px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:8px}
+  .theme-btn{display:inline-flex;align-items:center;gap:8px;justify-content:center;font-size:11.5px;font-weight:700;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:7px;background:var(--page)}
+  .user{display:flex;align-items:center;gap:8px;background:var(--page);border:1px solid var(--border);border-radius:10px;padding:8px}
+  .user .av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#14b8a6,#0ea5e9);color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .user .un{font-size:11px;font-weight:800;line-height:1.3}
+  .user .us{font-size:9.5px;color:var(--emerald);font-weight:700;display:flex;align-items:center;gap:4px}
+
+  /* ===== header ===== */
+  .hdr{height:62px;flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--card);border-bottom:1px solid var(--border)}
+  .hdr h1{font-size:15px;font-weight:800}
+  .hdr .hsub{font-size:11px;color:var(--text3);margin-top:2px}
+  .spacer{flex:1}
+  .qbtn{width:38px;height:38px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;flex:none;box-shadow:0 3px 8px rgba(15,23,42,.15);cursor:pointer}
+  .qgroup{display:flex;flex-direction:column;align-items:center;gap:3px}
+  .qgroup span{font-size:9px;color:var(--text3);font-weight:700}
+  .state{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:999px;padding:5px 12px;white-space:nowrap}
+  .datechip{font-size:11px;color:var(--text2);font-weight:600;background:var(--page);border:1px solid var(--border);border-radius:8px;padding:5px 10px;white-space:nowrap}
+
+  /* ===== panels ===== */
+  .cols{flex:1;display:flex;gap:12px;padding:12px 16px;min-height:0}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;min-height:0;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+  .card-h{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex:none}
+  .card-h .t{font-size:12.5px;font-weight:800;display:flex;align-items:center;gap:7px}
+  .card-h .t svg{color:var(--teal)}
+  .badge-x{margin-inline-start:auto;font-size:10px;font-weight:700;color:var(--text3);background:var(--page);border:1px solid var(--border);padding:2px 8px;border-radius:999px}
+  .card-b{padding:10px 12px;flex:1;overflow:auto;display:flex;flex-direction:column;gap:8px}
+
+  .search{display:flex;align-items:center;gap:9px;background:var(--page);border:1.5px solid var(--border);border-radius:10px;padding:9px 11px;font-size:12.5px;color:var(--text3)}
+  .search.focusable{border-color:var(--teal);background:#fff;box-shadow:0 0 0 3px rgba(13,148,136,.12);color:var(--text)}
+  .search .kb{margin-inline-start:auto;display:inline-flex;gap:3px}
+  kbd{font-family:var(--num);font-size:9.5px;background:#fff;border:1px solid var(--border);border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:var(--text2);font-weight:600}
+  kbd.dark{background:var(--teal);color:#fff;border-color:var(--teal-d)}
+
+  .sugg{display:flex;flex-direction:column;gap:5px}
+  .sug{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--border);border-radius:9px;padding:7px 10px;cursor:pointer}
+  .sug .av2{width:26px;height:26px;border-radius:8px;background:#ecfeff;color:var(--teal-d);font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .sug .nm{font-size:12px;font-weight:800}
+  .sug .meta{font-size:9.5px;color:var(--text3);font-weight:600}
+  .sug .last{margin-inline-start:auto;font-size:9px;color:var(--teal-d);background:var(--teal-l);border-radius:999px;padding:2px 8px;font-weight:700;white-space:nowrap}
+
+  .frow{display:flex;gap:7px}
+  .field{flex:1;display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:9.5px;font-weight:700;color:var(--text3)}
+  .fbox{display:flex;align-items:center;justify-content:space-between;background:var(--page);border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-size:11.5px;font-weight:700;color:var(--text)}
+  .fbox .ph{color:#cbd5e1;font-weight:600}
+  .seg{display:flex;background:var(--page);border:1px solid var(--border);border-radius:8px;padding:3px;gap:3px}
+  .seg span{flex:1;text-align:center;font-size:10.5px;font-weight:700;color:var(--text2);border-radius:6px;padding:4px 10px}
+  .seg span.on{background:var(--card);border:1px solid var(--border);color:var(--teal-d);box-shadow:0 1px 2px rgba(15,23,42,.06)}
+
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-size:10.5px;font-weight:700;border:1px solid var(--border);background:var(--page);color:var(--text2);border-radius:999px;padding:4px 11px;display:inline-flex;align-items:center;gap:5px}
+  .chip.on{background:var(--teal-l);border-color:#99f6e4;color:var(--teal-d)}
+  .chip.pack{color:#6d28d9;background:#f5f3ff;border-color:#ddd6fe}
+
+  .tlist{display:flex;flex-direction:column;gap:5px}
+  .trow{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--border);border-radius:9px;background:#fff}
+  .trow.sel{border-color:var(--teal);background:#f0fdfa;box-shadow:0 0 0 2px rgba(13,148,136,.10)}
+  .trow .tno{width:28px;height:24px;border-radius:7px;background:#ecfeff;color:var(--teal-d);font-size:9px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .trow .tn{display:flex;flex-direction:column;line-height:1.5}
+  .trow .tn b{font-size:11.5px}
+  .trow .tn small{font-size:9px;color:var(--text3);font-weight:600}
+  .price{margin-inline-start:auto;font-family:var(--num);font-variant-numeric:tabular-nums;font-size:11.5px;font-weight:700;direction:ltr}
+  .add{width:22px;height:22px;border-radius:7px;border:1px solid var(--border);background:var(--page);color:var(--teal-d);display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .add.solid{background:var(--teal);border-color:var(--teal);color:#fff}
+
+  .rtable{width:100%;border-collapse:collapse;font-size:11px}
+  .rtable th{font-size:9.5px;color:var(--text3);text-align:right;font-weight:700;padding:5px 8px;border-bottom:1px solid var(--border);background:var(--page)}
+  .rtable td{padding:6px 8px;border-bottom:1px solid #f1f5f9}
+  .rtable tr:last-child td{border-bottom:none}
+  .vt{font-family:var(--num);font-variant-numeric:tabular-nums;font-weight:700;direction:ltr;display:inline-block}
+  .rng{font-family:var(--num);font-variant-numeric:tabular-nums;color:var(--text3);font-size:9.5px;direction:ltr;unicode-bidi:isolate;display:inline-block}
+  .flag{font-size:8.5px;font-weight:800;border-radius:5px;padding:1.5px 6px;color:#fff;letter-spacing:.4px}
+  .flag.h{background:var(--rose)}
+  .flag.l{background:var(--sky)}
+  .flag.panic{background:#dc2626;box-shadow:0 0 0 2px #fecaca}
+  .rrow-edit{width:24px;height:24px;border-radius:7px;border:1px solid var(--border);background:#fff;color:var(--text2);display:inline-flex;align-items:center;justify-content:center}
+
+  /* ===== bottom action bar ===== */
+  .abar{height:58px;flex:none;background:var(--card);border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;padding:0 16px}
+  .abtn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:10px;padding:9px 13px;font-size:12px;font-weight:800;white-space:nowrap}
+  .abtn kbd{margin-inline-start:2px}
+  .abtn .cnt{font-size:9px;background:var(--emerald);color:#fff;border-radius:999px;padding:1.5px 6px;font-weight:800}
+  .primary{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;border:none;box-shadow:0 5px 14px rgba(13,148,136,.35);padding:11px 20px;font-size:13px;border-radius:11px}
+  .primary kbd{background:rgba(255,255,255,.2);color:#fff;border-color:transparent}
+  .disc{display:flex;align-items:center;gap:0;border:1px solid var(--border);border-radius:9px;overflow:hidden}
+  .disc span{font-size:10.5px;font-weight:700;color:var(--text2);padding:8px 10px;border-inline-start:1px solid var(--border)}
+  .disc span:first-child{border-inline-start:none}
+  .disc span.on{background:var(--teal-l);color:var(--teal-d);font-weight:800}
+  .disc .dl{font-size:9.5px;color:var(--text3);padding-inline:8px;font-weight:700}
+  .total{margin-inline-start:auto;display:flex;align-items:center;gap:12px}
+  .stat-chip{display:flex;flex-direction:column;align-items:center;line-height:1.4}
+  .stat-chip .v{font-family:var(--num);font-variant-numeric:tabular-nums;font-size:15px;font-weight:800}
+  .stat-chip .l{font-size:9px;color:var(--text3);font-weight:700}
+  .grand{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;border-radius:10px;padding:9px 16px;display:flex;flex-direction:column;align-items:center;line-height:1.5}
+  .grand .v{font-family:var(--num);font-variant-numeric:tabular-nums;font-size:16px;font-weight:800;direction:ltr}
+  .grand .l{font-size:9px;opacity:.85;font-weight:700}
+
+  /* ===== KPI strip (design B) ===== */
+  .hdr-grad{height:58px;flex:none;background:linear-gradient(120deg,#0f766e 0%,#0d9488 55%,#0ea5e9 130%);display:flex;align-items:center;gap:14px;padding:0 16px;color:#fff}
+  .hdr-grad .t{display:flex;flex-direction:column}
+  .hdr-grad .t b{font-size:15px;font-weight:800}
+  .hdr-grad .t small{font-size:10px;opacity:.8;font-weight:600}
+  .obtn{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.45);color:#fff;background:rgba(255,255,255,.10);border-radius:9px;padding:7px 12px;font-size:11px;font-weight:800;backdrop-filter:blur(2px)}
+  .kbar{flex:none;display:flex;gap:8px;padding:10px 16px 0}
+  .kcard{flex:1;background:var(--card);border:1px solid var(--border);border-radius:11px;padding:9px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+  .kic{width:32px;height:32px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .kcard .kv{font-family:var(--num);font-variant-numeric:tabular-nums;font-size:16px;font-weight:800;line-height:1.2}
+  .kcard .kl{font-size:9.5px;color:var(--text3);font-weight:700}
+  .kcard .arr{margin-inline-start:auto;font-size:14px;font-weight:800;color:#94a3b8}
+  .kcard.alert{border-color:#fecaca;background:#fff7f7}
+  .kcard.dim{opacity:.92}
+
+  /* ===== Design C ===== */
+  .hero-search{margin:6px auto 14px;max-width:640px;display:flex;align-items:center;gap:12px;background:#fff;border:2px solid var(--teal);border-radius:14px;padding:14px 18px;box-shadow:0 6px 20px rgba(13,148,136,.12)}
+  .hero-search .txt{font-size:14.5px;color:#cbd5e1;font-weight:600;flex:1}
+  .hero-search kbd.lg{font-size:11px;padding:3px 8px}
+  .psum{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin:0 24px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+  .psum .av3{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#14b8a6,#0ea5e9);color:#fff;font-size:14px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .psum b{font-size:15px}
+  .psum small{display:block;font-size:10.5px;color:var(--text3);font-weight:600;margin-top:3px}
+  .psum .stamp{margin-inline-start:auto;text-align:center}
+  .wide2{display:flex;gap:12px;padding:14px 24px;flex:1;min-height:0}
+  .selrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff}
+  .selrow .rd{width:16px;height:16px;border-radius:50%;border:2px solid #94a3b8;flex:none}
+  .selrow.on{border-color:var(--teal)}
+  .selrow.on .rd{border-color:var(--teal);box-shadow:inset 0 0 0 4px #fff;background:var(--teal)}
+  .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border:1.5px dashed #d6dee9;border-radius:var(--r);background:var(--card);text-align:center}
+  .empty h4{font-size:14px;font-weight:800;color:var(--text2)}
+  .empty p{font-size:11px;color:var(--text3);max-width:280px;line-height:1.9}
+  .dock-wrap{flex:none;display:flex;justify-content:center;padding:0 0 16px}
+  .dock{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 10px 28px rgba(15,23,42,.12);display:flex;align-items:center;gap:6px;padding:8px}
+  .dock .dbtn{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:var(--text2);padding:10px 14px;border-radius:11px}
+  .dock .dbtn:hover{background:var(--page)}
+  .dock .dbtn primary, .dock .primary{margin-inline-end:6px}
+
+  /* misc */
+  .mirror-note{max-width:1240px;margin:0 auto 34px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px 16px;font-size:12.5px;color:#92400e;line-height:1.9}
+  footer.credits{max-width:1240px;margin:0 auto;color:var(--text3);font-size:11.5px;line-height:2;border-top:1px solid var(--border);padding-top:14px}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>مقترحات إعادة تصميم الشاشة الرئيسية «الاستقبال والتشخيص»</h1>
+  <p>ثلاث لوحات مصممة بالكود بنفس توكينز نظامك الحالي (سمة <bdi>Clean Clinical Light</bdi>: خلفية <span class="num">#f8fafc</span>، تيل <span class="num">#0d9488</span>) لمقارنة الاتجاهات بصرياً قبل تنفيذ أي شيء في <bdi>apps/web/src/widgets/unified-workspace/</bdi>. النصوص كلها حقيقية وليست صورة مولّدة — لذلك الطباعة والتباين والترويسة مطابقة للواقع.</p>
+  <div class="legend">
+    <span class="pill"><span class="dot" style="background:var(--teal)"></span> تيل النظام الأساسي</span>
+    <span class="pill"><span class="dot" style="background:var(--sky)"></span> سماوي ثانوي</span>
+    <span class="pill"><span class="dot" style="background:var(--rose)"></span> إنذار حرج <bdi>Panic</bdi></span>
+    <span class="pill"><kbd>F9</kbd> اختصارات لوحة المفاتيح محفوظة في كافة الاتجاهات</span>
+  </div>
+</div>
+
+<div class="mirror-note">ضدّ التشويش: هذه لوحات عرض (موك-أب) للتوثيق والقرار، وليست تعديلاً على الكود — لم يُلمس أي ملف في التطبيق.</div>
+
+<!-- ============================================================ -->
+<!-- ============  التصميم أ — الاستقبال المصقول ================ -->
+<!-- ============================================================ -->
+<section class="design">
+  <div class="design-head">
+    <span class="tag" style="background:linear-gradient(135deg,var(--teal-d),var(--teal))">أ</span>
+    <h2>الاستقبال المصقول — تدسين التخطيط الحالي بلا تغيير منطق العمل</h2>
+    <span class="effort" style="background:#ecfdf5;color:#065f46">جهد منخفض • مخاطرة أقل</span>
+    <span class="effort" style="background:#eff6ff;color:#1d4ed8">يعمل على نفس شرائح FSD</span>
+  </div>
+  <div class="design-notes">
+    <span class="note">✓ <b>حفظ F9</b> يُرفع إلى زر أساسي متدرّج ظاهر بوضوح — أوضح هدف رئيسي في الشاشة</span>
+    <span class="note">✓ خلايا رقمية <bdi>tabular-nums</bdi> موحّدة باتجاه <bdi>l</bdi> لمنع انقلاب الأرقام في RTL</span>
+    <span class="note">✓ أقسام الأنابيب موحّدة الرؤوس (أيقونة + عنوان + وسم حالة)</span>
+    <span class="note">✓ إشارات لوحة المفاتيح داخل الحقول (كما تُستخدم فعلياً في التشغيل السريع)</span>
+    <span class="note">✓ إزالة خلفيات النافذة المتعددة والحواف — سلالم 8px وتظل وجه واحد</span>
+  </div>
+  <div class="frame-wrap"><div class="win">
+    <div class="titlebar">
+      <div class="dots"><i style="background:#fb7185"></i><i style="background:#fbbf24"></i><i style="background:#34d399"></i></div>
+      <span class="tname">Labryo LIMS — الاستقبال والتشخيص</span>
+      <span class="spacer"></span>
+      <div class="win-controls"><span>—</span><span>▢</span><span>✕</span></div>
+    </div>
+    <div class="body">
+      <!-- sidebar on right -->
+      <div class="side">
+        <div class="logo">
+          <span class="mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg></span>
+          <span><span class="name">Labryo</span><br><span class="sub">نظام إدارة المختبر</span></span>
+        </div>
+        <nav class="nav">
+          <a class="on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h8"/><path d="m5 10 6 6"/><circle cx="17" cy="12" r="4"/></svg> الشاشة الرئيسية</a>
+          <a><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> سجل المرضى والنتائج</a>
+          <a><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> الصندوق والحسابات</a>
+          <a><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> الأجهزة والمخزون</a>
+          <a style="position:relative"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> الإعدادات والتحاليل</a>
+        </nav>
+        <div class="sidefoot">
+          <button class="theme-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg> الوضع النهاري</button>
+          <div class="user">
+            <span class="av">أح</span>
+            <span><span class="un">المدير العام</span><br><span class="us"><span class="dot" style="background:var(--emerald)"></span> متصل محلياً</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- main -->
+      <div class="main">
+        <header class="hdr">
+          <div><h1>الاستقبال والتشخيص</h1><div class="hsub">زيارة جديدة — تسليم عينة فيزيائية</div></div>
+          <span class="spacer"></span>
+          <div class="qgroup"><button class="qbtn" style="background:#0f766e"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></button><span>إرسال تقارير</span></div>
+          <div class="qgroup"><button class="qbtn" style="background:#0284c7"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6"/><path d="M16 11v6"/><path d="M13 14h6"/></svg></button><span>إضافة مريض</span></div>
+          <div class="qgroup"><button class="qbtn" style="background:#7c3aed"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M6 18v-9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9"/></svg></button><span>طباعة تقرير</span></div>
+          <div class="qgroup"><button class="qbtn" style="background:#334155"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button><span>سجل المرضى</span></div>
+          <span class="state"><span class="dot" style="background:var(--emerald)"></span> محفوظ محلياً</span>
+          <span class="datechip">2026/11/06 — سبت</span>
+        </header>
+
+        <div class="cols">
+          <!-- patient -->
+          <div class="card" style="flex:0 0 300px">
+            <div class="card-h"><span class="t"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> بطاقة المريض</span><span class="badge-x">زيارة قائمة <span class="num">#1042</span></span></div>
+            <div class="card-b">
+              <div class="search focusable"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> سارة عبد الله<span class="kb"><kbd>F3</kbd></span></div>
+              <div class="sugg">
+                <div class="sug"><span class="av2">سع</span><span><span class="nm">سارة عبد الله حسين</span><br><span class="meta">29 سنة • أنثى • <span class="num">0770…</span></span></span><span class="last">زيارة <span class="num">2</span> يوم الماضي</span></div>
+                <div class="sug" style="opacity:.55"><span class="av2">سع</span><span><span class="nm">سعاد عالي</span><br><span class="meta">41 سنة • أنثى</span></span><span class="last">زيارة <span class="num">14</span> يوم الماضي</span></div>
+              </div>
+              <div class="frow">
+                <div class="field"><label>العمر (سنوات)</label><div class="fbox num" style="justify-content:center">29</div></div>
+                <div class="field"><label>الجنس</label><div class="seg"><span class="on">أنثى</span><span>ذكر</span></div></div>
+              </div>
+              <div class="frow">
+                <div class="field"><label>رقم الهاتف</label><div class="fbox"><span class="num" style="margin-inline-end:auto">0781 654 3321</span></div></div>
+              </div>
+              <div class="field" style="flex:1"><label>الطبيب المحيل</label><div class="fbox" style="justify-content:space-between">د. مصطفى العبيدي <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div></div>
+            </div>
+          </div>
+
+          <!-- catalog -->
+          <div class="card" style="flex:0 0 330px">
+            <div class="card-h"><span class="t"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 3h20"/><path d="M21 3v11a9 9 0 0 1-9 9 9 9 0 0 1-9-9V3"/><path d="M7 3v11a5 5 0 0 0 10 0V3"/></svg> كتالوج الفحوصات</span><span class="badge-x">محدد <span class="num">3</span></span></div>
+            <div class="card-b">
+              <div class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> ابحث عن فحص أو كود…</div>
+              <div class="chips">
+                <span class="chip on">الكل</span><span class="chip">هيماتولوجي</span><span class="chip">كيمياء</span><span class="chip">هرمونات</span><span class="chip">مناعة</span><span class="chip">بول</span>
+              </div>
+              <div class="chips">
+                <span class="chip pack">+ حزمة thyroid</span><span class="chip pack">+ حزمة diabetes</span><span class="chip pack">+ حزمة lipid</span>
+              </div>
+              <div class="tlist">
+                <div class="trow sel"><span class="tno num">CBC</span><span class="tn"><b>صورة الدم الكاملة</b><small>هيماتولوجي • أنبوب بنفسجي <span class="num">EDTA</span></small></span><span class="price num">5,000</span><span class="add solid"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h14"/></svg></span></div>
+                <div class="trow"><span class="tno num">FBG</span><span class="tn"><b>سكر صائم</b><small>كيمياء • أنبوب رمادي <span class="num">F/Na</span></small></span><span class="price num">2,500</span><span class="add"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></div>
+                <div class="trow"><span class="tno num">TSH</span><span class="tn"><b>الهرمون المنبه للدرقية</b><small>هرمونات • أنبوب أصفر <span class="num">SST</span></small></span><span class="price num">8,000</span><span class="add"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- results -->
+          <div class="card" style="flex:1">
+            <div class="card-h"><span class="t"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/></svg> شبكة النتائج</span><span class="badge-x"><span class="num">3</span> فحوصات • قياس <span class="num">9</span></span></div>
+            <div class="card-b" style="gap:0">
+              <table class="rtable">
+                <thead><tr><th style="width:34%">الفحص</th><th>النتيجة</th><th>الوحدة</th><th>النطاق المرجعي</th><th style="width:34px"></th></tr></thead>
+                <tbody>
+                  <tr><td style="font-weight:700">WBC</td><td><span class="vt">12.4</span> <span class="flag panic">PANIC</span></td><td class="rng">10³/µL</td><td><span class="rng">4.0 – 11.0</span></td><td><span class="rrow-edit"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></span></td></tr>
+                  <tr><td style="font-weight:700">HGB</td><td><span class="vt">10.1</span> <span class="flag l">L</span></td><td class="rng">g/dL</td><td><span class="rng">12.0 – 16.0</span></td><td><span class="rrow-edit"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></span></td></tr>
+                  <tr><td style="font-weight:700">RDW</td><td><span class="vt">15.2</span> <span class="flag h">H</span></td><td class="rng">%</td><td><span class="rng">11.5 – 14.5</span></td><td><span class="rrow-edit"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></span></td></tr>
+                  <tr><td style="font-weight:700">Glucose (FBG)</td><td style="color:#cbd5e1">— بانتظار الإدخال —</td><td class="rng">mg/dL</td><td><span class="rng">70 – 100</span></td><td><span class="rrow-edit" style="opacity:.4"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></span></td></tr>
+                  <tr><td style="font-weight:700">TSH</td><td style="color:#cbd5e1">— بانتظار الإدخال —</td><td class="rng">µIU/mL</td><td><span class="rng">0.4 – 4.2</span></td><td><span class="rrow-edit" style="opacity:.4"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <footer class="abar">
+          <button class="abtn primary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg> حفظ الفاتورة <kbd>F9</kbd></button>
+          <button class="abtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5v14h8V5z"/><path d="M13 6h1M14 8h1M15 6h1M14 12h3v7h-3z"/><path d="m14 11 2-2"/></svg> باركود <kbd>F2</kbd></button>
+          <button class="abtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6"/><path d="M16 11v6"/><path d="M13 14h6"/></svg> مريض جديد <kbd>F1</kbd></button>
+          <button class="abtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M6 18v-9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9"/></svg> طباعة <kbd>F10</kbd></button>
+          <button class="abtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg> واتساب <span class="cnt">متبقٍ <span class="num">5</span></span></button>
+          <div class="disc"><span class="dl">خصم %</span><span class="on num">0</span><span class="num">10</span><span class="num">20</span><span class="num">50</span></div>
+          <div class="total">
+            <div class="stat-chip"><span class="v">3</span><span class="l">فحوصات</span></div>
+            <div class="grand"><span class="v">15,500 د.ع</span><span class="l">إجمالي الزيارة</span></div>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- ============  التصميم ب — مركز القيادة الحي ================ -->
+<!-- ============================================================ -->
+<section class="design">
+  <div class="design-head">
+    <span class="tag" style="background:linear-gradient(135deg,#0f766e,#0ea5e9)">ب</span>
+    <h2>مركز القيادة — شريط حالة لحظي فوق كونسول الاستقبال</h2>
+    <span class="effort" style="background:#fff7ed;color:#c2410c">جهد متوسط • قيمة أعلى</span>
+    <span class="effort" style="background:#eff6ff;color:#1d4ed8">يستثمر SSE الحالي + وتسجيلات الجسر</span>
+  </div>
+  <div class="design-notes">
+    <span class="note">✓ 5 بطاقات KPI: عينات بانتظار النتائج • زيارات اليوم • تنبيهات المخزون • حالة جهاز CBC عبر ASTM/HL7 • حالة واتساب</span>
+    <span class="note">✓ يعتمد على <bdi>/api/samples</bdi> و <bdi>/api/inventory/alerts</bdi> و <bdi>/api/network/events</bdi> (برroadcast SSE موجود فعلاً)</span>
+    <span class="note">✓ ترويسة متدرجة أعلى الشاشة = هوية أقوى وبدء قراءة طبيعي بمبدأ الاستقبال</span>
+    <span class="note">✓ نفس الشرائح الثلاث بلا إعادة كتابة — أضف خط عرض واحد فقط + إحصاءات جاهزة</span>
+  </div>
+  <div class="frame-wrap"><div class="win">
+    <div class="titlebar">
+      <div class="dots"><i style="background:#fb7185"></i><i style="background:#fbbf24"></i><i style="background:#34d399"></i></div>
+      <span class="tname">Labryo LIMS — مركز القيادة</span>
+      <span class="spacer"></span>
+      <div class="win-controls"><span>—</span><span>▢</span><span>✕</span></div>
+    </div>
+    <div class="body">
+      <div class="side">
+        <div class="logo">
+          <span class="mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg></span>
+          <span><span class="name">Labryo</span><br><span class="sub">نظام إدارة المختبر</span></span>
+        </div>
+        <nav class="nav">
+          <a class="on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h8"/><path d="m5 10 6 6"/><circle cx="17" cy="12" r="4"/></svg> الشاشة الرئيسية</a>
+          <a><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> سجل المرضى والنتائج</a>
+          <a><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> الصندوق والحسابات</a>
+          <a style="position:relative"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> الأجهزة والمخزون<span class="kcount num">3</span></a>
+          <a><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> الإعدادات والتحاليل</a>
+        </nav>
+        <div class="sidefoot">
+          <button class="theme-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg> الوضع النهاري</button>
+          <div class="user">
+            <span class="av">أح</span>
+            <span><span class="un">المدير العام</span><br><span class="us"><span class="dot" style="background:var(--emerald)"></span> متصل محلياً</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="main">
+        <header class="hdr-grad">
+          <span class="mark" style="background:rgba(255,255,255,.18);width:34px;height:34px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;color:#fff"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg></span>
+          <div class="t"><b>الاستقبال — سبت 2026/11/06</b><small>آخر بث حي قبل <span class="num">12</span> ثانية عبر <span style="opacity:.9">SSE</span></small></div>
+          <span class="spacer"></span>
+          <button class="obtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg> إرسال تقارير</button>
+          <button class="obtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6"/><path d="M16 11v6"/><path d="M13 14h6"/></svg> إضافة مريض <kbd style="background:rgba(255,255,255,.2);color:#fff;border-color:transparent">F1</kbd></button>
+          <button class="obtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M6 18v-9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9"/></svg> طباعة <kbd style="background:rgba(255,255,255,.2);color:#fff;border-color:transparent">F10</kbd></button>
+        </header>
+
+        <div class="kbar">
+          <div class="kcard"><span class="kic" style="background:#fef3c7;color:#b45309"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg></span><span><span class="kv">12</span><br><span class="kl">عينات بانتظار النتائج</span></span><span class="arr">‹</span></div>
+          <div class="kcard"><span class="kic" style="background:var(--teal-l);color:#0f766e"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span><span><span class="kv">48</span><br><span class="kl">زيارات اليوم</span></span><span class="arr">‹</span></div>
+          <div class="kcard alert"><span class="kic" style="background:#fee2e2;color:#b91c1c"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span><span><span class="kv">3</span><br><span class="kl">تنبيهات مخزون تحت الحد</span></span><span class="arr" style="color:#dc2626">‹</span></div>
+          <div class="kcard dim"><span class="kic" style="background:#d1fae5;color:#047857"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg></span><span><span class="kv" style="display:flex;align-items:center;gap:6px"><span class="dot" style="background:var(--emerald);width:7px;height:7px"></span>متصل</span><br><span class="kl">جسر <span dir="ltr">CBC-Analyzer</span> • <span class="num">5000</span></span></span></div>
+          <div class="kcard dim"><span class="kic" style="background:#d1fae5;color:#047857"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span><span><span class="kv" style="display:flex;align-items:center;gap:6px"><span class="dot" style="background:var(--emerald);width:7px;height:7px"></span>متصل</span><br><span class="kl">دنّ واتساب جاهز للإرسال</span></span></div>
+        </div>
+
+        <div class="cols" style="padding-top:10px">
+          <div class="card" style="flex:0 0 290px">
+            <div class="card-h"><span class="t" style="font-size:11.5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> بطاقة المريض</span><span class="badge-x">زيارة قائمة</span></div>
+            <div class="card-b" style="gap:6px">
+              <div class="search focusable" style="font-size:11.5px;padding:8px 10px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> سارة عبد الله<span class="kb"><kbd>F3</kbd></span></div>
+              <div class="frow" style="gap:6px">
+                <div class="field"><label>العمر</label><div class="fbox num" style="padding:6px 8px">29</div></div>
+                <div class="field"><label>الجنس</label><div class="fbox">أنثى</div></div>
+                <div class="field"><label>الهاتف</label><div class="fbox"><span class="num" style="margin-inline-end:auto;font-size:10px">0781 654…</span></div></div>
+              </div>
+              <div class="field"><label>الطبيب المحيل</label><div class="fbox" style="justify-content:space-between;font-size:11px">د. مصطفى العبيدي <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div></div>
+              <div class="sug" style="padding:7px 9px"><span style="font-size:10.5px;color:var(--text3);font-weight:700">زيارات سابقة:</span><span class="last" style="margin-inline-start:auto">زيارة <span class="num">2</span> يوم الماضي</span></div>
+            </div>
+          </div>
+          <div class="card" style="flex:0 0 320px">
+            <div class="card-h"><span class="t" style="font-size:11.5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 3h20"/><path d="M21 3v11a9 9 0 0 1-9 9 9 9 0 0 1-9-9V3"/><path d="M7 3v11a5 5 0 0 0 10 0V3"/></svg> كتالوج الفحوصات</span><span class="badge-x">محدد <span class="num">3</span></span></div>
+            <div class="card-b" style="gap:6px">
+              <div class="chips"><span class="chip on">الكل</span><span class="chip">هيماتولوجي</span><span class="chip">كيمياء</span><span class="chip">هرمونات</span></div>
+              <div class="chips"><span class="chip pack">+ thyroid</span><span class="chip pack">+ diabetes</span><span class="chip pack">+ lipid</span></div>
+              <div class="tlist">
+                <div class="trow sel"><span class="tno num">CBC</span><span class="tn"><b>صورة الدم الكاملة</b><small>هيماتولوجي</small></span><span class="price num">5,000</span><span class="add solid"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h14"/></svg></span></div>
+                <div class="trow"><span class="tno num">FBG</span><span class="tn"><b>سكر صائم</b><small>كيمياء</small></span><span class="price num">2,500</span><span class="add"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></div>
+                <div class="trow"><span class="tno num">TSH</span><span class="tn"><b>الهرمون المنبه للدرقية</b><small>هرمونات</small></span><span class="price num">8,000</span><span class="add"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></div>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="flex:1">
+            <div class="card-h"><span class="t" style="font-size:11.5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/></svg> شبكة النتائج</span><span class="badge-x"><span class="num">3</span> فحوصات — قيمة حرجة ظاهرة</span></div>
+            <div class="card-b" style="gap:0">
+              <table class="rtable" style="font-size:10.5px">
+                <thead><tr><th style="width:34%">الفحص</th><th>النتيجة</th><th>الوحدة</th><th>النطاق</th></tr></thead>
+                <tbody>
+                  <tr><td style="font-weight:700">WBC</td><td><span class="vt">12.4</span> <span class="flag panic">PANIC</span></td><td class="rng">10³/µL</td><td><span class="rng">4.0 – 11.0</span></td></tr>
+                  <tr><td style="font-weight:700">HGB</td><td><span class="vt">10.1</span> <span class="flag l">L</span></td><td class="rng">g/dL</td><td><span class="rng">12.0 – 16.0</span></td></tr>
+                  <tr><td style="font-weight:700">RDW</td><td><span class="vt">15.2</span> <span class="flag h">H</span></td><td class="rng">%</td><td><span class="rng">11.5 – 14.5</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <footer class="abar">
+          <button class="abtn primary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg> حفظ الفاتورة <kbd>F9</kbd></button>
+          <button class="abtn">باركود <kbd>F2</kbd></button>
+          <button class="abtn">مريض جديد <kbd>F1</kbd></button>
+          <button class="abtn">طباعة <kbd>F10</kbd></button>
+          <button class="abtn">واتساب <span class="cnt">متبقٍ <span class="num">5</span></span></button>
+          <div class="disc"><span class="dl">خصم %</span><span class="on num">0</span><span class="num">10</span><span class="num">20</span><span class="num">50</span></div>
+          <div class="total">
+            <div class="stat-chip"><span class="v">3</span><span class="l">فحوصات</span></div>
+            <div class="grand"><span class="v">15,500 د.ع</span><span class="l">إجمالي الزيارة</span></div>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- ============  التصميم ج — وضع التركيز المبدلك =============== -->
+<!-- ============================================================ -->
+<section class="design">
+  <div class="design-head">
+    <span class="tag" style="background:linear-gradient(135deg,#334155,#0f172a)">ج</span>
+    <h2>وضع التركيز — منظر مبسّط يبدأ بالبحث وينهي الشاشة عند الفحص المحدد</h2>
+    <span class="effort" style="background:#f5f3ff;color:#6d28d9">جهد أعلى • قابل للتنفيذ كوضع إضافي (Toggle) بالكامل</span>
+    <span class="effort" style="background:#eff6ff;color:#1d4ed8">قابل للتمكين لشاشات عريضة جداً أو تدريب موظفين جدد</span>
+  </div>
+  <div class="design-notes">
+    <span class="note">✓ قائمة جانبية أيقونات فقط (<span class="num">64px</span>) — اشرح عبر Tooltips بدل النص</span>
+    <span class="note">✓ حقل البحث الكبير هو نقطة الانطلاق: <bdi>F3</bdi> للانتقال إليه مباشرة</span>
+    <span class="note">✓ لون واحد فقط للتيل — والبقية رماديات، والإنذار الحرج هو الاستثناء الملوّن الوحيد</span>
+    <span class="note">✓ شريط إجراءات عائم منتصف الشاشة — أقرب لمركز يد الفني فالوصول أسرع</span>
+    <span class="note">✓ أياقة بولّتها في الحالة الفارغة تقلل «الترحيب البيضاء» خوف الموظف الجديد</span>
+  </div>
+  <div class="frame-wrap"><div class="win">
+    <div class="titlebar">
+      <div class="dots"><i style="background:#fb7185"></i><i style="background:#fbbf24"></i><i style="background:#34d399"></i></div>
+      <span class="tname">Labryo LIMS — الوضع المركّز</span>
+      <span class="spacer"></span>
+      <div class="win-controls"><span>—</span><span>▢</span><span>✕</span></div>
+    </div>
+    <div class="body">
+      <div class="side rail">
+        <div class="logo"><span class="mark" style="width:30px;height:30px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg></span></div>
+        <a class="rail-ic on" title="الشاشة الرئيسية"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h8"/><path d="m5 10 6 6"/><circle cx="17" cy="12" r="4"/></svg></a>
+        <a class="rail-ic" title="سجل المرضى"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></a>
+        <a class="rail-ic" title="الصندوق"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></a>
+        <a class="rail-ic" title="الأجهزة والمخزون" style="position:relative"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span style="position:absolute;top:4px;inset-inline-start:4px;width:7px;height:7px;background:var(--rose);border-radius:50%;border:1px solid #fff"></span></a>
+        <a class="rail-ic" title="الإعدادات"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
+        <span class="spacer"></span>
+        <a class="rail-ic" title="تبديل الوضع الفاتح" style="margin-top:auto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg></a>
+        <a class="rail-ic" title="المدير العام"><span class="av" style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#14b8a6,#0ea5e9);color:#fff;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">أح</span></a>
+      </div>
+
+      <div class="main">
+        <header style="height:54px;flex:none;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid var(--border);background:var(--card)">
+          <b style="font-size:14px">الوضع المركّز</b>
+          <span style="display:inline-flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;background:#fff;border:1px solid var(--border);border-radius:999px;padding:4px 12px;margin-inline-start:14px">بديل مبسّط — <span class="num">F11</span> للتبديل للكوَنْسول الكامل</span>
+          <span class="spacer"></span>
+          <span class="state" style="font-size:10px"><span class="dot" style="background:var(--emerald)"></span> محفوظ محلياً</span>
+          <span class="datechip" style="margin-inline-start:8px">2026/11/06</span>
+        </header>
+
+        <div style="padding:22px 24px 0;flex:none">
+          <div class="hero-search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span class="txt">ابدأ بالبحث عن مريض برقم الهاتف أو الاسم…</span><kbd class="lg">F3</kbd></div>
+          <div class="psum">
+            <span class="av3">سع</span>
+            <span><b>سارة عبد الله حسين</b><small>29 سنة • أنثى • <span class="num">0770 214 5588</span> • د. مصطفى العبيدي</small></span>
+            <span class="stamp"><span style="font-size:9px;color:var(--text3);font-weight:700">زيارة قائمة</span><br><span class="num" style="font-size:12px;font-weight:800;color:var(--teal-d)">#1042</span></span>
+          </div>
+        </div>
+
+        <div class="wide2">
+          <div class="card" style="flex:1.1">
+            <div class="card-h"><span class="t" style="font-size:12px">اختيار الفحوصات</span><span class="badge-x">محدد <span class="num">3</span> • <span class="num">15,500</span> د.ع</span></div>
+            <div class="card-b" style="gap:7px">
+              <div class="selrow on"><span class="rd"></span><span style="font-weight:800;font-size:12px">صورة الدم الكاملة <span class="num" style="color:var(--text3);font-weight:700">CBC</span></span><span class="price num" style="margin-inline-start:auto">5,000</span></div>
+              <div class="selrow on"><span class="rd"></span><span style="font-weight:800;font-size:12px">سكر صائم <span class="num" style="color:var(--text3);font-weight:700">FBG</span></span><span class="price num" style="margin-inline-start:auto">2,500</span></div>
+              <div class="selrow on"><span class="rd"></span><span style="font-weight:800;font-size:12px">الهرمون المنبه للدرقية <span class="num" style="color:var(--text3);font-weight:700">TSH</span></span><span class="price num" style="margin-inline-start:auto">8,000</span></div>
+              <div class="selrow" style="opacity:.5"><span class="rd"></span><span style="font-weight:700;font-size:12px;color:var(--text3)">+ إضافات سريعة: حزمة thyroid • lipid</span></div>
+            </div>
+          </div>
+          <div class="card" style="flex:1;display:flex">
+            <div class="empty" style="border-style:solid;border-width:1px">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="opacity:.85"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>
+              <h4>الشبكة تظهر بعد اختيار فحوصات</h4>
+              <p>عند صفر عيني من التنقيط: عند اختيار الفحوصات أعلاه تنتقل الشاشة إليه مباشرة (منع الارتباك — عرّب محرك الإدخال).<br>قيد التفرّد الصلب <span class="num">@unique([sampleId, testId])</span> محفوظ كما هو.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="dock-wrap"><div class="dock">
+          <button class="dbtn primary" style="background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg> حفظ <kbd style="background:rgba(255,255,255,.2);color:#fff;border-color:transparent">F9</kbd></button>
+          <button class="dbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5v14h8V5z"/><path d="M13 6h1M14 8h1M15 6h1M14 12h3v7h-3z"/><path d="m14 11 2-2"/></svg> باركود</button>
+          <button class="dbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M6 18v-9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9"/></svg> طباعة</button>
+          <button class="dbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg> واتساب</button>
+          <button class="dbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6"/><path d="M16 11v6"/><path d="M13 14h6"/></svg> مريض جديد</button>
+        </div></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<footer class="credits">
+  <b>ملخص المقارنة:</b> (أ) تلميع التخطيط الحالي — أسرع وأقرب للتنفيذ داخل نفس شرائح FSD. (ب) إضافة شريط حالة حي فوق نفس الكونسول يستثمر البث لحظي SSE والجسر الحقيقي للأجهزة — أكبر قيمة تشغيلية.</p>
+  <p><b>ملاحظة مهمة:</b> كافة العناصر أعلاه مرتّبة يمين-إلى-يسار كما تعمل الآن في <bdi>apps/web/src/app/page.tsx</b> عبر <bdi>widgets/unified-workspace</b> — لم يُنفَّذ أي تغيير في الكود، هذه لوحات قرار للتوثيق فقط.</p>
+</footer>
+
+</body>
+</html>

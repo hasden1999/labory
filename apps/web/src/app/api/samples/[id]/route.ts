@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import {
   getStore,
   updateSample,
+  deleteSample,
   getNextVoucherNumber,
   saveStoreToFile,
 } from '../../../../lib/serverStore';
@@ -69,4 +70,22 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
 export async function PUT(request: Request, context: { params: { id: string } }) {
   return PATCH(request, context);
+}
+
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const { id } = params;
+    const store = getStore();
+    const sample = store.samples.find(s => s.id === id || String(s.sampleNumber) === id);
+    if (!sample) {
+      return NextResponse.json({ message: 'العينة غير موجودة للحذف' }, { status: 404 });
+    }
+    const success = deleteSample(sample.id);
+    if (!success) {
+      return NextResponse.json({ message: 'تعذر حذف العينة' }, { status: 400 });
+    }
+    return NextResponse.json({ success: true, message: 'تم حذف العينة بنجاح' });
+  } catch (err: any) {
+    return NextResponse.json({ message: err?.message || 'فشل حذف العينة' }, { status: 500 });
+  }
 }

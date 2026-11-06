@@ -9,7 +9,9 @@ import {
   UserPlus,
   Loader2,
   CheckCircle2,
+  Percent,
 } from 'lucide-react';
+import ConfirmModal from '../../../components/ConfirmModal';
 import { UnifiedWorkspaceReturn } from '../model/types';
 import { useToast } from '../../../components/Toast';
 import { useLab } from '../../../components/LabContext';
@@ -39,6 +41,7 @@ export default function UnifiedActionBar({
   const { labProfile } = useLab();
   const [savedSample, setSavedSample] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const { patient, selectedTests, results, invoice } = workspace;
 
@@ -118,9 +121,9 @@ export default function UnifiedActionBar({
         isUrgent: patient.isUrgent,
         tests: selectedTests.map((t) => t.id),
         testIds: selectedTests.map((t) => t.id),
-        discount: 0,
-        discountPercent: 0,
-        priceTotal: invoice.netTotal,
+        discount: invoice.discountAmount || 0,
+        discountPercent: invoice.discountPercent || 0,
+        priceTotal: invoice.grossTotal,
         paidAmount: invoice.paidAmount,
         remainingAmount: invoice.remainingBalance,
         paymentMethod: invoice.paymentMethod,
@@ -361,25 +364,35 @@ export default function UnifiedActionBar({
     }
   }, [savedSample, canSave, handleSave, toast]);
 
-  // New Patient (F1)
-  const handleNewPatient = useCallback(() => {
-    const hasUnsaved = (hasName || hasTests) && !savedSample;
-    if (hasUnsaved) {
-      const confirmed = window.confirm('هل تريد إلغاء البيانات الحالية غير المحفوظة والبدء بمريض جديد؟');
-      if (!confirmed) return;
-    }
-
+  // Execute safe reset for starting a fresh patient
+  const executeNewPatientReset = useCallback(() => {
     workspace.resetPatient();
     setSavedSample(null);
+    setIsProcessing(false);
+    workspace.setIsSaving(false);
 
     // Focus patient name input
     setTimeout(() => {
       const nameInput = document.querySelector('input[name="patientName"]') as HTMLInputElement | null;
-      if (nameInput) nameInput.focus();
-    }, 50);
+      if (nameInput) {
+        nameInput.focus();
+        nameInput.select();
+      }
+    }, 60);
 
     toast.info('جاهز لإدخال مريض جديد (F1)');
-  }, [hasName, hasTests, savedSample, workspace, toast]);
+  }, [workspace, toast]);
+
+  // New Patient (F1)
+  const handleNewPatient = useCallback(() => {
+    const hasUnsaved = (hasName || hasTests) && !savedSample;
+    if (hasUnsaved) {
+      setShowResetConfirm(true);
+      return;
+    }
+
+    executeNewPatientReset();
+  }, [hasName, hasTests, savedSample, executeNewPatientReset]);
 
   // --------------------------------------------------------------------------
   // Keyboard Shortcuts Listener (F1, F2, F8, F9, F10)
@@ -650,8 +663,89 @@ export default function UnifiedActionBar({
         </button>
       </div>
 
-      {/* 2. Middle & Left Side: Status + Test Count + Total */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+      {/* 2. Middle & Left Side: Discount Control + Status + Test Count + Total */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        {/* Interactive Discount Slider & Quick Pills */}
+        {invoice.canSeePrices && invoice.grossTotal > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: 'var(--bg-card-subtle)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              padding: '3px 10px',
+              height: '38px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>
+              <Percent size={13} color="var(--accent-teal)" />
+              <span>خصم:</span>
+            </div>
+
+            {/* Quick Preset Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+              {[0, 10, 20, 25, 50, 100].map((pct) => {
+                const isActive = invoice.discountPercent === pct;
+                return (
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => workspace.setDiscountPercent(pct)}
+                    style={{
+                      padding: '2px 5px',
+                      fontSize: '11px',
+                      fontWeight: isActive ? 800 : 600,
+                      borderRadius: '4px',
+                      border: isActive ? '1px solid var(--accent-teal)' : '1px solid transparent',
+                      backgroundColor: isActive ? 'rgba(20, 184, 166, 0.2)' : 'transparent',
+                      color: isActive ? 'var(--accent-teal)' : 'var(--text-muted)',
+                      cursor: 'pointer',
+                      transition: 'all 0.12s ease',
+                    }}
+                  >
+                    {pct === 100 ? 'إعفاء' : `${pct}%`}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Range Slider & Discount Amount */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                value={invoice.discountPercent}
+                onChange={(e) => workspace.setDiscountPercent(Number(e.target.value))}
+                title={`نسبة الخصم: ${invoice.discountPercent}%`}
+                style={{
+                  width: '85px',
+                  height: '4px',
+                  accentColor: 'var(--accent-teal)',
+                  cursor: 'pointer',
+                }}
+              />
+              {invoice.discountAmount > 0 && (
+                <span
+                  style={{
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    color: '#f59e0b',
+                    direction: 'ltr',
+                    unicodeBidi: 'isolate',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  -{invoice.discountAmount.toLocaleString()} د.ع
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Real Status Indicator */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px' }}>
           {savedSample ? (
@@ -677,7 +771,7 @@ export default function UnifiedActionBar({
           {selectedTests.length} فحص
         </div>
 
-        {/* Total (Leftmost, LTR isolate, zero discount) */}
+        {/* Total (Leftmost, LTR isolate, dynamic with discount) */}
         <div
           dir="ltr"
           style={{
@@ -692,9 +786,25 @@ export default function UnifiedActionBar({
           }}
         >
           <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>الإجمالي:</span>
+          {invoice.discountAmount > 0 && (
+            <span
+              style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color: 'var(--text-dim)',
+                textDecoration: 'line-through',
+                direction: 'ltr',
+                unicodeBidi: 'isolate',
+              }}
+            >
+              {invoice.grossTotal.toLocaleString()}
+            </span>
+          )}
           <span
             style={{
               color: 'var(--accent-teal)',
+              fontSize: '17px',
+              fontWeight: 900,
               direction: 'ltr',
               unicodeBidi: 'isolate',
             }}
@@ -703,6 +813,19 @@ export default function UnifiedActionBar({
           </span>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showResetConfirm}
+        title="بدء مريض جديد"
+        message="هل تريد إلغاء البيانات الحالية غير المحفوظة والبدء بمريض جديد؟"
+        confirmText="نعم، بدء مريض جديد"
+        cancelText="إلغاء والعودة"
+        onConfirm={() => {
+          setShowResetConfirm(false);
+          executeNewPatientReset();
+        }}
+        onCancel={() => setShowResetConfirm(false)}
+      />
     </div>
   );
 }

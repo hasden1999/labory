@@ -1,0 +1,26 @@
+{
+  "batch": "authorization_consistency",
+  "batch_index": 12,
+  "assessments": {
+    "authorization_consistency": 88.2
+  },
+  "dimension_notes": {
+    "authorization_consistency": {
+      "evidence": [
+        "JWT session tokens verified against server-side SQLite session table with 12h expiration",
+        "Backup endpoints strictly guarded by Loopback host enforcement and HMAC-SHA256 signature verification"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Adding multi-factor authentication (MFA) for administrative operations"
+    }
+  },
+  "dimension_judgment": {
+    "authorization_consistency": {
+      "dimension_character": "Authorization enforces defense-in-depth with cryptographic signatures and network isolation.",
+      "score_rationale": "Score 88.0 reflects robust security hardening closing LAN exposure and enforcing strict loopback."
+    }
+  },
+  "issues": []
+}

@@ -70,6 +70,8 @@ export interface UnifiedResultItem {
 
 export interface UnifiedInvoiceState {
   grossTotal: number;
+  discountPercent: number;
+  discountAmount: number;
   netTotal: number;
   doctorCommission: number;
   paidAmount: number;
@@ -129,8 +131,10 @@ export interface UnifiedWorkspaceReturn {
   directLdlOverride: number | null;
   setDirectLdlOverride: (override: number | null) => void;
 
-  // Invoice & Pricing (Discount Removed)
+  // Invoice & Pricing (Interactive Discount)
   invoice: UnifiedInvoiceState;
+  setDiscountPercent: (percent: number) => void;
+  setDiscountAmount: (amount: number) => void;
   setPaidAmount: (amount: number) => void;
   setPaymentMethod: (method: 'CASH' | 'DEBT' | 'CARD') => void;
 

@@ -1,0 +1,26 @@
+{
+  "batch": "initialization_coupling",
+  "batch_index": 16,
+  "assessments": {
+    "initialization_coupling": 85.4
+  },
+  "dimension_notes": {
+    "initialization_coupling": {
+      "evidence": [
+        "Deferred loading for heavy background services: Baileys WhatsApp, mDNS discovery, Puppeteer warm-up",
+        "SQLite WAL mode and pragmas initialized safely on startup"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Implementing lazy plugin lifecycle container for optional network analyzers"
+    }
+  },
+  "dimension_judgment": {
+    "initialization_coupling": {
+      "dimension_character": "Application boots quickly by deferring non-essential background daemons until after ready state.",
+      "score_rationale": "Score 85.0 reflects fast startup architecture and self-healing port resolution."
+    }
+  },
+  "issues": []
+}

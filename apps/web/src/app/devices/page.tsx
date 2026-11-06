@@ -20,8 +20,10 @@ import {
   CheckCircle2,
   AlertTriangle,
   Wifi,
+  Activity,
 } from 'lucide-react';
 import { toEnglishDigits, formatEnglishDate } from '../../lib/formatters';
+import MindrayBc30Simulator from '../../components/devices/MindrayBc30Simulator';
 
 function UnifiedDevicesInventoryView() {
   const toast = useToast();
@@ -34,6 +36,7 @@ function UnifiedDevicesInventoryView() {
   const [listenerPort, setListenerPort] = useState<number>(5000);
   const [simulatingId, setSimulatingId] = useState<string | null>(null);
   const [guideDevice, setGuideDevice] = useState<{ name: string; preset?: DevicePreset } | null>(null);
+  const [showMindraySimulator, setShowMindraySimulator] = useState(false);
 
   // Add Device Modal State
   const [showAddDeviceModal, setShowAddDeviceModal] = useState(false);
@@ -314,6 +317,28 @@ function UnifiedDevicesInventoryView() {
             <Package size={15} />
             <span>إضافة كاشف للمخزون</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setShowMindraySimulator(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '7px 16px',
+              backgroundColor: '#0284c7',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.35)',
+            }}
+          >
+            <Activity size={15} />
+            <span>محاكي جهاز Mindray BC-30 التفاعلي</span>
+          </button>
         </div>
 
         {/* Right Info Pills (Server IP & Port 5000 + Stock Alerts) */}
@@ -530,6 +555,29 @@ function UnifiedDevicesInventoryView() {
                       <Zap size={14} />
                       <span>{simulatingId === dev.id ? 'جاري الفحص...' : 'فحص الربط'}</span>
                     </button>
+
+                    {(dev.brand?.toLowerCase() === 'mindray' || (dev.name || '').toLowerCase().includes('mindray')) && (
+                      <button
+                        type="button"
+                        onClick={() => setShowMindraySimulator(true)}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid #bae6fd',
+                          backgroundColor: '#0284c7',
+                          color: '#ffffff',
+                          fontSize: '12px',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                        }}
+                      >
+                        <Activity size={14} />
+                        <span>شاشة المحاكي</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
@@ -1020,6 +1068,17 @@ function UnifiedDevicesInventoryView() {
             </div>
           </form>
         </div>
+      )}
+
+      {/* Interactive Mindray BC-30 Simulator Modal */}
+      {showMindraySimulator && (
+        <MindrayBc30Simulator
+          onClose={() => setShowMindraySimulator(false)}
+          onOpenSampleInReception={(sId) => {
+            setShowMindraySimulator(false);
+            window.location.href = `/?sample=${sId}`;
+          }}
+        />
       )}
     </div>
   );

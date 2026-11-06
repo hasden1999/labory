@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { verifyBackupSessionToken } from './lib/backupTokenUtils';
 
 function isLoopback(req: NextRequest): boolean {
   // SECURITY: never trust client-controlled forwarding headers (x-forwarded-for / x-real-ip).
@@ -13,12 +14,25 @@ function isLoopback(req: NextRequest): boolean {
   return socketIp === '127.0.0.1' || socketIp === '::1' || socketIp === '::ffff:127.0.0.1';
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Backup endpoints are admin-only and fail closed (no loopback exception).
+  // 1. Backup endpoints are admin-only and fail closed.
   if (pathname.startsWith('/api/backup')) {
-    const authHeader = request.headers.get('authorization') || request.headers.get('x-backup-token');
+    // Session token generation is strictly restricted to loopback
+    if (pathname === '/api/backup/session') {
+      if (!isLoopback(request)) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'غير مصرح: إنشاء جلسة النسخ الاحتياطي مسموح فقط من الجهاز المحلي (Local Loopback Only).',
+          },
+          { status: 403 }
+        );
+      }
+      return NextResponse.next();
+    }
+
     const adminSecret = process.env.BACKUP_ADMIN_SECRET;
     if (!adminSecret) {
       return NextResponse.json(
@@ -29,16 +43,40 @@ export function middleware(request: NextRequest) {
         { status: 503 }
       );
     }
-    const isAuthorized = authHeader === `Bearer ${adminSecret}` || authHeader === adminSecret;
-    if (!isAuthorized) {
+
+    const rawAuth =
+      request.headers.get('authorization') ||
+      request.headers.get('x-backup-token') ||
+      request.cookies.get('labryo_backup_token')?.value;
+
+    const cleanToken = (rawAuth || '').replace(/^Bearer\s+/i, '').trim();
+
+    if (!cleanToken) {
       return NextResponse.json(
         {
           success: false,
-          message: 'غير مصرح: عمليات النسخ الاحتياطي تتطلب مفتاحاً إدارياً صالحاً.',
+          message: 'غير مصرح: عمليات النسخ الاحتياطي تتطلب توكن أو مفتاحاً إدارياً صالحاً.',
+        },
+        { status: 401 }
+      );
+    }
+
+    const isDirectSecret = cleanToken === adminSecret;
+    const isValidSession = cleanToken.startsWith('lbs1.')
+      ? await verifyBackupSessionToken(cleanToken, adminSecret)
+      : false;
+
+    if (!isDirectSecret && !isValidSession) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'غير مصرح: توكن النسخ الاحتياطي غير صالح أو منتهي الصلاحية أو مزوّر.',
         },
         { status: 403 }
       );
     }
+
+    return NextResponse.next();
   }
 
   // 2. Allow Central Server (loopback) full access to all pages and APIs

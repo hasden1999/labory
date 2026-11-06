@@ -1,0 +1,64 @@
+{
+  "total": 8,
+  "passed": 8,
+  "failed": 0,
+  "skipped": 0,
+  "checks": [
+    {
+      "suite": "settings",
+      "name": "opens the catalog and searches for a test",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 11420
+    },
+    {
+      "suite": "settings",
+      "name": "filters the catalog by specialty",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2148
+    },
+    {
+      "suite": "settings",
+      "name": "opens and cancels the add-test dialog",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 922
+    },
+    {
+      "suite": "settings",
+      "name": "switches between the four settings workspaces",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 27185
+    },
+    {
+      "suite": "settings",
+      "name": "saves the report design settings",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 6878
+    },
+    {
+      "suite": "settings",
+      "name": "renders the network/system panel and its four sections",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 12196
+    },
+    {
+      "suite": "settings",
+      "name": "opens the WhatsApp pairing tab without connecting",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 12802
+    },
+    {
+      "suite": "settings",
+      "name": "renders the system/license workspace on /license",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2745
+    }
+  ]
+}

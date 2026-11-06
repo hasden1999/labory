@@ -1,0 +1,26 @@
+{
+  "batch": "design_coherence",
+  "batch_index": 17,
+  "assessments": {
+    "design_coherence": 85.8
+  },
+  "dimension_notes": {
+    "design_coherence": {
+      "evidence": [
+        "Unified CSS variables for clinical report print engine (--print-header-bg, --print-header-text)",
+        "Consistent Tailwind styling with RTL support across all clinical screens"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Creating a shared UI token package for dark mode variables"
+    }
+  },
+  "dimension_judgment": {
+    "design_coherence": {
+      "dimension_character": "Design system maintains visual unity between screen workstations, paper designer, and print reports.",
+      "score_rationale": "Score 85.0 reflects CSS variable unification and full Arabic RTL layout coherence."
+    }
+  },
+  "issues": []
+}

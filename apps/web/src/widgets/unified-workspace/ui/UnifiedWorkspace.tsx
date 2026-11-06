@@ -9,7 +9,6 @@ import CatalogCartPanel from './CatalogCartPanel';
 import ResultsGridPanel from './ResultsGridPanel';
 import UnifiedActionBar from './UnifiedActionBar';
 import { UnifiedWorkspaceReturn } from '../model/types';
-import { useUnifiedWorkspace } from '../model/useUnifiedWorkspace';
 import { useShiftNavigation } from '../lib/useShiftNavigation';
 
 // Specialized Workstation Modals (SSR disabled for performance)
@@ -25,12 +24,10 @@ const BhcgFormModal = nextDynamic(() => import('../../../components/workstations
 type SpecialModalType = 'GUE' | 'GSE' | 'CBC' | 'SFA' | 'AMH' | 'BHCG' | 'CHEMISTRY' | 'MICROBIOLOGY' | null;
 
 interface UnifiedWorkspaceProps {
-  workspace?: UnifiedWorkspaceReturn;
+  workspace: UnifiedWorkspaceReturn;
 }
 
-export default function UnifiedWorkspace({ workspace: propWorkspace }: UnifiedWorkspaceProps) {
-  const defaultWorkspace = useUnifiedWorkspace();
-  const workspace = propWorkspace || defaultWorkspace;
+export default function UnifiedWorkspace({ workspace }: UnifiedWorkspaceProps) {
 
   // Active Specialized Workstation Modal state
   const [activeSpecialModal, setActiveSpecialModal] = useState<SpecialModalType>(null);

@@ -1,0 +1,46 @@
+{
+  "id": "cbc-form",
+  "name": "Complete Blood Count (CBC)",
+  "arabicName": "صورة الدم الكاملة",
+  "category": "hematology",
+  "sections": [
+    {
+      "id": "leukocytes",
+      "title": "White Blood Cells & Differential",
+      "arabicTitle": "كريات الدم البيضاء والتفريقي",
+      "fields": [
+        { "key": "wbc", "label": "WBC", "arabicLabel": "العدد الكلي للبيض", "type": "number", "unit": "10^3/µL", "refLow": 4.0, "refHigh": 11.0 },
+        { "key": "neutPercent", "label": "NEUT%", "arabicLabel": "العدلات %", "type": "number", "unit": "%", "refLow": 40.0, "refHigh": 75.0 },
+        { "key": "lymPercent", "label": "LYM%", "arabicLabel": "اللمفاويات %", "type": "number", "unit": "%", "refLow": 20.0, "refHigh": 45.0 },
+        { "key": "monoPercent", "label": "MONO%", "arabicLabel": "الوحيدات %", "type": "number", "unit": "%", "refLow": 2.0, "refHigh": 10.0 },
+        { "key": "eosPercent", "label": "EOS%", "arabicLabel": "الحمضات %", "type": "number", "unit": "%", "refLow": 1.0, "refHigh": 6.0 },
+        { "key": "basoPercent", "label": "BASO%", "arabicLabel": "القاعديات %", "type": "number", "unit": "%", "refLow": 0.0, "refHigh": 2.0 }
+      ]
+    },
+    {
+      "id": "erythrocytes",
+      "title": "Red Blood Cells & Indices",
+      "arabicTitle": "كريات الدم الحمراء ومؤشراتها",
+      "fields": [
+        { "key": "rbc", "label": "RBC", "arabicLabel": "عدد كريات الحمر", "type": "number", "unit": "10^6/µL", "refLow": 4.2, "refHigh": 5.8 },
+        { "key": "hgb", "label": "HGB (Hemoglobin)", "arabicLabel": "الهيموغلوبين", "type": "number", "unit": "g/dL", "refLow": 12.0, "refHigh": 17.5 },
+        { "key": "hct", "label": "HCT (Hematocrit)", "arabicLabel": "حجم الخلايا المكدسة", "type": "number", "unit": "%", "refLow": 36.0, "refHigh": 52.0 },
+        { "key": "mcv", "label": "MCV", "arabicLabel": "الحجم الكروي الوسطي", "type": "number", "unit": "fL", "refLow": 80.0, "refHigh": 100.0 },
+        { "key": "mch", "label": "MCH", "arabicLabel": "هيموغلوبين الكرية الوسطي", "type": "number", "unit": "pg", "refLow": 27.0, "refHigh": 34.0 },
+        { "key": "mchc", "label": "MCHC", "arabicLabel": "تركيز هيموغلوبين الكرية", "type": "number", "unit": "g/dL", "refLow": 32.0, "refHigh": 36.0 },
+        { "key": "rdwCv", "label": "RDW-CV", "arabicLabel": "تباين حجم الحمر CV", "type": "number", "unit": "%", "refLow": 11.5, "refHigh": 14.5 }
+      ]
+    },
+    {
+      "id": "platelets",
+      "title": "Platelets & Indices",
+      "arabicTitle": "الصفيحات الدموية ومؤشراتها",
+      "fields": [
+        { "key": "plt", "label": "PLT (Platelets)", "arabicLabel": "العدد الكلي للصفيحات", "type": "number", "unit": "10^3/µL", "refLow": 150.0, "refHigh": 450.0 },
+        { "key": "mpv", "label": "MPV", "arabicLabel": "الحجم الوسطي للصفيحات", "type": "number", "unit": "fL", "refLow": 7.4, "refHigh": 11.0 },
+        { "key": "pct", "label": "PCT", "arabicLabel": "كتلة الصفيحات", "type": "number", "unit": "%", "refLow": 0.15, "refHigh": 0.35 },
+        { "key": "pdw", "label": "PDW", "arabicLabel": "تباين توزيع الصفيحات", "type": "number", "unit": "%", "refLow": 9.0, "refHigh": 17.0 }
+      ]
+    }
+  ]
+}

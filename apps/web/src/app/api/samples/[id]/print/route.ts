@@ -576,6 +576,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const templateParam = searchParams.get('template');
   const headerStyleParam = searchParams.get('headerStyle');
   const activeHeaderStyle = headerStyleParam || settings.headerStyle;
+  const cbcLayoutParam = searchParams.get('cbcLayout') || searchParams.get('cbcTemplate') || settings.cbcLayoutTemplate || 'CLASSIC_5PART';
   const template = templateParam || (activeHeaderStyle ? HEADER_STYLE_TO_TEMPLATE_MAP[activeHeaderStyle] : null) || settings.reportTemplate || 'CLASSIC';
   if (activeHeaderStyle && !settings.headerStyle) {
     settings.headerStyle = activeHeaderStyle;
@@ -888,6 +889,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   // Apply User Form Design System Overrides
   templateCss += `
+    :root, .report-card {
+      --print-header-bg: ${headerBgColor};
+      --print-header-text: ${headerTextColor};
+      --print-primary: ${primaryCol};
+      --print-border: ${borderColor};
+    }
     .report-card {
       background-color: ${formBgColor} !important;
       color: ${textColor} !important;
@@ -923,6 +930,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     store,
     settings,
     sectionParam,
+    cbcLayout: cbcLayoutParam,
     template,
     primaryCol,
     textColor,
@@ -973,6 +981,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       qrEnabled,
       qrPosition,
       template,
+      headerStyle: activeHeaderStyle,
       primaryCol,
       verifyUrl,
     },
@@ -1180,6 +1189,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         flex-direction: column !important;
         justify-content: space-between !important;
         box-sizing: border-box !important;
+        overflow: visible !important;
         page-break-after: always;
         break-after: page;
         -webkit-print-color-adjust: exact !important; 

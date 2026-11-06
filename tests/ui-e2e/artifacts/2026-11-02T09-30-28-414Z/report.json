@@ -1,0 +1,97 @@
+{
+  "total": 11,
+  "passed": 5,
+  "failed": 6,
+  "skipped": 0,
+  "checks": [
+    {
+      "suite": "intake",
+      "name": "opens the intake workspace",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 12897
+    },
+    {
+      "suite": "intake",
+      "name": "save is disabled until name, age, sex, and a test are present",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1327
+    },
+    {
+      "suite": "intake",
+      "name": "registers patient demographics and Iraqi phone",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 9536,
+      "details": "Error: Patient name mismatch: \n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\intake.ts:92:47)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:400:7)\n    at async Object.run (D:\\lab\\tests\\ui-e2e\\suites\\intake.ts:74:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:125:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-30-28-414Z\\FAIL-intake-registers-patient-demographics-and-Iraqi-phone.png"
+    },
+    {
+      "suite": "intake",
+      "name": "searches the catalog and adds CBC with its EDTA tube badge",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 3024
+    },
+    {
+      "suite": "intake",
+      "name": "adds a chemistry test and renders an inline result input",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2237
+    },
+    {
+      "suite": "intake",
+      "name": "enters a critical glucose value and surfaces a panic/flag",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 1280,
+      "details": "Error: Result progress counter did not reach 2/2\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\intake.ts:133:15)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:400:7)\n    at async Object.run (D:\\lab\\tests\\ui-e2e\\suites\\intake.ts:116:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:125:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-30-28-414Z\\FAIL-intake-enters-a-critical-glucose-value-and-surfaces-a-panic-flag.png"
+    },
+    {
+      "suite": "intake",
+      "name": "applies a 10% discount and recalculates the net total",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 836
+    },
+    {
+      "suite": "intake",
+      "name": "saves the order (F9) and shows the success toast",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 90622,
+      "details": "TimeoutError: Waiting failed: 90000ms exceeded\n    at new WaitTask (D:\\lab\\node_modules\\puppeteer-core\\src\\common\\WaitTask.ts:82:28)\n    at IsolatedWorld.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Realm.ts:74:22)\n    at CdpFrame.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:789:36)\n    at CdpFrame.<anonymous> (D:\\lab\\node_modules\\puppeteer-core\\src\\util\\decorators.ts:63:21)\n    at CdpPage.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2928:29)\n    at UiHarness.waitForText (D:\\lab\\tests\\ui-e2e\\harness.ts:127:21)\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\intake.ts:149:16)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:400:7)\n    at async Object.run (D:\\lab\\tests\\ui-e2e\\suites\\intake.ts:147:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:125:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-30-28-414Z\\FAIL-intake-saves-the-order-F9-and-shows-the-success-toast.png"
+    },
+    {
+      "suite": "intake",
+      "name": "persists the new order in the patients registry",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 66967,
+      "details": "TimeoutError: Waiting failed: 60000ms exceeded\n    at new WaitTask (D:\\lab\\node_modules\\puppeteer-core\\src\\common\\WaitTask.ts:82:28)\n    at IsolatedWorld.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Realm.ts:74:22)\n    at CdpFrame.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Frame.ts:789:36)\n    at CdpFrame.<anonymous> (D:\\lab\\node_modules\\puppeteer-core\\src\\util\\decorators.ts:63:21)\n    at CdpPage.waitForFunction (D:\\lab\\node_modules\\puppeteer-core\\src\\api\\Page.ts:2928:29)\n    at UiHarness.waitForText (D:\\lab\\tests\\ui-e2e\\harness.ts:127:21)\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\intake.ts:161:16)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:400:7)\n    at async Object.run (D:\\lab\\tests\\ui-e2e\\suites\\intake.ts:157:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:125:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-30-28-414Z\\FAIL-intake-persists-the-new-order-in-the-patients-registry.png"
+    },
+    {
+      "suite": "intake",
+      "name": "opens the new patient file and shows the saved order",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 200,
+      "details": "Error: Could not click the patient row\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\intake.ts:181:26)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:400:7)\n    at async Object.run (D:\\lab\\tests\\ui-e2e\\suites\\intake.ts:167:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:125:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-30-28-414Z\\FAIL-intake-opens-the-new-patient-file-and-shows-the-saved-order.png"
+    },
+    {
+      "suite": "intake",
+      "name": "resets the workspace with F1 (new patient)",
+      "ok": false,
+      "skipped": false,
+      "durationMs": 4927,
+      "details": "Error: F1 did not clear the form (value: مريض مؤقت)\n    at <anonymous> (D:\\lab\\tests\\ui-e2e\\suites\\intake.ts:196:24)\n    at async UiHarness.check (D:\\lab\\tests\\ui-e2e\\harness.ts:400:7)\n    at async Object.run (D:\\lab\\tests\\ui-e2e\\suites\\intake.ts:187:5)\n    at async main (D:\\lab\\tests\\ui-e2e\\run.ts:125:7)",
+      "screenshot": "D:\\lab\\tests\\ui-e2e\\artifacts\\2026-11-02T09-30-28-414Z\\FAIL-intake-resets-the-workspace-with-F1-new-patient-.png"
+    }
+  ]
+}

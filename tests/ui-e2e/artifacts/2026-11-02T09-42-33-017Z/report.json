@@ -1,0 +1,78 @@
+{
+  "total": 10,
+  "passed": 10,
+  "failed": 0,
+  "skipped": 0,
+  "checks": [
+    {
+      "suite": "patients",
+      "name": "opens the registry and finds the newly created patient",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 10843
+    },
+    {
+      "suite": "patients",
+      "name": "opens the patient file and displays demographics and results",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 433
+    },
+    {
+      "suite": "patients",
+      "name": "switches between registry quick filters",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 3380
+    },
+    {
+      "suite": "patients",
+      "name": "opens and cancels the edit-patient dialog",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1384
+    },
+    {
+      "suite": "patients",
+      "name": "updates the patient phone number and persists it",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 6290
+    },
+    {
+      "suite": "patients",
+      "name": "opens the sample-delete confirmation and cancels it safely",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 1227
+    },
+    {
+      "suite": "patients",
+      "name": "opens the patient-visits dialog",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 401
+    },
+    {
+      "suite": "patients",
+      "name": "opens the settle-account dialog and cancels it",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 824
+    },
+    {
+      "suite": "patients",
+      "name": "writes and saves a result from the patient file",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 2046
+    },
+    {
+      "suite": "patients",
+      "name": "does not crash when opening the final report action",
+      "ok": true,
+      "skipped": false,
+      "durationMs": 9857
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { copyWhatsAppRuntime, verifyWhatsAppRuntimeClosure } = require('./lib/whatsapp-runtime-bundler');
 
 const rootDir = path.resolve(__dirname, '..');
 const webDir = path.join(rootDir, 'apps', 'web');
@@ -111,6 +112,14 @@ for (const targetStandalone of targets) {
         fs.cpSync(pkgSrc, pkgDest, { recursive: true });
       }
     }
+
+    // 7. Ensure the full WhatsApp runtime dependency closure exists (fixes missing @keyv/serialize)
+    const waResult = copyWhatsAppRuntime({ rootDir, targetStandalone, log: console.log });
+    if (waResult.missing.length > 0) {
+      console.log(`  ℹ️ حزم اختيارية غير مثبتة: ${Array.from(new Set(waResult.missing)).join(', ')}`);
+    }
+    const waClosure = verifyWhatsAppRuntimeClosure({ targetStandalone });
+    console.log(`  ✅ شجرة اعتماديات واتساب مكتملة (${waClosure.packages} حزمة).`);
 
     console.log('✅ Successfully synchronized all build assets:', targetStandalone);
   } catch (err) {

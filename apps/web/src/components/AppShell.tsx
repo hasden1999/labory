@@ -26,7 +26,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const HIDE_SHELL = ['/login', '/showcase', '/connect', '/ready', '/health'];
-  const hideShell = HIDE_SHELL.includes(pathname) || pathname?.startsWith('/verify');
+  const hideShell = HIDE_SHELL.includes(pathname) || pathname?.startsWith('/verify') || pathname?.startsWith('/admin');
   if (hideShell) return <>{children}</>;
 
   return (

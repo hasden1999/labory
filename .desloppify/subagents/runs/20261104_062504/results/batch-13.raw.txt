@@ -1,0 +1,26 @@
+{
+  "batch": "ai_generated_debt",
+  "batch_index": 13,
+  "assessments": {
+    "ai_generated_debt": 85.6
+  },
+  "dimension_notes": {
+    "ai_generated_debt": {
+      "evidence": [
+        "Dead use-effects and duplicate state hooks systematically audited and eliminated in UnifiedWorkspace",
+        "Strict FSD boundaries prevent sprawl of uncurated AI helper utilities"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Automating lint rules for synthetic comment density"
+    }
+  },
+  "dimension_judgment": {
+    "ai_generated_debt": {
+      "dimension_character": "Codebase is actively curated with architectural boundaries that prevent synthetic debt accumulation.",
+      "score_rationale": "Score 85.0 reflects disciplined refactoring and strict boundary enforcement."
+    }
+  },
+  "issues": []
+}

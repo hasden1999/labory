@@ -1,0 +1,8 @@
+{
+  "name": "@lab-manager/core",
+  "version": "1.0.0",
+  "description": "Core server, database repositories, updater, licensing",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {}
+}

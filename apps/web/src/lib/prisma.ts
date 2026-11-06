@@ -168,7 +168,7 @@ export async function initDbWAL() {
   await ensureSessionTable(rawPrisma);
 
   // Safe additive self-healing schema migration for existing SQLite databases (runs ONLY when app/schema version changes)
-  const CURRENT_SCHEMA_VERSION = 144;
+  const CURRENT_SCHEMA_VERSION = 145;
   const t0Mig = isBench ? process.hrtime.bigint() : BigInt(0);
   try {
     const vRes: any = await rawPrisma.$queryRawUnsafe('PRAGMA user_version;');
@@ -216,6 +216,12 @@ export async function initDbWAL() {
     if (!setColNames.includes('logoUrl')) {
       await rawPrisma.$queryRawUnsafe('ALTER TABLE "Settings" ADD COLUMN "logoUrl" TEXT;');
     }
+    if (!setColNames.includes('enableWatermark')) {
+      await rawPrisma.$queryRawUnsafe('ALTER TABLE "Settings" ADD COLUMN "enableWatermark" BOOLEAN DEFAULT 0;');
+    }
+    if (!setColNames.includes('printRangeScope')) {
+      await rawPrisma.$queryRawUnsafe('ALTER TABLE "Settings" ADD COLUMN "printRangeScope" TEXT DEFAULT \'all\';');
+    }
 
     const refDoctorCols: any = await rawPrisma.$queryRawUnsafe('PRAGMA table_info(ReferringDoctor);');
     const refDoctorColNames = Array.isArray(refDoctorCols) ? refDoctorCols.map((c: any) => c.name) : [];
@@ -227,6 +233,12 @@ export async function initDbWAL() {
     const patientColNames = Array.isArray(patientCols) ? patientCols.map((c: any) => c.name) : [];
     if (!patientColNames.includes('birthDate')) {
       await rawPrisma.$queryRawUnsafe('ALTER TABLE "Patient" ADD COLUMN "birthDate" DATETIME;');
+    }
+    if (!patientColNames.includes('birthDateEstimated')) {
+      await rawPrisma.$queryRawUnsafe('ALTER TABLE "Patient" ADD COLUMN "birthDateEstimated" BOOLEAN DEFAULT 0;');
+    }
+    if (!patientColNames.includes('referringDoctorId')) {
+      await rawPrisma.$queryRawUnsafe('ALTER TABLE "Patient" ADD COLUMN "referringDoctorId" TEXT;');
     }
 
     const sampleTestCols: any = await rawPrisma.$queryRawUnsafe('PRAGMA table_info(SampleTest);');

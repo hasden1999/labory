@@ -248,6 +248,8 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
     setResults({});
     setDirectLdlOverride(null);
     setPaidAmount(0);
+    setDiscountPercentState(0);
+    setCustomDiscountAmount(null);
     setSearchQuery('');
   }, []);
 
@@ -1026,8 +1028,40 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
     }, 0);
   }, [selectedTests]);
 
-  // Net total is identical to grossTotal (Zero Discount System)
-  const netTotal = grossTotal;
+  // Discount Control State
+  const [discountPercentState, setDiscountPercentState] = useState<number>(0);
+  const [customDiscountAmount, setCustomDiscountAmount] = useState<number | null>(null);
+
+  const discountAmount = useMemo(() => {
+    if (grossTotal <= 0) return 0;
+    if (customDiscountAmount !== null) {
+      return Math.min(grossTotal, Math.max(0, customDiscountAmount));
+    }
+    return Math.round((grossTotal * discountPercentState) / 100);
+  }, [grossTotal, discountPercentState, customDiscountAmount]);
+
+  const activeDiscountPercent = useMemo(() => {
+    if (grossTotal <= 0) return 0;
+    if (customDiscountAmount !== null) {
+      return Math.round((discountAmount / grossTotal) * 100);
+    }
+    return discountPercentState;
+  }, [grossTotal, discountAmount, customDiscountAmount, discountPercentState]);
+
+  const setDiscountPercent = useCallback((pct: number) => {
+    setCustomDiscountAmount(null);
+    setDiscountPercentState(Math.min(100, Math.max(0, Math.round(pct))));
+  }, []);
+
+  const setDiscountAmount = useCallback((amt: number) => {
+    const clamped = Math.max(0, Math.round(amt));
+    setCustomDiscountAmount(clamped);
+  }, []);
+
+  // Net total: Gross total minus discount
+  const netTotal = useMemo(() => {
+    return Math.max(0, grossTotal - discountAmount);
+  }, [grossTotal, discountAmount]);
 
   // Doctor Commission
   const doctorCommission = useMemo(() => {
@@ -1053,6 +1087,8 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
   const invoice: UnifiedInvoiceState = useMemo(() => {
     return {
       grossTotal,
+      discountPercent: activeDiscountPercent,
+      discountAmount,
       netTotal,
       doctorCommission,
       paidAmount,
@@ -1062,6 +1098,8 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
     };
   }, [
     grossTotal,
+    activeDiscountPercent,
+    discountAmount,
     netTotal,
     doctorCommission,
     paidAmount,
@@ -1116,8 +1154,10 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
     directLdlOverride,
     setDirectLdlOverride,
 
-    // Invoice & Pricing (Discount Removed)
+    // Invoice & Pricing (Interactive Discount)
     invoice,
+    setDiscountPercent,
+    setDiscountAmount,
     setPaidAmount,
     setPaymentMethod,
 

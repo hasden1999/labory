@@ -11,6 +11,7 @@ import {
   Sun,
   Cpu,
   Wallet,
+  ShieldCheck,
 } from 'lucide-react';
 import { useTheme } from '../../../components/ThemeContext';
 

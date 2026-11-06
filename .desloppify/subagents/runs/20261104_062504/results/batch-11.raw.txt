@@ -1,0 +1,26 @@
+{
+  "batch": "api_surface_coherence",
+  "batch_index": 11,
+  "assessments": {
+    "api_surface_coherence": 85.9
+  },
+  "dimension_notes": {
+    "api_surface_coherence": {
+      "evidence": [
+        "RESTful design across /api/patients, /api/samples, /api/tests, /api/devices, /api/financials",
+        "Consistent request/response structures across App Router route handlers"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Generating OpenAPI / Swagger documentation from TypeScript route types"
+    }
+  },
+  "dimension_judgment": {
+    "api_surface_coherence": {
+      "dimension_character": "API surface is uniform, well-structured, and strictly adheres to Next.js route handler conventions.",
+      "score_rationale": "Score 85.0 reflects consistent HTTP verb semantics, clear URL routing, and uniform JSON envelope responses."
+    }
+  },
+  "issues": []
+}

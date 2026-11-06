@@ -1,6 +1,6 @@
 {
   "name": "@lab-manager/desktop",
-  "version": "2.0.5",
+  "version": "2.1.3",
   "description": "نظام إدارة المختبرات الطبية المتكامل - النسخة المكتبية الرسمية",
   "author": "Lab Manager Team",
   "main": "main.js",
@@ -43,6 +43,9 @@
       "preload.js",
       "services/**/*",
       "assets/**/*"
+    ],
+    "asarUnpack": [
+      "services/**/*"
     ],
     "compression": "maximum",
     "electronLanguages": [

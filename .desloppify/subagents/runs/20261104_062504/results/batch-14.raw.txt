@@ -1,0 +1,26 @@
+{
+  "batch": "incomplete_migration",
+  "batch_index": 14,
+  "assessments": {
+    "incomplete_migration": 85.1
+  },
+  "dimension_notes": {
+    "incomplete_migration": {
+      "evidence": [
+        "Universal Legacy engine support for Windows 7/8/10/11 maintained alongside modern Next.js 14",
+        "Prisma schema migrations tracked via PRAGMA user_version"
+      ],
+      "impact_scope": "codebase",
+      "fix_scope": "single_edit",
+      "confidence": "high",
+      "issues_preventing_higher_score": "Retiring legacy 32-bit Node.js PE binary hooks once all client labs upgrade hardware"
+    }
+  },
+  "dimension_judgment": {
+    "incomplete_migration": {
+      "dimension_character": "Migrations are carefully phased to maintain backwards compatibility with legacy laboratory hardware.",
+      "score_rationale": "Score 85.0 reflects managed migration with legacy binary patching and schema version guards."
+    }
+  },
+  "issues": []
+}
