@@ -11,7 +11,7 @@ export default function MindraySimulatorPage() {
     <MindrayBc30Simulator
       onClose={() => router.push('/devices')}
       onOpenSampleInReception={(sampleNumber) => {
-        router.push(`/?sample=${sampleNumber}`);
+        router.push(`/patients?sampleNumber=${sampleNumber}`);
       }}
     />
   );

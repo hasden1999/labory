@@ -265,17 +265,17 @@ export function parseCbcData(rawVal: string): ParsedCbc {
       const wbcM = trimmed.match(/WBC:\s*([^\s|]+)/i);
       if (wbcM) res.wbc = wbcM[1];
     } else if (upper.startsWith('DIFFERENTIAL_3PART:') || upper.startsWith('3PART:')) {
-      const graPctM = trimmed.match(/GRA%:\s*([^\s%|]+)/i);
+      const graPctM = trimmed.match(/(?:GRA|GRAN|NEU)%:\s*([^\s%|]+)/i);
       if (graPctM) res.graPct = graPctM[1];
-      const graAbsM = trimmed.match(/GRA#?:\s*([^\s|]+)/i);
+      const graAbsM = trimmed.match(/(?:GRA|GRAN|NEU)#?:\s*([^\s|]+)/i);
       if (graAbsM) res.graAbs = graAbsM[1];
-      const lymPctM = trimmed.match(/LYM%:\s*([^\s%|]+)/i);
+      const lymPctM = trimmed.match(/(?:LYM|LYMPH)%:\s*([^\s%|]+)/i);
       if (lymPctM) res.lymPct = lymPctM[1];
-      const lymAbsM = trimmed.match(/LYM#?:\s*([^\s|]+)/i);
+      const lymAbsM = trimmed.match(/(?:LYM|LYMPH)#?:\s*([^\s|]+)/i);
       if (lymAbsM) res.lymAbs = lymAbsM[1];
-      const midPctM = trimmed.match(/MID%:\s*([^\s%|]+)/i);
+      const midPctM = trimmed.match(/(?:MID|MON)%:\s*([^\s%|]+)/i);
       if (midPctM) res.midPct = midPctM[1];
-      const midAbsM = trimmed.match(/MID#?:\s*([^\s|]+)/i);
+      const midAbsM = trimmed.match(/(?:MID|MON)#?:\s*([^\s|]+)/i);
       if (midAbsM) res.midAbs = midAbsM[1];
     } else if (upper.startsWith('DIFFERENTIAL_ABS:')) {
       const nAbsM = trimmed.match(/Neut#?:\s*([^\s|]+)/i);

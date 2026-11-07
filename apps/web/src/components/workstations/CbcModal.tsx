@@ -271,6 +271,9 @@ export function parseCbcDevice(raw: string): CbcDeviceId | null {
   if (m && CBC_DEVICE_PROFILES[m[1] as CbcDeviceId]) {
     return m[1] as CbcDeviceId;
   }
+  if (raw.includes('DIFFERENTIAL_3PART') || raw.includes('3PART:') || raw.includes('Gran%') || raw.includes('GRA%') || raw.includes('Lymph#') || raw.includes('Gran#')) {
+    return 'MINDRAY_3PART';
+  }
   return null;
 }
 
@@ -319,17 +322,17 @@ export function parseCbc(raw: string): CbcAnalysisData {
       const wbcM = trimmed.match(/WBC:\s*([^\s|]+)/i);
       if (wbcM && wbcM[1] !== '-') parsed.wbc = wbcM[1];
     } else if (upper.startsWith('DIFFERENTIAL_3PART:') || upper.startsWith('3PART:')) {
-      const graPctM = trimmed.match(/GRA%:\s*([^\s%|]+)/i);
+      const graPctM = trimmed.match(/(?:GRA|GRAN|NEU)%:\s*([^\s%|]+)/i);
       if (graPctM && graPctM[1] !== '-') parsed.graPct = graPctM[1];
-      const graAbsM = trimmed.match(/GRA#?:\s*([^\s|]+)/i);
+      const graAbsM = trimmed.match(/(?:GRA|GRAN|NEU)#?:\s*([^\s|]+)/i);
       if (graAbsM && graAbsM[1] !== '-') parsed.graAbs = graAbsM[1];
-      const lymPctM = trimmed.match(/LYM%:\s*([^\s%|]+)/i);
+      const lymPctM = trimmed.match(/(?:LYM|LYMPH)%:\s*([^\s%|]+)/i);
       if (lymPctM && lymPctM[1] !== '-') parsed.lymPct = lymPctM[1];
-      const lymAbsM = trimmed.match(/LYM#?:\s*([^\s|]+)/i);
+      const lymAbsM = trimmed.match(/(?:LYM|LYMPH)#?:\s*([^\s|]+)/i);
       if (lymAbsM && lymAbsM[1] !== '-') parsed.lymAbs = lymAbsM[1];
-      const midPctM = trimmed.match(/MID%:\s*([^\s%|]+)/i);
+      const midPctM = trimmed.match(/(?:MID|MON)%:\s*([^\s%|]+)/i);
       if (midPctM && midPctM[1] !== '-') parsed.midPct = midPctM[1];
-      const midAbsM = trimmed.match(/MID#?:\s*([^\s|]+)/i);
+      const midAbsM = trimmed.match(/(?:MID|MON)#?:\s*([^\s|]+)/i);
       if (midAbsM && midAbsM[1] !== '-') parsed.midAbs = midAbsM[1];
     } else if (upper.startsWith('DIFFERENTIAL:')) {
       const neutM = trimmed.match(/Neut:\s*([^\s%|]+)/i);
@@ -359,6 +362,21 @@ export function parseCbc(raw: string): CbcAnalysisData {
       parsed.comments = trimmed.replace(/COMMENTS?:/i, '').trim();
     }
   }
+
+  // Synchronize 3-Part and 5-Part values so both views are fully populated
+  if (parsed.graPct && !parsed.neutrophils) parsed.neutrophils = parsed.graPct;
+  if (parsed.graAbs && !parsed.neutrophilsAbs) parsed.neutrophilsAbs = parsed.graAbs;
+  if (parsed.lymPct && !parsed.lymphocytes) parsed.lymphocytes = parsed.lymPct;
+  if (parsed.lymAbs && !parsed.lymphocytesAbs) parsed.lymphocytesAbs = parsed.lymAbs;
+  if (parsed.midPct && !parsed.monocytes) parsed.monocytes = parsed.midPct;
+  if (parsed.midAbs && !parsed.monocytesAbs) parsed.monocytesAbs = parsed.midAbs;
+
+  if (parsed.neutrophils && !parsed.graPct) parsed.graPct = parsed.neutrophils;
+  if (parsed.neutrophilsAbs && !parsed.graAbs) parsed.graAbs = parsed.neutrophilsAbs;
+  if (parsed.lymphocytes && !parsed.lymPct) parsed.lymPct = parsed.lymphocytes;
+  if (parsed.lymphocytesAbs && !parsed.lymAbs) parsed.lymAbs = parsed.lymphocytesAbs;
+  if (parsed.monocytes && !parsed.midPct) parsed.midPct = parsed.monocytes;
+  if (parsed.monocytesAbs && !parsed.midAbs) parsed.midAbs = parsed.monocytesAbs;
 
   return parsed;
 }

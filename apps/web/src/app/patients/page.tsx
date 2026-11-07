@@ -62,7 +62,7 @@ function isSpecialFormTest(code: string, name: string): 'GUE' | 'GSE' | 'CBC' | 
   const n = (name || '').toLowerCase().trim();
   if (c === 'GUE' || c === 'URINE' || n.includes('urine exam') || n.includes('general urine') || n.includes('فحص الإدرار العام')) return 'GUE';
   if (c === 'GSE' || c === 'STOOL' || n.includes('stool exam') || n.includes('general stool') || n.includes('فحص الخروج العام')) return 'GSE';
-  if (c === 'CBC' || n.includes('complete blood count') || n.includes('صورة دم كاملة')) return 'CBC';
+  if (c === 'CBC' || c.includes('CBC') || n.includes('cbc') || n.includes('complete blood count') || n.includes('blood count') || n.includes('صورة الدم') || n.includes('صورة دم') || n.includes('تعداد دم')) return 'CBC';
   if (c === 'SFA' || c === 'SEMEN' || n.includes('semen analysis') || n.includes('السائل المنوي')) return 'SFA';
   if (c === 'BHCG' || c === 'B-HCG' || c === 'HCG' || c === 'BETA-HCG' || n.includes('b-hcg') || n.includes('bhcg') || n.includes('beta hcg') || n.includes('beta-hcg') || n.includes('الحمل الرقمي')) return 'BHCG';
   if (c === 'AMH' || n.includes('anti-mullerian') || n.includes('anti mullerian') || n.includes('مخزون المبيض')) return 'AMH';
@@ -130,9 +130,14 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
       const list = Array.isArray(data) ? data : [];
       setSamples(list);
 
-      const qSampleId = searchParams?.get('sampleId');
-      if (qSampleId && list.some((s: any) => s.id === qSampleId)) {
-        setSelectedSampleId(qSampleId);
+      const qSampleId = searchParams?.get('sampleId') || searchParams?.get('sample');
+      const qSampleNumber = searchParams?.get('sampleNumber');
+      if (qSampleId) {
+        const found = list.find((s: any) => s.id === qSampleId || String(s.sampleNumber) === qSampleId);
+        if (found) setSelectedSampleId(found.id);
+      } else if (qSampleNumber) {
+        const found = list.find((s: any) => String(s.sampleNumber) === qSampleNumber);
+        if (found) setSelectedSampleId(found.id);
       } else if (!selectedSampleId && list.length > 0) {
         setSelectedSampleId(list[0].id);
       }
@@ -1290,18 +1295,19 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                                     type="button"
                                     onClick={() => setSpecialModal({ type: specialType, testId: key })}
                                     style={{
-                                      padding: '6px 10px',
+                                      padding: '6px 12px',
                                       borderRadius: '7px',
-                                      backgroundColor: '#0f766e',
+                                      backgroundColor: specialType === 'CBC' && val.includes('CBC') ? '#0284c7' : '#0f766e',
                                       color: '#ffffff',
                                       border: 'none',
                                       fontSize: '11px',
                                       fontWeight: 800,
                                       cursor: 'pointer',
                                       whiteSpace: 'nowrap',
+                                      boxShadow: specialType === 'CBC' && val.includes('CBC') ? '0 1px 3px rgba(2, 132, 199, 0.4)' : 'none',
                                     }}
                                   >
-                                    الفورمة
+                                    {specialType === 'CBC' ? (val.includes('CBC') ? 'عرض CBC (21 فحص)' : 'فورمة CBC') : 'الفورمة'}
                                   </button>
                                 )}
                               </div>

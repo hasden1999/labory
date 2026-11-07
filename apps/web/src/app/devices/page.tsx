@@ -1076,7 +1076,7 @@ function UnifiedDevicesInventoryView() {
           onClose={() => setShowMindraySimulator(false)}
           onOpenSampleInReception={(sId) => {
             setShowMindraySimulator(false);
-            window.location.href = `/?sample=${sId}`;
+            window.location.href = `/patients?sampleNumber=${sId}`;
           }}
         />
       )}

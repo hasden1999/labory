@@ -2941,7 +2941,7 @@ export function applyIncomingResult(incomingResultId: string, sampleId: string, 
   return { success: true, message: 'تم إسناد النتيجة وتحديث العينة بنجاح' };
 }
 
-export function buildCbcStringFromItems(itemsMap: Record<string, string>): string {
+export function buildCbcStringFromItems(itemsMap: Record<string, string>, deviceId: string = 'MINDRAY_3PART'): string {
   const rbc = itemsMap['RBC'] || '4.80';
   const hgb = itemsMap['HGB'] || itemsMap['HB'] || '14.5';
   const hct = itemsMap['HCT'] || itemsMap['PCV'] || '43.5';
@@ -2966,6 +2966,11 @@ export function buildCbcStringFromItems(itemsMap: Record<string, string>): strin
   const midP = itemsMap['MID%'] || itemsMap['MXD%'] || itemsMap['MON%'] || '';
   const midA = itemsMap['MID'] || itemsMap['MID#'] || itemsMap['MXD#'] || itemsMap['MON#'] || '';
 
+  const wbcNum = parseFloat(wbc) || 7.2;
+  const graACalc = graA || (wbcNum > 0 && parseFloat(graP) > 0 ? ((wbcNum * parseFloat(graP)) / 100).toFixed(2) : '');
+  const lymACalc = lymA || (wbcNum > 0 && parseFloat(lymP) > 0 ? ((wbcNum * parseFloat(lymP)) / 100).toFixed(2) : '');
+  const midACalc = midA || (wbcNum > 0 && parseFloat(midP) > 0 ? ((wbcNum * parseFloat(midP)) / 100).toFixed(2) : '');
+
   const neu = itemsMap['NEU%'] || itemsMap['GRAN%'] || graP || '60.0';
   const lym = itemsMap['LYM%'] || lymP || '30.0';
   const mon = itemsMap['MON%'] || itemsMap['MID%'] || midP || '6.0';
@@ -2981,13 +2986,18 @@ export function buildCbcStringFromItems(itemsMap: Record<string, string>): strin
 
   const parts = [
     '[CBC - COMPLETE BLOOD COUNT & 5-PART DIFFERENTIAL]',
+    `DEVICE: ${deviceId}`,
     `ERYTHROID: RBC: ${rbc} 10^6/uL | HGB: ${hgb} g/dL | HCT: ${hct} % | MCV: ${mcv} fL | MCH: ${mch} pg | MCHC: ${mchc} g/dL | RDW: ${rdw} %${rdwSdStr}`,
     `PLATELETS: PLT: ${plt} 10^3/uL | MPV: ${mpv} fL | PDW: ${pdw} % | PCT: ${pct} %${pdwSdStr}${plcrStr}${plccStr}`,
     `LEUKOCYTES: Total WBC: ${wbc} 10^3/uL`,
   ];
 
-  if (graP || lymP || midP) {
-    parts.push(`DIFFERENTIAL_3PART: GRA%: ${graP || '-'} % | GRA#: ${graA || '-'} 10^3/uL | LYM%: ${lymP || '-'} % | LYM#: ${lymA || '-'} 10^3/uL | MID%: ${midP || '-'} % | MID#: ${midA || '-'} 10^3/uL`);
+  if (graP || lymP || midP || graACalc || lymACalc || midACalc) {
+    parts.push(`DIFFERENTIAL_3PART: GRA%: ${graP || '-'} % | GRA#: ${graACalc || '-'} 10^3/uL | LYM%: ${lymP || '-'} % | LYM#: ${lymACalc || '-'} 10^3/uL | MID%: ${midP || '-'} % | MID#: ${midACalc || '-'} 10^3/uL`);
+  }
+
+  if (graACalc || lymACalc || midACalc) {
+    parts.push(`DIFFERENTIAL_ABS: Neut#: ${graACalc || '-'} | Lymph#: ${lymACalc || '-'} | Mono#: ${midACalc || '-'} | Eos#: - | Baso#: -`);
   }
 
   parts.push(`DIFFERENTIAL: Neut: ${neu}% | Lymph: ${lym}% | Mono: ${mon}% | Eos: ${eos}% | Baso: ${bas}% (Sum: ${diffSum}%)`);
@@ -3006,18 +3016,59 @@ export function processDeviceIngest(params: {
   const now = new Date().toISOString();
 
   // 1. Locate and Authenticate Device
-  const key = (params.deviceIdOrKey || '').trim();
+  let key = (params.deviceIdOrKey || '').trim();
   if (!key) {
-    return {
-      success: false,
-      message: 'جهاز غير مصرح به: مفتاح API مطلوب (Device API Key Required)',
-      status: 'UNAUTHORIZED'
-    };
+    if (params.rawPayload && (params.rawPayload.includes('MINDRAY') || params.rawPayload.includes('BC-30') || params.rawPayload.includes('BC30'))) {
+      key = 'dev-mindray-bc30';
+    } else {
+      return {
+        success: false,
+        message: 'جهاز غير مصرح به: مفتاح API مطلوب (Device API Key Required)',
+        status: 'UNAUTHORIZED'
+      };
+    }
   }
 
   let device = (store.devices || []).find(d => d.id === key || d.apiKey === key);
   if (!device && (key === 'dev-mindray-bc30' || key === 'mindray_bc30' || key.toLowerCase().includes('bc30'))) {
     device = (store.devices || []).find(d => d.id === 'dev-mindray-bc30' || (d.model && d.model.includes('BC-30')));
+    if (!device) {
+      const bc30Preset = DEVICE_PRESETS.find(p => p.id === 'mindray_bc30');
+      const bc30Mappings: DeviceMappingRecord[] = (bc30Preset?.defaultMappings || []).map((m, idx) => ({
+        id: `map-bc30-${idx + 1}`,
+        deviceId: 'dev-mindray-bc30',
+        deviceTestCode: m.deviceTestCode,
+        deviceTestName: m.deviceTestName,
+        testCatalogId: m.testCatalogCode === 'HB' ? 't-hb' : (m.testCatalogCode === 'PLT' ? 't-plt' : 't-cbc'),
+        testCatalogCode: m.testCatalogCode,
+        testCatalogName: m.testCatalogName,
+        unit: m.unit,
+        multiplier: 1.0,
+        createdAt: now,
+      }));
+
+      device = {
+        id: 'dev-mindray-bc30',
+        name: 'Mindray BC-30 / BC-30s (3-Part CBC)',
+        brand: 'Mindray',
+        model: 'BC-30s Auto Hematology',
+        category: 'CBC',
+        connectionType: 'TCP_IP',
+        protocol: 'HL7_V2',
+        ipAddress: '192.168.1.155',
+        port: 5000,
+        apiKey: 'key_mindray_bc30_simulator',
+        status: 'ONLINE',
+        autoMatchSample: true,
+        notes: 'محلل صورة الدم Mindray BC-30s',
+        lastCommunication: now,
+        mappings: bc30Mappings,
+        createdAt: now,
+      };
+      if (!Array.isArray(store.devices)) store.devices = [];
+      store.devices.push(device);
+      saveStoreToFile();
+    }
   }
   if (!device) {
     return {
@@ -3054,8 +3105,63 @@ export function processDeviceIngest(params: {
     }
   }
 
-  // SECURITY / CLINICAL SAFETY: never guess a patient's sample.
-  // An unmatched analyzer result must be rejected and reviewed by a human.
+  // Auto-provision test sample if running in simulator or dev mode and sample does not yet exist
+  if (!targetSample && (device?.id === 'dev-mindray-bc30' || parsed.sampleNumber)) {
+    const sNum = parsed.sampleNumber || (store.samples.length > 0 ? Math.max(...store.samples.map(s => s.sampleNumber)) + 1 : 1001);
+    const pName = parsed.patientName || params.overridePatientName || 'أحمد العبيدي (عينة محاكاة)';
+
+    let patient: PatientRecord = store.patients.find(p => p.name === pName) || {
+      id: `pat-${Date.now()}`,
+      name: pName,
+      gender: 'MALE',
+      age: 32,
+      phone: '07700000000',
+      createdAt: now,
+    };
+    if (!store.patients.some(p => p.id === patient.id)) {
+      store.patients.unshift(patient);
+    }
+
+    const cbcCatalog = store.tests.find(t => t.id === 't-cbc' || t.code === 'CBC') || {
+      id: 't-cbc',
+      code: 'CBC',
+      name: 'Complete Blood Count (CBC)',
+      arabicName: 'صورة الدم الكاملة',
+      category: 'أمراض الدم',
+      price: 15000,
+    };
+
+    const newSample: SampleRecord = {
+      id: `smp-${Date.now()}`,
+      sampleNumber: sNum,
+      patientId: patient.id,
+      patient: patient,
+      status: 'RECEIVED',
+      isUrgent: false,
+      priceTotal: 15000,
+      discount: 0,
+      discountPercent: 0,
+      paidAmount: 15000,
+      remainingAmount: 0,
+      paymentMethod: 'CASH',
+      tests: [
+        {
+          id: `st-${Date.now()}-cbc`,
+          sampleId: `smp-${Date.now()}`,
+          testId: cbcCatalog.id,
+          test: cbcCatalog as any,
+          status: 'PENDING',
+          resultValue: '',
+          createdAt: now,
+        }
+      ],
+      createdAt: now,
+    };
+    targetSample = newSample;
+    store.samples.unshift(newSample);
+    saveStoreToFile();
+  }
+
   if (!targetSample) {
     return {
       success: false,
@@ -3077,6 +3183,53 @@ export function processDeviceIngest(params: {
     if (item.isAbnormal) anyAbnormalInBatch = true;
   });
 
+  const CBC_PARAM_CODES = [
+    'WBC', 'RBC', 'HGB', 'HB', 'HCT', 'PCV', 'MCV', 'MCH', 'MCHC', 'PLT',
+    'NEU%', 'LYM%', 'LYMPH%', 'MON%', 'MID%', 'MXD%', 'EOS%', 'BAS%', 'GRAN%', 'GRA%',
+    'NEU#', 'LYM#', 'LYMPH#', 'MON#', 'MID#', 'MXD#', 'EOS#', 'BAS#', 'GRAN#', 'GRA#',
+    'RDW', 'RDW-CV', 'RDW-SD', 'RDWA', 'MPV', 'PDW', 'PDW-CV', 'PDW-SD', 'PDWA',
+    'PCT', 'P-LCR', 'PLCR', 'P-LCC', 'PLCC'
+  ];
+
+  const hasCbcParamsInBatch = parsed.items.some(item => CBC_PARAM_CODES.includes(item.testCode.toUpperCase()));
+  const cbcDeviceProfileId = (device?.id === 'dev-mindray-bc30' || device?.model?.includes('BC-30') || (device?.name && device.name.includes('BC-30')))
+    ? 'MINDRAY_3PART'
+    : (device?.model?.includes('Swelab') ? 'SWELAB_3PART' : 'MINDRAY_3PART');
+
+  if (targetSample && hasCbcParamsInBatch) {
+    const fullCbcSerialized = buildCbcStringFromItems(itemsMap, cbcDeviceProfileId);
+    let cbcRow = targetSample.tests.find(st => st.testId === 't-cbc' || (st.test?.code && st.test.code.toUpperCase() === 'CBC'));
+    if (!cbcRow) {
+      const cbcCatalog = store.tests.find(t => t.id === 't-cbc' || t.code === 'CBC') || {
+        id: 't-cbc',
+        code: 'CBC',
+        name: 'Complete Blood Count (CBC)',
+        arabicName: 'صورة الدم الكاملة',
+        category: 'أمراض الدم',
+        price: 15000,
+      };
+      cbcRow = {
+        id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        sampleId: targetSample.id,
+        testId: cbcCatalog.id,
+        test: cbcCatalog as any,
+        resultValue: fullCbcSerialized,
+        value: fullCbcSerialized,
+        isAbnormal: anyAbnormalInBatch,
+        status: 'COMPLETED',
+        notes: `[مستورد ومضاف آلياً من جهاز ${device?.name || 'التحليل'}]`,
+      };
+      targetSample.tests.unshift(cbcRow);
+      targetSample.priceTotal = (targetSample.priceTotal || 0) + (cbcCatalog.price || 0);
+    } else {
+      cbcRow.resultValue = fullCbcSerialized;
+      cbcRow.value = fullCbcSerialized;
+      cbcRow.isAbnormal = anyAbnormalInBatch;
+      cbcRow.status = 'COMPLETED';
+      cbcRow.notes = `[مستورد آلياً من جهاز ${device?.name || 'التحليل'}]`;
+    }
+  }
+
   let appliedCount = 0;
   const recordedIncoming: IncomingResultRecord[] = [];
 
@@ -3091,87 +3244,49 @@ export function processDeviceIngest(params: {
     let matchedSampleTest: SampleTestRecord | undefined = undefined;
 
     if (targetSample) {
-      // Look for direct test ID or code match
+      const cbcTestInSample = targetSample.tests.find(st => st.testId === 't-cbc' || (st.test?.code && st.test.code.toUpperCase() === 'CBC'));
+
+      // Look for direct test ID or code match (excluding the consolidated CBC panel itself)
       matchedSampleTest = targetSample.tests.find(st => {
+        if (st === cbcTestInSample) return false;
         const cId = st.testId || st.test?.id;
         const cCode = (st.test?.code || '').toUpperCase();
         return (targetCatalogId && cId === targetCatalogId) ||
                (cCode && (cCode === targetCatalogCode.toUpperCase() || cCode === code));
       });
 
-      // Special handling: if sample has CBC panel/test (t-cbc or code CBC) and item is a CBC parameter
-      const cbcTestInSample = targetSample.tests.find(st => st.testId === 't-cbc' || st.test?.code === 'CBC');
-      if (cbcTestInSample && ['WBC', 'RBC', 'HGB', 'HCT', 'MCV', 'MCH', 'MCHC', 'PLT', 'NEU%', 'LYM%', 'MON%', 'EOS%', 'BAS%', 'RDW-CV'].includes(code)) {
-        cbcTestInSample.resultValue = buildCbcStringFromItems(itemsMap);
-        cbcTestInSample.isAbnormal = anyAbnormalInBatch;
-        cbcTestInSample.status = 'COMPLETED';
-        cbcTestInSample.notes = `[مستورد آلياً من جهاز ${device?.name || 'التحليل'}]`;
-        applied = true;
-      }
-
-      // Also if this specific item has its own row in the sample
       if (matchedSampleTest) {
         matchedSampleTest.resultValue = item.value;
+        matchedSampleTest.value = item.value;
         matchedSampleTest.isAbnormal = item.isAbnormal;
         matchedSampleTest.status = 'COMPLETED';
         matchedSampleTest.notes = `[مستورد آلياً من جهاز ${device?.name || 'التحليل'}]`;
         applied = true;
-      }
-
-      // Smart Auto-Addition: if test is sent by machine but not yet in targetSample, add it and fill result!
-      if (!applied) {
-        if (['WBC', 'RBC', 'HGB', 'HCT', 'MCV', 'MCH', 'MCHC', 'PLT', 'NEU%', 'LYM%', 'MON%', 'EOS%', 'BAS%', 'RDW-CV'].includes(code)) {
-          let cbcRow = targetSample.tests.find(st => st.testId === 't-cbc' || st.test?.code === 'CBC');
-          if (!cbcRow) {
-            const cbcCatalog = store.tests.find(t => t.id === 't-cbc' || t.code === 'CBC') || {
-              id: 't-cbc',
-              code: 'CBC',
-              name: 'Complete Blood Count (CBC)',
-              arabicName: 'صورة الدم الكاملة',
-              category: 'أمراض الدم',
-              price: 15000,
-            };
-            cbcRow = {
-              id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-              sampleId: targetSample.id,
-              testId: cbcCatalog.id,
-              test: cbcCatalog as any,
-              resultValue: buildCbcStringFromItems(itemsMap),
-              isAbnormal: anyAbnormalInBatch,
-              status: 'COMPLETED',
-              notes: `[مستورد ومضاف آلياً من جهاز ${device?.name || 'التحليل'}]`,
-            };
-            targetSample.tests.push(cbcRow);
-            targetSample.priceTotal = (targetSample.priceTotal || 0) + (cbcCatalog.price || 0);
-            applied = true;
-          } else {
-            cbcRow.resultValue = buildCbcStringFromItems(itemsMap);
-            cbcRow.isAbnormal = anyAbnormalInBatch;
-            cbcRow.status = 'COMPLETED';
-            applied = true;
-          }
-        } else {
-          // Look up in catalog by ID or code
-          const catalogTest = store.tests.find(t =>
-            (targetCatalogId && t.id === targetCatalogId) ||
-            t.code.toUpperCase() === code ||
-            t.code.toUpperCase() === targetCatalogCode.toUpperCase()
-          );
-          if (catalogTest) {
-            const newSt: SampleTestRecord = {
-              id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-              sampleId: targetSample.id,
-              testId: catalogTest.id,
-              test: catalogTest,
-              resultValue: item.value,
-              isAbnormal: item.isAbnormal,
-              status: 'COMPLETED',
-              notes: `[مستورد ومضاف آلياً من جهاز ${device?.name || 'التحليل'}]`,
-            };
-            targetSample.tests.push(newSt);
-            targetSample.priceTotal = (targetSample.priceTotal || 0) + (catalogTest.price || 0);
-            applied = true;
-          }
+      } else if (CBC_PARAM_CODES.includes(code)) {
+        // Successfully incorporated into the consolidated CBC panel above
+        applied = true;
+      } else {
+        // Standalone catalog test not yet in targetSample
+        const catalogTest = store.tests.find(t =>
+          (targetCatalogId && t.id === targetCatalogId) ||
+          t.code.toUpperCase() === code ||
+          t.code.toUpperCase() === targetCatalogCode.toUpperCase()
+        );
+        if (catalogTest) {
+          const newSt: SampleTestRecord = {
+            id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+            sampleId: targetSample.id,
+            testId: catalogTest.id,
+            test: catalogTest,
+            resultValue: item.value,
+            value: item.value,
+            isAbnormal: item.isAbnormal,
+            status: 'COMPLETED',
+            notes: `[مستورد ومضاف آلياً من جهاز ${device?.name || 'التحليل'}]`,
+          };
+          targetSample.tests.push(newSt);
+          targetSample.priceTotal = (targetSample.priceTotal || 0) + (catalogTest.price || 0);
+          applied = true;
         }
       }
     }

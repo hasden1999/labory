@@ -539,6 +539,7 @@ export default function MindrayBc30Simulator({
     try {
       const res = await apiRequest('/devices/ingest', 'POST', {
         deviceId: 'dev-mindray-bc30',
+        apiKey: 'dev-mindray-bc30',
         rawPayload: fullHl7Payload,
         protocol: 'HL7_V2',
         sampleNumber: Number(toEnglishDigits(sampleId)) || 1001,
@@ -1117,22 +1118,38 @@ export default function MindrayBc30Simulator({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ color: '#38bdf8', fontWeight: 800 }}>رقم العينة (ID):</span>
+                {/* Sample ID Input Field - Highly Prominent & Highlighted */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    backgroundColor: 'rgba(2, 132, 199, 0.25)',
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    border: '1.5px solid #38bdf8',
+                  }}
+                >
+                  <span style={{ color: '#fef08a', fontWeight: 900, fontSize: '13px' }}>رقم العينة (ID):</span>
                   <input
                     type="text"
                     value={sampleId}
                     onChange={(e) => setSampleId(e.target.value)}
+                    placeholder="1001"
+                    title="اكتب هنا رقم العينة المسجلة في المختبر"
                     style={{
-                      width: '75px',
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      border: '1px solid #0284c7',
-                      backgroundColor: '#001e38',
-                      color: '#ffffff',
+                      width: '90px',
+                      height: '28px',
+                      padding: '2px 8px',
+                      borderRadius: '5px',
+                      border: '2px solid #facc15',
+                      backgroundColor: '#001428',
+                      color: '#fef08a',
                       fontWeight: 900,
                       textAlign: 'center',
-                      fontSize: '12px',
+                      fontSize: '15px',
+                      boxShadow: '0 0 8px rgba(250, 204, 21, 0.4)',
+                      outline: 'none',
                     }}
                   />
                 </div>
