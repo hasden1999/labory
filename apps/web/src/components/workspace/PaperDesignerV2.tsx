@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useLab, FormTableColumn, DEFAULT_TABLE_COLUMNS } from '../LabContext';
 import { useToast } from '../Toast';
 import { apiRequest } from '../../lib/api';
+import { printUrlDirectly } from '../../lib/printHelper';
 import {
   FileText,
   Printer,
@@ -132,80 +133,8 @@ export const CBC_LAYOUT_TEMPLATES_LIST = [
     nameAr: '5. التصميم الكلاسيكي المعتمد (Classic 5-Part)',
     nameEn: 'Classic 5-Part Clinical Grid',
     badge: 'الافتراضي المعتمد',
-    descriptionAr: 'تخطيط ثنائي الأعمدة مع التفريق الخماسي ومنحنيات التوزيع وملاحظات المسحة المحيطية.',
+    descriptionAr: 'تخطيط ثنائي الأعمدة مع التفريق الخماسي ومنحنيات التوزيع ومؤشرات الدم المعتمدة.',
     accentColor: '#be123c',
-  },
-  {
-    id: 'ANALYZER_3PART_HISTOGRAM',
-    nameAr: '6. تصميم جهاز التحليل القياسي (3-Part Analyzer + Histograms)',
-    nameEn: 'Automated 3-Part Analyzer Report',
-    badge: 'مطابق لجهاز الدم',
-    descriptionAr: 'يحاكي ورقة جهاز فحص الدم (WBC/GRA/LYM/MID + RBC/RDWa + PLT/P-LCR/P-LCC) مع أسهم ▼/▲ والمنحنيات.',
-    accentColor: '#0284c7',
-  },
-  {
-    id: 'WITH_HISTOGRAMS',
-    nameAr: '3. جدول مع أشرطة مدى ومنحنيات (Range Bars & Histograms)',
-    nameEn: 'Visual Range Bars & Histograms',
-    badge: 'بصري متقدم',
-    descriptionAr: 'جدول سريري أنيق مدمج مع أشرطة موقع النتيجة ومنحنيات توزيع الكريات والصفائح.',
-    accentColor: '#0d9488',
-  },
-  {
-    id: 'COMPACT_GRID',
-    nameAr: '4. الشبكة المدمجة الاقتصادية (Compact In-Line Grid)',
-    nameEn: 'Compact Space-Saver Dual Grid',
-    badge: 'توفير مساحة',
-    descriptionAr: 'تصميم مدمج في عمودين متجاورين يستهلك مساحة قليلة ويسمح بطباعة فحوصات أخرى بنفس الورقة.',
-    accentColor: '#334155',
-  },
-  {
-    id: 'DUAL_COLUMN',
-    nameAr: '5. التقسيم الثنائي المتوازن (Balanced Dual Column)',
-    nameEn: 'Symmetric Dual-Column Hematology',
-    badge: 'ثنائي الأعمدة',
-    descriptionAr: 'فصل متناظر بين الكريات الحمراء والصفائح في عمود، والكريات البيضاء والتفريق في العمود المقابل.',
-    accentColor: '#1e3a8a',
-  },
-  {
-    id: 'PEDIATRIC_CARDS',
-    nameAr: '6. بطاقات الأطفال والعائلة (Pediatric & Family Cards)',
-    nameEn: 'Soft Pediatric & Family Care Cards',
-    badge: 'أطفال وعائلة',
-    descriptionAr: 'بطاقات ملونة ناعمة ومريحة بصرياً مناسبة لتقارير الأطفال والعيادات الاستشارية.',
-    accentColor: '#ea580c',
-  },
-  {
-    id: 'CLINICAL_MINIMAL',
-    nameAr: '7. الطبي التنفيذي لطابعات الليزر (Clinical Minimal B&W)',
-    nameEn: 'Executive Monochrome Laser Minimal',
-    badge: 'طابعات ليزر B&W',
-    descriptionAr: 'تصميم طبي نظيف بخطوط دقيقة بدون خلفيات داكنة لتوفير الحبر ووضوح فائق بالأسود والأبيض.',
-    accentColor: '#0f172a',
-  },
-  {
-    id: 'REFERENCE_BANDS',
-    nameAr: '8. أشرطة المدى المرجعي التفاعلية (Reference Bands)',
-    nameEn: 'Linear Reference Spectrum Bands',
-    badge: 'مؤشر بصري',
-    descriptionAr: 'يعرض موقع كل نتيجة بصرياً داخل شريط المدى الطبيعي بين الحد الأدنى والأعلى.',
-    accentColor: '#4338ca',
-  },
-  {
-    id: 'FLAG_FOCUS',
-    nameAr: '9. التركيز السريري على القيم الحرجة (Abnormal Flag Focus)',
-    nameEn: 'Clinical Abnormal Flag Spotlight',
-    badge: 'إبراز غير الطبيعي',
-    descriptionAr: 'يبرز القيم المرتفعة والمنخفضة (H/L / ▲/▼) بتظليل واضح مع ملخص علوي للتنبيهات السريرية.',
-    accentColor: '#dc2626',
-  },
-  {
-    id: 'FULL_DIFFERENTIAL',
-    nameAr: '10. التفصيلي الشامل 25+ معامل (Full 3-Part & 5-Part + Ratios)',
-    nameEn: 'Comprehensive 25+ Parameters & Indices',
-    badge: 'شامل 25+ معامل',
-    descriptionAr: 'يعرض كافة معاملات 3-Part و 5-Part بالنسبي والمطلق مع مؤشرات NLR و PLR و Mentzer Index.',
-    accentColor: '#7c3aed',
   },
 ];
 
@@ -506,7 +435,8 @@ export default function PaperDesignerV2() {
       setGroupByCategory(labProfile.groupByCategory ?? false);
       setGroupingStyle(labProfile.groupingStyle || 'category');
       setTableRowBorders(labProfile.tableRowBorders ?? true);
-      setTableZebraStriping(labProfile.tableZebraStriping ?? false);
+      const isZebraSaved = Boolean(labProfile.tableZebraStriping || (labProfile as any).tableStyle === 'zebra');
+      setTableZebraStriping(isZebraSaved);
       if (labProfile.tableRowSpacing) setTableRowSpacing(labProfile.tableRowSpacing);
       if (labProfile.printRangeScope) setPrintRangeScope(labProfile.printRangeScope);
 
@@ -522,8 +452,16 @@ export default function PaperDesignerV2() {
           setReportTemplate(HEADER_STYLE_TO_TEMPLATE_MAP[hs]);
         }
       }
-      if ((labProfile as any).tableStyle) setTableStyle((labProfile as any).tableStyle);
-      if ((labProfile as any).cbcLayoutTemplate) setCbcLayoutTemplate((labProfile as any).cbcLayoutTemplate);
+      if ((labProfile as any).tableStyle) {
+        setTableStyle((labProfile as any).tableStyle);
+      } else if (isZebraSaved) {
+        setTableStyle('zebra');
+      }
+      if ((labProfile as any).cbcLayoutTemplate) {
+        const validIds = new Set(CBC_LAYOUT_TEMPLATES_LIST.map((x) => x.id));
+        const savedCbcTpl = (labProfile as any).cbcLayoutTemplate;
+        setCbcLayoutTemplate(validIds.has(savedCbcTpl) ? savedCbcTpl : 'SWELAB_3PART');
+      }
       if (labProfile.customLetterheadUrl !== undefined) setCustomLetterheadUrl(labProfile.customLetterheadUrl || '');
       if (labProfile.useLetterheadBackground !== undefined) setUseLetterheadBackground(Boolean(labProfile.useLetterheadBackground));
       if (labProfile.letterheadMode) setLetterheadMode(labProfile.letterheadMode as any);
@@ -1531,8 +1469,7 @@ export default function PaperDesignerV2() {
                         type="button"
                         onClick={() => {
                           setTableStyle(ts.id as any);
-                          if (ts.id === 'zebra') setTableZebraStriping(true);
-                          if (ts.id === 'clean_lines') setTableZebraStriping(false);
+                          setTableZebraStriping(ts.id === 'zebra');
                           toast.success(`تم اختيار نمط الجدول: ${ts.title}`, 'تحديث الجزء');
                         }}
                         style={{
@@ -2351,8 +2288,16 @@ export default function PaperDesignerV2() {
                 <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'var(--bg-input-deep)', borderRadius: '8px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
-                    checked={tableZebraStriping}
-                    onChange={(e) => setTableZebraStriping(e.target.checked)}
+                    checked={tableZebraStriping || tableStyle === 'zebra'}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setTableZebraStriping(checked);
+                      if (checked && tableStyle === 'clean_lines') {
+                        setTableStyle('zebra');
+                      } else if (!checked && tableStyle === 'zebra') {
+                        setTableStyle('clean_lines');
+                      }
+                    }}
                     style={{ width: '16px', height: '16px' }}
                   />
                   <div>
@@ -2479,18 +2424,17 @@ export default function PaperDesignerV2() {
                   </div>
                   <div>
                     <strong style={{ fontSize: '13.5px', color: 'var(--text-main)', display: 'block' }}>
-                      🩸 تصميم فورمة فحص الدم الشامل (CBC Layout — 10 تصاميم احترافية)
+                      🩸 فورمات أجهزة صورة الدم الشامل (CBC Analyzer Formats — 5 أجهزة معتمدة)
                     </strong>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      اختر التخطيط البصري المعتمد لطباعة تقارير فحص الدم (3-Part / 5-Part / Histograms)
+                      اختر الفورمة الخاصة بجهاز فحص الدم المعتمد في مختبرك (تُطبع في صفحة A4 واحدة)
                     </span>
                   </div>
                 </div>
 
-                <a
-                  href={`/api/samples/1001/print?section=cbc&cbcLayout=${encodeURIComponent(cbcLayoutTemplate)}`}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  type="button"
+                  onClick={() => printUrlDirectly(`/api/samples/1001/print?section=cbc&cbcLayout=${encodeURIComponent(cbcLayoutTemplate)}`)}
                   className="btn-cyan-primary"
                   style={{
                     padding: '6px 14px',
@@ -2499,13 +2443,14 @@ export default function PaperDesignerV2() {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    textDecoration: 'none',
                     borderRadius: '8px',
+                    border: 'none',
+                    cursor: 'pointer',
                   }}
                 >
                   <Printer size={14} />
-                  <span>معاينة تصميم CBC المختار</span>
-                </a>
+                  <span>طباعة تجريبية لتصميم CBC المختار</span>
+                </button>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
@@ -2555,16 +2500,17 @@ export default function PaperDesignerV2() {
                         <span style={{ fontSize: '9.5px', fontFamily: 'monospace', color: 'var(--text-muted)' }} dir="ltr">
                           {tpl.id}
                         </span>
-                        <a
-                          href={`/api/samples/1001/print?section=cbc&cbcLayout=${encodeURIComponent(tpl.id)}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          style={{ fontSize: '10px', fontWeight: 800, color: 'var(--accent-cyan)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            printUrlDirectly(`/api/samples/1001/print?section=cbc&cbcLayout=${encodeURIComponent(tpl.id)}`);
+                          }}
+                          style={{ fontSize: '10px', fontWeight: 800, color: 'var(--accent-cyan)', background: 'transparent', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: 0 }}
                         >
-                          <Eye size={12} />
-                          <span>معاينة</span>
-                        </a>
+                          <Printer size={12} />
+                          <span>طباعة تجريبية</span>
+                        </button>
                       </div>
                     </div>
                   );
@@ -3298,17 +3244,22 @@ export default function PaperDesignerV2() {
             ))}
           </div>
 
-          <a
-            href={previewSimulationMode === 'blank' ? `/api/templates/blank/print?mode=blank&template=${HEADER_STYLE_TO_TEMPLATE_MAP[headerStyle] || reportTemplate}&headerStyle=${headerStyle}` : `/api/samples/1001/print?template=${HEADER_STYLE_TO_TEMPLATE_MAP[headerStyle] || reportTemplate}&headerStyle=${headerStyle}`}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            onClick={() =>
+              printUrlDirectly(
+                previewSimulationMode === 'blank'
+                  ? `/api/templates/blank/print?mode=blank&template=${HEADER_STYLE_TO_TEMPLATE_MAP[headerStyle] || reportTemplate}&headerStyle=${headerStyle}`
+                  : `/api/samples/1001/print?template=${HEADER_STYLE_TO_TEMPLATE_MAP[headerStyle] || reportTemplate}&headerStyle=${headerStyle}`
+              )
+            }
             className="btn-secondary"
-            style={{ padding: '4px 8px', fontSize: '10.5px', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
-            title={previewSimulationMode === 'blank' ? 'طباعة الفورمة الفارغة بدون خطوط' : 'فتح قالب الطباعة التجريبي'}
+            style={{ padding: '4px 8px', fontSize: '10.5px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+            title={previewSimulationMode === 'blank' ? 'طباعة الفورمة الفارغة بدون خطوط' : 'فتح واجهة الطباعة التجريبية مباشرة'}
           >
             <Printer size={12} />
             <span>{previewSimulationMode === 'blank' ? 'طباعة الفورمة الفارغة' : 'تجربة الطباعة'}</span>
-          </a>
+          </button>
         </div>
 
         {/* Real-Time Live Font Injection & Scaled A4 Simulated Sheet */}
@@ -4029,10 +3980,13 @@ export default function PaperDesignerV2() {
                     مساحة مفرغة بالكامل ونقية 100% خالية من أي جداول أو تسطير أفقي، مخصصة لكتابة التقارير الحرة أو إرفاق فحوصات خارجية معتمدة بترويسة المختبر.
                   </p>
                 </div>
-                <a
-                  href={`/api/templates/blank/print?mode=blank&template=${HEADER_STYLE_TO_TEMPLATE_MAP[headerStyle] || reportTemplate}&headerStyle=${headerStyle}`}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  type="button"
+                  onClick={() =>
+                    printUrlDirectly(
+                      `/api/templates/blank/print?mode=blank&template=${HEADER_STYLE_TO_TEMPLATE_MAP[headerStyle] || reportTemplate}&headerStyle=${headerStyle}`
+                    )
+                  }
                   className="btn-primary"
                   style={{
                     display: 'inline-flex',
@@ -4041,14 +3995,15 @@ export default function PaperDesignerV2() {
                     padding: '6px 14px',
                     fontSize: '11px',
                     fontWeight: 700,
-                    textDecoration: 'none',
                     borderRadius: '6px',
                     marginTop: '4px',
+                    border: 'none',
+                    cursor: 'pointer',
                   }}
                 >
                   <Printer size={13} />
-                  <span>معاينة وطباعة الفورمة الفارغة الآن (A4 بدون خطوط)</span>
-                </a>
+                  <span>طباعة الفورمة الفارغة الآن (A4 بدون خطوط)</span>
+                </button>
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px' }}>
@@ -4097,7 +4052,7 @@ export default function PaperDesignerV2() {
                               key={tIdx}
                               style={{
                                 borderBottom: tableRowBorders ? `1px solid ${borderColor}` : 'none',
-                                backgroundColor: isZebraRow ? 'rgba(0,0,0,0.025)' : 'transparent',
+                                backgroundColor: isZebraRow ? '#edf2f7' : 'transparent',
                               }}
                             >
                               {visibleCols.map((col) => {
@@ -4203,7 +4158,7 @@ export default function PaperDesignerV2() {
                           key={idx}
                           style={{
                             borderBottom: tableRowBorders ? `1px solid ${borderColor}` : 'none',
-                            backgroundColor: isZebraRow ? 'rgba(0,0,0,0.025)' : 'transparent',
+                            backgroundColor: isZebraRow ? '#edf2f7' : 'transparent',
                           }}
                         >
                           {visibleCols.map((col) => {

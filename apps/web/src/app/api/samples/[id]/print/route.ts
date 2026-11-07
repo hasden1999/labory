@@ -708,7 +708,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const renderFooter = (safeFooter: string, safeLabName: string) => {
     if (!showFooter) return '';
     return `
-      <div style="margin-top: 24px; border-top: 1px dashed #cbd5e1; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; color: #64748b; position: relative; z-index: 1;" dir="ltr">
+      <div style="margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #64748b; position: relative; z-index: 1;" dir="ltr">
         <div>
           <div>${safeFooter || 'This report has been electronically verified and clinically validated.'}</div>
           ${isPreprinted || !showLabName ? '' : `<div style="margin-top: 2px; color: #94a3b8;">${safeLabName} • Accredited Clinical Diagnostics</div>`}
@@ -1181,15 +1181,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
         padding: ${topMm}mm ${rightMm}mm ${bottomMm}mm ${leftMm}mm !important; 
         width: 100% !important; 
         max-width: none !important; 
-        min-height: 297mm !important;
-        height: 297mm !important;
+        min-height: 295mm !important; max-height: 297mm !important;
+        height: 296mm !important;
         margin: 0 !important; 
         border-radius: 0 !important; 
         display: flex !important;
         flex-direction: column !important;
         justify-content: space-between !important;
         box-sizing: border-box !important;
-        overflow: visible !important;
+        overflow: hidden !important; page-break-inside: avoid !important; break-inside: avoid !important;
         page-break-after: always;
         break-after: page;
         -webkit-print-color-adjust: exact !important; 
@@ -1202,7 +1202,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
           background-position: center top !important;
         ` : ''}
       }
-      .report-main-content {
+      .report-card:last-of-type { page-break-after: auto !important; break-after: auto !important; } .report-main-content {
         flex: 1 0 auto !important;
       }
       .report-footer-pinned {

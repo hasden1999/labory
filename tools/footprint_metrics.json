@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-11-07T12:11:37.573Z",
+  "timestamp": "2026-11-07T20:29:37.294Z",
   "engine": {
     "path": "apps/desktop/engine",
     "exists": true,
-    "sizeBytes": 197066413,
-    "sizeFormatted": "187.94 MB",
-    "fileCount": 6495
+    "sizeBytes": 197015514,
+    "sizeFormatted": "187.89 MB",
+    "fileCount": 6497
   },
   "standaloneNodeModules": {
     "path": "apps/desktop/engine/standalone/node_modules",
@@ -15,11 +15,11 @@
     "fileCount": 5988
   },
   "latestSetupExe": {
-    "fileName": "Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 2.1.4.exe",
-    "filePath": "apps/desktop/dist/Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 2.1.4.exe",
-    "sizeBytes": 113153451,
-    "sizeFormatted": "107.91 MB",
-    "modifiedTime": "2026-11-07T12:11:18.426Z"
+    "fileName": "Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 2.1.5.exe",
+    "filePath": "apps/desktop/dist/Labryo LIMS - نظام لابريو لإدارة المختبرات الطبية Setup 2.1.5.exe",
+    "sizeBytes": 113142009,
+    "sizeFormatted": "107.90 MB",
+    "modifiedTime": "2026-11-07T20:29:17.569Z"
   },
   "topNodeModulesFolders": [
     {

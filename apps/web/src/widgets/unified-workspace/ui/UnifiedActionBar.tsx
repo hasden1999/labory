@@ -16,6 +16,7 @@ import { UnifiedWorkspaceReturn } from '../model/types';
 import { useToast } from '../../../components/Toast';
 import { useLab } from '../../../components/LabContext';
 import { apiRequest } from '../../../lib/api';
+import { printUrlDirectly } from '../../../lib/printHelper';
 import { shareReportToWhatsApp, autoSendReportViaWhatsAppWeb } from '../../../lib/shareReportToWhatsApp';
 import {
   normalizeIraqiPhone,
@@ -265,8 +266,8 @@ export default function UnifiedActionBar({
         console.warn('Failed to auto-sync latest results before print:', err);
       }
     }
-    const printUrl = `/api/samples/${target.id}/print?autoprint=true&force=true`;
-    window.open(printUrl, '_blank');
+    const printUrl = `/api/samples/${target.id}/print?force=true`;
+    printUrlDirectly(printUrl);
   }, [savedSample, canSave, hasName, hasAge, hasSex, hasTests, handleSave, results, isComplete, toast]);
 
   // Send WhatsApp (F8)

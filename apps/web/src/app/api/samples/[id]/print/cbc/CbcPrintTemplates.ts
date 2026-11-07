@@ -64,80 +64,8 @@ export const CBC_LAYOUT_TEMPLATES: CbcLayoutTemplateMeta[] = [
     nameAr: '5. التصميم الكلاسيكي المعتمد (Classic 5-Part)',
     nameEn: 'Classic 5-Part Clinical Grid',
     badge: 'الافتراضي المعتمد',
-    descriptionAr: 'تخطيط ثنائي الأعمدة مع التفريق الخماسي ومنحنيات التوزيع وملاحظات المسحة المحيطية.',
+    descriptionAr: 'تخطيط ثنائي الأعمدة مع التفريق الخماسي ومنحنيات التوزيع ومؤشرات الدم المعتمدة.',
     accentColor: '#be123c',
-  },
-  {
-    id: 'ANALYZER_3PART_HISTOGRAM',
-    nameAr: '6. تصميم جهاز التحليل القياسي (3-Part Analyzer + Histograms)',
-    nameEn: 'Automated 3-Part Analyzer Report',
-    badge: 'مطابق لجهاز الدم',
-    descriptionAr: 'يحاكي ورقة جهاز فحص الدم (WBC/GRA/LYM/MID + RBC/RDWa + PLT/P-LCR/P-LCC) مع أسهم ▼/▲ والمنحنيات.',
-    accentColor: '#0284c7',
-  },
-  {
-    id: 'WITH_HISTOGRAMS',
-    nameAr: '3. جدول مع أشرطة مدى ومنحنيات (Range Bars & Histograms)',
-    nameEn: 'Visual Range Bars & Histograms',
-    badge: 'بصري متقدم',
-    descriptionAr: 'جدول سريري أنيق مدمج مع أشرطة موقع النتيجة ومنحنيات توزيع الكريات والصفائح.',
-    accentColor: '#0d9488',
-  },
-  {
-    id: 'COMPACT_GRID',
-    nameAr: '4. الشبكة المدمجة الاقتصادية (Compact In-Line Grid)',
-    nameEn: 'Compact Space-Saver Dual Grid',
-    badge: 'توفير مساحة',
-    descriptionAr: 'تصميم مدمج في عمودين متجاورين يستهلك مساحة قليلة ويسمح بطباعة فحوصات أخرى بنفس الورقة.',
-    accentColor: '#334155',
-  },
-  {
-    id: 'DUAL_COLUMN',
-    nameAr: '5. التقسيم الثنائي المتوازن (Balanced Dual Column)',
-    nameEn: 'Symmetric Dual-Column Hematology',
-    badge: 'ثنائي الأعمدة',
-    descriptionAr: 'فصل متناظر بين الكريات الحمراء والصفائح في عمود، والكريات البيضاء والتفريق في العمود المقابل.',
-    accentColor: '#1e3a8a',
-  },
-  {
-    id: 'PEDIATRIC_CARDS',
-    nameAr: '6. بطاقات الأطفال والعائلة (Pediatric & Family Cards)',
-    nameEn: 'Soft Pediatric & Family Care Cards',
-    badge: 'أطفال وعائلة',
-    descriptionAr: 'بطاقات ملونة ناعمة ومريحة بصرياً مناسبة لتقارير الأطفال والعيادات الاستشارية.',
-    accentColor: '#ea580c',
-  },
-  {
-    id: 'CLINICAL_MINIMAL',
-    nameAr: '7. الطبي التنفيذي لطابعات الليزر (Clinical Minimal B&W)',
-    nameEn: 'Executive Monochrome Laser Minimal',
-    badge: 'طابعات ليزر B&W',
-    descriptionAr: 'تصميم طبي نظيف بخطوط دقيقة بدون خلفيات داكنة لتوفير الحبر ووضوح فائق بالأسود والأبيض.',
-    accentColor: '#0f172a',
-  },
-  {
-    id: 'REFERENCE_BANDS',
-    nameAr: '8. أشرطة المدى المرجعي التفاعلية (Reference Bands)',
-    nameEn: 'Linear Reference Spectrum Bands',
-    badge: 'مؤشر بصري',
-    descriptionAr: 'يعرض موقع كل نتيجة بصرياً داخل شريط المدى الطبيعي بين الحد الأدنى والأعلى.',
-    accentColor: '#4338ca',
-  },
-  {
-    id: 'FLAG_FOCUS',
-    nameAr: '9. التركيز السريري على القيم الحرجة (Abnormal Flag Focus)',
-    nameEn: 'Clinical Abnormal Flag Spotlight',
-    badge: 'إبراز غير الطبيعي',
-    descriptionAr: 'يبرز القيم المرتفعة والمنخفضة (H/L / ▲/▼) بتظليل واضح مع ملخص علوي للتنبيهات السريرية.',
-    accentColor: '#dc2626',
-  },
-  {
-    id: 'FULL_DIFFERENTIAL',
-    nameAr: '10. التفصيلي الشامل 25+ معامل (Full 3-Part & 5-Part + Ratios)',
-    nameEn: 'Comprehensive 25+ Parameters & Indices',
-    badge: 'شامل 25+ معامل',
-    descriptionAr: 'يعرض كافة معاملات 3-Part و 5-Part بالنسبي والمطلق مع مؤشرات NLR و PLR و Mentzer Index.',
-    accentColor: '#7c3aed',
   },
 ];
 
@@ -485,31 +413,9 @@ function buildMentzerHtml(parsed: ParsedCbc, specialFormFontSize: number): strin
   return '';
 }
 
-function buildMorphologyAndCommentsHtml(parsed: ParsedCbc, settings: any, specialFormFontSize: number): string {
-  if (settings?.showClinicalComments === false) return '';
-  return `
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;" dir="ltr">
-      <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px;">
-        <div style="font-size: ${specialFormFontSize}px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#be123c" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
-          <span>PERIPHERAL BLOOD FILM MORPHOLOGY</span>
-        </div>
-        <div style="font-size: ${specialFormFontSize}px; color: #334155; line-height: 1.45;">
-          ${escapeHtml(parsed.morphology || 'Normocytic Normochromic red blood cells. Normal leukocyte morphology and adequate platelets on peripheral smear.')}
-        </div>
-      </div>
-
-      <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px;">
-        <div style="font-size: ${specialFormFontSize}px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-          <span>CLINICAL COMMENTS &amp; INTERPRETATION</span>
-        </div>
-        <div style="font-size: ${specialFormFontSize}px; color: #334155; line-height: 1.45;">
-          ${escapeHtml(parsed.comments || 'Normal hematological profile. Clinical correlation recommended.')}
-        </div>
-      </div>
-    </div>
-  `;
+function buildMorphologyAndCommentsHtml(_parsed: ParsedCbc, _settings: any, _specialFormFontSize: number): string {
+  // Removed per user requirement so CBC reports always fit cleanly on a single A4 page without bottom commentary boxes
+  return '';
 }
 
 export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
@@ -529,6 +435,12 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
     sample,
     patient,
   } = ctx;
+
+  const isZebra = Boolean(settings?.tableZebraStriping || settings?.tableStyle === 'zebra');
+  const zebraColor = '#edf2f7';
+  const printExactCss = '-webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;';
+  let cbcRowCounter = 0;
+  let diffRowCounter = 0;
 
   const rbcRef = isFemale ? '4.00 - 5.20' : '4.50 - 5.90';
   const rbcLow = isFemale ? 4.0 : 4.5;
@@ -568,6 +480,8 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
   );
 
   const renderCbcRow = (name: string, val: string, unit: string, ref: string, _low: number, _high: number, priorVal?: string) => {
+    const idx = cbcRowCounter++;
+    const rowBg = isZebra && idx % 2 === 1 ? zebraColor : 'transparent';
     const hasVal = val && val !== '-';
     const hasPrior = priorVal && priorVal !== '-';
     const evalResult = hasVal ? classifyResultRange(val, { low: _low, high: _high }) : null;
@@ -588,7 +502,7 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
     }
 
     return `
-      <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; font-size: ${specialFormFontSize}px;">
+      <tr style="background-color: ${rowBg}; ${printExactCss} border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; font-size: ${specialFormFontSize}px;">
         <td style="padding: ${customCellPadding}; font-weight: 700; color: #1e293b; text-align: left;">${name}</td>
         <td style="padding: ${customCellPadding}; font-weight: ${isAbnormal ? 900 : 800}; color: ${rowColor}; text-align: left;">
           ${hasVal ? `${escapeHtml(val)}${arrowHtml}` : '<span style="color:#94a3b8;">Pending</span>'}
@@ -604,6 +518,8 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
   };
 
   const renderDiffRow = (name: string, pctStr: string, refPct: string, _low: number, _high: number, wbcVal: number, priorPct?: string, explicitAbs?: string) => {
+    const idx = diffRowCounter++;
+    const rowBg = isZebra && idx % 2 === 1 ? zebraColor : 'transparent';
     const num = parseFloat(pctStr);
     const hasVal = pctStr && pctStr !== '-';
     const evalResult = hasVal ? classifyResultRange(pctStr, { low: _low, high: _high }) : null;
@@ -630,7 +546,7 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
     }
 
     return `
-      <tr style="border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; font-size: ${specialFormFontSize}px;">
+      <tr style="background-color: ${rowBg}; ${printExactCss} border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; font-size: ${specialFormFontSize}px;">
         <td style="padding: ${customCellPadding}; font-weight: 700; color: #1e293b; text-align: left;">${name}</td>
         <td style="padding: ${customCellPadding}; font-weight: ${isAbnormal ? 900 : 800}; color: ${diffColor}; text-align: left;">
           ${hasVal ? `${escapeHtml(pctStr)} %${arrowHtml}` : '<span style="color:#94a3b8;">Pending</span>'}
@@ -651,7 +567,10 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
   // 1. SWELAB_3PART / ANALYZER_3PART_HISTOGRAM (Exact Match to Swelab Paper)
   // =========================================================================
   if (layout === 'SWELAB_3PART' || layout === 'ANALYZER_3PART_HISTOGRAM') {
+    let swelabRowIdx = 0;
     const renderSwelabRow = (name: string, val: string, unit: string, low: number, high: number, isResearch = false, explicitRef?: string) => {
+      const idx = swelabRowIdx++;
+      const rowBg = isZebra && idx % 2 === 1 ? zebraColor : 'transparent';
       const f = evalFlag(val, low, high);
       const arrow = f.isHigh
         ? '<span style="color:#dc2626; font-weight:900; margin-left:3px;">&#9650;</span>'
@@ -661,49 +580,49 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
       const nameDisplay = isResearch ? `${name}*` : name;
       const rangeText = explicitRef || `${low.toFixed(low % 1 === 0 ? 0 : 1)} : ${high.toFixed(high % 1 === 0 ? 0 : 1)}`;
       return `
-        <tr style="border-bottom: 1px dashed #e2e8f0; font-size: ${specialFormFontSize}px; font-family: 'Consolas', 'Courier New', monospace;">
-          <td style="padding: 3px 6px; font-weight: 800; color: #0f172a; width: 25%;">${nameDisplay}</td>
-          <td style="padding: 3px 6px; font-weight: 900; color: #0f172a; width: 25%;">
+        <tr style="background-color: ${rowBg}; ${printExactCss} border-bottom: 1px dashed #e2e8f0; font-size: ${specialFormFontSize}px; font-family: 'Consolas', 'Courier New', monospace;">
+          <td style="padding: 2px 6px; font-weight: 800; color: #0f172a; width: 25%;">${nameDisplay}</td>
+          <td style="padding: 2px 6px; font-weight: 900; color: #0f172a; width: 25%;">
             ${f.hasVal ? `${escapeHtml(val)} ${arrow}` : '<span style="color:#94a3b8;">-</span>'}
           </td>
-          <td style="padding: 3px 6px; color: #475569; font-weight: 600; font-size: ${Math.max(9.5, specialFormFontSize - 1.5)}px; width: 22%;">${unit}</td>
-          <td style="padding: 3px 6px; color: #334155; font-weight: 700; text-align: right; width: 28%;"><span dir="ltr" style="unicode-bidi:isolate;">${rangeText}</span></td>
+          <td style="padding: 2px 6px; color: #475569; font-weight: 600; font-size: ${Math.max(9.5, specialFormFontSize - 1.5)}px; width: 22%;">${unit}</td>
+          <td style="padding: 2px 6px; color: #334155; font-weight: 700; text-align: right; width: 28%;"><span dir="ltr" style="unicode-bidi:isolate;">${rangeText}</span></td>
         </tr>
       `;
     };
 
-    const renderSwelabCurveSvg = (type: 'WBC' | 'RBC' | 'PLT', width = 280, height = 105): string => {
+    const renderSwelabCurveSvg = (type: 'WBC' | 'RBC' | 'PLT', width = 260, height = 88): string => {
       const maxLabel = type === 'WBC' ? '450' : type === 'RBC' ? '250' : '30';
       const midLabel = type === 'WBC' ? '225' : type === 'RBC' ? '125' : '15';
       let curvePath = '';
       let discriminators: number[] = [];
 
       if (type === 'WBC') {
-        curvePath = `M 15 ${height - 22} Q 30 ${height - 22}, 42 ${height - 68} Q 52 ${height - 85}, 62 ${height - 52} Q 72 ${height - 42}, 85 ${height - 46} Q 105 ${height - 75}, 125 ${height - 88} Q 145 ${height - 70}, 165 ${height - 35} Q 185 ${height - 23}, 225 ${height - 22}`;
+        curvePath = `M 15 ${height - 18} Q 30 ${height - 18}, 42 ${height - 56} Q 52 ${height - 72}, 62 ${height - 44} Q 72 ${height - 36}, 85 ${height - 40} Q 105 ${height - 64}, 125 ${height - 75} Q 145 ${height - 60}, 165 ${height - 30} Q 185 ${height - 19}, 225 ${height - 18}`;
         discriminators = [55, 80];
       } else if (type === 'RBC') {
-        curvePath = `M 15 ${height - 22} Q 35 ${height - 22}, 50 ${height - 45} Q 70 ${height - 90}, 90 ${height - 75} Q 115 ${height - 40}, 145 ${height - 24} Q 180 ${height - 22}, 225 ${height - 22}`;
+        curvePath = `M 15 ${height - 18} Q 35 ${height - 18}, 50 ${height - 38} Q 70 ${height - 76}, 90 ${height - 64} Q 115 ${height - 34}, 145 ${height - 20} Q 180 ${height - 18}, 225 ${height - 18}`;
         discriminators = [42, 135];
       } else {
-        curvePath = `M 15 ${height - 22} Q 25 ${height - 70}, 38 ${height - 88} Q 55 ${height - 65}, 75 ${height - 38} Q 110 ${height - 24}, 160 ${height - 22} L 225 ${height - 22}`;
+        curvePath = `M 15 ${height - 18} Q 25 ${height - 60}, 38 ${height - 75} Q 55 ${height - 55}, 75 ${height - 32} Q 110 ${height - 20}, 160 ${height - 18} L 225 ${height - 18}`;
         discriminators = [95];
       }
 
       const discLines = discriminators.map(x => `
-        <line x1="${x}" y1="12" x2="${x}" y2="${height - 22}" stroke="#64748b" stroke-width="1.2" stroke-dasharray="3 3"/>
+        <line x1="${x}" y1="8" x2="${x}" y2="${height - 18}" stroke="#64748b" stroke-width="1.2" stroke-dasharray="3 3"/>
       `).join('');
 
       return `
-        <div style="background:#ffffff; border:1px solid #94a3b8; border-radius:4px; padding:4px 6px; width:100%; max-width:${width}px;">
+        <div style="background:#ffffff; border:1px solid #94a3b8; border-radius:4px; padding:3px 6px; width:100%; max-width:${width}px;">
           <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow:visible; display:block;">
-            <line x1="15" y1="10" x2="15" y2="${height - 22}" stroke="#0f172a" stroke-width="1.5"/>
-            <line x1="15" y1="${height - 22}" x2="${width - 10}" y2="${height - 22}" stroke="#0f172a" stroke-width="1.5"/>
+            <line x1="15" y1="8" x2="15" y2="${height - 18}" stroke="#0f172a" stroke-width="1.5"/>
+            <line x1="15" y1="${height - 18}" x2="${width - 10}" y2="${height - 18}" stroke="#0f172a" stroke-width="1.5"/>
             ${discLines}
-            <path d="${curvePath} L 225 ${height - 22} Z" fill="rgba(15, 23, 42, 0.08)"/>
+            <path d="${curvePath} L 225 ${height - 18} Z" fill="rgba(15, 23, 42, 0.08)"/>
             <path d="${curvePath}" fill="none" stroke="#0f172a" stroke-width="1.8"/>
-            <text x="15" y="${height - 6}" font-size="11" font-weight="800" fill="#0f172a" font-family="'Consolas', 'Courier New', monospace">${type}</text>
-            <text x="${(width - 25) / 2}" y="${height - 6}" font-size="11" font-weight="700" fill="#334155" text-anchor="middle" font-family="'Consolas', 'Courier New', monospace">${midLabel}</text>
-            <text x="${width - 15}" y="${height - 6}" font-size="11" font-weight="700" fill="#334155" text-anchor="end" font-family="'Consolas', 'Courier New', monospace">${maxLabel} fl</text>
+            <text x="15" y="${height - 4}" font-size="10.5" font-weight="800" fill="#0f172a" font-family="'Consolas', 'Courier New', monospace">${type}</text>
+            <text x="${(width - 25) / 2}" y="${height - 4}" font-size="10.5" font-weight="700" fill="#334155" text-anchor="middle" font-family="'Consolas', 'Courier New', monospace">${midLabel}</text>
+            <text x="${width - 15}" y="${height - 4}" font-size="10.5" font-weight="700" fill="#334155" text-anchor="end" font-family="'Consolas', 'Courier New', monospace">${maxLabel} fl</text>
           </svg>
         </div>
       `;
@@ -715,14 +634,14 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
     const timeFormatted = !isNaN(sampleDate.getTime()) ? sampleDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '04:24';
 
     return `
-      <div style="border: 2px solid #0f172a; border-radius: 8px; overflow: hidden; margin-bottom: 12px; background: #ffffff; font-family: 'Consolas', 'Courier New', monospace;" dir="ltr">
-        <div style="background: ${headerBgColor || '#0f172a'}; color: #ffffff; padding: 8px 14px; display: flex; justify-content: space-between; align-items: center; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
-          <span style="font-weight: 900; font-size: ${specialFormFontSize + 1}px; letter-spacing: 0.4px;">SWELAB ALFA / LUMI 3-PART HEMATOLOGY ANALYZER REPORT</span>
-          <span style="font-size: 10px; background: rgba(255,255,255,0.18); padding: 2px 8px; border-radius: 4px; font-family: monospace;">Boule Diagnostics Format</span>
+      <div style="border: 2px solid #0f172a; border-radius: 8px; overflow: hidden; margin-bottom: 4px; background: #ffffff; font-family: 'Consolas', 'Courier New', monospace;" dir="ltr">
+        <div style="background: ${headerBgColor || '#0f172a'}; color: #ffffff; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+          <span style="font-weight: 900; font-size: ${specialFormFontSize + 0.5}px; letter-spacing: 0.4px;">SWELAB ALFA / LUMI 3-PART HEMATOLOGY ANALYZER REPORT</span>
+          <span style="font-size: 9.5px; background: rgba(255,255,255,0.18); padding: 2px 8px; border-radius: 4px; font-family: monospace;">Boule Diagnostics Format</span>
         </div>
 
         <!-- Analyzer Header Metadata (Matching Swelab Slip) -->
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px 14px; padding: 8px 14px; background: #f8fafc; border-bottom: 1.5px solid #cbd5e1; font-size: 11.5px;">
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px 12px; padding: 6px 12px; background: #f8fafc; border-bottom: 1.5px solid #cbd5e1; font-size: 11px;">
           <div><strong style="color:#64748b;">ID 1:</strong> <span style="color:#0f172a; font-weight:800;">${escapeHtml(sample?.barcode || sample?.sampleNumber || '1')}</span></div>
           <div><strong style="color:#64748b;">Seq:</strong> <span style="color:#0f172a; font-weight:800;">${escapeHtml(String(seqVal))}</span></div>
           <div><strong style="color:#64748b;">Date:</strong> <span style="color:#0f172a; font-weight:800;">${dateFormatted}</span></div>
@@ -733,10 +652,10 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
           <div><strong style="color:#64748b;">Notes:</strong> <span style="color:#0f172a; font-weight:800;">-</span></div>
         </div>
 
-        <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 14px;" dir="ltr">
+        <div style="padding: 8px 12px; display: flex; flex-direction: column; gap: 8px;" dir="ltr">
           ${hasWbc ? `
           <!-- 1. WBC Section with Horizontal Alignment to Histogram -->
-          <div style="display: grid; grid-template-columns: 1.35fr 1fr; gap: 14px; align-items: center; ${hasRbc || hasPlt ? 'border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;' : ''}">
+          <div style="display: grid; grid-template-columns: 1.35fr 1fr; gap: 12px; align-items: center; ${hasRbc || hasPlt ? 'border-bottom: 1px dashed #cbd5e1; padding-bottom: 6px;' : ''}">
             <div>
               <table style="width: 100%; border-collapse: collapse;">
                 <thead>
@@ -759,14 +678,14 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
               </table>
             </div>
             <div style="display: flex; justify-content: center;">
-              ${renderSwelabCurveSvg('WBC', 260, 105)}
+              ${renderSwelabCurveSvg('WBC', 250, 86)}
             </div>
           </div>
           ` : ''}
 
           ${hasRbc ? `
           <!-- 2. RBC Section with Horizontal Alignment to Histogram -->
-          <div style="display: grid; grid-template-columns: 1.35fr 1fr; gap: 14px; align-items: center; ${hasPlt ? 'border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;' : ''}">
+          <div style="display: grid; grid-template-columns: 1.35fr 1fr; gap: 12px; align-items: center; ${hasPlt ? 'border-bottom: 1px dashed #cbd5e1; padding-bottom: 6px;' : ''}">
             <div>
               <table style="width: 100%; border-collapse: collapse;">
                 <thead>
@@ -790,14 +709,14 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
               </table>
             </div>
             <div style="display: flex; justify-content: center;">
-              ${renderSwelabCurveSvg('RBC', 260, 105)}
+              ${renderSwelabCurveSvg('RBC', 250, 86)}
             </div>
           </div>
           ` : ''}
 
           ${hasPlt ? `
           <!-- 3. PLT Section with Horizontal Alignment to Histogram -->
-          <div style="display: grid; grid-template-columns: 1.35fr 1fr; gap: 14px; align-items: center;">
+          <div style="display: grid; grid-template-columns: 1.35fr 1fr; gap: 12px; align-items: center;">
             <div>
               <table style="width: 100%; border-collapse: collapse;">
                 <thead>
@@ -820,18 +739,17 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
               </table>
             </div>
             <div style="display: flex; justify-content: center;">
-              ${renderSwelabCurveSvg('PLT', 260, 105)}
+              ${renderSwelabCurveSvg('PLT', 250, 86)}
             </div>
           </div>
           ` : ''}
         </div>
 
-        <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 8px 14px; font-size: 10.5px; color: #475569; display: flex; justify-content: space-between;">
+        <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 5px 12px; font-size: 10px; color: #475569; display: flex; justify-content: space-between;">
           <span><strong>Flags:</strong> <strong style="color:#dc2626;">▲ High</strong> &bull; <strong style="color:#2563eb;">▼ Low</strong> &bull; <strong>*</strong> Research parameter</span>
           <span><strong>Swelab / Boule Diagnostics Compatible</strong></span>
         </div>
       </div>
-      ${buildMorphologyAndCommentsHtml(parsed, settings, specialFormFontSize)}
     `;
   }
 
@@ -839,37 +757,40 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
   // 2. MINDRAY_3PART (Standard Mindray BC-3000 Plus / BC-20s / BC-30s)
   // =========================================================================
   if (layout === 'MINDRAY_3PART') {
-    const renderMindrayRow = (param: string, val: string, unit: string, low: number, high: number) => {
+    let mindrayRowIdx = 0;
+    const renderMindrayRow = (param: string, val: string, unit: string, low: number, high: number, sectionBg = 'transparent') => {
+      const idx = mindrayRowIdx++;
+      const rowBg = isZebra ? (idx % 2 === 1 ? zebraColor : 'transparent') : sectionBg;
       const f = evalFlag(val, low, high);
       const flagStr = f.isHigh ? '<span style="color:#dc2626; font-weight:900;">H</span>' : f.isLow ? '<span style="color:#2563eb; font-weight:900;">L</span>' : '';
       return `
-        <tr style="border-bottom: 1px solid #f1f5f9; font-size: ${specialFormFontSize}px; font-family: 'Consolas', 'Segoe UI', monospace;">
-          <td style="padding: 2.5px 6px; font-weight: 700; color: #0f172a;">${param}</td>
-          <td style="padding: 2.5px 6px; text-align: right; font-weight: 800; color: #0f172a;">${f.hasVal ? escapeHtml(val) : '-'}</td>
-          <td style="padding: 2.5px 4px; text-align: center; width: 28px;">${flagStr}</td>
-          <td style="padding: 2.5px 6px; color: #64748b; font-size: 11px;">${unit}</td>
-          <td style="padding: 2.5px 6px; text-align: right; color: #334155; font-size: 11px;"><span dir="ltr" style="unicode-bidi:isolate;">${low} - ${high}</span></td>
+        <tr style="background-color: ${rowBg}; ${printExactCss} border-bottom: 1px solid #f1f5f9; font-size: ${specialFormFontSize}px; font-family: 'Consolas', 'Segoe UI', monospace;">
+          <td style="padding: 1.8px 6px; font-weight: 700; color: #0f172a;">${param}</td>
+          <td style="padding: 1.8px 6px; text-align: right; font-weight: 800; color: #0f172a;">${f.hasVal ? escapeHtml(val) : '-'}</td>
+          <td style="padding: 1.8px 4px; text-align: center; width: 28px;">${flagStr}</td>
+          <td style="padding: 1.8px 6px; color: #64748b; font-size: 10.5px;">${unit}</td>
+          <td style="padding: 1.8px 6px; text-align: right; color: #334155; font-size: 10.5px;"><span dir="ltr" style="unicode-bidi:isolate;">${low} - ${high}</span></td>
         </tr>
       `;
     };
 
     return `
-      <div style="border: 2px solid #0284c7; border-radius: 8px; overflow: hidden; margin-bottom: 12px; background: #ffffff;" dir="ltr">
-        <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; padding: 8px 14px; display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-weight: 900; font-size: ${specialFormFontSize + 1}px;">MINDRAY AUTO HEMATOLOGY ANALYZER REPORT (BC-30 / BC-30S / BC-20S)</span>
-          <span style="font-size: 10px; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 4px; font-family: monospace;">Mindray 3-Part (21 Params)</span>
+      <div style="border: 2px solid #0284c7; border-radius: 8px; overflow: hidden; margin-bottom: 4px; background: #ffffff;" dir="ltr">
+        <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 900; font-size: ${specialFormFontSize + 0.5}px;">MINDRAY AUTO HEMATOLOGY ANALYZER REPORT (BC-30 / BC-30S / BC-20S)</span>
+          <span style="font-size: 9.5px; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 4px; font-family: monospace;">Mindray 3-Part (21 Params)</span>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; padding: 12px;">
+        <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; padding: 8px 12px;">
           <div>
             <table style="width: 100%; border-collapse: collapse;">
               <thead>
-                <tr style="background: #e0f2fe; color: #0369a1; font-size: 10.5px; font-weight: 800; border-bottom: 1px solid #bae6fd;">
-                  <th style="padding: 4px 6px; text-align: left;">Parameter</th>
-                  <th style="padding: 4px 6px; text-align: right;">Result</th>
-                  <th style="padding: 4px 4px; text-align: center;">Flag</th>
-                  <th style="padding: 4px 6px; text-align: left;">Unit</th>
-                  <th style="padding: 4px 6px; text-align: right;">Ref. Range</th>
+                <tr style="background: #e0f2fe; color: #0369a1; font-size: 10px; font-weight: 800; border-bottom: 1px solid #bae6fd;">
+                  <th style="padding: 3px 6px; text-align: left;">Parameter</th>
+                  <th style="padding: 3px 6px; text-align: right;">Result</th>
+                  <th style="padding: 3px 4px; text-align: center;">Flag</th>
+                  <th style="padding: 3px 6px; text-align: left;">Unit</th>
+                  <th style="padding: 3px 6px; text-align: right;">Ref. Range</th>
                 </tr>
               </thead>
               <tbody>
@@ -883,14 +804,14 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
                 ${renderMindrayRow('Gran%', parsed.graPct, '%', 50.0, 70.0)}
                 ` : ''}
                 ${hasRbc ? `
-                <tr style="background:#f8fafc;">${renderMindrayRow('RBC', parsed.rbc, '10^12/L', 3.50, 5.50)}</tr>
-                <tr style="background:#f8fafc;">${renderMindrayRow('HGB', parsed.hgb, 'g/dL', 11.0, 16.0)}</tr>
-                <tr style="background:#f8fafc;">${renderMindrayRow('HCT', parsed.hct, '%', 36.0, 50.0)}</tr>
-                <tr style="background:#f8fafc;">${renderMindrayRow('MCV', parsed.mcv, 'fL', 80.0, 100.0)}</tr>
-                <tr style="background:#f8fafc;">${renderMindrayRow('MCH', parsed.mch, 'pg', 27.0, 34.0)}</tr>
-                <tr style="background:#f8fafc;">${renderMindrayRow('MCHC', parsed.mchc, 'g/dL', 32.0, 36.0)}</tr>
-                <tr style="background:#f8fafc;">${renderMindrayRow('RDW-CV', parsed.rdw, '%', 11.0, 16.0)}</tr>
-                <tr style="background:#f8fafc;">${renderMindrayRow('RDW-SD', parsed.rdwSd, 'fL', 35.0, 56.0)}</tr>
+                ${renderMindrayRow('RBC', parsed.rbc, '10^12/L', 3.50, 5.50, '#f8fafc')}
+                ${renderMindrayRow('HGB', parsed.hgb, 'g/dL', 11.0, 16.0, '#f8fafc')}
+                ${renderMindrayRow('HCT', parsed.hct, '%', 36.0, 50.0, '#f8fafc')}
+                ${renderMindrayRow('MCV', parsed.mcv, 'fL', 80.0, 100.0, '#f8fafc')}
+                ${renderMindrayRow('MCH', parsed.mch, 'pg', 27.0, 34.0, '#f8fafc')}
+                ${renderMindrayRow('MCHC', parsed.mchc, 'g/dL', 32.0, 36.0, '#f8fafc')}
+                ${renderMindrayRow('RDW-CV', parsed.rdw, '%', 11.0, 16.0, '#f8fafc')}
+                ${renderMindrayRow('RDW-SD', parsed.rdwSd, 'fL', 35.0, 56.0, '#f8fafc')}
                 ` : ''}
                 ${hasPlt ? `
                 ${renderMindrayRow('PLT', parsed.plt, '10^9/L', 100, 300)}
@@ -904,19 +825,18 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
             </table>
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 8px;">
-            ${hasWbc ? generateHistogramSvg('WBC', (cbc as any).wbcCurve, 260, 90) : ''}
-            ${hasRbc ? generateHistogramSvg('RBC', (cbc as any).rbcCurve, 260, 90) : ''}
-            ${hasPlt ? generateHistogramSvg('PLT', (cbc as any).pltCurve, 260, 90) : ''}
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            ${hasWbc ? generateHistogramSvg('WBC', (cbc as any).wbcCurve, 250, 80) : ''}
+            ${hasRbc ? generateHistogramSvg('RBC', (cbc as any).rbcCurve, 250, 80) : ''}
+            ${hasPlt ? generateHistogramSvg('PLT', (cbc as any).pltCurve, 250, 80) : ''}
             ${mentzerHtml}
           </div>
         </div>
-        <div style="padding: 6px 12px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 10.5px; color: #64748b; display: flex; justify-content: space-between;">
+        <div style="padding: 4px 12px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 10px; color: #64748b; display: flex; justify-content: space-between;">
           <span><strong>Flags:</strong> <strong style="color:#dc2626;">H</strong> = High &bull; <strong style="color:#2563eb;">L</strong> = Low</span>
           <span><strong>Mindray Biomedical Standard Protocol</strong></span>
         </div>
       </div>
-      ${buildMorphologyAndCommentsHtml(parsed, settings, specialFormFontSize)}
     `;
   }
 
@@ -924,37 +844,40 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
   // 3. MINDRAY_5PART (Mindray BC-5000 / BC-5150 with Laser Scattergram)
   // =========================================================================
   if (layout === 'MINDRAY_5PART') {
-    const renderMindray5Row = (param: string, val: string, unit: string, low: number, high: number) => {
+    let mindray5RowIdx = 0;
+    const renderMindray5Row = (param: string, val: string, unit: string, low: number, high: number, sectionBg = 'transparent') => {
+      const idx = mindray5RowIdx++;
+      const rowBg = isZebra ? (idx % 2 === 1 ? zebraColor : 'transparent') : sectionBg;
       const f = evalFlag(val, low, high);
       const flagStr = f.isHigh ? '<span style="color:#dc2626; font-weight:900;">H</span>' : f.isLow ? '<span style="color:#2563eb; font-weight:900;">L</span>' : '';
       return `
-        <tr style="border-bottom: 1px solid #f1f5f9; font-size: ${Math.max(10, specialFormFontSize - 0.5)}px; font-family: 'Consolas', monospace;">
-          <td style="padding: 2px 6px; font-weight: 700; color: #0f172a;">${param}</td>
-          <td style="padding: 2px 6px; text-align: right; font-weight: 800; color: #0f172a;">${f.hasVal ? escapeHtml(val) : '-'}</td>
-          <td style="padding: 2px 2px; text-align: center; width: 22px;">${flagStr}</td>
-          <td style="padding: 2px 4px; color: #64748b; font-size: 10px;">${unit}</td>
-          <td style="padding: 2px 6px; text-align: right; color: #334155; font-size: 10px;"><span dir="ltr" style="unicode-bidi:isolate;">${low} - ${high}</span></td>
+        <tr style="background-color: ${rowBg}; ${printExactCss} border-bottom: 1px solid #f1f5f9; font-size: ${Math.max(9.5, specialFormFontSize - 0.5)}px; font-family: 'Consolas', monospace;">
+          <td style="padding: 1.5px 6px; font-weight: 700; color: #0f172a;">${param}</td>
+          <td style="padding: 1.5px 6px; text-align: right; font-weight: 800; color: #0f172a;">${f.hasVal ? escapeHtml(val) : '-'}</td>
+          <td style="padding: 1.5px 2px; text-align: center; width: 22px;">${flagStr}</td>
+          <td style="padding: 1.5px 4px; color: #64748b; font-size: 9.5px;">${unit}</td>
+          <td style="padding: 1.5px 6px; text-align: right; color: #334155; font-size: 9.5px;"><span dir="ltr" style="unicode-bidi:isolate;">${low} - ${high}</span></td>
         </tr>
       `;
     };
 
     return `
-      <div style="border: 2px solid #7c3aed; border-radius: 8px; overflow: hidden; margin-bottom: 12px; background: #ffffff;" dir="ltr">
-        <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: #ffffff; padding: 8px 14px; display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-weight: 900; font-size: ${specialFormFontSize + 1}px;">MINDRAY 5-PART AUTO HEMATOLOGY ANALYZER REPORT (BC-5000 / BC-5150)</span>
-          <span style="font-size: 10px; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 4px; font-family: monospace;">Laser Scattergram</span>
+      <div style="border: 2px solid #7c3aed; border-radius: 8px; overflow: hidden; margin-bottom: 4px; background: #ffffff;" dir="ltr">
+        <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: #ffffff; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 900; font-size: ${specialFormFontSize + 0.5}px;">MINDRAY 5-PART AUTO HEMATOLOGY ANALYZER REPORT (BC-5000 / BC-5150)</span>
+          <span style="font-size: 9.5px; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 4px; font-family: monospace;">Laser Scattergram</span>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; padding: 12px;">
+        <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; padding: 8px 12px;">
           <div>
             <table style="width: 100%; border-collapse: collapse;">
               <thead>
-                <tr style="background: #f5f3ff; color: #6d28d9; font-size: 10px; font-weight: 800; border-bottom: 1px solid #ddd6fe;">
-                  <th style="padding: 3px 6px; text-align: left;">Parameter</th>
-                  <th style="padding: 3px 6px; text-align: right;">Result</th>
-                  <th style="padding: 3px 2px; text-align: center;">Flag</th>
-                  <th style="padding: 3px 4px; text-align: left;">Unit</th>
-                  <th style="padding: 3px 6px; text-align: right;">Ref. Range</th>
+                <tr style="background: #f5f3ff; color: #6d28d9; font-size: 9.5px; font-weight: 800; border-bottom: 1px solid #ddd6fe;">
+                  <th style="padding: 2.5px 6px; text-align: left;">Parameter</th>
+                  <th style="padding: 2.5px 6px; text-align: right;">Result</th>
+                  <th style="padding: 2.5px 2px; text-align: center;">Flag</th>
+                  <th style="padding: 2.5px 4px; text-align: left;">Unit</th>
+                  <th style="padding: 2.5px 6px; text-align: right;">Ref. Range</th>
                 </tr>
               </thead>
               <tbody>
@@ -972,14 +895,14 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
                 ${renderMindray5Row('Bas%', parsed.basophils, '%', 0.0, 1.0)}
                 ` : ''}
                 ${hasRbc ? `
-                <tr style="background:#f8fafc;">${renderMindray5Row('RBC', parsed.rbc, '10^12/L', 3.50, 5.50)}</tr>
-                <tr style="background:#f8fafc;">${renderMindray5Row('HGB', parsed.hgb, 'g/dL', 11.0, 16.0)}</tr>
-                <tr style="background:#f8fafc;">${renderMindray5Row('HCT', parsed.hct, '%', 36.0, 50.0)}</tr>
-                <tr style="background:#f8fafc;">${renderMindray5Row('MCV', parsed.mcv, 'fL', 80.0, 100.0)}</tr>
-                <tr style="background:#f8fafc;">${renderMindray5Row('MCH', parsed.mch, 'pg', 27.0, 34.0)}</tr>
-                <tr style="background:#f8fafc;">${renderMindray5Row('MCHC', parsed.mchc, 'g/dL', 32.0, 36.0)}</tr>
-                <tr style="background:#f8fafc;">${renderMindray5Row('RDW-CV', parsed.rdw, '%', 11.0, 16.0)}</tr>
-                <tr style="background:#f8fafc;">${renderMindray5Row('RDW-SD', parsed.rdwSd, 'fL', 35.0, 56.0)}</tr>
+                ${renderMindray5Row('RBC', parsed.rbc, '10^12/L', 3.50, 5.50, '#f8fafc')}
+                ${renderMindray5Row('HGB', parsed.hgb, 'g/dL', 11.0, 16.0, '#f8fafc')}
+                ${renderMindray5Row('HCT', parsed.hct, '%', 36.0, 50.0, '#f8fafc')}
+                ${renderMindray5Row('MCV', parsed.mcv, 'fL', 80.0, 100.0, '#f8fafc')}
+                ${renderMindray5Row('MCH', parsed.mch, 'pg', 27.0, 34.0, '#f8fafc')}
+                ${renderMindray5Row('MCHC', parsed.mchc, 'g/dL', 32.0, 36.0, '#f8fafc')}
+                ${renderMindray5Row('RDW-CV', parsed.rdw, '%', 11.0, 16.0, '#f8fafc')}
+                ${renderMindray5Row('RDW-SD', parsed.rdwSd, 'fL', 35.0, 56.0, '#f8fafc')}
                 ` : ''}
                 ${hasPlt ? `
                 ${renderMindray5Row('PLT', parsed.plt, '10^9/L', 100, 300)}
@@ -991,22 +914,22 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
             </table>
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
             ${hasWbc ? `
             <!-- Laser 2D Scattergram -->
-            <div style="background:#ffffff; border:1px solid #7c3aed; border-radius:6px; padding:6px 8px;">
-              <div style="display:flex; justify-content:space-between; font-size:9.5px; font-weight:800; color:#6d28d9; margin-bottom:2px;">
+            <div style="background:#ffffff; border:1px solid #7c3aed; border-radius:6px; padding:4px 6px;">
+              <div style="display:flex; justify-content:space-between; font-size:9px; font-weight:800; color:#6d28d9; margin-bottom:2px;">
                 <span>DIFF SCATTERGRAM</span>
                 <span>SEMICONDUCTOR LASER</span>
               </div>
-              <svg width="100%" height="95" viewBox="0 0 240 95" style="background:#f8fafc; border:1px solid #ddd6fe; border-radius:4px; display:block;">
-                <line x1="20" y1="10" x2="20" y2="78" stroke="#94a3b8" stroke-width="1"/>
-                <line x1="20" y1="78" x2="230" y2="78" stroke="#94a3b8" stroke-width="1"/>
-                <ellipse cx="140" cy="40" rx="26" ry="16" fill="rgba(37, 99, 235, 0.45)"/>
-                <ellipse cx="65" cy="65" rx="18" ry="14" fill="rgba(22, 163, 74, 0.5)"/>
-                <ellipse cx="85" cy="45" rx="15" ry="12" fill="rgba(147, 51, 234, 0.5)"/>
-                <ellipse cx="175" cy="25" rx="14" ry="10" fill="rgba(220, 38, 38, 0.55)"/>
-                <ellipse cx="50" cy="72" rx="10" ry="7" fill="rgba(234, 88, 12, 0.5)"/>
+              <svg width="100%" height="84" viewBox="0 0 240 84" style="background:#f8fafc; border:1px solid #ddd6fe; border-radius:4px; display:block;">
+                <line x1="20" y1="8" x2="20" y2="70" stroke="#94a3b8" stroke-width="1"/>
+                <line x1="20" y1="70" x2="230" y2="70" stroke="#94a3b8" stroke-width="1"/>
+                <ellipse cx="140" cy="36" rx="26" ry="15" fill="rgba(37, 99, 235, 0.45)"/>
+                <ellipse cx="65" cy="58" rx="18" ry="13" fill="rgba(22, 163, 74, 0.5)"/>
+                <ellipse cx="85" cy="40" rx="15" ry="11" fill="rgba(147, 51, 234, 0.5)"/>
+                <ellipse cx="175" cy="22" rx="14" ry="9" fill="rgba(220, 38, 38, 0.55)"/>
+                <ellipse cx="50" cy="64" rx="10" ry="6" fill="rgba(234, 88, 12, 0.5)"/>
               </svg>
               <div style="display:flex; gap:6px; font-size:8px; margin-top:2px; justify-content:center; color:#334155; font-weight:700;">
                 <span style="color:#2563eb;">■ Neu</span>
@@ -1016,13 +939,12 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
                 <span style="color:#ea580c;">■ Bas</span>
               </div>
             </div>` : ''}
-            ${hasRbc ? generateHistogramSvg('RBC', (cbc as any).rbcCurve, 260, 75) : ''}
-            ${hasPlt ? generateHistogramSvg('PLT', (cbc as any).pltCurve, 260, 75) : ''}
+            ${hasRbc ? generateHistogramSvg('RBC', (cbc as any).rbcCurve, 250, 72) : ''}
+            ${hasPlt ? generateHistogramSvg('PLT', (cbc as any).pltCurve, 250, 72) : ''}
             ${mentzerHtml}
           </div>
         </div>
       </div>
-      ${buildMorphologyAndCommentsHtml(parsed, settings, specialFormFontSize)}
     `;
   }
 
@@ -1030,37 +952,40 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
   // 4. SYSMEX_3PART (Sysmex XP-300 / KX-21N Standard)
   // =========================================================================
   if (layout === 'SYSMEX_3PART') {
+    let sysmexRowIdx = 0;
     const renderSysmexRow = (param: string, val: string, unit: string, low: number, high: number) => {
+      const idx = sysmexRowIdx++;
+      const rowBg = isZebra && idx % 2 === 1 ? zebraColor : 'transparent';
       const f = evalFlag(val, low, high);
       const flagStr = f.isHigh ? '<span style="color:#dc2626; font-weight:900;">+</span>' : f.isLow ? '<span style="color:#2563eb; font-weight:900;">-</span>' : '';
       return `
-        <tr style="border-bottom: 1px solid #f1f5f9; font-size: ${specialFormFontSize}px; font-family: 'Consolas', monospace;">
-          <td style="padding: 2.5px 6px; font-weight: 700; color: #0f172a;">${param}</td>
-          <td style="padding: 2.5px 6px; text-align: right; font-weight: 800; color: #0f172a;">${f.hasVal ? escapeHtml(val) : '-'}</td>
-          <td style="padding: 2.5px 4px; text-align: center; width: 22px;">${flagStr}</td>
-          <td style="padding: 2.5px 6px; color: #64748b; font-size: 11px;">${unit}</td>
-          <td style="padding: 2.5px 6px; text-align: right; color: #334155; font-size: 11px;"><span dir="ltr" style="unicode-bidi:isolate;">[ ${low} - ${high} ]</span></td>
+        <tr style="background-color: ${rowBg}; ${printExactCss} border-bottom: 1px solid #f1f5f9; font-size: ${specialFormFontSize}px; font-family: 'Consolas', monospace;">
+          <td style="padding: 1.8px 6px; font-weight: 700; color: #0f172a;">${param}</td>
+          <td style="padding: 1.8px 6px; text-align: right; font-weight: 800; color: #0f172a;">${f.hasVal ? escapeHtml(val) : '-'}</td>
+          <td style="padding: 1.8px 4px; text-align: center; width: 22px;">${flagStr}</td>
+          <td style="padding: 1.8px 6px; color: #64748b; font-size: 10.5px;">${unit}</td>
+          <td style="padding: 1.8px 6px; text-align: right; color: #334155; font-size: 10.5px;"><span dir="ltr" style="unicode-bidi:isolate;">[ ${low} - ${high} ]</span></td>
         </tr>
       `;
     };
 
     return `
-      <div style="border: 2px solid #1e3a8a; border-radius: 8px; overflow: hidden; margin-bottom: 12px; background: #ffffff;" dir="ltr">
-        <div style="background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%); color: #ffffff; padding: 8px 14px; display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-weight: 900; font-size: ${specialFormFontSize + 1}px;">SYSMEX AUTOMATED HEMATOLOGY ANALYZER REPORT (XP-300 / KX-21N)</span>
-          <span style="font-size: 10px; background: rgba(255,255,255,0.18); padding: 2px 8px; border-radius: 4px; font-family: monospace;">Sysmex Corporation</span>
+      <div style="border: 2px solid #1e3a8a; border-radius: 8px; overflow: hidden; margin-bottom: 4px; background: #ffffff;" dir="ltr">
+        <div style="background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%); color: #ffffff; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 900; font-size: ${specialFormFontSize + 0.5}px;">SYSMEX AUTOMATED HEMATOLOGY ANALYZER REPORT (XP-300 / KX-21N)</span>
+          <span style="font-size: 9.5px; background: rgba(255,255,255,0.18); padding: 2px 8px; border-radius: 4px; font-family: monospace;">Sysmex Corporation</span>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; padding: 12px;">
+        <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; padding: 8px 12px;">
           <div>
             <table style="width: 100%; border-collapse: collapse;">
               <thead>
                 <tr style="background: #eff6ff; color: #1e3a8a; font-size: 10px; font-weight: 800; border-bottom: 1px solid #bfdbfe;">
-                  <th style="padding: 4px 6px; text-align: left;">Item</th>
-                  <th style="padding: 4px 6px; text-align: right;">Result</th>
-                  <th style="padding: 4px 4px; text-align: center;">Flag</th>
-                  <th style="padding: 4px 6px; text-align: left;">Unit</th>
-                  <th style="padding: 4px 6px; text-align: right;">Normal Range</th>
+                  <th style="padding: 3px 6px; text-align: left;">Item</th>
+                  <th style="padding: 3px 6px; text-align: right;">Result</th>
+                  <th style="padding: 3px 4px; text-align: center;">Flag</th>
+                  <th style="padding: 3px 6px; text-align: left;">Unit</th>
+                  <th style="padding: 3px 6px; text-align: right;">Normal Range</th>
                 </tr>
               </thead>
               <tbody>
@@ -1094,14 +1019,13 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
             </table>
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 8px;">
-            ${hasWbc ? generateHistogramSvg('WBC', (cbc as any).wbcCurve, 260, 90) : ''}
-            ${hasRbc ? generateHistogramSvg('RBC', (cbc as any).rbcCurve, 260, 90) : ''}
-            ${hasPlt ? generateHistogramSvg('PLT', (cbc as any).pltCurve, 260, 90) : ''}
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            ${hasWbc ? generateHistogramSvg('WBC', (cbc as any).wbcCurve, 250, 80) : ''}
+            ${hasRbc ? generateHistogramSvg('RBC', (cbc as any).rbcCurve, 250, 80) : ''}
+            ${hasPlt ? generateHistogramSvg('PLT', (cbc as any).pltCurve, 250, 80) : ''}
           </div>
         </div>
       </div>
-      ${buildMorphologyAndCommentsHtml(parsed, settings, specialFormFontSize)}
     `;
   }
 
@@ -1694,28 +1618,28 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
 
   return `
     <!-- CBC Header Banner -->
-    <div style="background: linear-gradient(90deg, #be123c 0%, #e11d48 100%); color: #ffffff; padding: 8px 14px; border-radius: 6px; font-weight: 800; font-size: ${specialFormFontSize + 1}px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
+    <div style="background: linear-gradient(90deg, #be123c 0%, #e11d48 100%); color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: 800; font-size: ${specialFormFontSize + 0.5}px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
       <span>COMPLETE BLOOD COUNT (CBC) &amp; 5-PART DIFFERENTIAL</span>
       <span style="font-size: ${Math.max(9.5, specialFormFontSize - 1.5)}px; font-weight: 600; letter-spacing: 0.5px; opacity: 0.95;">AUTOMATED HEMATOLOGY REPORT</span>
     </div>
 
     <!-- 2-Column Clinical Grid -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px;" dir="ltr">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px;" dir="ltr">
       <!-- Column 1: Erythroid Series & Platelet Indices -->
       <div>
         <!-- Erythroid Series -->
-        <div style="border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; margin-bottom: 12px;">
-          <div style="background: #f8fafc; padding: 6px 10px; font-weight: 800; font-size: ${specialFormFontSize}px; color: #be123c; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
+        <div style="border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; margin-bottom: 8px;">
+          <div style="background: #f8fafc; padding: 5px 10px; font-weight: 800; font-size: ${specialFormFontSize}px; color: #be123c; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
             <span>1. ERYTHROID SERIES &amp; RED CELL INDICES</span>
           </div>
           <table style="width: 100%; border-collapse: collapse; font-size: ${specialFormFontSize}px; text-align: left;">
             <thead>
               <tr style="background: #f1f5f9; color: #475569; font-size: ${Math.max(9.5, specialFormFontSize - 1.5)}px; border-bottom: 1px solid #cbd5e1;">
-                <th style="padding: 5px 10px; text-align: left;">INVESTIGATION</th>
-                <th style="padding: 5px 10px; text-align: left;">RESULT</th>
-                ${priorCbcParsed ? `<th style="padding: 5px 10px; text-align: left;">PREVIOUS (${priorCbcDate})</th>` : ''}
-                <th style="padding: 5px 10px; text-align: left;">UNIT</th>
-                <th style="padding: 5px 10px; text-align: left;">REFERENCE RANGE</th>
+                <th style="padding: 4px 8px; text-align: left;">INVESTIGATION</th>
+                <th style="padding: 4px 8px; text-align: left;">RESULT</th>
+                ${priorCbcParsed ? `<th style="padding: 4px 8px; text-align: left;">PREVIOUS (${priorCbcDate})</th>` : ''}
+                <th style="padding: 4px 8px; text-align: left;">UNIT</th>
+                <th style="padding: 4px 8px; text-align: left;">REFERENCE RANGE</th>
               </tr>
             </thead>
             <tbody>
@@ -1729,22 +1653,22 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
               ${parsed.rdwSd !== '-' ? renderCbcRow('RDWa / RDW-SD', parsed.rdwSd, 'fL', '35.0 - 56.0', 35.0, 56.0, priorCbcParsed?.rdwSd) : ''}
             </tbody>
           </table>
-          ${mentzerHtml ? `<div style="padding: 0 8px 8px 8px;">${mentzerHtml}</div>` : ''}
+          ${mentzerHtml ? `<div style="padding: 0 8px 6px 8px;">${mentzerHtml}</div>` : ''}
         </div>
 
         <!-- Platelet Indices -->
         <div style="border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden;">
-          <div style="background: #f8fafc; padding: 6px 10px; font-weight: 800; font-size: ${specialFormFontSize}px; color: #b45309; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
+          <div style="background: #f8fafc; padding: 5px 10px; font-weight: 800; font-size: ${specialFormFontSize}px; color: #b45309; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
             <span>2. PLATELET INDICES (THROMBOCYTES)</span>
           </div>
           <table style="width: 100%; border-collapse: collapse; font-size: ${specialFormFontSize}px; text-align: left;">
             <thead>
               <tr style="background: #f1f5f9; color: #475569; font-size: ${Math.max(9.5, specialFormFontSize - 1.5)}px; border-bottom: 1px solid #cbd5e1;">
-                <th style="padding: 5px 10px; text-align: left;">INVESTIGATION</th>
-                <th style="padding: 5px 10px; text-align: left;">RESULT</th>
-                ${priorCbcParsed ? `<th style="padding: 5px 10px; text-align: left;">PREVIOUS (${priorCbcDate})</th>` : ''}
-                <th style="padding: 5px 10px; text-align: left;">UNIT</th>
-                <th style="padding: 5px 10px; text-align: left;">REFERENCE RANGE</th>
+                <th style="padding: 4px 8px; text-align: left;">INVESTIGATION</th>
+                <th style="padding: 4px 8px; text-align: left;">RESULT</th>
+                ${priorCbcParsed ? `<th style="padding: 4px 8px; text-align: left;">PREVIOUS (${priorCbcDate})</th>` : ''}
+                <th style="padding: 4px 8px; text-align: left;">UNIT</th>
+                <th style="padding: 4px 8px; text-align: left;">REFERENCE RANGE</th>
               </tr>
             </thead>
             <tbody>
@@ -1763,18 +1687,18 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
       <!-- Column 2: Total Leukocytes & 5-Part Differential -->
       <div>
         <!-- Total WBC & Differential -->
-        <div style="border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; margin-bottom: 12px;">
-          <div style="background: #f8fafc; padding: 6px 10px; font-weight: 800; font-size: ${specialFormFontSize}px; color: #166534; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
+        <div style="border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden;">
+          <div style="background: #f8fafc; padding: 5px 10px; font-weight: 800; font-size: ${specialFormFontSize}px; color: #166534; border-bottom: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
             <span>3. TOTAL LEUKOCYTES &amp; 5-PART DIFFERENTIAL</span>
           </div>
           <table style="width: 100%; border-collapse: collapse; font-size: ${specialFormFontSize}px; text-align: left;">
             <thead>
               <tr style="background: #f1f5f9; color: #475569; font-size: ${Math.max(9.5, specialFormFontSize - 1.5)}px; border-bottom: 1px solid #cbd5e1;">
-                <th style="padding: 5px 10px; text-align: left;">INVESTIGATION</th>
-                <th style="padding: 5px 10px; text-align: left;">RESULT</th>
-                ${priorCbcParsed ? `<th style="padding: 5px 10px; text-align: left;">PREVIOUS (${priorCbcDate})</th>` : ''}
-                <th style="padding: 5px 10px; text-align: left;">UNIT</th>
-                <th style="padding: 5px 10px; text-align: left;">REFERENCE RANGE</th>
+                <th style="padding: 4px 8px; text-align: left;">INVESTIGATION</th>
+                <th style="padding: 4px 8px; text-align: left;">RESULT</th>
+                ${priorCbcParsed ? `<th style="padding: 4px 8px; text-align: left;">PREVIOUS (${priorCbcDate})</th>` : ''}
+                <th style="padding: 4px 8px; text-align: left;">UNIT</th>
+                <th style="padding: 4px 8px; text-align: left;">REFERENCE RANGE</th>
               </tr>
             </thead>
             <tbody>
@@ -1790,11 +1714,11 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
           <table style="width: 100%; border-collapse: collapse; font-size: ${specialFormFontSize}px; text-align: left;">
             <thead>
               <tr style="background: #ffffff; color: #64748b; font-size: ${Math.max(9, specialFormFontSize - 2)}px; border-bottom: 1px solid #f1f5f9;">
-                <th style="padding: 4px 10px; text-align: left;">PARAMETER</th>
-                <th style="padding: 4px 10px; text-align: left;">RELATIVE (%)</th>
-                ${priorCbcParsed ? `<th style="padding: 4px 10px; text-align: left;">PREV (%)</th>` : ''}
-                <th style="padding: 4px 10px; text-align: left;">ABSOLUTE</th>
-                <th style="padding: 4px 10px; text-align: left;">REF. RANGE (%)</th>
+                <th style="padding: 4px 8px; text-align: left;">PARAMETER</th>
+                <th style="padding: 4px 8px; text-align: left;">RELATIVE (%)</th>
+                ${priorCbcParsed ? `<th style="padding: 4px 8px; text-align: left;">PREV (%)</th>` : ''}
+                <th style="padding: 4px 8px; text-align: left;">ABSOLUTE</th>
+                <th style="padding: 4px 8px; text-align: left;">REF. RANGE (%)</th>
               </tr>
             </thead>
             <tbody>
@@ -1810,12 +1734,10 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
     </div>
 
     <!-- Graphical RBC, PLT & WBC Histograms -->
-    <div style="margin-bottom: 12px; display: flex; gap: 10px;" dir="ltr">
+    <div style="margin-bottom: 4px; display: flex; gap: 10px;" dir="ltr">
       ${generateHistogramSvg('WBC', (cbc as any).wbcCurve)}
       ${generateHistogramSvg('RBC', (cbc as any).rbcCurve)}
       ${generateHistogramSvg('PLT', (cbc as any).pltCurve)}
     </div>
-
-    ${buildMorphologyAndCommentsHtml(parsed, settings, specialFormFontSize)}
   `;
 }

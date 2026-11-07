@@ -32,6 +32,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { toEnglishDigits, formatEnglishDate, formatClinicalAge } from '../../lib/formatters';
+import { printUrlDirectly } from '../../lib/printHelper';
 import { shareReportToWhatsApp, autoSendReportViaWhatsAppWeb } from '../../lib/shareReportToWhatsApp';
 import { AddSampleTestsModal } from '../../features/add-sample-tests';
 
@@ -339,9 +340,8 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
         loadData();
       } catch {}
     }
-    const printUrl = `/api/samples/${activeVisit.sampleId}/print?autoprint=true&force=true`;
-    window.open(printUrl, '_blank');
-    setPreviewUrl(printUrl);
+    const printUrl = `/api/samples/${activeVisit.sampleId}/print?force=true`;
+    printUrlDirectly(printUrl);
   };
 
   const handleSendWhatsApp = async () => {
@@ -1713,7 +1713,7 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                   type="button"
                   onClick={() => {
                     if (previewUrl) {
-                      window.open(`${previewUrl}${previewUrl.includes('?') ? '&' : '?'}autoprint=true&force=true`, '_blank');
+                      printUrlDirectly(`${previewUrl}${previewUrl.includes('?') ? '&' : '?'}force=true`);
                     }
                   }}
                   style={{
@@ -2067,8 +2067,8 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                       <button
                         type="button"
                         onClick={() => {
-                          const printUrl = `/api/samples/${visitItem.sampleId}/print?autoprint=true&force=true`;
-                          window.open(printUrl, '_blank');
+                          const printUrl = `/api/samples/${visitItem.sampleId}/print?force=true`;
+                          printUrlDirectly(printUrl);
                           setShowPatientHistoryModal(false);
                         }}
                         style={{

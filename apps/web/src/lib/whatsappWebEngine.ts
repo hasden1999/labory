@@ -164,6 +164,7 @@ export function cleanDisplayPhone(phone: string): string {
 
 class WhatsAppWebEngine {
   private sock: any = null;
+  private socketGeneration: number = 0;
   private status: WhatsAppConnectionStatus = 'DISCONNECTED';
   private qrDataUrl: string | null = null;
   private connectedUser: { id: string; name?: string } | null = null;
@@ -174,6 +175,15 @@ class WhatsAppWebEngine {
   private reconnectAttempts: number = 0;
   private hasCheckedSession: boolean = false;
   private lastInitError: string | null = null;
+
+  private cleanupSocket(sockInstance: any) {
+    if (!sockInstance) return;
+    try {
+      sockInstance.ev?.removeAllListeners?.('connection.update');
+      sockInstance.ev?.removeAllListeners?.('creds.update');
+      sockInstance.end?.(undefined);
+    } catch {}
+  }
 
   private notifyInitialQrOrOpen() {
     if (this.initialQrResolvers.length > 0) {
@@ -186,7 +196,7 @@ class WhatsAppWebEngine {
     }
   }
 
-  private waitForInitialQrOrOpen(timeoutMs = 6000): Promise<void> {
+  private waitForInitialQrOrOpen(timeoutMs = 8000): Promise<void> {
     if (this.status === 'CONNECTED' || (this.status === 'PAIRING' && this.qrDataUrl)) {
       return Promise.resolve();
     }
@@ -228,34 +238,39 @@ class WhatsAppWebEngine {
   }
 
   public async initSocket(forceRestart = false): Promise<WhatsAppServiceStatus> {
-    if (this.sock && this.status === 'CONNECTED' && !forceRestart) {
-      return this.getStatus();
-    }
-
-    if (this.status === 'PAIRING' && this.qrDataUrl && !forceRestart && this.sock) {
-      return this.getStatus();
-    }
-
-    if (this.isInitializing && this.initPromise && !forceRestart) {
-      return await this.initPromise;
+    if (!forceRestart) {
+      if (this.sock && this.status === 'CONNECTED') {
+        return this.getStatus();
+      }
+      if (this.sock && this.status === 'PAIRING') {
+        await this.waitForInitialQrOrOpen(4000);
+        return this.getStatus();
+      }
+      if (this.isInitializing && this.initPromise) {
+        return await this.initPromise;
+      }
     }
 
     const runInit = async (): Promise<WhatsAppServiceStatus> => {
       this.isInitializing = true;
-      this.status = 'PAIRING';
+      if (this.status !== 'CONNECTED') {
+        this.status = 'PAIRING';
+      }
       this.lastInitError = null;
       if (this.reconnectTimer) {
         clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
       }
 
-      if (forceRestart && this.sock) {
-        try {
-          this.sock.end?.(undefined);
-        } catch {}
+      if (this.sock) {
+        this.cleanupSocket(this.sock);
         this.sock = null;
-        this.qrDataUrl = null;
+        if (forceRestart) {
+          this.qrDataUrl = null;
+        }
       }
+
+      const currentGen = ++this.socketGeneration;
 
       try {
         const baileysMod = await loadNodeModule('@whiskeysockets/baileys');
@@ -287,9 +302,11 @@ class WhatsAppWebEngine {
           logger: pino({ level: 'silent' }),
           browser: ['Labryo Clinical LIMS', 'Chrome', '1.5.12'],
           syncFullHistory: false,
-          connectTimeoutMs: 30000,
-          keepAliveIntervalMs: 25000,
-          defaultQueryTimeoutMs: 40000,
+          markOnlineOnConnect: false,
+          connectTimeoutMs: 45000,
+          keepAliveIntervalMs: 20000,
+          defaultQueryTimeoutMs: 60000,
+          retryRequestDelayMs: 500,
         };
 
         const sock = makeWASocket(socketConfig);
@@ -298,6 +315,7 @@ class WhatsAppWebEngine {
         sock.ev.on('creds.update', saveCreds);
 
         sock.ev.on('connection.update', async (update: any) => {
+          if (currentGen !== this.socketGeneration) return;
           const { connection, lastDisconnect, qr } = update;
 
           if (qr) {
@@ -325,8 +343,8 @@ class WhatsAppWebEngine {
             const rawId = sock.user?.id || '';
             const cleanId = rawId.split(':')[0].split('@')[0];
             this.connectedUser = {
-              id: cleanId,
-              name: sock.user?.name || undefined,
+              id: cleanId || this.connectedUser?.id || 'متصل',
+              name: sock.user?.name || this.connectedUser?.name || undefined,
             };
             this.notifyInitialQrOrOpen();
             console.log(`✅ [WhatsAppWebEngine] Connected as: ${cleanId} (${sock.user?.name || 'Lab Account'})`);
@@ -338,23 +356,45 @@ class WhatsAppWebEngine {
               lastDisconnect?.error?.statusCode;
             const isLoggedOut = statusCode === DisconnectReason?.loggedOut || statusCode === 401;
             const isBadMac = String(lastDisconnect?.error?.message || '').includes('Bad MAC');
-            console.log(`⚠️ [WhatsAppWebEngine] Connection closed. Status: ${statusCode}, LoggedOut: ${isLoggedOut}, BadMac: ${isBadMac}`);
+            const isConflict = statusCode === DisconnectReason?.connectionReplaced || statusCode === 440;
+            console.log(`⚠️ [WhatsAppWebEngine] Connection closed. Status: ${statusCode}, LoggedOut: ${isLoggedOut}, Conflict: ${isConflict}`);
+
+            this.cleanupSocket(sock);
+            if (this.sock === sock) {
+              this.sock = null;
+            }
 
             if (isLoggedOut || isBadMac) {
               console.warn('[WhatsAppWebEngine] Session corrupted or logged out, resetting session credentials.');
               this.reconnectAttempts = 0;
               await this.logout();
+            } else if (isConflict) {
+              // Avoid aggressive conflict ping-pong; wait calmly before checking if session needs recovery
+              if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+              this.reconnectTimer = setTimeout(() => {
+                if (!this.sock && this.hasSavedCredentials()) {
+                  this.initSocket(false).catch(() => {});
+                }
+              }, 8000);
             } else {
-              this.status = 'DISCONNECTED';
-              this.sock = null;
-              if (this.hasSavedCredentials() && this.reconnectAttempts < 15) {
-                const delay = Math.min(25000, 3500 * Math.pow(1.4, this.reconnectAttempts || 0));
+              // Keep status as CONNECTED if we already had a verified user and are doing a fast background reconnect (e.g. 515 restartRequired)
+              const isFastRestart = statusCode === DisconnectReason?.restartRequired || statusCode === 515 || this.reconnectAttempts < 2;
+              if (!isFastRestart || !this.connectedUser) {
+                this.status = 'DISCONNECTED';
+              }
+              if (this.hasSavedCredentials() && this.reconnectAttempts < 20) {
+                const delay = statusCode === 515
+                  ? 800
+                  : Math.min(20000, 2000 * Math.pow(1.35, this.reconnectAttempts || 0));
                 this.reconnectAttempts = (this.reconnectAttempts || 0) + 1;
+                if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
                 this.reconnectTimer = setTimeout(() => {
                   this.initSocket(false).catch((e) => {
                     console.warn('[WhatsAppWebEngine] Reconnect attempt failed:', e?.message);
                   });
                 }, delay);
+              } else {
+                this.status = 'DISCONNECTED';
               }
             }
             this.notifyInitialQrOrOpen();
@@ -380,18 +420,40 @@ class WhatsAppWebEngine {
     return await this.initPromise;
   }
 
+  private async ensureActiveSocket(maxWaitMs = 10000): Promise<any> {
+    if (this.sock && this.status === 'CONNECTED') {
+      return this.sock;
+    }
+    if (this.hasSavedCredentials()) {
+      await this.initSocket(false).catch(() => {});
+    }
+    const deadline = Date.now() + maxWaitMs;
+    while (Date.now() < deadline) {
+      if (this.sock && this.status === 'CONNECTED' && this.sock.sendMessage) {
+        return this.sock;
+      }
+      await new Promise((r) => setTimeout(r, 350));
+    }
+    if (!this.sock || this.status !== 'CONNECTED') {
+      throw new Error('جلسة واتساب ويب غير متصلة. يرجى فتح الإعدادات ومسح رمز الباركود (QR) لربط الحساب أولاً.');
+    }
+    return this.sock;
+  }
+
   public getStatus(): WhatsAppServiceStatus {
     if (!this.hasCheckedSession && !this.sock) {
       this.checkExistingSession();
     }
+    const isEffectivelyConnected =
+      this.status === 'CONNECTED' || Boolean(this.connectedUser && this.hasSavedCredentials() && !this.qrDataUrl);
     const effectiveStatus: WhatsAppConnectionStatus =
-      this.status === 'CONNECTED'
+      isEffectivelyConnected
         ? 'CONNECTED'
         : this.qrDataUrl
           ? 'PAIRING'
           : this.status;
     return {
-      connected: this.status === 'CONNECTED',
+      connected: isEffectivelyConnected,
       status: effectiveStatus,
       user: this.connectedUser?.id,
       userName: this.connectedUser?.name,
@@ -404,6 +466,7 @@ class WhatsAppWebEngine {
   }
 
   public async logout(): Promise<{ success: boolean; message: string }> {
+    this.socketGeneration++;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -412,7 +475,7 @@ class WhatsAppWebEngine {
     try {
       if (this.sock) {
         await this.sock.logout?.().catch(() => {});
-        this.sock.end?.(undefined);
+        this.cleanupSocket(this.sock);
       }
     } catch {}
 
@@ -441,21 +504,14 @@ class WhatsAppWebEngine {
   }
 
   public async sendTextMessage(phone: string, text: string): Promise<{ success: boolean; messageId?: string }> {
-    if (!this.sock || this.status !== 'CONNECTED') {
-      if (this.hasSavedCredentials()) {
-        await this.initSocket(false);
-      }
-    }
-    if (!this.sock || this.status !== 'CONNECTED') {
-      throw new Error('جلسة واتساب ويب غير متصلة. يرجى فتح الإعدادات ومسح رمز الباركود (QR) لربط الحساب أولاً.');
-    }
+    const sock = await this.ensureActiveSocket();
 
     const jid = formatToWhatsAppJID(phone);
     if (!jid) {
       throw new Error('رقم هاتف المريض غير صالح لإرسال رسائل واتساب.');
     }
 
-    const res = await this.sock.sendMessage(jid, { text });
+    const res = await sock.sendMessage(jid, { text });
     return {
       success: true,
       messageId: res?.key?.id || undefined,
@@ -463,24 +519,21 @@ class WhatsAppWebEngine {
   }
 
   public async sendMedia(params: SendMediaParams): Promise<SendMediaResult> {
-    if (!this.sock || this.status !== 'CONNECTED') {
-      if (this.hasSavedCredentials()) {
-        await this.initSocket(false);
-      }
-    }
-    if (!this.sock || this.status !== 'CONNECTED') {
-      throw new Error('جلسة واتساب ويب غير متصلة. يرجى فتح الإعدادات ومسح رمز الباركود (QR) لربط الحساب أولاً.');
-    }
-
     const jid = formatToWhatsAppJID(params.phone);
     if (!jid) {
       throw new Error('رقم هاتف المريض غير صالح لإرسال رسائل واتساب.');
     }
 
     let buffer: Buffer;
+    let detectedMime = params.mimetype;
     if (Buffer.isBuffer(params.mediaBuffer)) {
       buffer = params.mediaBuffer;
     } else if (typeof params.mediaBuffer === 'string') {
+      if (params.mediaBuffer.startsWith('data:image/jpeg')) {
+        detectedMime = 'image/jpeg';
+      } else if (params.mediaBuffer.startsWith('data:image/png')) {
+        detectedMime = 'image/png';
+      }
       const base64Data = params.mediaBuffer.includes(',')
         ? params.mediaBuffer.split(',')[1]
         : params.mediaBuffer;
@@ -489,29 +542,43 @@ class WhatsAppWebEngine {
       throw new Error('بيانات ملف النتيجة غير صالحة.');
     }
 
-    let res: any;
-    if (params.type === 'image') {
-      res = await this.sock.sendMessage(jid, {
-        image: buffer,
-        caption: params.caption,
-        mimetype: params.mimetype || 'image/png',
-      });
-    } else if (params.type === 'document') {
-      res = await this.sock.sendMessage(jid, {
-        document: buffer,
-        fileName: params.fileName || 'Labryo_Medical_Report.pdf',
-        mimetype: params.mimetype || 'application/pdf',
-        caption: params.caption,
-      });
-    } else {
-      throw new Error(`نوع الوسائط غير مدعوم: ${params.type}`);
+    let lastErr: any = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const sock = await this.ensureActiveSocket(10000);
+        let res: any;
+        if (params.type === 'image') {
+          res = await sock.sendMessage(jid, {
+            image: buffer,
+            caption: params.caption,
+            mimetype: detectedMime || 'image/png',
+          });
+        } else if (params.type === 'document') {
+          res = await sock.sendMessage(jid, {
+            document: buffer,
+            fileName: params.fileName || 'Labryo_Medical_Report.pdf',
+            mimetype: detectedMime || 'application/pdf',
+            caption: params.caption,
+          });
+        } else {
+          throw new Error(`نوع الوسائط غير مدعوم: ${params.type}`);
+        }
+
+        return {
+          success: true,
+          messageId: res?.key?.id || undefined,
+          deliveredTo: jid,
+        };
+      } catch (err: any) {
+        lastErr = err;
+        console.warn(`[WhatsAppWebEngine] sendMedia attempt #${attempt + 1} failed:`, err?.message);
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
+        }
+      }
     }
 
-    return {
-      success: true,
-      messageId: res?.key?.id || undefined,
-      deliveredTo: jid,
-    };
+    throw lastErr || new Error('تعذر إرسال ملف النتيجة عبر واتساب بعد عدة محاولات.');
   }
 }
 

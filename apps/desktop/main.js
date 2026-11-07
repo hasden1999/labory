@@ -1512,6 +1512,32 @@ function createMainWindow() {
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const parsed = new URL(url);
+      const isLocalHost = parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost';
+      if (isLocalHost && (parsed.pathname.includes('/print') || parsed.pathname.includes('/barcode'))) {
+        const printWin = new BrowserWindow({
+          show: false,
+          webPreferences: { nodeIntegration: false, contextIsolation: true },
+        });
+        const cleanUrl = new URL(url);
+        cleanUrl.searchParams.delete('autoprint');
+        printWin.loadURL(cleanUrl.toString()).then(() => {
+          setTimeout(() => {
+            if (printWin.isDestroyed()) return;
+            printWin.webContents.print(
+              { silent: false, printBackground: true },
+              () => {
+                if (!printWin.isDestroyed()) printWin.close();
+              }
+            );
+          }, 250);
+        }).catch(() => {
+          if (!printWin.isDestroyed()) printWin.close();
+        });
+        return { action: 'deny' };
+      }
+    } catch (e) {}
     shell.openExternal(url);
     return { action: 'deny' };
   });
@@ -1717,9 +1743,10 @@ ipcMain.handle('report:generate-image', async (_event, { sampleId, section }) =>
 
         const targetH = Math.max(Math.min(cardH, 1600), 900);
         hiddenWin.setContentSize(840, targetH);
-        await new Promise((r) => setTimeout(r, 60));
+        await new Promise((r) => setTimeout(r, 50));
         const img = await hiddenWin.webContents.capturePage({ x: 0, y: 0, width: 840, height: targetH });
-        dataUrls.push(img.toDataURL());
+        const jpegBuf = img.toJPEG(92);
+        dataUrls.push(`data:image/jpeg;base64,${jpegBuf.toString('base64')}`);
       }
     } else {
       const scrollH = await hiddenWin.webContents
@@ -1728,7 +1755,8 @@ ipcMain.handle('report:generate-image', async (_event, { sampleId, section }) =>
       const targetH = Math.max(Math.min(scrollH + 20, 1600), 900);
       hiddenWin.setContentSize(840, targetH);
       const image = await hiddenWin.webContents.capturePage();
-      dataUrls.push(image.toDataURL());
+      const jpegBuf = image.toJPEG(92);
+      dataUrls.push(`data:image/jpeg;base64,${jpegBuf.toString('base64')}`);
     }
 
     return { success: true, dataUrl: dataUrls[0] || '', dataUrls };
@@ -1827,7 +1855,7 @@ ipcMain.handle('whatsapp:share-direct', async (_event, { phone, imageBase64, ima
 
       try {
         const tempImg = path.join(require('os').tmpdir(), `labryo-wa-${ts}-${idx + 1}.png`);
-        fs.writeFileSync(tempImg, buf);
+        fs.writeFileSync(tempImg, img.toPNG());
         tempPaths.push(tempImg);
         trace(`temp image #${idx + 1} written for automator: ` + tempImg);
       } catch (fErr) {

@@ -862,7 +862,7 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
         displayValue = `<div style="text-align: left; background: #f0fdfa; padding: 8px 12px; border-radius: 8px; border: 1px solid #99f6e4; max-width: 520px; margin: 4px 0;">${metaHtml}${antiHtml}${notesHtml}</div>`;
       }
 
-      const rowBg = tableZebraStriping && rowIdx % 2 === 1 ? 'rgba(0,0,0,0.025)' : 'transparent';
+      const isZebraActive = Boolean(tableZebraStriping || settings?.tableZebraStriping || settings?.tableStyle === 'zebra'); const rowBg = isZebraActive && rowIdx % 2 === 1 ? '#edf2f7' : 'transparent'; const zebraCellCss = isZebraActive && rowIdx % 2 === 1 ? 'background-color: #edf2f7; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;' : '';
       const borderStyle = tableRowBorders ? `border-bottom: 1px solid ${borderColor};` : '';
 
       const prior = findPriorForTest(t);
@@ -879,9 +879,9 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
       }
 
       return `
-        <tr style="background: ${rowBg}; ${borderStyle} page-break-inside: avoid;">
+        <tr style="background-color: ${rowBg}; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; ${borderStyle} page-break-inside: avoid;">
           ${effectiveColumns.map((col: any) => {
-            const alignStyle = `text-align: ${col.align};`;
+            const alignStyle = `text-align: ${col.align}; ${zebraCellCss}`;
             if (col.id === 'testName') {
               return `<td style="padding: ${customCellPadding}; font-size: ${testNameFontSize}px; font-weight: ${testNameFontWeight === 'bold' ? 800 : 500}; color: ${textColor}; ${alignStyle}">${testName}</td>`;
             }

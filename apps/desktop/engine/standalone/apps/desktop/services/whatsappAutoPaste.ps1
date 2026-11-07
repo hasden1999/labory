@@ -91,9 +91,6 @@ public class WaMasterAutomator {
 
   private static void PutImagesOnClipboard(Image img, MemoryStream pngStream, string[] imagePaths) {
     var dataObj = new DataObject();
-    if (img != null) {
-      dataObj.SetImage(img);
-    }
     var files = new System.Collections.Specialized.StringCollection();
     if (imagePaths != null) {
       foreach (var p in imagePaths) {
@@ -102,12 +99,21 @@ public class WaMasterAutomator {
         }
       }
     }
-    if (files.Count > 0) {
+    if (files.Count > 1) {
+      // When attaching multiple images, set FileDropList exclusively so WhatsApp Desktop
+      // attaches ALL report pages together as an album on a single Ctrl+V!
       dataObj.SetFileDropList(files);
-    }
-    if (pngStream != null) {
-      pngStream.Position = 0;
-      dataObj.SetData("PNG", pngStream);
+    } else {
+      if (img != null) {
+        dataObj.SetImage(img);
+      }
+      if (files.Count > 0) {
+        dataObj.SetFileDropList(files);
+      }
+      if (pngStream != null) {
+        pngStream.Position = 0;
+        dataObj.SetData("PNG", pngStream);
+      }
     }
     Clipboard.SetDataObject(dataObj, true);
   }
@@ -192,34 +198,23 @@ public class WaMasterAutomator {
         int inputY = effectiveBottom - 48;
 
         int totalImgs = (imagePaths != null) ? imagePaths.Length : 0;
-        for (int imgIdx = 0; imgIdx < totalImgs; imgIdx++) {
-          string curPath = imagePaths[imgIdx];
-          if (string.IsNullOrEmpty(curPath) || !File.Exists(curPath)) continue;
+        if (totalImgs > 0) {
+          PutImagesOnClipboard(heldImg, heldMs, imagePaths);
+          Thread.Sleep(150);
 
-          byte[] curBytes = File.ReadAllBytes(curPath);
-          using (var curMs = new MemoryStream()) {
-            curMs.Write(curBytes, 0, curBytes.Length);
-            curMs.Position = 0;
-            using (var tmpStream = new MemoryStream(curBytes))
-            using (var curBmp = new Bitmap(tmpStream)) {
-              PutImagesOnClipboard(curBmp, curMs, new string[] { curPath });
-              Thread.Sleep(150);
+          SetForegroundWindow(root);
+          LeftClick(inputX, inputY);
+          Thread.Sleep(250);
 
-              SetForegroundWindow(root);
-              LeftClick(inputX, inputY);
-              Thread.Sleep(250);
+          // Send single Ctrl+V to attach all report images at once
+          SendKeyCombination(0x11, 0x56);
 
-              // Send Ctrl+V to paste this individual report image
-              SendKeyCombination(0x11, 0x56);
+          // Wait for WhatsApp's Image Preview modal to open and render all pages
+          Thread.Sleep(totalImgs > 1 ? 2600 : 2100);
 
-              // Wait 2.1s for WhatsApp's Image Preview modal to open and render
-              Thread.Sleep(2100);
-
-              // Send Enter to dispatch this independent image
-              SendKey(0x0D, 0x1C);
-              Thread.Sleep(900);
-            }
-          }
+          // Send Enter to dispatch all attached images
+          SendKey(0x0D, 0x1C);
+          Thread.Sleep(700);
         }
 
         // Re-assert images on clipboard so user can also Ctrl+V manually if needed

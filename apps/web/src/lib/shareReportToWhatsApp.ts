@@ -142,23 +142,45 @@ export async function autoSendReportViaWhatsAppWeb({
       };
     }
 
-    const imagesBase64 = await generateReportDataUrls(sampleId, section);
+    // If running inside Electron Desktop, capture lightweight page images natively;
+    // otherwise let the server generate and send all pages directly in memory without double-transfer.
+    let imagesBase64: string[] = [];
+    const bridge = typeof window !== 'undefined' ? (window as any).electronDesktop : undefined;
+    if (bridge?.generateReportImage) {
+      try {
+        const res = await bridge.generateReportImage({ sampleId, section });
+        if (res?.success && Array.isArray(res.dataUrls) && res.dataUrls.length > 0) {
+          imagesBase64 = res.dataUrls.filter(Boolean);
+        }
+      } catch (e) {
+        console.warn('[WhatsAppShare] Native capture skipped, server will generate images:', e);
+      }
+    }
     const imageBase64 = imagesBase64.length > 0 ? imagesBase64[0] : '';
 
-    const sendRes = await fetch('/api/whatsapp/send-result', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sampleId,
-        phone: cleanPhone,
-        caption,
-        autoSend: true,
-        directSend: true,
-        forceSend,
-        ...(imagesBase64.length > 0 ? { imagesBase64 } : {}),
-        ...(imageBase64 ? { imageBase64 } : {}),
-      }),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    let sendRes: Response;
+    try {
+      sendRes = await fetch('/api/whatsapp/send-result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          sampleId,
+          phone: cleanPhone,
+          caption,
+          section,
+          autoSend: true,
+          directSend: true,
+          forceSend,
+          ...(imagesBase64.length > 0 ? { imagesBase64 } : {}),
+          ...(imageBase64 ? { imageBase64 } : {}),
+        }),
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     const sendData = await sendRes.json().catch(() => ({}));
     if (sendRes.ok && sendData?.delivered) {

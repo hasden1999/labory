@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import dynamicImport from 'next/dynamic';
 import { apiRequest } from '../../lib/api';
@@ -121,6 +121,8 @@ function UnifiedSettingsCatalogView({
   });
   const [waLoading, setWaLoading] = useState(false);
   const [waAutoSend, setWaAutoSend] = useState<boolean>(Boolean(labProfile?.whatsappAutoSendEnabled));
+  const wasActivelyScanningQrRef = useRef<boolean>(false);
+  const hasNotifiedWaConnectRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (labProfile?.whatsappAutoSendEnabled !== undefined) {
@@ -136,7 +138,21 @@ function UnifiedSettingsCatalogView({
       setWaStatus((prev) => {
         const wasConnected = prev.connected;
         const nowConnected = Boolean(data?.connected);
-        if (!wasConnected && nowConnected && prev.status === 'PAIRING') {
+        const qrPresent = Boolean(data?.qrDataUrl || data?.qr);
+
+        if (!nowConnected && qrPresent) {
+          wasActivelyScanningQrRef.current = true;
+        }
+
+        // Only notify once when the user actively scanned a QR code to link a new session
+        if (
+          !wasConnected &&
+          nowConnected &&
+          wasActivelyScanningQrRef.current &&
+          !hasNotifiedWaConnectRef.current
+        ) {
+          hasNotifiedWaConnectRef.current = true;
+          wasActivelyScanningQrRef.current = false;
           toast.success('تم ربط حساب واتساب ويب بنجاح وحفظ الجلسة دائماً ✓');
         }
         return {
@@ -151,7 +167,7 @@ function UnifiedSettingsCatalogView({
     } catch {}
   }, [toast]);
 
-  const handleConnectWhatsApp = async (forceRestart = false) => {
+  const handleConnectWhatsApp = async (forceRestart = false, silent = false) => {
     setWaLoading(true);
     try {
       const res = await fetch('/api/whatsapp/connect', {
@@ -160,23 +176,32 @@ function UnifiedSettingsCatalogView({
         body: JSON.stringify({ forceRestart }),
       });
       const data = await res.json();
+      const qrUrl = data?.qrDataUrl || data?.qr;
+      if (!data?.connected && qrUrl) {
+        wasActivelyScanningQrRef.current = true;
+        hasNotifiedWaConnectRef.current = false;
+      }
       setWaStatus({
         connected: Boolean(data?.connected),
         status: data?.status || 'PAIRING',
         user: data?.user,
         userName: data?.userName,
-        qrDataUrl: data?.qrDataUrl || data?.qr,
+        qrDataUrl: qrUrl,
         hasSavedSession: Boolean(data?.hasSavedSession),
       });
-      if (data?.connected) {
-        toast.success('حساب واتساب ويب متصل ونشط بالفعل ✓');
-      } else if (data?.qrDataUrl || data?.qr) {
-        toast.info('تم توليد الباركود (QR) — امسحه من تطبيق واتساب في هاتفك للربط');
-      } else {
-        toast.info('جاري تجهيز اتصال واتساب، سيظهر الرمز خلال ثوانٍ معدودة...');
+      if (!silent) {
+        if (data?.connected) {
+          toast.success('حساب واتساب ويب متصل ونشط بالفعل ✓');
+        } else if (qrUrl) {
+          toast.info('تم توليد الباركود (QR) — امسحه من تطبيق واتساب في هاتفك للربط');
+        } else {
+          toast.info('جاري تجهيز اتصال واتساب، سيظهر الرمز خلال ثوانٍ معدودة...');
+        }
       }
     } catch (err: any) {
-      toast.error(err?.message || 'تعذر بدء جلسة ربط واتساب ويب');
+      if (!silent) {
+        toast.error(err?.message || 'تعذر بدء جلسة ربط واتساب ويب');
+      }
     } finally {
       setWaLoading(false);
     }
@@ -186,6 +211,8 @@ function UnifiedSettingsCatalogView({
     setWaLoading(true);
     try {
       await fetch('/api/whatsapp/logout', { method: 'POST' });
+      wasActivelyScanningQrRef.current = false;
+      hasNotifiedWaConnectRef.current = false;
       setWaStatus({
         connected: false,
         status: 'DISCONNECTED',
@@ -296,23 +323,24 @@ function UnifiedSettingsCatalogView({
     }
   }, [activeTab, loadCatalog, loadSystemData, fetchWaStatus]);
 
-  // Automatically start generating QR barcode when user opens WHATSAPP or SYSTEM tab if not connected yet
+  // Automatically start generating QR barcode silently when user opens WHATSAPP or SYSTEM tab if not connected yet
   useEffect(() => {
     if (activeTab !== 'WHATSAPP' && activeTab !== 'SYSTEM') return;
     if (!waStatus.connected && !waStatus.qrDataUrl && !waLoading) {
-      handleConnectWhatsApp(false);
+      handleConnectWhatsApp(false, true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  // Poll WhatsApp connection status every 2s while on WHATSAPP/SYSTEM tab or while pairing QR is active
+  // Poll WhatsApp connection status (every 2.5s while pairing QR is active, or every 12s once connected)
   useEffect(() => {
     if (activeTab !== 'WHATSAPP' && activeTab !== 'SYSTEM' && waStatus.status !== 'PAIRING') return;
+    const intervalMs = waStatus.connected ? 12000 : 2500;
     const timer = setInterval(() => {
       fetchWaStatus();
-    }, 2000);
+    }, intervalMs);
     return () => clearInterval(timer);
-  }, [activeTab, waStatus.status, fetchWaStatus]);
+  }, [activeTab, waStatus.status, waStatus.connected, fetchWaStatus]);
 
   const categories = useMemo(() => {
     const set = new Set<string>();

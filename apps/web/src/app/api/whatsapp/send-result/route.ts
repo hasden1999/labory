@@ -231,36 +231,43 @@ export async function POST(request: Request) {
               ? `${customCaption}\n\n📄 (صورة 1 من ${totalImg}) - تقرير التحاليل الطبية المعتمد`
               : `📄 صورة (${i + 1} من ${totalImg}): تقرير التحاليل الطبية المعتمد - عينة #${sample.sampleNumber}\nالمريض: ${patient.name}\n${labName}`;
 
-            const imgFileName = `تقرير_طبي_عينة_${sample.sampleNumber}_صفحة_${i + 1}_${safeArabicPatient}.png`;
+            const isJpeg = typeof rawBase64 === 'string' && rawBase64.startsWith('data:image/jpeg');
+            const ext = isJpeg ? 'jpg' : 'png';
+            const mime = isJpeg ? 'image/jpeg' : 'image/png';
+            const imgFileName = `تقرير_طبي_عينة_${sample.sampleNumber}_صفحة_${i + 1}_${safeArabicPatient}.${ext}`;
             sendResult = await whatsappWebEngine.sendMedia({
               phone: cleanPhone,
               type: 'image',
               mediaBuffer: rawBase64,
               fileName: imgFileName,
-              mimetype: 'image/png',
+              mimetype: mime,
               caption: imgCaption,
             });
 
             if (i < totalImg - 1) {
-              await new Promise((r) => setTimeout(r, 800));
+              await new Promise((r) => setTimeout(r, 350));
             }
           }
         } else if (body.imageBase64 && typeof body.imageBase64 === 'string') {
           // Send high-resolution report image directly
           imagesSentCount = 1;
-          const imgFileName = `تقرير_طبي_عينة_${sample.sampleNumber}_${safeArabicPatient}.png`;
+          const isJpeg = body.imageBase64.startsWith('data:image/jpeg');
+          const imgFileName = `تقرير_طبي_عينة_${sample.sampleNumber}_${safeArabicPatient}.${isJpeg ? 'jpg' : 'png'}`;
           sendResult = await whatsappWebEngine.sendMedia({
             phone: cleanPhone,
             type: 'image',
             mediaBuffer: body.imageBase64,
             fileName: imgFileName,
-            mimetype: 'image/png',
+            mimetype: isJpeg ? 'image/jpeg' : 'image/png',
             caption: customCaption,
           });
         } else {
-          // Automatically generate separate images for each page/card (e.g. Chemistry/Sugar + Urine/GUE)
+          // Automatically generate separate images for each page/card (e.g. Chemistry/Sugar + CBC + Urine/GUE)
           try {
-            const reportImages = await generateReportImages(sample.id, request.url);
+            const reportImages = await generateReportImages(sample.id, request.url, {
+              section: body.section,
+              format: 'jpeg',
+            });
             const totalImg = reportImages.length;
             imagesSentCount = totalImg;
 
@@ -273,18 +280,18 @@ export async function POST(request: Request) {
                 ? `${customCaption}\n\n📄 (صورة 1 من ${totalImg}) - تقرير التحاليل الطبية المعتمد`
                 : `📄 صورة (${i + 1} من ${totalImg}): تقرير التحاليل الطبية المعتمد - عينة #${sample.sampleNumber}\nالمريض: ${patient.name}\n${labName}`;
 
-              const imgFileName = `تقرير_طبي_عينة_${sample.sampleNumber}_صفحة_${i + 1}_${safeArabicPatient}.png`;
+              const imgFileName = `تقرير_طبي_عينة_${sample.sampleNumber}_صفحة_${i + 1}_${safeArabicPatient}.jpg`;
               sendResult = await whatsappWebEngine.sendMedia({
                 phone: cleanPhone,
                 type: 'image',
                 mediaBuffer: img.buffer,
                 fileName: imgFileName,
-                mimetype: 'image/png',
+                mimetype: 'image/jpeg',
                 caption: imgCaption,
               });
 
               if (i < totalImg - 1) {
-                await new Promise((r) => setTimeout(r, 800));
+                await new Promise((r) => setTimeout(r, 350));
               }
             }
           } catch (imgErr) {
