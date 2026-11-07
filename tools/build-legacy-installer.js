@@ -589,9 +589,19 @@ async function run() {
   if (foundStaticSrc) {
     const staticDest = path.join(targetStandalone, 'apps', 'web', '.next', 'static');
     console.log(`  نسخ الأصول الثابتة من ${foundStaticSrc} إلى ${staticDest}...`);
-    fs.cpSync(foundStaticSrc, staticDest, { recursive: true });
+    try {
+      if (fs.existsSync(staticDest)) {
+        fs.rmSync(staticDest, { recursive: true, force: true });
+      }
+    } catch (e) {}
+    fs.cpSync(foundStaticSrc, staticDest, { recursive: true, force: true });
     const rootStaticDest = path.join(targetStandalone, '.next', 'static');
-    try { fs.cpSync(foundStaticSrc, rootStaticDest, { recursive: true }); } catch (e) {}
+    try {
+      if (fs.existsSync(rootStaticDest)) {
+        fs.rmSync(rootStaticDest, { recursive: true, force: true });
+      }
+      fs.cpSync(foundStaticSrc, rootStaticDest, { recursive: true, force: true });
+    } catch (e) {}
   }
 
   // Copy public assets to both apps/web/public and standalone/public
