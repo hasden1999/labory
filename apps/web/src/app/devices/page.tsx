@@ -38,13 +38,16 @@ function UnifiedDevicesInventoryView() {
   const [guideDevice, setGuideDevice] = useState<{ name: string; preset?: DevicePreset } | null>(null);
   const [showMindraySimulator, setShowMindraySimulator] = useState(false);
 
-  // Add Device Modal State
+  // Add / Edit Device Modal State
+  const defaultBc30Preset = DEVICE_PRESETS.find((p) => p.id === 'mindray_bc30') || DEVICE_PRESETS[0];
   const [showAddDeviceModal, setShowAddDeviceModal] = useState(false);
-  const [selectedPresetId, setSelectedPresetId] = useState<string>(DEVICE_PRESETS[0]?.id || '');
-  const [devName, setDevName] = useState<string>(`${DEVICE_PRESETS[0]?.brand || ''} ${DEVICE_PRESETS[0]?.model || ''}`.trim());
-  const [devProtocol, setDevProtocol] = useState<string>(DEVICE_PRESETS[0]?.protocol || 'HL7');
-  const [devConnType, setDevConnType] = useState<string>(DEVICE_PRESETS[0]?.connectionType || 'TCP_SERVER');
-  const [devPort, setDevPort] = useState<string>('5000');
+  const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
+  const [selectedPresetId, setSelectedPresetId] = useState<string>(defaultBc30Preset?.id || '');
+  const [devName, setDevName] = useState<string>(`${defaultBc30Preset?.brand || ''} ${defaultBc30Preset?.model || ''}`.trim());
+  const [devProtocol, setDevProtocol] = useState<string>(defaultBc30Preset?.protocol || 'HL7_V2');
+  const [devConnType, setDevConnType] = useState<string>(defaultBc30Preset?.connectionType || 'TCP_CLIENT');
+  const [devIp, setDevIp] = useState<string>(defaultBc30Preset?.defaultIpAddress || '192.168.1.101');
+  const [devPort, setDevPort] = useState<string>(String(defaultBc30Preset?.defaultPort || 5100));
   const [savingDevice, setSavingDevice] = useState(false);
 
   // Inventory State
@@ -108,7 +111,48 @@ function UnifiedDevicesInventoryView() {
       setDevName(`${preset.brand} ${preset.model}`);
       setDevProtocol(preset.protocol);
       setDevConnType(preset.connectionType);
+      setDevPort(String(preset.defaultPort || (preset.connectionType === 'TCP_CLIENT' ? 5100 : 5000)));
+      setDevIp(preset.defaultIpAddress || (preset.connectionType === 'TCP_CLIENT' ? '192.168.1.101' : ''));
     }
+  };
+
+  const handleOpenAddDevice = () => {
+    setEditingDeviceId(null);
+    const preset = DEVICE_PRESETS.find((p) => p.id === 'mindray_bc30') || DEVICE_PRESETS[0];
+    if (preset) {
+      setSelectedPresetId(preset.id);
+      setDevName(`${preset.brand} ${preset.model}`);
+      setDevProtocol(preset.protocol);
+      setDevConnType(preset.connectionType);
+      setDevPort(String(preset.defaultPort || 5100));
+      setDevIp(preset.defaultIpAddress || '192.168.1.101');
+    }
+    setShowAddDeviceModal(true);
+  };
+
+  const handleOpenEditDevice = (device: any) => {
+    setEditingDeviceId(device.id);
+    const isBc30 =
+      device.id === 'dev-mindray-bc30' ||
+      String(device.model || device.name || '').toUpperCase().includes('BC-30');
+    const matchedPreset =
+      DEVICE_PRESETS.find(
+        (p) =>
+          (isBc30 && p.id === 'mindray_bc30') ||
+          `${p.brand} ${p.model}`.toLowerCase() === (device.name || '').toLowerCase() ||
+          (device.model && p.model.toLowerCase() === String(device.model).toLowerCase())
+      ) || defaultBc30Preset;
+
+    setSelectedPresetId(matchedPreset?.id || '');
+    setDevName(device.name || `${matchedPreset?.brand || ''} ${matchedPreset?.model || ''}`.trim());
+    setDevProtocol(device.protocol || matchedPreset?.protocol || 'HL7_V2');
+    setDevConnType(
+      device.connectionType ||
+        (isBc30 ? 'TCP_CLIENT' : matchedPreset?.connectionType || 'TCP_IP')
+    );
+    setDevIp(device.ipAddress || (isBc30 ? '192.168.1.101' : matchedPreset?.defaultIpAddress || ''));
+    setDevPort(String(device.port || (isBc30 ? 5100 : matchedPreset?.defaultPort || 5000)));
+    setShowAddDeviceModal(true);
   };
 
   const handleSaveDevice = async (e: React.FormEvent) => {
@@ -121,23 +165,33 @@ function UnifiedDevicesInventoryView() {
     try {
       const preset = DEVICE_PRESETS.find((p) => p.id === selectedPresetId);
       const resolvedBrand = preset?.brand || devName.trim().split(' ')[0] || 'Generic';
-      await apiRequest('/devices', 'POST', {
+      const payload = {
+        presetId: selectedPresetId || undefined,
         name: devName.trim(),
         brand: resolvedBrand,
         manufacturer: resolvedBrand,
         model: preset?.model || devName.trim(),
-        category: preset?.category || 'General',
+        category: preset?.category || 'CBC',
         protocol: devProtocol,
         connectionType: devConnType,
-        port: Number(toEnglishDigits(devPort)) || 5000,
+        ipAddress: toEnglishDigits(devIp).trim() || null,
+        port: Number(toEnglishDigits(devPort)) || (devConnType === 'TCP_CLIENT' ? 5100 : 5000),
         active: true,
         mappings: preset?.defaultMappings || [],
-      });
-      toast.success('تمت إضافة الجهاز الطبي وربط الكودات القياسية بنجاح');
+      };
+
+      if (editingDeviceId) {
+        await apiRequest(`/devices/${editingDeviceId}`, 'PUT', payload);
+        toast.success('تم تحديث إعدادات الجهاز وعنوان الاتصال بنجاح');
+      } else {
+        await apiRequest('/devices', 'POST', payload);
+        toast.success('تمت إضافة الجهاز الطبي وربط الكودات القياسية بنجاح');
+      }
       setShowAddDeviceModal(false);
+      setEditingDeviceId(null);
       await loadAll();
     } catch (err: any) {
-      toast.error(err.message || 'تعذر إضافة الجهاز');
+      toast.error(err.message || 'تعذر حفظ إعدادات الجهاز');
     } finally {
       setSavingDevice(false);
     }
@@ -156,13 +210,53 @@ function UnifiedDevicesInventoryView() {
   const handleTestConnection = async (device: any) => {
     setSimulatingId(device.id);
     try {
-      const firstCode = device.mappings?.[0]?.analyzerCode || 'WBC';
+      const firstCode = device.mappings?.[0]?.analyzerCode || device.mappings?.[0]?.deviceTestCode || 'WBC';
+      const nowTimeStr = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+      const testMsgId = `TEST${Date.now().toString().slice(-6)}`;
+      const brand = device.brand || 'Mindray';
+      const model = device.model || 'BC-30s';
+      const testHl7Payload = [
+        `MSH|^~\\&|${model}|${brand}|LIS|LAB|${nowTimeStr}||ORU^R01|${testMsgId}|P|2.3.1||||||UNICODE`,
+        `PID|1||2031||عينة تجريبية^^||19900101|M`,
+        `PV1|1|O|Lab`,
+        `OBR|1||2031|00001^Automated Count^99MRC||${nowTimeStr}||||||||||||||HM`,
+        `OBX|1|IS|08001^Take Mode^99MRC||O||||||F`,
+        `OBX|2|IS|08002^Blood Mode^99MRC||W||||||F`,
+        `OBX|3|IS|08003^Test Mode^99MRC||CBC||||||F`,
+        `OBX|4|NM|6690-2^WBC^LN||7.4|10*9/L|4.0-10.0|N|||F`,
+        `OBX|5|NM|731-0^Lymph#^LN||2.2|10*9/L|0.8-4.0|N|||F`,
+        `OBX|6|NM|10027^Mid#^99MRC||0.5|10*9/L|0.1-1.5|N|||F`,
+        `OBX|7|NM|10028^Gran#^99MRC||4.7|10*9/L|2.0-7.0|N|||F`,
+        `OBX|8|NM|736-9^Lymph%^LN||29.7|%|20.0-40.0|N|||F`,
+        `OBX|9|NM|10029^Mid%^99MRC||6.8|%|3.0-15.0|N|||F`,
+        `OBX|10|NM|10030^Gran%^99MRC||63.5|%|50.0-70.0|N|||F`,
+        `OBX|11|NM|789-8^RBC^LN||4.85|10*12/L|3.80-5.80|N|||F`,
+        `OBX|12|NM|718-7^HGB^LN||14.5|g/dL|11.5-16.5|N|||F`,
+        `OBX|13|NM|4544-3^HCT^LN||43.2|%|35.0-50.0|N|||F`,
+        `OBX|14|NM|787-2^MCV^LN||89.1|fL|80.0-100.0|N|||F`,
+        `OBX|15|NM|785-6^MCH^LN||29.9|pg|27.0-34.0|N|||F`,
+        `OBX|16|NM|786-4^MCHC^LN||33.6|g/dL|32.0-36.0|N|||F`,
+        `OBX|17|NM|788-0^RDW-CV^LN||12.8|%|11.0-16.0|N|||F`,
+        `OBX|18|NM|21000-5^RDW-SD^LN||42.4|fL|35.0-56.0|N|||F`,
+        `OBX|19|NM|777-3^PLT^LN||254|10*9/L|100-300|N|||F`,
+        `OBX|20|NM|32623-1^MPV^LN||9.6|fL|6.5-12.0|N|||F`,
+        `OBX|21|NM|32207-3^PDW^LN||15.6||9.0-17.0|N|||F`,
+        `OBX|22|NM|10014^PCT^99MRC||0.244|%|0.108-0.282|N|||F`,
+        `OBX|23|NM|10013^P-LCR^99MRC||24.2|%|11.0-45.0|N|||F`,
+        `OBX|24|NM|10031^P-LCC^99MRC||61|10*9/L|30-90|N|||F`,
+      ].join('\r');
+
       await apiRequest('/devices/ingest', 'POST', {
         deviceId: device.id,
+        apiKey: device.apiKey || device.id,
+        rawPayload: testHl7Payload,
+        protocol: device.protocol || 'HL7_V2',
         sampleBarcode: '2031',
+        sampleNumber: 2031,
+        patientName: 'عينة تجريبية',
         results: [{ testCode: firstCode, value: '7.4', unit: '10^3/uL', flag: 'N' }],
       });
-      toast.success(`نجح اتصال وفحص الجهاز (${device.name}) وتم استقبال قراءة تجريبية حية!`, 'نجاح فحص الربط');
+      toast.success(`نجح اتصال وفحص الجهاز (${device.name}) وتم استقبال كامل الـ 21 معامل!`, 'نجاح فحص الربط');
       await loadAll();
     } catch (err: any) {
       toast.error(err.message || 'فشل إرسال القراءة التجريبية');
@@ -276,7 +370,7 @@ function UnifiedDevicesInventoryView() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             type="button"
-            onClick={() => setShowAddDeviceModal(true)}
+            onClick={handleOpenAddDevice}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -495,18 +589,45 @@ function UnifiedDevicesInventoryView() {
                         <span style={{ fontSize: '14px', fontWeight: 900, color: 'var(--text-main)' }}>{dev.name}</span>
                       </div>
                       <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '2px' }}>
-                        البروتوكول: {dev.protocol || 'HL7'} • المنفذ: {dev.port || 5000} • ({dev.mappings?.length || 0} فحص مربوط)
+                        {dev.connectionType === 'TCP_CLIENT' || (dev.ipAddress && Number(dev.port) === 5100) ? (
+                          <span>
+                            الاتصال: <strong dir="ltr" style={{ color: '#0284c7' }}>TCP Client ➔ {dev.ipAddress || '192.168.1.101'}:{dev.port || 5100}</strong> • ({dev.mappings?.length || 0} فحص)
+                          </span>
+                        ) : (
+                          <span>
+                            البروتوكول: {dev.protocol || 'HL7_V2'} • المنفذ: {dev.port || 5000} • ({dev.mappings?.length || 0} فحص مربوط)
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteDevice(dev.id)}
-                      title="حذف الجهاز"
-                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditDevice(dev)}
+                        title="تعديل الاسم وعنوان IP والمنفذ"
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-input)',
+                          color: 'var(--text-main)',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ⚙️ تعديل / IP
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDevice(dev.id)}
+                        title="حذف الجهاز"
+                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Easy Non-Tech Action Buttons */}
@@ -822,7 +943,9 @@ function UnifiedDevicesInventoryView() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900 }}>إضافة وربط جهاز طبي خطوة بخطوة</h3>
+              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900 }}>
+                {editingDeviceId ? 'تعديل إعدادات وعنوان IP الجهاز الطبي' : 'إضافة وربط جهاز طبي خطوة بخطوة'}
+              </h3>
               <button type="button" onClick={() => setShowAddDeviceModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                 <X size={18} />
               </button>
@@ -880,15 +1003,21 @@ function UnifiedDevicesInventoryView() {
                       {step}
                     </li>
                   ))}
-                  <li style={{ fontWeight: 900, color: '#0f766e' }}>
-                    اكتب في شاشة الجهاز عنوان السيرفر (<span dir="ltr">{serverIp}</span>) والمنفذ (<span dir="ltr">{listenerPort}</span>).
-                  </li>
+                  {devConnType === 'TCP_CLIENT' ? (
+                    <li style={{ fontWeight: 900, color: '#0f766e' }}>
+                      سيقوم برنامج المختبر بالاتصال تلقائياً بالجهاز كـ (TCP Client) على عنوان الجهاز (<span dir="ltr">{devIp || '192.168.1.101'}</span>) والمنفذ الثابت (<span dir="ltr">{devPort || '5100'}</span>).
+                    </li>
+                  ) : (
+                    <li style={{ fontWeight: 900, color: '#0f766e' }}>
+                      اكتب في شاشة الجهاز عنوان السيرفر (<span dir="ltr">{serverIp}</span>) والمنفذ (<span dir="ltr">{listenerPort}</span>).
+                    </li>
+                  )}
                 </ol>
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <div style={{ flex: 1 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>الاسم المعروض في المختبر</label>
                 <input
                   type="text"
@@ -897,14 +1026,67 @@ function UnifiedDevicesInventoryView() {
                   style={{ width: '100%', height: '38px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
                 />
               </div>
-              <div style={{ width: '130px' }}>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>طريقة الاتصال (Connection Mode)</label>
+                <select
+                  value={devConnType}
+                  onChange={(e) => {
+                    const nextMode = e.target.value;
+                    setDevConnType(nextMode);
+                    if (nextMode === 'TCP_CLIENT') {
+                      if (!devIp) setDevIp('192.168.1.101');
+                      if (devPort === '5000') setDevPort('5100');
+                    } else if (nextMode === 'TCP_IP') {
+                      if (devPort === '5100') setDevPort('5000');
+                    }
+                  }}
+                  style={{ width: '100%', height: '38px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-input)', fontWeight: 700, fontSize: '12.5px', boxSizing: 'border-box' }}
+                >
+                  <option value="TCP_CLIENT">TCP Client — البرنامج يتصل بالجهاز (BC-30s منفذ 5100)</option>
+                  <option value="TCP_IP">TCP Server — الجهاز يتصل بالبرنامج (منفذ 5000)</option>
+                  <option value="SERIAL_PORT">Serial COM — كابل سيريال (RS-232 / USB)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 150px', gap: '10px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>
+                  عنوان IP الجهاز الطبي (Device IP Address)
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={devIp}
+                  onChange={(e) => setDevIp(e.target.value)}
+                  placeholder="192.168.1.101"
+                  style={{ width: '100%', height: '38px', padding: '0 10px', borderRadius: '8px', border: '1.5px solid #0284c7', fontWeight: 800, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>رقم المنفذ (Port)</label>
                 <input
                   type="text"
+                  dir="ltr"
                   value={devPort}
                   onChange={(e) => setDevPort(e.target.value)}
-                  style={{ width: '100%', height: '38px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}
+                  placeholder="5100"
+                  style={{ width: '100%', height: '38px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontWeight: 800, boxSizing: 'border-box' }}
                 />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px' }}>البروتوكول</label>
+                <select
+                  value={devProtocol}
+                  onChange={(e) => setDevProtocol(e.target.value)}
+                  style={{ width: '100%', height: '38px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-input)', fontWeight: 700, boxSizing: 'border-box' }}
+                >
+                  <option value="HL7_V2">HL7 v2.3.1 (MLLP)</option>
+                  <option value="ASTM_1394">ASTM E1394</option>
+                </select>
               </div>
             </div>
 
@@ -913,7 +1095,7 @@ function UnifiedDevicesInventoryView() {
                 إلغاء
               </button>
               <button type="submit" disabled={savingDevice} style={{ padding: '8px 22px', borderRadius: '8px', border: 'none', background: '#0284c7', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>
-                {savingDevice ? 'جاري الإضافة...' : 'تثبيت الجهاز وتفعيل الاستماع'}
+                {savingDevice ? 'جاري الحفظ...' : editingDeviceId ? 'حفظ التعديلات وتفعيل الاتصال' : 'تثبيت الجهاز وتفعيل الاتصال'}
               </button>
             </div>
           </form>
@@ -953,7 +1135,15 @@ function UnifiedDevicesInventoryView() {
               </button>
             </div>
             <div style={{ padding: '12px', borderRadius: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: '13px', fontWeight: 800, color: '#166534' }}>
-              🌐 عنوان حاسوب المختبر (Host IP): <span dir="ltr">{serverIp}</span> | المنفذ (Port): <span dir="ltr">{listenerPort}</span>
+              {guideDevice.preset?.connectionType === 'TCP_CLIENT' ? (
+                <span>
+                  🔗 وضع الاتصال (TCP Client): البرنامج يتصل تلقائياً بالجهاز على <span dir="ltr">{guideDevice.preset?.defaultIpAddress || '192.168.1.101'} : {guideDevice.preset?.defaultPort || 5100}</span> | عنوان الحاسوب: <span dir="ltr">192.168.1.100</span>
+                </span>
+              ) : (
+                <span>
+                  🌐 عنوان حاسوب المختبر (Host IP): <span dir="ltr">{serverIp}</span> | المنفذ (Port): <span dir="ltr">{listenerPort}</span>
+                </span>
+              )}
             </div>
             <div style={{ fontSize: '13px', lineHeight: 1.8 }}>
               <div><strong>• نوع التوصيل:</strong> {guideDevice.preset?.cableTypeAr || 'كيبل شبكة LAN عادي'}</div>

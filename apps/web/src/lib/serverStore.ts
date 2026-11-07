@@ -315,7 +315,7 @@ export interface DeviceRecord {
   brand: string;
   model: string;
   category: 'CBC' | 'CHEMISTRY' | 'IMMUNOLOGY' | 'URINE' | 'ELECTROLYTES' | 'OTHER';
-  connectionType: 'TCP_IP' | 'SERIAL_PORT' | 'FILE_WATCHER';
+  connectionType: 'TCP_IP' | 'TCP_CLIENT' | 'SERIAL_PORT' | 'FILE_WATCHER';
   protocol: 'ASTM_1394' | 'HL7_V2' | 'CSV_DELIMITED' | 'CUSTOM_TEXT';
   ipAddress?: string | null;
   port?: number | null;
@@ -642,14 +642,14 @@ export function getInitialDevices(): DeviceRecord[] {
     brand: 'Mindray',
     model: 'BC-30s Auto Hematology',
     category: 'CBC',
-    connectionType: 'TCP_IP',
+    connectionType: 'TCP_CLIENT',
     protocol: 'HL7_V2',
-    ipAddress: '192.168.1.155',
-    port: 5000,
+    ipAddress: '192.168.1.101',
+    port: 5100,
     apiKey: crypto.randomBytes(24).toString('hex'),
     status: 'ONLINE',
     autoMatchSample: true,
-    notes: 'موصول عبر شبكة LAN - بروتوكول HL7 v2.3.1 القياسي مع تفريق ثلاثي لكريات الدم ورسم المنحنيات البيانية الثلاثية',
+    notes: 'موصول عبر شبكة LAN (الجهاز يعمل كـ TCP Server على منفذ 5100 والبرنامج يتصل به كـ Client) - بروتوكول HL7 v2.3.1 القياسي',
     lastCommunication: now,
     mappings: bc30Mappings,
     createdAt: now,
@@ -666,10 +666,12 @@ export function ensureDeviceApiKeys(store: ServerStore): boolean {
   if (!store || !Array.isArray(store.devices)) return false;
   let updated = false;
 
+  const bc30Preset = DEVICE_PRESETS.find(p => p.id === 'mindray_bc30');
+  const now = new Date().toISOString();
+
   // Ensure Mindray BC-30 is present in the devices registry
-  if (!store.devices.some(d => d.id === 'dev-mindray-bc30' || (d.model && d.model.includes('BC-30')))) {
-    const bc30Preset = DEVICE_PRESETS.find(p => p.id === 'mindray_bc30');
-    const now = new Date().toISOString();
+  const existingBc30 = store.devices.find(d => d.id === 'dev-mindray-bc30' || (d.model && d.model.includes('BC-30')));
+  if (!existingBc30) {
     const bc30Mappings: DeviceMappingRecord[] = (bc30Preset?.defaultMappings || []).map((m, idx) => ({
       id: `map-bc30-${idx + 1}`,
       deviceId: 'dev-mindray-bc30',
@@ -689,20 +691,54 @@ export function ensureDeviceApiKeys(store: ServerStore): boolean {
       brand: 'Mindray',
       model: 'BC-30s Auto Hematology',
       category: 'CBC',
-      connectionType: 'TCP_IP',
+      connectionType: 'TCP_CLIENT',
       protocol: 'HL7_V2',
-      ipAddress: '192.168.1.155',
-      port: 5000,
+      ipAddress: '192.168.1.101',
+      port: 5100,
       apiKey: crypto.randomBytes(24).toString('hex'),
       status: 'ONLINE',
       autoMatchSample: true,
-      notes: 'موصول عبر شبكة LAN - بروتوكول HL7 v2.3.1 القياسي مع تفريق ثلاثي لكريات الدم ورسم المنحنيات البيانية الثلاثية',
+      notes: 'موصول عبر شبكة LAN (الجهاز يعمل كـ TCP Server على منفذ 5100 والبرنامج يتصل به كـ Client) - بروتوكول HL7 v2.3.1 القياسي',
       lastCommunication: now,
       mappings: bc30Mappings,
       createdAt: now,
     };
     store.devices.push(devMindrayBc30);
     updated = true;
+  } else {
+    // Migrate legacy placeholder seed settings for Mindray BC-30s to accurate catalog TCP_CLIENT 192.168.1.101:5100
+    for (const dev of store.devices) {
+      const isBc30 = dev.id === 'dev-mindray-bc30' || (dev.model && dev.model.includes('BC-30')) || (dev.name && dev.name.includes('BC-30'));
+      if (isBc30) {
+        if (!dev.ipAddress || dev.ipAddress === '192.168.1.155') {
+          dev.ipAddress = '192.168.1.101';
+          updated = true;
+        }
+        if (!dev.port || dev.port === 5000) {
+          dev.port = 5100;
+          updated = true;
+        }
+        if (dev.connectionType !== 'TCP_CLIENT') {
+          dev.connectionType = 'TCP_CLIENT';
+          updated = true;
+        }
+        if (!Array.isArray(dev.mappings) || dev.mappings.length < 15) {
+          dev.mappings = (bc30Preset?.defaultMappings || []).map((m, idx) => ({
+            id: `map-${dev.id}-${idx + 1}`,
+            deviceId: dev.id,
+            deviceTestCode: m.deviceTestCode,
+            deviceTestName: m.deviceTestName,
+            testCatalogId: m.testCatalogCode === 'HB' ? 't-hb' : (m.testCatalogCode === 'PLT' ? 't-plt' : 't-cbc'),
+            testCatalogCode: m.testCatalogCode,
+            testCatalogName: m.testCatalogName,
+            unit: m.unit,
+            multiplier: 1.0,
+            createdAt: now,
+          }));
+          updated = true;
+        }
+      }
+    }
   }
 
   for (const device of store.devices) {
@@ -2768,37 +2804,62 @@ export function addDevice(data: any): DeviceRecord {
   const store = getStore();
   const now = new Date().toISOString();
   const newId = data.id || `dev-${Date.now()}`;
-  const apiKey = data.apiKey || `key_${Math.random().toString(36).substring(2, 10)}`;
+  const apiKey = data.apiKey || crypto.randomBytes(24).toString('hex');
 
-  let mappings: DeviceMappingRecord[] = [];
-  if (data.presetId) {
-    const preset = DEVICE_PRESETS.find(p => p.id === data.presetId);
-    if (preset) {
-      mappings = (preset.defaultMappings || []).map((m, idx) => ({
-        id: `map-${newId}-${idx + 1}`,
-        deviceId: newId,
-        deviceTestCode: m.deviceTestCode,
-        deviceTestName: m.deviceTestName,
-        testCatalogId: m.testCatalogCode === 'HB' ? 't-hb' : (m.testCatalogCode === 'PLT' ? 't-plt' : 't-cbc'),
-        testCatalogCode: m.testCatalogCode,
-        testCatalogName: m.testCatalogName,
-        unit: m.unit,
-        multiplier: 1.0,
-        createdAt: now,
-      }));
-    }
-  }
+  const matchedPreset =
+    (data.presetId && DEVICE_PRESETS.find(p => p.id === data.presetId)) ||
+    DEVICE_PRESETS.find(
+      p =>
+        (data.model && p.model.toLowerCase() === String(data.model).toLowerCase()) ||
+        (data.name && `${p.brand} ${p.model}`.toLowerCase() === String(data.name).trim().toLowerCase())
+    );
+
+  const sourceMappings: any[] =
+    Array.isArray(data.mappings) && data.mappings.length > 0
+      ? data.mappings
+      : (matchedPreset?.defaultMappings || []);
+
+  const mappings: DeviceMappingRecord[] = sourceMappings.map((m, idx) => ({
+    id: m.id || `map-${newId}-${idx + 1}`,
+    deviceId: newId,
+    deviceTestCode: m.deviceTestCode || m.analyzerCode || 'WBC',
+    deviceTestName: m.deviceTestName || m.deviceTestCode || 'Test',
+    testCatalogId: m.testCatalogId || (m.testCatalogCode === 'HB' ? 't-hb' : (m.testCatalogCode === 'PLT' ? 't-plt' : 't-cbc')),
+    testCatalogCode: m.testCatalogCode || 'CBC',
+    testCatalogName: m.testCatalogName || m.deviceTestName || 'CBC',
+    unit: m.unit || '',
+    multiplier: m.multiplier ? Number(m.multiplier) : 1.0,
+    createdAt: now,
+  }));
+
+  const isBc30 =
+    matchedPreset?.id === 'mindray_bc30' ||
+    String(data.model || data.name || '').toUpperCase().includes('BC-30');
+
+  const resolvedConnType =
+    data.connectionType === 'TCP_SERVER'
+      ? 'TCP_IP'
+      : (data.connectionType || matchedPreset?.connectionType || (isBc30 ? 'TCP_CLIENT' : 'TCP_IP'));
+
+  const resolvedIp =
+    data.ipAddress !== undefined && data.ipAddress !== null && String(data.ipAddress).trim() !== ''
+      ? String(data.ipAddress).trim()
+      : (matchedPreset?.defaultIpAddress || (isBc30 ? '192.168.1.101' : null));
+
+  const resolvedPort = data.port
+    ? Number(data.port)
+    : (matchedPreset?.defaultPort || (resolvedConnType === 'TCP_CLIENT' ? 5100 : 5000));
 
   const newDevice: DeviceRecord = {
     id: newId,
     name: (data.name || 'جهاز تحليلات جديد').trim(),
-    brand: (data.brand || 'Generic').trim(),
-    model: (data.model || data.name || '').trim(),
-    category: data.category || 'CBC',
-    connectionType: data.connectionType || 'TCP_IP',
-    protocol: data.protocol || 'HL7_V2',
-    ipAddress: data.ipAddress || null,
-    port: data.port ? Number(data.port) : null,
+    brand: (data.brand || matchedPreset?.brand || 'Generic').trim(),
+    model: (data.model || matchedPreset?.model || data.name || '').trim(),
+    category: data.category || matchedPreset?.category || 'CBC',
+    connectionType: resolvedConnType as any,
+    protocol: (data.protocol === 'HL7' ? 'HL7_V2' : (data.protocol || matchedPreset?.protocol || 'HL7_V2')) as any,
+    ipAddress: resolvedIp,
+    port: resolvedPort,
     comPort: data.comPort || null,
     baudRate: data.baudRate ? Number(data.baudRate) : null,
     dataBits: data.dataBits ? Number(data.dataBits) : 8,
@@ -3053,10 +3114,10 @@ export function processDeviceIngest(params: {
         brand: 'Mindray',
         model: 'BC-30s Auto Hematology',
         category: 'CBC',
-        connectionType: 'TCP_IP',
+        connectionType: 'TCP_CLIENT',
         protocol: 'HL7_V2',
-        ipAddress: '192.168.1.155',
-        port: 5000,
+        ipAddress: '192.168.1.101',
+        port: 5100,
         apiKey: 'key_mindray_bc30_simulator',
         status: 'ONLINE',
         autoMatchSample: true,
@@ -4459,5 +4520,156 @@ export function updateTestSpecialty(
   );
   return test;
 }
+
+// -------------------------------------------------------------
+// Standalone Web TCP Client Bridge (Fallback when Electron Desktop Bridge is not active)
+// -------------------------------------------------------------
+declare global {
+  var __lastExternalBridgePollMs: number | undefined;
+  var __webTcpClientTimer: NodeJS.Timeout | undefined;
+  var __webTcpClients: Map<string, { socket: any; host: string; port: number }> | undefined;
+}
+
+export function markExternalBridgeActive(): void {
+  global.__lastExternalBridgePollMs = Date.now();
+  if (global.__webTcpClients && global.__webTcpClients.size > 0) {
+    for (const conn of Array.from(global.__webTcpClients.values())) {
+      try { conn.socket.destroy(); } catch {}
+    }
+    global.__webTcpClients.clear();
+  }
+}
+
+function buildEmbeddedHl7Ack(hl7Message: string): string {
+  const firstSegment = (hl7Message || '').split(/\r\n|\r|\n/)[0] || '';
+  const fields = firstSegment.split('|');
+  const sendingApp = fields[2] || 'BC-30s';
+  const sendingFac = fields[3] || 'Mindray';
+  const msgControlId = fields[9] || '1';
+  const procId = fields[10] || 'P';
+  const versionId = fields[11] || '2.3.1';
+  const charSet = fields[17] || 'UNICODE';
+  const ts = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+  return (
+    `\x0bMSH|^~\\&|LIS|LAB|${sendingApp}|${sendingFac}|${ts}||ACK^R01|${msgControlId}|${procId}|${versionId}||||||${charSet}\r` +
+    `MSA|AA|${msgControlId}||||0\r\x1c\r`
+  );
+}
+
+function startEmbeddedTcpClientFallback() {
+  if (typeof process === 'undefined' || process.env.VERCEL || global.__webTcpClientTimer) return;
+  if (!global.__webTcpClients) global.__webTcpClients = new Map();
+
+  let netMod: typeof import('net') | null = null;
+  try {
+    netMod = require('net');
+  } catch {
+    return;
+  }
+
+  global.__webTcpClientTimer = setInterval(() => {
+    try {
+      // Yield if Electron desktop deviceBridgeService is actively polling
+      if (global.__lastExternalBridgePollMs && Date.now() - global.__lastExternalBridgePollMs < 15000) {
+        return;
+      }
+      if (!global.__labStore || !Array.isArray(global.__labStore.devices)) return;
+
+      const clients = global.__webTcpClients!;
+      const desired = new Map<string, { id: string; name: string; host: string; port: number; apiKey: string }>();
+
+      for (const dev of global.__labStore.devices) {
+        if (!dev || (dev as any).active === false || dev.status === 'OFFLINE') continue;
+        const ip = (dev.ipAddress || '').trim();
+        const port = Number(dev.port) || 5100;
+        const isClient =
+          dev.connectionType === 'TCP_CLIENT' ||
+          (ip && (port === 5100 || (dev.model && dev.model.toUpperCase().includes('BC-30'))));
+        if (isClient && ip && ip !== '0.0.0.0') {
+          desired.set(dev.id, {
+            id: dev.id,
+            name: dev.name,
+            host: ip,
+            port,
+            apiKey: dev.apiKey || dev.id,
+          });
+        }
+      }
+
+      for (const [devId, conn] of Array.from(clients.entries())) {
+        const target = desired.get(devId);
+        if (!target || target.host !== conn.host || target.port !== conn.port) {
+          try { conn.socket.destroy(); } catch {}
+          clients.delete(devId);
+        }
+      }
+
+      for (const [devId, target] of Array.from(desired.entries())) {
+        if (!clients.has(devId) && netMod) {
+          const socket = new netMod.Socket();
+          clients.set(devId, { socket, host: target.host, port: target.port });
+          let rxBuffer = Buffer.alloc(0);
+
+          socket.connect(target.port, target.host, () => {
+            socket.setKeepAlive(true, 15000);
+            socket.setNoDelay(true);
+            console.log(`✅ [Web TCP Client] Connected to ${target.name} (${target.host}:${target.port})`);
+          });
+
+          socket.on('data', (chunk: Buffer) => {
+            try {
+              if (rxBuffer.length + chunk.length > 2 * 1024 * 1024) {
+                rxBuffer = Buffer.alloc(0);
+              }
+              rxBuffer = Buffer.concat([rxBuffer, chunk]);
+
+              let loop = true;
+              while (loop && rxBuffer.length > 0) {
+                loop = false;
+                const vtIdx = rxBuffer.indexOf(0x0b);
+                if (vtIdx !== -1) {
+                  const fsIdx = rxBuffer.indexOf(0x1c, vtIdx + 1);
+                  if (fsIdx !== -1) {
+                    const hl7Msg = rxBuffer.toString('utf8', vtIdx + 1, fsIdx);
+                    let adv = fsIdx + 1;
+                    while (adv < rxBuffer.length && (rxBuffer[adv] === 0x0d || rxBuffer[adv] === 0x0a)) {
+                      adv++;
+                    }
+                    rxBuffer = rxBuffer.subarray(adv);
+                    try {
+                      socket.write(buildEmbeddedHl7Ack(hl7Msg));
+                    } catch {}
+                    processDeviceIngest({
+                      deviceIdOrKey: target.apiKey,
+                      rawPayload: hl7Msg,
+                      protocol: 'HL7_V2',
+                    });
+                    loop = true;
+                  }
+                } else {
+                  rxBuffer = Buffer.alloc(0);
+                }
+              }
+            } catch {}
+          });
+
+          socket.on('close', () => {
+            const cur = clients.get(devId);
+            if (cur && cur.socket === socket) clients.delete(devId);
+          });
+
+          socket.on('error', () => {
+            const cur = clients.get(devId);
+            if (cur && cur.socket === socket) clients.delete(devId);
+            try { socket.destroy(); } catch {}
+          });
+        }
+      }
+    } catch {}
+  }, 6000);
+}
+
+startEmbeddedTcpClientFallback();
+
 
 

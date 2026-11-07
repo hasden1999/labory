@@ -12,8 +12,9 @@ export interface DevicePreset {
   brand: string;
   model: string;
   category: 'CBC' | 'CHEMISTRY' | 'IMMUNOLOGY' | 'URINE' | 'ELECTROLYTES' | 'OTHER';
-  connectionType: 'TCP_IP' | 'SERIAL_PORT' | 'FILE_WATCHER';
+  connectionType: 'TCP_IP' | 'TCP_CLIENT' | 'SERIAL_PORT' | 'FILE_WATCHER';
   protocol: 'ASTM_1394' | 'HL7_V2' | 'CSV_DELIMITED' | 'CUSTOM_TEXT';
+  defaultIpAddress?: string;
   defaultPort?: number;
   defaultBaudRate?: number;
   dataBits?: number;
@@ -33,7 +34,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     category: 'CBC',
     connectionType: 'TCP_IP',
     protocol: 'HL7_V2',
-    defaultPort: 5100,
+    defaultPort: 5000,
     description: 'Mindray 5-Part Auto Hematology Analyzer (HL7 over LAN TCP/IP)',
     arabicDescription: 'جهاز صورة الدم الكاملة ميندراي خماسي الفئات عبر شبكة LAN',
     defaultMappings: [
@@ -58,11 +59,12 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     brand: 'Mindray',
     model: 'BC-30 / BC-30s / BC-20s (LAN)',
     category: 'CBC',
-    connectionType: 'TCP_IP',
+    connectionType: 'TCP_CLIENT',
     protocol: 'HL7_V2',
-    defaultPort: 5000,
-    description: 'Mindray 3-Part Auto Hematology Analyzer (HL7 over LAN TCP/IP)',
-    arabicDescription: 'جهاز صورة الدم الكاملة ميندراي ثلاثي الفئات عبر شبكة LAN',
+    defaultIpAddress: '192.168.1.101',
+    defaultPort: 5100,
+    description: 'Mindray 3-Part Auto Hematology Analyzer (HL7 over LAN - Analyzer as TCP Server on Port 5100)',
+    arabicDescription: 'جهاز صورة الدم الكاملة ميندراي ثلاثي الفئات عبر شبكة LAN (منفذ الجهاز الثابت 5100)',
     defaultMappings: [
       { deviceTestCode: 'WBC', deviceTestName: 'White Blood Cells', testCatalogCode: 'CBC', testCatalogName: 'WBC - White Blood Cells', unit: '10^3/uL' },
       { deviceTestCode: 'RBC', deviceTestName: 'Red Blood Cells', testCatalogCode: 'CBC', testCatalogName: 'RBC - Red Blood Cells', unit: '10^6/uL' },

@@ -5,7 +5,23 @@ export async function POST(request: Request) {
   try {
     const apiKeyHeader = request.headers.get('x-api-key') || '';
     const body = await request.json().catch(() => ({}));
-    const payload = body.rawPayload || body.rawMessage || body.message || '';
+    let payload = body.rawPayload || body.rawMessage || body.message || '';
+
+    // If payload is empty but structured results array was sent (e.g. from UI Test Connection)
+    if ((!payload || !payload.trim()) && Array.isArray(body.results) && body.results.length > 0) {
+      const nowTimeStr = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+      const msgId = `TEST${Date.now().toString().slice(-6)}`;
+      const barcode = body.sampleBarcode || body.sampleNumber || '2031';
+      const msh = `MSH|^~\\&|MINDRAY_BC30|MINDRAY|LIS_HOST|LABRYO|${nowTimeStr}||ORU^R01|${msgId}|P|2.3.1||||||UNICODE`;
+      const pid = `PID|1||${barcode}||${body.patientName || 'عينة تجريبية'}^^|||U`;
+      const obr = `OBR|1|${barcode}|${barcode}|CBC^Complete Blood Count^BC30|||${nowTimeStr}||||||||||||||||F`;
+      const obx = body.results.map((r: any, idx: number) => {
+        const code = r.testCode || r.analyzerCode || 'WBC';
+        return `OBX|${idx + 1}|NM|${code}^${code}^LN|1|${r.value || '7.4'}|${r.unit || ''}||${r.flag || 'N'}|||F`;
+      });
+      payload = [msh, pid, obr, ...obx].join('\r');
+    }
+
     const apiKey =
       body.apiKey ||
       body.deviceId ||

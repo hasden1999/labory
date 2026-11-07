@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getDevices, addDevice, getLocalIpAddress } from '../../../lib/serverStore';
+import { getDevices, addDevice, getLocalIpAddress, markExternalBridgeActive } from '../../../lib/serverStore';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const url = new URL(request.url);
+    if (url.searchParams.get('bridge') === '1') {
+      markExternalBridgeActive();
+    }
     const devices = getDevices();
     return NextResponse.json({
       devices,

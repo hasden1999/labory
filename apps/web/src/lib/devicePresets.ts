@@ -12,8 +12,9 @@ export interface DevicePreset {
   brand: string;
   model: string;
   category: 'CBC' | 'CHEMISTRY' | 'IMMUNOLOGY' | 'URINE' | 'ELECTROLYTES' | 'OTHER';
-  connectionType: 'TCP_IP' | 'SERIAL_PORT' | 'FILE_WATCHER';
+  connectionType: 'TCP_IP' | 'TCP_CLIENT' | 'SERIAL_PORT' | 'FILE_WATCHER';
   protocol: 'ASTM_1394' | 'HL7_V2' | 'CSV_DELIMITED' | 'CUSTOM_TEXT';
+  defaultIpAddress?: string;
   defaultPort?: number;
   defaultBaudRate?: number;
   dataBits?: number;
@@ -36,7 +37,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     category: 'CBC',
     connectionType: 'TCP_IP',
     protocol: 'HL7_V2',
-    defaultPort: 5100,
+    defaultPort: 5000,
     description: 'Mindray 5-Part Auto Hematology Analyzer (HL7 over LAN TCP/IP)',
     arabicDescription: 'جهاز صورة الدم الكاملة ميندراي خماسي الفئات عبر شبكة LAN',
     cableTypeAr: '🌐 كابل شبكة إنترنت عادي (LAN RJ-45) يربط الجهاز بالراوتر أو السويتش أو بالحاسوب مباشرة',
@@ -61,7 +62,16 @@ export const DEVICE_PRESETS: DevicePreset[] = [
       { deviceTestCode: 'MON%', deviceTestName: 'Monocytes %', testCatalogCode: 'CBC', testCatalogName: 'Monocytes %', unit: '%' },
       { deviceTestCode: 'EOS%', deviceTestName: 'Eosinophils %', testCatalogCode: 'CBC', testCatalogName: 'Eosinophils %', unit: '%' },
       { deviceTestCode: 'BAS%', deviceTestName: 'Basophils %', testCatalogCode: 'CBC', testCatalogName: 'Basophils %', unit: '%' },
+      { deviceTestCode: 'NEU#', deviceTestName: 'Neutrophils Abs', testCatalogCode: 'CBC', testCatalogName: 'Neutrophils Abs', unit: '10^3/uL' },
+      { deviceTestCode: 'LYM#', deviceTestName: 'Lymphocytes Abs', testCatalogCode: 'CBC', testCatalogName: 'Lymphocytes Abs', unit: '10^3/uL' },
+      { deviceTestCode: 'MON#', deviceTestName: 'Monocytes Abs', testCatalogCode: 'CBC', testCatalogName: 'Monocytes Abs', unit: '10^3/uL' },
+      { deviceTestCode: 'EOS#', deviceTestName: 'Eosinophils Abs', testCatalogCode: 'CBC', testCatalogName: 'Eosinophils Abs', unit: '10^3/uL' },
+      { deviceTestCode: 'BAS#', deviceTestName: 'Basophils Abs', testCatalogCode: 'CBC', testCatalogName: 'Basophils Abs', unit: '10^3/uL' },
       { deviceTestCode: 'RDW-CV', deviceTestName: 'RDW-CV', testCatalogCode: 'CBC', testCatalogName: 'RDW-CV', unit: '%' },
+      { deviceTestCode: 'RDW-SD', deviceTestName: 'RDW-SD', testCatalogCode: 'CBC', testCatalogName: 'RDW-SD', unit: 'fL' },
+      { deviceTestCode: 'MPV', deviceTestName: 'Mean Platelet Volume', testCatalogCode: 'CBC', testCatalogName: 'MPV', unit: 'fL' },
+      { deviceTestCode: 'PDW', deviceTestName: 'Platelet Distribution Width', testCatalogCode: 'CBC', testCatalogName: 'PDW', unit: '' },
+      { deviceTestCode: 'PCT', deviceTestName: 'Plateletcrit', testCatalogCode: 'CBC', testCatalogName: 'PCT', unit: '%' },
     ],
   },
   {
@@ -69,18 +79,20 @@ export const DEVICE_PRESETS: DevicePreset[] = [
     brand: 'Mindray',
     model: 'BC-30 / BC-30s / BC-20s (LAN)',
     category: 'CBC',
-    connectionType: 'TCP_IP',
+    connectionType: 'TCP_CLIENT',
     protocol: 'HL7_V2',
-    defaultPort: 5000,
-    description: 'Mindray 3-Part Auto Hematology Analyzer (HL7 over LAN TCP/IP)',
-    arabicDescription: 'جهاز صورة الدم الكاملة ميندراي ثلاثي الفئات عبر شبكة LAN',
-    cableTypeAr: '🌐 كابل شبكة إنترنت عادي (LAN RJ-45) يربط الجهاز بالراوتر أو السويتش أو بالحاسوب مباشرة',
-    analyzerMenuPath: 'Menu ➔ Setup ➔ System Setup ➔ Communication (LIS)',
+    defaultIpAddress: '192.168.1.101',
+    defaultPort: 5100,
+    description: 'Mindray 3-Part Auto Hematology Analyzer (HL7 over LAN - Analyzer as TCP Server on Port 5100)',
+    arabicDescription: 'جهاز صورة الدم الكاملة ميندراي ثلاثي الفئات عبر شبكة LAN (منفذ الجهاز الثابت 5100)',
+    cableTypeAr: '🌐 كابل شبكة إنترنت عادي (LAN RJ-45) يربط الجهاز بالحاسوب مباشرة أو عبر الراوتر/السويتش',
+    analyzerMenuPath: 'Setup ➔ System Setup ➔ Communication (Network port comm.)',
     setupSteps: [
-      '1. وصّل كابل الشبكة (LAN) خلف جهاز Mindray BC-30 وإلى راوتر المختبر (أو الحاسوب مباشرة).',
-      '2. من شاشة جهاز Mindray اضغط على قائمة (Menu) ثم اختر (Setup) ثم (Communication / LIS).',
-      '3. في خانة (Host IP / Server IP) اكتب رقم الـ IP الخاص بحاسوب السيرفر الظاهر أمامك بالأعلى، وفي خانة (Port) اكتب: 5000.',
-      '4. اختر البروتوكول (HL7) وفعّل خيار (Auto-Send / Auto Transmit) ثم اضغط (Save) في الجهاز.',
+      '1. وصّل كابل الشبكة (LAN RJ-45) خلف جهاز Mindray BC-30s إلى حاسوب المختبر مباشرة (أو عبر الراوتر).',
+      '2. على حاسوب المختبر: اضبط عنوان IP كارت الشبكة (Ethernet IPv4) ليكون: IP = 192.168.1.100 والماسك Subnet Mask = 255.255.255.0.',
+      '3. من شاشة جهاز Mindray BC-30s ادخل إلى: Setup ➔ System Setup ➔ Communication، واختر (Network port comm.) ونوع الشبكة (Wired).',
+      '4. في شاشة الجهاز اكتب: IP Address = 192.168.1.101 و Subnet Mask = 255.255.255.0 (الجهاز يعمل كـ TCP Server على المنفذ الثابت 5100 لذلك لا يوجد فيه حقل Host IP).',
+      '5. اختر البروتوكول (Comm. Protocol = HL7)، وفعّل (Auto comm. = On) و (ACK synchronous transmission = On)، وألغِ تفعيل (Transmit as Print Bitmap Data).',
     ],
     defaultMappings: [
       { deviceTestCode: 'WBC', deviceTestName: 'White Blood Cells', testCatalogCode: 'CBC', testCatalogName: 'WBC - White Blood Cells', unit: '10^3/uL' },

@@ -381,7 +381,8 @@ export function parseHl7V2(raw: string): ParsedAnalyzerMessage {
         break;
       }
       case 'OBR': {
-        const rawOrder = fields[2]?.trim() || fields[3]?.trim() || '';
+        // Mindray BC-30s/BC-5000 places Sample ID in OBR-3 (Filler Order Number) or OBR-2 (Placer Order Number)
+        const rawOrder = (fields[3]?.split('^')[0]?.trim() || fields[2]?.split('^')[0]?.trim() || '');
         if (rawOrder && !sampleBarcode) {
           sampleBarcode = rawOrder;
           const num = rawOrder.match(/\d+/);
@@ -393,26 +394,69 @@ export function parseHl7V2(raw: string): ParsedAnalyzerMessage {
         const resultStatus = fields[11]?.trim()?.toUpperCase() || '';
         if (resultStatus === 'X' || resultStatus === 'D') continue;
 
+        const valueType = fields[2]?.trim()?.toUpperCase() || '';
         const testIdentifier = fields[3]?.trim() || '';
         const testParts = testIdentifier.split('^').map((p) => p.trim());
-        
-        let testCode = testParts[0] || '';
-        if (testParts.length >= 4 && testParts[3] && !testParts[0].match(/^[A-Za-z]/)) {
-          testCode = testParts[3];
-        }
-        const testName = testParts[1] || testCode;
+        const rawCodePart = testParts[0] || '';
 
+        // Mindray HL7 sends LOINC / 99MRC numeric codes in OBX-3.1 and symbol in OBX-3.2 (e.g. 6690-2^WBC^LN, 10027^Mid#^99MRC)
+        let testCode = rawCodePart;
+        if (testParts.length >= 2 && !/^[A-Za-z]/.test(rawCodePart)) {
+          testCode = testParts[3] || testParts[1] || rawCodePart;
+        }
+        const testName = testParts[1] || testParts[3] || testCode;
         const value = fields[5]?.trim() || '';
-        const unit = fields[6]?.trim() || '';
+        const unit = (fields[6]?.split('^')[0]?.trim() || '').replace(/^10\*(\d+)/, '10^$1');
         const flag = fields[8]?.trim() || '';
 
-        if (testCode && value) {
+        const upperCode = testCode.toUpperCase().trim();
+
+        // Skip Mindray system metadata OBX segments (Take Mode, Blood Mode, Test Mode, Ref Group, Age, Remark, Histogram lines, Alarm flags)
+        if (
+          valueType === 'IS' ||
+          valueType === 'ED' ||
+          upperCode.includes('HISTOGRAM') ||
+          upperCode.includes('SCATTERGRAM') ||
+          upperCode.includes('CURVE') ||
+          [
+            'TAKE MODE',
+            'BLOOD MODE',
+            'TEST MODE',
+            'REF GROUP',
+            'AGE',
+            'REMARK',
+            'GRANULARITY',
+            'PROJECT NAME',
+          ].includes(upperCode) ||
+          /^(0800|0100|120|150|151)/.test(rawCodePart)
+        ) {
+          continue;
+        }
+
+        // Normalize Mindray 3-Part / 5-Part differential codes to canonical preset codes
+        const CODE_ALIAS_MAP: Record<string, string> = {
+          'LYMPH#': 'LYM#',
+          'LYMPH%': 'LYM%',
+          'GRAN#': 'GRAN#',
+          'GRAN%': 'GRAN%',
+          'MID#': 'MID#',
+          'MID%': 'MID%',
+          'NEUT#': 'NEU#',
+          'NEUT%': 'NEU%',
+          'MONO#': 'MON#',
+          'MONO%': 'MON%',
+          'BASO#': 'BAS#',
+          'BASO%': 'BAS%',
+        };
+        const normalizedCode = CODE_ALIAS_MAP[upperCode] || upperCode;
+
+        if (normalizedCode && value) {
           const cleanFlag = flag.toUpperCase();
           const isAbnormal = ['H', 'L', 'A', 'AA', 'HH', 'LL', 'POS', 'POSITIVE', '+', '-'].includes(cleanFlag);
           const isCritical = ['HH', 'LL', 'CRIT', 'PANIC', 'C'].includes(cleanFlag);
 
           items.push({
-            testCode: testCode.toUpperCase(),
+            testCode: normalizedCode,
             testName,
             value,
             unit,

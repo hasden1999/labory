@@ -856,8 +856,8 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
     return `
       <div style="border: 2px solid #0284c7; border-radius: 8px; overflow: hidden; margin-bottom: 12px; background: #ffffff;" dir="ltr">
         <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; padding: 8px 14px; display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-weight: 900; font-size: ${specialFormFontSize + 1}px;">MINDRAY AUTO HEMATOLOGY ANALYZER REPORT (BC-3000 PLUS / BC-20S)</span>
-          <span style="font-size: 10px; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 4px; font-family: monospace;">Mindray 3-Part</span>
+          <span style="font-weight: 900; font-size: ${specialFormFontSize + 1}px;">MINDRAY AUTO HEMATOLOGY ANALYZER REPORT (BC-30 / BC-30S / BC-20S)</span>
+          <span style="font-size: 10px; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 4px; font-family: monospace;">Mindray 3-Part (21 Params)</span>
         </div>
 
         <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; padding: 12px;">
@@ -897,8 +897,8 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
                 ${renderMindrayRow('MPV', parsed.mpv, 'fL', 6.5, 12.0)}
                 ${renderMindrayRow('PDW', parsed.pdwSd !== '-' ? parsed.pdwSd : parsed.pdw, 'fL', 9.0, 17.0)}
                 ${renderMindrayRow('PCT', parsed.pct, '%', 0.108, 0.282)}
-                ${parsed.plcr && parsed.plcr !== '-' ? renderMindrayRow('P-LCR', parsed.plcr, '%', 11.0, 45.0) : ''}
-                ${parsed.plcc && parsed.plcc !== '-' ? renderMindrayRow('P-LCC', parsed.plcc, '10^9/L', 30, 90) : ''}
+                ${renderMindrayRow('P-LCR', parsed.plcr || '-', '%', 11.0, 45.0)}
+                ${renderMindrayRow('P-LCC', parsed.plcc || '-', '10^9/L', 30, 90)}
                 ` : ''}
               </tbody>
             </table>
