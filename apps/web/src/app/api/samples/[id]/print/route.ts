@@ -669,7 +669,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         .replace(/\s*\([^)]*[\u0600-\u06FF][^)]*\)/g, '')
         .trim() || String(c.id || '').toUpperCase(),
     }));
-  const groupByCategory = settings.groupByCategory === true;
+  const groupByCategory = settings.groupByCategory !== false;
   const tableRowBorders = settings.tableRowBorders !== false;
   const tableZebraStriping = settings.tableZebraStriping === true || (settings as any).tableStyle === 'zebra';
   const tableRowSpacing = settings.tableRowSpacing || ((settings as any).tableStyle === 'compact' ? 'COMPACT' : 'COMFORTABLE');

@@ -11,6 +11,9 @@ import {
   classifyResultRange,
   formatClinicalAge,
   groupTests,
+  CANONICAL_SPECIALTIES,
+  CANONICAL_TEST_GROUPS,
+  getCanonicalGroupMeta,
 } from '@lab-manager/domain';
 import { resolveReferenceRange } from '../../../../../lib/orderHelpers';
 import {
@@ -928,8 +931,18 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
     if (groupByCategory) {
       const groupingStyle = settings?.groupingStyle || 'specialty';
       if (groupingStyle === 'specialty') {
-        const specialties = store.specialties || [];
-        const groups = store.testGroups || [];
+        const dbSpecialties = Array.isArray(store.specialties) ? store.specialties : [];
+        const dbGroups = Array.isArray(store.testGroups) ? store.testGroups : [];
+        const specById = new Map(CANONICAL_SPECIALTIES.map((s) => [s.id, s]));
+        for (const s of dbSpecialties) {
+          if (s && s.id) specById.set(s.id, s);
+        }
+        const grpById = new Map(CANONICAL_TEST_GROUPS.map((g) => [g.id, g]));
+        for (const g of dbGroups) {
+          if (g && g.id) grpById.set(g.id, g);
+        }
+        const specialties = Array.from(specById.values());
+        const groups = Array.from(grpById.values());
         const grouped = groupTests(generalWithLipid, 'specialty', { specialties, groups });
         let globalRowIdx = 0;
 
@@ -986,7 +999,8 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
       } else {
         const categories: { [key: string]: any[] } = {};
         generalWithLipid.forEach((t: any) => {
-          const cat = getReportEnglishCategory(t.test?.category || 'General Laboratory Tests');
+          const grpMeta = getCanonicalGroupMeta(t.test || t);
+          const cat = grpMeta?.nameEn || getReportEnglishCategory(t.test?.category || 'General Laboratory Tests');
           if (!categories[cat]) categories[cat] = [];
           categories[cat].push(t);
         });

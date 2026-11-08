@@ -1,6 +1,6 @@
 {
   "name": "@lab-manager/desktop",
-  "version": "2.1.5",
+  "version": "2.1.6",
   "description": "نظام إدارة المختبرات الطبية المتكامل - النسخة المكتبية الرسمية",
   "author": "Lab Manager Team",
   "main": "main.js",

@@ -32,6 +32,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { toEnglishDigits, formatEnglishDate, formatClinicalAge } from '../../lib/formatters';
+import { groupTests } from '@lab-manager/domain';
 import { printUrlDirectly } from '../../lib/printHelper';
 import { shareReportToWhatsApp, autoSendReportViaWhatsAppWeb } from '../../lib/shareReportToWhatsApp';
 import { AddSampleTestsModal } from '../../features/add-sample-tests';
@@ -1180,211 +1181,241 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                       </tr>
                     </thead>
                     <tbody>
-                      {activeVisit.tests.map((st: any) => {
-                        const key = st.testId || st.id;
-                        const code = st.test?.code || '';
-                        const name = st.test?.name || code || 'Test';
-                        const unit = st.unit || st.test?.unit || '-';
-                        const rRangesArr = Array.isArray(st.test?.referenceRanges) ? st.test.referenceRanges : [];
-                        const refRange =
-                          st.referenceRange ||
-                          st.test?.referenceRange ||
-                          st.test?.refRangeText ||
-                          (st.test?.refRangeLow != null && st.test?.refRangeHigh != null
-                            ? `${st.test.refRangeLow} - ${st.test.refRangeHigh}`
-                            : rRangesArr.length > 0
-                              ? rRangesArr
-                                  .map((r: any) => {
-                                    const txt =
-                                      r.text ||
-                                      (r.low != null && r.high != null ? `${r.low} - ${r.high}` : r.low != null ? `>= ${r.low}` : r.high != null ? `<= ${r.high}` : '');
-                                    return r.label ? `${r.label}: ${txt}` : txt;
-                                  })
-                                  .join('\n')
-                              : '-');
-                        const val = editedResults[key] !== undefined ? editedResults[key] : (st.resultValue || '');
-                        const specialType = isSpecialFormTest(code, name);
+                      {(() => {
+                        const groupedVisit = groupTests(activeVisit.tests || [], 'specialty');
+                        const renderVisitTestRow = (st: any) => {
+                          const key = st.testId || st.id;
+                          const code = st.test?.code || '';
+                          const name = st.test?.name || code || 'Test';
+                          const unit = st.unit || st.test?.unit || '-';
+                          const rRangesArr = Array.isArray(st.test?.referenceRanges) ? st.test.referenceRanges : [];
+                          const refRange =
+                            st.referenceRange ||
+                            st.test?.referenceRange ||
+                            st.test?.refRangeText ||
+                            (st.test?.refRangeLow != null && st.test?.refRangeHigh != null
+                              ? `${st.test.refRangeLow} - ${st.test.refRangeHigh}`
+                              : rRangesArr.length > 0
+                                ? rRangesArr
+                                    .map((r: any) => {
+                                      const txt =
+                                        r.text ||
+                                        (r.low != null && r.high != null ? `${r.low} - ${r.high}` : r.low != null ? `>= ${r.low}` : r.high != null ? `<= ${r.high}` : '');
+                                      return r.label ? `${r.label}: ${txt}` : txt;
+                                    })
+                                    .join('\n')
+                                : '-');
+                          const val = editedResults[key] !== undefined ? editedResults[key] : (st.resultValue || '');
+                          const specialType = isSpecialFormTest(code, name);
 
-                        // Determine status badge
-                        const bounds = parseRefRangeBounds(refRange);
-                        const numVal = parseFloat(val);
-                        let statusLabel = val ? 'Normal' : 'قيد الفحص';
-                        let statusBg = val ? '#dcfce7' : '#f1f5f9';
-                        let statusColor = val ? '#15803d' : '#64748b';
+                          // Determine status badge
+                          const bounds = parseRefRangeBounds(refRange);
+                          const numVal = parseFloat(val);
+                          let statusLabel = val ? 'Normal' : 'قيد الفحص';
+                          let statusBg = val ? '#dcfce7' : '#f1f5f9';
+                          let statusColor = val ? '#15803d' : '#64748b';
 
-                        if (!Number.isNaN(numVal)) {
-                          if (bounds.high !== undefined && numVal > bounds.high) {
-                            statusLabel = 'High ↑';
-                            statusBg = '#fee2e2';
-                            statusColor = '#dc2626';
-                          } else if (bounds.low !== undefined && numVal < bounds.low) {
-                            statusLabel = 'Low ↓';
-                            statusBg = '#e0f2fe';
-                            statusColor = '#0284c7';
+                          if (!Number.isNaN(numVal)) {
+                            if (bounds.high !== undefined && numVal > bounds.high) {
+                              statusLabel = 'High ↑';
+                              statusBg = '#fee2e2';
+                              statusColor = '#dc2626';
+                            } else if (bounds.low !== undefined && numVal < bounds.low) {
+                              statusLabel = 'Low ↓';
+                              statusBg = '#e0f2fe';
+                              statusColor = '#0284c7';
+                            }
                           }
-                        }
 
-                        return (
-                          <tr key={key} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                            <td style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--text-main)' }}>
-                              <div>{name}</div>
-                              {(() => {
-                                let displayPriorVal = st.previousValue;
-                                let displayPriorDate = st.previousDate;
-                                if (!displayPriorVal && currentPatientVisits.length > 1) {
-                                  const curSampleCreated = new Date(activeVisit.collectionTime).getTime();
-                                  for (const pv of currentPatientVisits) {
-                                    if (pv.sampleId === activeVisit.sampleId) continue;
-                                    if (new Date(pv.collectionTime).getTime() >= curSampleCreated) continue;
-                                    const pt = (pv.tests || []).find((x: any) =>
-                                      x.testId === (st.testId || st.id) ||
-                                      (code && (x.test?.code || x.code || '').toUpperCase().trim() === code.toUpperCase().trim()) ||
-                                      (name && (x.test?.name || x.name || '').toLowerCase().trim() === name.toLowerCase().trim())
-                                    );
-                                    if (pt && pt.resultValue && String(pt.resultValue).trim() !== '') {
-                                      displayPriorVal = String(pt.resultValue);
-                                      displayPriorDate = pv.collectionTime;
-                                      break;
+                          return (
+                            <tr key={key} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                              <td style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--text-main)' }}>
+                                <div>{name}</div>
+                                {(() => {
+                                  let displayPriorVal = st.previousValue;
+                                  let displayPriorDate = st.previousDate;
+                                  if (!displayPriorVal && currentPatientVisits.length > 1) {
+                                    const curSampleCreated = new Date(activeVisit.collectionTime).getTime();
+                                    for (const pv of currentPatientVisits) {
+                                      if (pv.sampleId === activeVisit.sampleId) continue;
+                                      if (new Date(pv.collectionTime).getTime() >= curSampleCreated) continue;
+                                      const pt = (pv.tests || []).find((x: any) =>
+                                        x.testId === (st.testId || st.id) ||
+                                        (code && (x.test?.code || x.code || '').toUpperCase().trim() === code.toUpperCase().trim()) ||
+                                        (name && (x.test?.name || x.name || '').toLowerCase().trim() === name.toLowerCase().trim())
+                                      );
+                                      if (pt && pt.resultValue && String(pt.resultValue).trim() !== '') {
+                                        displayPriorVal = String(pt.resultValue);
+                                        displayPriorDate = pv.collectionTime;
+                                        break;
+                                      }
                                     }
                                   }
-                                }
-                                if (!displayPriorVal) return null;
-                                return (
-                                  <span
-                                    dir="rtl"
-                                    style={{
-                                      display: 'inline-block',
-                                      fontSize: '10.5px',
-                                      padding: '1px 6px',
-                                      borderRadius: '4px',
-                                      backgroundColor: '#eff6ff',
-                                      color: '#1d4ed8',
-                                      marginTop: '3px',
-                                      fontWeight: 700,
-                                    }}
-                                  >
-                                    📊 السابق: {displayPriorVal} {displayPriorDate ? `(${formatEnglishDate(displayPriorDate)})` : ''}
-                                  </span>
-                                );
-                              })()}
-                            </td>
+                                  if (!displayPriorVal) return null;
+                                  return (
+                                    <span
+                                      dir="rtl"
+                                      style={{
+                                        display: 'inline-block',
+                                        fontSize: '10.5px',
+                                        padding: '1px 6px',
+                                        borderRadius: '4px',
+                                        backgroundColor: '#eff6ff',
+                                        color: '#1d4ed8',
+                                        marginTop: '3px',
+                                        fontWeight: 700,
+                                      }}
+                                    >
+                                      📊 السابق: {displayPriorVal} {displayPriorDate ? `(${formatEnglishDate(displayPriorDate)})` : ''}
+                                    </span>
+                                  );
+                                })()}
+                              </td>
 
-                            <td style={{ padding: '8px', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                                <input
-                                  type="text"
-                                  value={val}
-                                  onChange={(e) => handleResultChange(key, e.target.value)}
-                                  placeholder="أدخل النتيجة..."
-                                  style={{
-                                    width: specialType ? '120px' : '160px',
-                                    height: '34px',
-                                    padding: '0 10px',
-                                    borderRadius: '7px',
-                                    border: '1px solid var(--border-color)',
-                                    backgroundColor: 'var(--bg-input)',
-                                    color: statusLabel === 'High ↑' ? '#dc2626' : statusLabel === 'Low ↓' ? '#0284c7' : 'var(--text-main)',
-                                    fontWeight: 800,
-                                    fontSize: '13.5px',
-                                    textAlign: 'center',
-                                    outline: 'none',
-                                  }}
-                                />
-                                {specialType && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setSpecialModal({ type: specialType, testId: key })}
+                              <td style={{ padding: '8px', textAlign: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                  <input
+                                    type="text"
+                                    value={val}
+                                    onChange={(e) => handleResultChange(key, e.target.value)}
+                                    placeholder="أدخل النتيجة..."
                                     style={{
-                                      padding: '6px 12px',
+                                      width: specialType ? '120px' : '160px',
+                                      height: '34px',
+                                      padding: '0 10px',
                                       borderRadius: '7px',
-                                      backgroundColor: specialType === 'CBC' && val.includes('CBC') ? '#0284c7' : '#0f766e',
-                                      color: '#ffffff',
-                                      border: 'none',
-                                      fontSize: '11px',
+                                      border: '1px solid var(--border-color)',
+                                      backgroundColor: 'var(--bg-input)',
+                                      color: statusLabel === 'High ↑' ? '#dc2626' : statusLabel === 'Low ↓' ? '#0284c7' : 'var(--text-main)',
                                       fontWeight: 800,
-                                      cursor: 'pointer',
-                                      whiteSpace: 'nowrap',
-                                      boxShadow: specialType === 'CBC' && val.includes('CBC') ? '0 1px 3px rgba(2, 132, 199, 0.4)' : 'none',
+                                      fontSize: '13.5px',
+                                      textAlign: 'center',
+                                      outline: 'none',
                                     }}
-                                  >
-                                    {specialType === 'CBC' ? (val.includes('CBC') ? 'عرض CBC (21 فحص)' : 'فورمة CBC') : 'الفورمة'}
-                                  </button>
-                                )}
-                              </div>
-                            </td>
+                                  />
+                                  {specialType && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setSpecialModal({ type: specialType, testId: key })}
+                                      style={{
+                                        padding: '6px 12px',
+                                        borderRadius: '7px',
+                                        backgroundColor: specialType === 'CBC' && val.includes('CBC') ? '#0284c7' : '#0f766e',
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        fontSize: '11px',
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        boxShadow: specialType === 'CBC' && val.includes('CBC') ? '0 1px 3px rgba(2, 132, 199, 0.4)' : 'none',
+                                      }}
+                                    >
+                                      {specialType === 'CBC' ? (val.includes('CBC') ? 'عرض CBC (21 فحص)' : 'فورمة CBC') : 'الفورمة'}
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
 
-                            <td style={{ padding: '10px 8px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600 }}>
-                              {unit}
-                            </td>
+                              <td style={{ padding: '10px 8px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600 }}>
+                                {unit}
+                              </td>
 
-                            <td style={{ padding: '10px 8px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600 }}>
-                              {(() => {
-                                const lines = String(refRange || '-')
-                                  .split(/\r?\n|\||;/)
-                                  .map((s) => s.trim())
-                                  .filter(Boolean);
-                                if (lines.length <= 1) {
-                                  return <span>{refRange}</span>;
-                                }
-                                return (
-                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-                                    {lines.map((ln, lIdx) => {
-                                      const m = ln.match(/(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)/);
-                                      const mGe = ln.match(/>=?\s*(\d+(?:\.\d+)?)/);
-                                      const mLe = ln.match(/<=?\s*(\d+(?:\.\d+)?)/);
-                                      return (
-                                        <button
-                                          key={lIdx}
-                                          type="button"
-                                          onClick={() => {
-                                            if (m) {
-                                              const mid = (parseFloat(m[1]) + parseFloat(m[2])) / 2;
-                                              handleResultChange(key, mid.toFixed(1));
-                                            } else if (mGe) {
-                                              handleResultChange(key, (parseFloat(mGe[1]) + 0.5).toFixed(1));
-                                            } else if (mLe) {
-                                              handleResultChange(key, (parseFloat(mLe[1]) * 0.8).toFixed(1));
-                                            }
-                                          }}
-                                          title="اضغط لاختيار هذا المدى وإدراج القيمة المطابقة"
-                                          style={{
-                                            padding: '2px 8px',
-                                            borderRadius: '5px',
-                                            border: '1px solid var(--border-color)',
-                                            backgroundColor: 'var(--bg-input)',
-                                            color: 'var(--text-main)',
-                                            fontSize: '11.5px',
-                                            fontWeight: 700,
-                                            cursor: 'pointer',
-                                          }}
-                                        >
-                                          {ln}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                );
-                              })()}
-                            </td>
+                              <td style={{ padding: '10px 8px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600 }}>
+                                {(() => {
+                                  const lines = String(refRange || '-')
+                                    .split(/\r?\n|\||;/)
+                                    .map((s) => s.trim())
+                                    .filter(Boolean);
+                                  if (lines.length <= 1) {
+                                    return <span>{refRange}</span>;
+                                  }
+                                  return (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                                      {lines.map((ln, lIdx) => {
+                                        const m = ln.match(/(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)/);
+                                        const mGe = ln.match(/>=?\s*(\d+(?:\.\d+)?)/);
+                                        const mLe = ln.match(/<=?\s*(\d+(?:\.\d+)?)/);
+                                        return (
+                                          <button
+                                            key={lIdx}
+                                            type="button"
+                                            onClick={() => {
+                                              if (m) {
+                                                const mid = (parseFloat(m[1]) + parseFloat(m[2])) / 2;
+                                                handleResultChange(key, mid.toFixed(1));
+                                              } else if (mGe) {
+                                                handleResultChange(key, (parseFloat(mGe[1]) + 0.5).toFixed(1));
+                                              } else if (mLe) {
+                                                handleResultChange(key, (parseFloat(mLe[1]) * 0.8).toFixed(1));
+                                              }
+                                            }}
+                                            title="اضغط لاختيار هذا المدى وإدراج القيمة المطابقة"
+                                            style={{
+                                              padding: '2px 8px',
+                                              borderRadius: '5px',
+                                              border: '1px solid var(--border-color)',
+                                              backgroundColor: 'var(--bg-input)',
+                                              color: 'var(--text-main)',
+                                              fontSize: '11.5px',
+                                              fontWeight: 700,
+                                              cursor: 'pointer',
+                                            }}
+                                          >
+                                            {ln}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  );
+                                })()}
+                              </td>
 
-                            <td style={{ padding: '10px 8px', textAlign: 'center' }}>
-                              <span
-                                style={{
-                                  display: 'inline-block',
-                                  padding: '3px 10px',
-                                  borderRadius: '999px',
-                                  fontSize: '11.5px',
-                                  fontWeight: 800,
-                                  backgroundColor: statusBg,
-                                  color: statusColor,
-                                }}
-                              >
-                                {statusLabel}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '3px 10px',
+                                    borderRadius: '999px',
+                                    fontSize: '11.5px',
+                                    fontWeight: 800,
+                                    backgroundColor: statusBg,
+                                    color: statusColor,
+                                  }}
+                                >
+                                  {statusLabel}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        };
+
+                        return groupedVisit.sections.map((sec) => (
+                          <React.Fragment key={sec.id || sec.nameEn}>
+                            <tr style={{ backgroundColor: 'var(--bg-card-subtle)', borderTop: '2px solid var(--accent-teal)', borderBottom: '1px solid var(--border-color)' }}>
+                              <td colSpan={5} style={{ padding: '7px 12px', fontWeight: 900, fontSize: '12.5px', color: 'var(--text-main)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span>🏥 {sec.nameEn}</span>
+                                  {sec.nameAr && <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', direction: 'rtl' }}>{sec.nameAr}</span>}
+                                </div>
+                              </td>
+                            </tr>
+                            {sec.groups.map((grp) => (
+                              <React.Fragment key={grp.id}>
+                                <tr style={{ backgroundColor: 'rgba(20, 184, 166, 0.08)', borderBottom: '1px solid var(--border-subtle)' }}>
+                                  <td colSpan={5} style={{ padding: '5px 18px', fontWeight: 800, fontSize: '11.5px', color: 'var(--accent-teal)', borderLeft: '3px solid var(--accent-teal)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span>📁 {grp.nameEn}</span>
+                                      {grp.nameAr && <span style={{ fontSize: '11px', opacity: 0.9, direction: 'rtl' }}>{grp.nameAr}</span>}
+                                    </div>
+                                  </td>
+                                </tr>
+                                {grp.tests.map((st: any) => renderVisitTestRow(st))}
+                              </React.Fragment>
+                            ))}
+                            {sec.directTests.map((st: any) => renderVisitTestRow(st))}
+                          </React.Fragment>
+                        ));
+                      })()}
                     </tbody>
                   </table>
                 </div>

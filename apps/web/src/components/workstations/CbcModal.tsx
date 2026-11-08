@@ -43,6 +43,15 @@ import {
   saveActiveCbcFieldKeys,
   getLastSelectedCbcDevice,
   saveLastSelectedCbcDevice,
+  CbcDemographicBracketId,
+  CBC_DEMOGRAPHIC_BRACKETS,
+  DEFAULT_CBC_DEMOGRAPHIC_MATRIX,
+  resolveCbcDemographicBracket,
+  getCbcParamDemographicRange,
+  getSavedCbcDemographicMatrix,
+  saveCbcDemographicMatrix,
+  resetCbcDemographicMatrix,
+  getPatientDeviceCbcFields,
 } from '../../lib/cbcDeviceConfig';
 
 export interface CbcAnalysisData {
@@ -413,9 +422,15 @@ export default function CbcModal({
   const [diffMode, setDiffMode] = useState<'5PART' | '3PART'>('5PART');
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Demographic References & Range Customization States
+  const resolvedBracketId = resolveCbcDemographicBracket(sample?.patient);
+  const currentBracket = CBC_DEMOGRAPHIC_BRACKETS.find((b) => b.id === resolvedBracketId) || CBC_DEMOGRAPHIC_BRACKETS[4];
+  const [customizerBracketId, setCustomizerBracketId] = useState<CbcDemographicBracketId>(resolvedBracketId);
+  const [demographicMatrix, setDemographicMatrix] = useState<Record<string, Record<string, { min?: number; max?: number }>>>(() => getSavedCbcDemographicMatrix());
+
   // Device & Dynamic Field Customization States
   const [selectedDevice, setSelectedDevice] = useState<CbcDeviceId>('SWELAB_3PART');
-  const [deviceFields, setDeviceFields] = useState<CbcFieldMeta[]>(() => getDeviceCbcFields('SWELAB_3PART'));
+  const [deviceFields, setDeviceFields] = useState<CbcFieldMeta[]>(() => getPatientDeviceCbcFields('SWELAB_3PART', sample?.patient));
   const [activeFieldKeys, setActiveFieldKeys] = useState<string[]>(() => getActiveCbcFieldKeys('SWELAB_3PART'));
   const [showFieldPicker, setShowFieldPicker] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
@@ -437,20 +452,22 @@ export default function CbcModal({
         setData({ ...EMPTY_CBC_DATA });
       }
       setSelectedDevice(devToUse);
-      const fields = getDeviceCbcFields(devToUse);
+      const matrix = getSavedCbcDemographicMatrix();
+      setDemographicMatrix(matrix);
+      const fields = getPatientDeviceCbcFields(devToUse, sample?.patient, matrix);
       setDeviceFields(fields);
       setActiveFieldKeys(getActiveCbcFieldKeys(devToUse));
       const profile = CBC_DEVICE_PROFILES[devToUse];
       setDiffMode(profile?.is3Part ? '3PART' : '5PART');
     }
-  }, [isOpen, initialValue]);
+  }, [isOpen, initialValue, sample?.patient]);
 
   if (!isOpen) return null;
 
   const handleSelectDevice = (newDev: CbcDeviceId) => {
     setSelectedDevice(newDev);
     saveLastSelectedCbcDevice(newDev);
-    const fields = getDeviceCbcFields(newDev);
+    const fields = getPatientDeviceCbcFields(newDev, sample?.patient, demographicMatrix);
     setDeviceFields(fields);
     setActiveFieldKeys(getActiveCbcFieldKeys(newDev));
     const profile = CBC_DEVICE_PROFILES[newDev];
@@ -502,11 +519,56 @@ export default function CbcModal({
   };
 
   const openCustomizer = () => {
-    setCustomizerFields(JSON.parse(JSON.stringify(deviceFields)));
+    const curBracket = resolveCbcDemographicBracket(sample?.patient);
+    setCustomizerBracketId(curBracket);
+    const matrix = getSavedCbcDemographicMatrix();
+    setDemographicMatrix(matrix);
+    const baseFields = getDeviceCbcFields(selectedDevice);
+    const populated = baseFields.map((f) => {
+      const customVal = matrix[curBracket]?.[f.key];
+      const defVal = DEFAULT_CBC_DEMOGRAPHIC_MATRIX[curBracket]?.[f.key];
+      return {
+        ...f,
+        refMin: customVal?.min !== undefined ? customVal.min : (defVal?.min ?? f.refMin),
+        refMax: customVal?.max !== undefined ? customVal.max : (defVal?.max ?? f.refMax),
+      };
+    });
+    setCustomizerFields(JSON.parse(JSON.stringify(populated)));
     setShowCustomizer(true);
   };
 
+  const handleSelectCustomizerBracket = (bId: CbcDemographicBracketId) => {
+    setCustomizerBracketId(bId);
+    const baseFields = getDeviceCbcFields(selectedDevice);
+    const populated = baseFields.map((f) => {
+      const customVal = demographicMatrix[bId]?.[f.key];
+      const defVal = DEFAULT_CBC_DEMOGRAPHIC_MATRIX[bId]?.[f.key];
+      return {
+        ...f,
+        refMin: customVal?.min !== undefined ? customVal.min : (defVal?.min ?? f.refMin),
+        refMax: customVal?.max !== undefined ? customVal.max : (defVal?.max ?? f.refMax),
+      };
+    });
+    setCustomizerFields(populated);
+  };
+
+  const handleUpdateCustomizerRange = (idx: number, key: string, newMin?: number, newMax?: number) => {
+    const updated = [...customizerFields];
+    updated[idx] = { ...updated[idx], refMin: newMin, refMax: newMax };
+    setCustomizerFields(updated);
+
+    setDemographicMatrix((prev) => {
+      const bracketObj = { ...(prev[customizerBracketId] || {}) };
+      bracketObj[key] = { min: newMin, max: newMax };
+      return { ...prev, [customizerBracketId]: bracketObj };
+    });
+  };
+
   const handleSaveCustomizer = () => {
+    // 1. Save demographic matrix persistently
+    saveCbcDemographicMatrix(demographicMatrix);
+
+    // 2. Save device name / label customizations
     const customMap: Record<string, Partial<CbcFieldMeta>> = {};
     for (const f of customizerFields) {
       customMap[f.key] = {
@@ -515,22 +577,43 @@ export default function CbcModal({
         arabicName: f.labelAr || f.arabicName,
         labelAr: f.labelAr || f.arabicName,
         unit: f.unit,
-        refMin: f.refMin,
-        refMax: f.refMax,
       };
     }
     saveDeviceCbcCustomizations(selectedDevice, customMap);
-    setDeviceFields(customizerFields);
+
+    // 3. Re-evaluate active fields for this patient
+    const fresh = getPatientDeviceCbcFields(selectedDevice, sample?.patient, demographicMatrix);
+    setDeviceFields(fresh);
     setShowCustomizer(false);
-    toast.success('تم حفظ التعديلات والمديات الخاصة بالجهاز بنجاح ومزامنتها دائمياً!', 'تم الحفظ');
+    toast.success('تم حفظ التعديلات والمديات المرجعية بنجاح ومزامنتها دائمياً!', 'تم الحفظ');
   };
 
-  const handleResetCustomizer = () => {
+  const handleResetCurrentBracket = () => {
+    resetCbcDemographicMatrix(customizerBracketId);
+    const freshMatrix = getSavedCbcDemographicMatrix();
+    setDemographicMatrix(freshMatrix);
+    const baseFields = getDeviceCbcFields(selectedDevice);
+    const populated = baseFields.map((f) => {
+      const defVal = DEFAULT_CBC_DEMOGRAPHIC_MATRIX[customizerBracketId]?.[f.key];
+      return {
+        ...f,
+        refMin: defVal?.min ?? f.refMin,
+        refMax: defVal?.max ?? f.refMax,
+      };
+    });
+    setCustomizerFields(populated);
+    const bracketMeta = CBC_DEMOGRAPHIC_BRACKETS.find((b) => b.id === customizerBracketId);
+    toast.info(`تمت استعادة المديات المعتمدة لفئة: ${bracketMeta?.nameAr}`, 'استعادة الفئة');
+  };
+
+  const handleResetAllBrackets = () => {
+    resetCbcDemographicMatrix();
     resetDeviceCbcCustomizations(selectedDevice);
-    const fresh = getDeviceCbcFields(selectedDevice);
+    setDemographicMatrix({});
+    const fresh = getPatientDeviceCbcFields(selectedDevice, sample?.patient, {});
     setDeviceFields(fresh);
     setCustomizerFields(JSON.parse(JSON.stringify(fresh)));
-    toast.info('تمت استعادة المديات والتسميات الافتراضية للجهاز', 'استعادة الافتراضي');
+    toast.info('تمت استعادة كافة المديات المعتمدة لجميع الفئات', 'استعادة الكل');
   };
 
   const isFieldActive = (fieldKey: string): boolean => {
@@ -984,6 +1067,24 @@ export default function CbcModal({
                     }}
                   >
                     Sample #{resolvedSampleNumber}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      background: '#eff6ff',
+                      color: '#1d4ed8',
+                      border: '1px solid #bfdbfe',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <Activity size={12} />
+                    <span>فئة المديات: {currentBracket.nameAr}</span>
+                    <span style={{ fontSize: '10px', opacity: 0.85 }}>({currentBracket.ageRange})</span>
                   </span>
                   {hasCriticalPanic ? (
                     <span style={{ fontSize: '11px', background: '#dc2626', color: '#ffffff', padding: '1px 8px', borderRadius: '4px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1484,10 +1585,10 @@ export default function CbcModal({
                 <div>
                   <strong style={{ fontSize: '15px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Settings2 size={18} color="#d97706" />
-                    <span>تخصيص الأسماء والمديات لجهاز: {activeDeviceProfile.name}</span>
+                    <span>تخصيص الأسماء والمديات المرجعية (Demographic Range Calibration)</span>
                   </strong>
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    عدّل التسميات والوحدات والمديات الطبيعية (Normal Ranges) كما تظهر في ورقة جهازك، وستبقى محفوظة دائمياً.
+                    عدّل المديات الطبيعية لكل فئة عمرية أو جنسية لتطابق جهازك، وستبقى محفوظة ومزامنة مع شاشات الإدخال والتقارير المطبوعة.
                   </span>
                 </div>
                 <button
@@ -1499,136 +1600,193 @@ export default function CbcModal({
                 </button>
               </div>
 
+              {/* Demographic Category Selector Tabs */}
+              <div
+                style={{
+                  padding: '10px 20px',
+                  background: 'var(--bg-input)',
+                  borderBottom: '1px solid var(--border-color)',
+                  display: 'flex',
+                  gap: '6px',
+                  overflowX: 'auto',
+                  alignItems: 'center',
+                }}
+              >
+                <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', whiteSpace: 'nowrap', marginLeft: '6px' }}>
+                  الفئة المراد تعديل مدياتها:
+                </span>
+                {CBC_DEMOGRAPHIC_BRACKETS.map((b) => {
+                  const isSelected = b.id === customizerBracketId;
+                  const isPatientCurrent = b.id === resolvedBracketId;
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => handleSelectCustomizerBracket(b.id)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        border: isSelected ? '1.5px solid #2563eb' : '1px solid var(--border-color)',
+                        background: isSelected ? '#eff6ff' : 'var(--bg-card)',
+                        color: isSelected ? '#1d4ed8' : 'var(--text-main)',
+                        fontWeight: isSelected ? 800 : 600,
+                        fontSize: '11.5px',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      <span>{b.nameAr}</span>
+                      <span style={{ fontSize: '10px', opacity: 0.75 }}>({b.ageRange})</span>
+                      {isPatientCurrent && (
+                        <span style={{ fontSize: '9px', background: '#dcfce7', color: '#166534', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                          فئة هذا المريض
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
               {/* Table / Form Body */}
               <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                   <thead>
                     <tr style={{ background: 'var(--bg-input)', borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>
-                      <th style={{ padding: '8px 10px', width: '12%' }}>المعامل</th>
-                      <th style={{ padding: '8px 10px', width: '22%' }}>الاسم بالإنجليزية</th>
-                      <th style={{ padding: '8px 10px', width: '22%' }}>الاسم بالعربية</th>
-                      <th style={{ padding: '8px 10px', width: '14%' }}>الوحدة</th>
-                      <th style={{ padding: '8px 10px', width: '16%' }}>أدنى قيمة</th>
-                      <th style={{ padding: '8px 10px', width: '16%' }}>أعلى قيمة</th>
+                      <th style={{ padding: '8px 10px', width: '10%' }}>المعامل</th>
+                      <th style={{ padding: '8px 10px', width: '18%' }}>الاسم بالإنجليزية</th>
+                      <th style={{ padding: '8px 10px', width: '18%' }}>الاسم بالعربية</th>
+                      <th style={{ padding: '8px 10px', width: '12%' }}>الوحدة</th>
+                      <th style={{ padding: '8px 10px', width: '14%' }}>أدنى قيمة</th>
+                      <th style={{ padding: '8px 10px', width: '14%' }}>أعلى قيمة</th>
+                      <th style={{ padding: '8px 10px', width: '14%', textAlign: 'center' }}>المرجع المعتمد (العراق)</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {customizerFields.map((field, idx) => (
-                      <tr key={field.key} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '6px 10px', fontWeight: 800, color: '#0284c7' }}>
-                          {field.key}
-                        </td>
-                        <td style={{ padding: '6px 10px' }}>
-                          <input
-                            type="text"
-                            value={field.label || field.name || ''}
-                            onChange={(e) => {
-                              const updated = [...customizerFields];
-                              updated[idx] = { ...updated[idx], label: e.target.value, name: e.target.value };
-                              setCustomizerFields(updated);
-                            }}
-                            style={{
-                              width: '100%',
-                              padding: '5px 8px',
-                              borderRadius: '4px',
-                              border: '1px solid var(--border-color)',
-                              background: 'var(--bg-input)',
-                              color: 'var(--text-main)',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: '6px 10px' }}>
-                          <input
-                            type="text"
-                            value={field.labelAr || field.arabicName || ''}
-                            onChange={(e) => {
-                              const updated = [...customizerFields];
-                              updated[idx] = { ...updated[idx], labelAr: e.target.value, arabicName: e.target.value };
-                              setCustomizerFields(updated);
-                            }}
-                            style={{
-                              width: '100%',
-                              padding: '5px 8px',
-                              borderRadius: '4px',
-                              border: '1px solid var(--border-color)',
-                              background: 'var(--bg-input)',
-                              color: 'var(--text-main)',
-                              fontSize: '12px',
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: '6px 10px' }}>
-                          <input
-                            type="text"
-                            value={field.unit}
-                            onChange={(e) => {
-                              const updated = [...customizerFields];
-                              updated[idx] = { ...updated[idx], unit: e.target.value };
-                              setCustomizerFields(updated);
-                            }}
-                            style={{
-                              width: '100%',
-                              padding: '5px 8px',
-                              borderRadius: '4px',
-                              border: '1px solid var(--border-color)',
-                              background: 'var(--bg-input)',
-                              color: 'var(--text-main)',
-                              fontSize: '11.5px',
-                              direction: 'ltr',
-                              textAlign: 'center',
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: '6px 10px' }}>
-                          <input
-                            type="number"
-                            step="any"
-                            value={field.refMin ?? ''}
-                            onChange={(e) => {
-                              const updated = [...customizerFields];
-                              updated[idx] = { ...updated[idx], refMin: e.target.value === '' ? undefined : parseFloat(e.target.value) };
-                              setCustomizerFields(updated);
-                            }}
-                            style={{
-                              width: '100%',
-                              padding: '5px 8px',
-                              borderRadius: '4px',
-                              border: '1px solid var(--border-color)',
-                              background: 'var(--bg-input)',
-                              color: 'var(--text-main)',
-                              fontSize: '12px',
-                              direction: 'ltr',
-                              textAlign: 'center',
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: '6px 10px' }}>
-                          <input
-                            type="number"
-                            step="any"
-                            value={field.refMax ?? ''}
-                            onChange={(e) => {
-                              const updated = [...customizerFields];
-                              updated[idx] = { ...updated[idx], refMax: e.target.value === '' ? undefined : parseFloat(e.target.value) };
-                              setCustomizerFields(updated);
-                            }}
-                            style={{
-                              width: '100%',
-                              padding: '5px 8px',
-                              borderRadius: '4px',
-                              border: '1px solid var(--border-color)',
-                              background: 'var(--bg-input)',
-                              color: 'var(--text-main)',
-                              fontSize: '12px',
-                              direction: 'ltr',
-                              textAlign: 'center',
-                            }}
-                          />
-                        </td>
-                      </tr>
-                    ))}
+                    {customizerFields.map((field, idx) => {
+                      const defRange = DEFAULT_CBC_DEMOGRAPHIC_MATRIX[customizerBracketId]?.[field.key];
+                      const defText = defRange ? `${defRange.min} - ${defRange.max}` : '-';
+                      return (
+                        <tr key={field.key} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                          <td style={{ padding: '6px 10px', fontWeight: 800, color: '#0284c7' }}>
+                            {field.key}
+                          </td>
+                          <td style={{ padding: '6px 10px' }}>
+                            <input
+                              type="text"
+                              value={field.label || field.name || ''}
+                              onChange={(e) => {
+                                const updated = [...customizerFields];
+                                updated[idx] = { ...updated[idx], label: e.target.value, name: e.target.value };
+                                setCustomizerFields(updated);
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '5px 8px',
+                                borderRadius: '4px',
+                                border: '1px solid var(--border-color)',
+                                background: 'var(--bg-input)',
+                                color: 'var(--text-main)',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                              }}
+                            />
+                          </td>
+                          <td style={{ padding: '6px 10px' }}>
+                            <input
+                              type="text"
+                              value={field.labelAr || field.arabicName || ''}
+                              onChange={(e) => {
+                                const updated = [...customizerFields];
+                                updated[idx] = { ...updated[idx], labelAr: e.target.value, arabicName: e.target.value };
+                                setCustomizerFields(updated);
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '5px 8px',
+                                borderRadius: '4px',
+                                border: '1px solid var(--border-color)',
+                                background: 'var(--bg-input)',
+                                color: 'var(--text-main)',
+                                fontSize: '12px',
+                              }}
+                            />
+                          </td>
+                          <td style={{ padding: '6px 10px' }}>
+                            <input
+                              type="text"
+                              value={field.unit}
+                              onChange={(e) => {
+                                const updated = [...customizerFields];
+                                updated[idx] = { ...updated[idx], unit: e.target.value };
+                                setCustomizerFields(updated);
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '5px 8px',
+                                borderRadius: '4px',
+                                border: '1px solid var(--border-color)',
+                                background: 'var(--bg-input)',
+                                color: 'var(--text-main)',
+                                fontSize: '11.5px',
+                                direction: 'ltr',
+                                textAlign: 'center',
+                              }}
+                            />
+                          </td>
+                          <td style={{ padding: '6px 10px' }}>
+                            <input
+                              type="number"
+                              step="any"
+                              value={field.refMin ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
+                                handleUpdateCustomizerRange(idx, field.key, val, field.refMax);
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '5px 8px',
+                                borderRadius: '4px',
+                                border: '1px solid var(--border-color)',
+                                background: 'var(--bg-input)',
+                                color: 'var(--text-main)',
+                                fontSize: '12px',
+                                direction: 'ltr',
+                                textAlign: 'center',
+                              }}
+                            />
+                          </td>
+                          <td style={{ padding: '6px 10px' }}>
+                            <input
+                              type="number"
+                              step="any"
+                              value={field.refMax ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
+                                handleUpdateCustomizerRange(idx, field.key, field.refMin, val);
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '5px 8px',
+                                borderRadius: '4px',
+                                border: '1px solid var(--border-color)',
+                                background: 'var(--bg-input)',
+                                color: 'var(--text-main)',
+                                fontSize: '12px',
+                                direction: 'ltr',
+                                textAlign: 'center',
+                              }}
+                            />
+                          </td>
+                          <td style={{ padding: '6px 10px', color: 'var(--text-muted)', fontSize: '11px', direction: 'ltr', textAlign: 'center' }}>
+                            {defText}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1642,28 +1800,52 @@ export default function CbcModal({
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '8px',
                 }}
               >
-                <button
-                  type="button"
-                  onClick={handleResetCustomizer}
-                  style={{
-                    fontSize: '11.5px',
-                    padding: '7px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--bg-input)',
-                    color: '#dc2626',
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <RotateCw size={13} />
-                  <span>استعادة المديات الأصلية للجهاز</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={handleResetCurrentBracket}
+                    style={{
+                      fontSize: '11.5px',
+                      padding: '7px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-input)',
+                      color: '#d97706',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <RotateCw size={13} />
+                    <span>استعادة مديات هذه الفئة</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetAllBrackets}
+                    style={{
+                      fontSize: '11.5px',
+                      padding: '7px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-input)',
+                      color: '#dc2626',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <RotateCcw size={13} />
+                    <span>استعادة كافة الفئات والجهاز</span>
+                  </button>
+                </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button

@@ -11,7 +11,7 @@ import {
   UnifiedWorkspaceReturn,
 } from './types';
 import { deriveTubeBadges } from '../lib/tubeBadges';
-import { orderCatalogByImportance, getMostUsedTests, normalizeCategory, RECEPTION_CATEGORIES } from '../lib/catalogOrdering';
+import { orderCatalogByImportance, getMostUsedTests, normalizeCategory, matchesReceptionCategory, RECEPTION_CATEGORIES } from '../lib/catalogOrdering';
 import { catalogCache } from '../../../lib/catalogCache';
 import { INITIAL_DOCTORS } from '../../../lib/catalogData';
 import { apiRequest } from '../../../lib/api';
@@ -479,6 +479,13 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {
       MOST_USED: getMostUsedTests(catalogTests, frequencyMap).length,
+      DIABETIC: 0,
+      LIPID: 0,
+      RENAL: 0,
+      ELECTROLYTES: 0,
+      LIVER: 0,
+      CARDIAC: 0,
+      VITAMINS: 0,
       BIOCHEMISTRY: 0,
       HEMATOLOGY: 0,
       HORMONES: 0,
@@ -494,12 +501,12 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
       WELLNESS_PANELS: 0,
     };
 
+    const subKeys = Object.keys(counts).filter((k) => k !== 'MOST_USED');
     catalogTests.forEach((t) => {
-      const canonicalKey = normalizeCategory(t.category);
-      if (counts[canonicalKey] !== undefined) {
-        counts[canonicalKey] += 1;
-      } else {
-        counts.BIOCHEMISTRY += 1;
+      for (const k of subKeys) {
+        if (matchesReceptionCategory(t, k)) {
+          counts[k] += 1;
+        }
       }
     });
 
@@ -527,9 +534,7 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
 
     if (selectedCategory && selectedCategory !== 'ALL') {
       const catKey = selectedCategory.toUpperCase();
-      list = list.filter((t) => {
-        return normalizeCategory(t.category) === catKey;
-      });
+      list = list.filter((t) => matchesReceptionCategory(t, catKey));
     }
 
     // Prioritize top clinical and frequent tests at the head of the list

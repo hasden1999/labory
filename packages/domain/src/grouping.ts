@@ -85,26 +85,29 @@ export const CANONICAL_SPECIALTIES: SpecialtyContext[] = [
 
 export const CANONICAL_TEST_GROUPS: TestGroupContext[] = [
   // Chemistry Subgroups
-  { id: 'grp-diabetes', specialtyId: 'spec-chemistry', nameEn: 'Diabetes & Glucose Profile', nameAr: 'تحاليل السكري وسكر الدم', sortOrder: 1 },
-  { id: 'grp-liver', specialtyId: 'spec-chemistry', nameEn: 'Liver Function Profile (LFT)', nameAr: 'وظائف الكبد والمرارة', sortOrder: 2 },
-  { id: 'grp-renal', specialtyId: 'spec-chemistry', nameEn: 'Renal Function & Electrolytes (RFT)', nameAr: 'وظائف الكلى والأملاح', sortOrder: 3 },
-  { id: 'grp-lipid', specialtyId: 'spec-chemistry', nameEn: 'Lipid Profile & Cardiac Markers', nameAr: 'دهون الدم وإنزيمات القلب', sortOrder: 4 },
-  { id: 'grp-vitamins', specialtyId: 'spec-chemistry', nameEn: 'Vitamins & Trace Elements', nameAr: 'المعادن والفيتامينات', sortOrder: 5 },
-  { id: 'grp-biochem', specialtyId: 'spec-chemistry', nameEn: 'General Biochemistry & Enzymes', nameAr: 'الكيمياء العامة والإنزيمات', sortOrder: 6 },
+  { id: 'grp-diabetes', specialtyId: 'spec-chemistry', nameEn: 'Diabetic Profile (Diabetes & Glucose)', nameAr: 'قسم السكري وسكر الدم (Diabetic Profile)', sortOrder: 1 },
+  { id: 'grp-lipid', specialtyId: 'spec-chemistry', nameEn: 'Lipid Profile', nameAr: 'قسم دهون الدم (Lipid Profile)', sortOrder: 2 },
+  { id: 'grp-renal', specialtyId: 'spec-chemistry', nameEn: 'Renal Function Profile (RFT)', nameAr: 'قسم وظائف الكلى (RFT)', sortOrder: 3 },
+  { id: 'grp-electrolytes', specialtyId: 'spec-chemistry', nameEn: 'Electrolytes & Minerals Profile', nameAr: 'قسم الأملاح والشوارد والمعادن (Electrolytes)', sortOrder: 4 },
+  { id: 'grp-liver', specialtyId: 'spec-chemistry', nameEn: 'Liver Function Profile (LFT)', nameAr: 'قسم وظائف الكبد والمرارة (LFT)', sortOrder: 5 },
+  { id: 'grp-cardiac', specialtyId: 'spec-chemistry', nameEn: 'Cardiac Markers & Enzymes Profile', nameAr: 'قسم إنزيمات ودلالات القلب (Cardiac Profile)', sortOrder: 6 },
+  { id: 'grp-pancreatic', specialtyId: 'spec-chemistry', nameEn: 'Pancreatic & GI Enzymes', nameAr: 'قسم إنزيمات البنكرياس والجهاز الهضمي', sortOrder: 7 },
+  { id: 'grp-vitamins', specialtyId: 'spec-chemistry', nameEn: 'Vitamins, Iron & Trace Elements', nameAr: 'قسم الفيتامينات والحديد والمعادن', sortOrder: 8 },
+  { id: 'grp-biochem', specialtyId: 'spec-chemistry', nameEn: 'General Biochemistry & Enzymes', nameAr: 'الكيمياء السريرية العامة والإنزيمات', sortOrder: 9 },
 
   // Hematology Subgroups
-  { id: 'grp-cbc', specialtyId: 'spec-hematology', nameEn: 'Complete Blood Count & Indices', nameAr: 'صورة الدم الكاملة ومؤشراتها', sortOrder: 1 },
-  { id: 'grp-coag', specialtyId: 'spec-hematology', nameEn: 'Coagulation & Hemostasis Profile', nameAr: 'فحوصات التخثر والسيولة', sortOrder: 2 },
+  { id: 'grp-cbc', specialtyId: 'spec-hematology', nameEn: 'Complete Blood Count & Indices (CBC)', nameAr: 'صورة الدم الكاملة ومؤشراتها (CBC)', sortOrder: 1 },
+  { id: 'grp-coag', specialtyId: 'spec-hematology', nameEn: 'Coagulation & Hemostasis Profile', nameAr: 'فحوصات التخثر والسيولة (Coagulation)', sortOrder: 2 },
   { id: 'grp-esr', specialtyId: 'spec-hematology', nameEn: 'ESR & Immunohematology', nameAr: 'ترسب الدم وفصائل الدم', sortOrder: 3 },
 
   // Hormones Subgroups
-  { id: 'grp-thyroid', specialtyId: 'spec-hormones', nameEn: 'Thyroid Function Profile', nameAr: 'هرمونات الغدة الدرقية', sortOrder: 1 },
-  { id: 'grp-fertility', specialtyId: 'spec-hormones', nameEn: 'Fertility & Reproductive Hormones', nameAr: 'هرمونات الخصوبة والتناسل', sortOrder: 2 },
-  { id: 'grp-adrenal', specialtyId: 'spec-hormones', nameEn: 'Adrenal & Other Endocrine', nameAr: 'هرمونات الغدد الأخرى', sortOrder: 3 },
+  { id: 'grp-thyroid', specialtyId: 'spec-hormones', nameEn: 'Thyroid Function Profile', nameAr: 'فحوصات الغدة الدرقية (Thyroid Profile)', sortOrder: 1 },
+  { id: 'grp-fertility', specialtyId: 'spec-hormones', nameEn: 'Fertility & Reproductive Hormones', nameAr: 'هرمونات الخصوبة والحمل والتناسل', sortOrder: 2 },
+  { id: 'grp-adrenal', specialtyId: 'spec-hormones', nameEn: 'Pituitary, Adrenal & Parathyroid Hormones', nameAr: 'هرمونات الغدة النخامية والكظرية والجار درقية', sortOrder: 3 },
 
   // Immunology Subgroups
-  { id: 'grp-rheuma', specialtyId: 'spec-immunology', nameEn: 'Inflammatory & Rheumatic Markers', nameAr: 'دلالات الالتهاب والروماتيزم', sortOrder: 1 },
-  { id: 'grp-infectious', specialtyId: 'spec-immunology', nameEn: 'General Autoimmune & Serology', nameAr: 'المناعة الذاتية العامة', sortOrder: 2 },
+  { id: 'grp-rheuma', specialtyId: 'spec-immunology', nameEn: 'Inflammatory & Rheumatic Markers', nameAr: 'دلالات الالتهاب والروماتيزم والمناعة الذاتية', sortOrder: 1 },
+  { id: 'grp-infectious', specialtyId: 'spec-immunology', nameEn: 'Infectious Serology & Virology Screen', nameAr: 'الأمصال والفيروسات والحميات (Serology)', sortOrder: 2 },
 
   // Virology Subgroups
   { id: 'grp-virology-serology', specialtyId: 'spec-virology', nameEn: 'Viral Serology & Rapid Screens', nameAr: 'الأمصال الفيروسية والمسحات السريعة', sortOrder: 1 },
@@ -126,7 +129,7 @@ export const CANONICAL_TEST_GROUPS: TestGroupContext[] = [
   { id: 'grp-wellness-all', specialtyId: 'spec-wellness', nameEn: 'Comprehensive Health Panels', nameAr: 'باقات الفحص الشامل والصحي', sortOrder: 1 },
 
   // Microbiology Subgroups
-  { id: 'grp-micro-general', specialtyId: 'spec-microbiology', nameEn: 'Routine Clinical Microscopy', nameAr: 'الفحص المجهري العام والإدرار', sortOrder: 1 },
+  { id: 'grp-micro-general', specialtyId: 'spec-microbiology', nameEn: 'Routine Clinical Microscopy', nameAr: 'الفحص المجهري العام والإدرار والخروج', sortOrder: 1 },
   { id: 'grp-culture', specialtyId: 'spec-microbiology', nameEn: 'Cultures & Sensitivity', nameAr: 'المزارع والحساسية الجرثومية', sortOrder: 2 },
 
   // Tumor Markers
@@ -158,23 +161,35 @@ export const CANONICAL_SPECIALTY_KEYWORDS: Record<string, string[]> = {
 export const CANONICAL_GROUP_KEYWORDS: Record<string, { specialtyKey: string; keywords: string[] }> = {
   'grp-diabetes': {
     specialtyKey: 'spec-chemistry',
-    keywords: ['diabetes', 'glucose', 'sugar', 'سكري', 'سكر'],
+    keywords: ['diabetes', 'diabetic', 'glucose', 'sugar', 'سكري', 'سكر'],
+  },
+  'grp-lipid': {
+    specialtyKey: 'spec-chemistry',
+    keywords: ['lipid', 'cholesterol', 'triglyceride', 'دهون', 'شحوم'],
+  },
+  'grp-renal': {
+    specialtyKey: 'spec-chemistry',
+    keywords: ['renal', 'rft', 'kidney', 'كلى', 'كلوية'],
+  },
+  'grp-electrolytes': {
+    specialtyKey: 'spec-chemistry',
+    keywords: ['electrolyte', 'mineral', 'أملاح', 'شوارد'],
   },
   'grp-liver': {
     specialtyKey: 'spec-chemistry',
     keywords: ['liver', 'lft', 'كبد', 'مرارة'],
   },
-  'grp-renal': {
+  'grp-cardiac': {
     specialtyKey: 'spec-chemistry',
-    keywords: ['renal', 'rft', 'kidney', 'electrolyte', 'كلى', 'أملاح', 'كلوية'],
+    keywords: ['cardiac', 'troponin', 'heart', 'قلب', 'جلطة'],
   },
-  'grp-lipid': {
+  'grp-pancreatic': {
     specialtyKey: 'spec-chemistry',
-    keywords: ['lipid', 'cardiac', 'دهون', 'قلب'],
+    keywords: ['pancrea', 'amylase', 'lipase', 'بنكرياس'],
   },
   'grp-vitamins': {
     specialtyKey: 'spec-chemistry',
-    keywords: ['vitamin', 'trace', 'فيتامين', 'معادن'],
+    keywords: ['vitamin', 'trace', 'iron', 'فيتامين', 'معادن', 'حديد'],
   },
   'grp-biochem': {
     specialtyKey: 'spec-chemistry',
@@ -202,7 +217,7 @@ export const CANONICAL_GROUP_KEYWORDS: Record<string, { specialtyKey: string; ke
   },
   'grp-adrenal': {
     specialtyKey: 'spec-hormones',
-    keywords: ['adrenal', 'غدد'],
+    keywords: ['adrenal', 'pituitary', 'parathyroid', 'غدد', 'كظرية', 'نخامية'],
   },
   'grp-rheuma': {
     specialtyKey: 'spec-immunology',
@@ -210,7 +225,7 @@ export const CANONICAL_GROUP_KEYWORDS: Record<string, { specialtyKey: string; ke
   },
   'grp-infectious': {
     specialtyKey: 'spec-immunology',
-    keywords: ['infectious', 'serology', 'معدية', 'فيروس'],
+    keywords: ['infectious', 'serology', 'معدية', 'فيروس', 'أمصال'],
   },
   'grp-micro-general': {
     specialtyKey: 'spec-microbiology',
@@ -231,12 +246,12 @@ export function classifyTestCanonical(test: GroupableTest): { specialtyId: strin
   const name = `${test.name || ''} ${test.test?.name || ''} ${(test as any).arabicName || ''} ${test.test?.arabicName || ''}`.toLowerCase();
   const cat = String(test.category || test.test?.category || '').toLowerCase();
 
-  // 1. Tumor Markers (checked before Renal to avoid CA125 / CA19-9 matching Calcium 'CA')
+  // 1. Tumor Markers (checked before Renal/Electrolytes to avoid CA125 / CA19-9 matching Calcium 'CA')
   if (
     [
-      'PSA', 'FPSA', 'FREE-PSA', 'CEA', 'CA125', 'CA-125', 'CA15-3', 'CA153',
+      'PSA', 'FPSA', 'F-PSA', 'FREE-PSA', 'CEA', 'CA125', 'CA-125', 'CA15-3', 'CA153',
       'CA19-9', 'CA199', 'CA242', 'CA72-4', 'AFP', 'CGA', 'B2M', 'CYFRA-21',
-      'CYFRA', 'HE4', 'ROMA'
+      'CYFRA', 'HE4', 'ROMA', 'NSE', 'S100', 'CALCITONIN'
     ].some(c => matchCode(code, c)) ||
     name.includes('أورام') || name.includes('tumor') || cat.includes('أورام')
   ) {
@@ -248,93 +263,135 @@ export function classifyTestCanonical(test: GroupableTest): { specialtyId: strin
     [
       'HBSAG', 'HBS', 'HCV', 'HCV-AB', 'HCVAB', 'HIV', 'HIV-AB', 'WIDAL', 'ROSE',
       'ROSE-BENGAL', 'BRUCELLA', 'BRUC-STA', 'TYPHOID', 'HPYLORI', 'H-PYLORI',
-      'HPYLORI-AB', 'TOXO', 'RUBELLA', 'CMV', 'VDRL', 'TPHA', 'RPR',
-      'CHLAM-IGG', 'CHLAM-IGM', 'DENGUE', 'EBV'
+      'HPYLORI-AB', 'HPYLORI-AG', 'HPYLORI-STOOL', 'TOXO', 'RUBELLA', 'CMV', 'HSV', 'VDRL', 'TPHA', 'RPR',
+      'CHLAM-IGG', 'CHLAM-IGM', 'DENGUE', 'EBV', 'MONOSPOT', 'HAV', 'HEV', 'ROTAVIRUS', 'ADENOVIRUS'
     ].some(c => matchCode(code, c)) ||
     name.includes('hepatitis') || name.includes('التهاب الكبد') || name.includes('widal') ||
     name.includes('rose bengal') || name.includes('brucella') || name.includes('typhoid') ||
-    name.includes('syphilis') || name.includes('h. pylori') || name.includes('hpylori')
+    name.includes('syphilis') || name.includes('h. pylori') || name.includes('hpylori') || name.includes('جرثومة المعدة')
   ) {
     return { specialtyId: 'spec-immunology', groupId: 'grp-infectious' };
   }
 
-  // 3. Diabetes Profile (comprehensive clinical glucose / insulin profile)
+  // 3. Diabetic Profile (comprehensive clinical glucose / HbA1c / insulin profile)
   if (
     [
-      'FBS', 'RBS', 'PPBS', 'HBA1C', 'GLU', 'GLUCOSE', 'OGTT', 'GCT',
-      'INSULIN', 'C-PEP', 'CPEPTIDE', 'HOMAIR', 'HOMA-IR', 'OGTT-CURVE',
-      'FRUCT', 'FRUCTOSAMINE', 'GAD65-AB', 'IA2-AB', 'INSULIN-AB',
-      'ADIPONECT', 'ISLET-AB'
+      'FBS', 'RBS', 'PPBS', 'GLU-F', 'GLU-R', 'GLU-PP', 'HBA1C', 'A1C', 'GLU', 'GLUCOSE',
+      'OGTT', 'OGTT-75G', 'GCT', 'GCT-50G', 'INSULIN', 'INS-F', 'INS-PP', 'C-PEP', 'CPEPTIDE',
+      'HOMAIR', 'HOMA-IR', 'OGTT-CURVE', 'FRUCT', 'FRUCTOSAMINE', 'GAD65-AB', 'IA2-AB',
+      'INSULIN-AB', 'ADIPONECT', 'ISLET-AB'
     ].some(c => matchCode(code, c)) ||
     name.includes('hba1c') || name.includes('تراكمي') || name.includes('سكري') ||
     name.includes('glucose') || name.includes('insulin') || name.includes('c-peptide') ||
     name.includes('cpeptide') || name.includes('homa') || name.includes('sugar') ||
-    name.includes('صائم') || name.includes('عشوائي') || name.includes('تحمل السكر')
+    name.includes('صائم') || name.includes('عشوائي') || name.includes('تحمل السكر') ||
+    name.includes('diabetic')
   ) {
     return { specialtyId: 'spec-chemistry', groupId: 'grp-diabetes' };
   }
 
-  // 4. Liver Function & Enzymes
+  // 4. Lipid Profile (Pure lipids & lipoproteins — separated from Cardiac markers)
   if (
     [
-      'GPT', 'ALT', 'GOT', 'AST', 'ALP', 'GGT', 'TSB', 'TBIL', 'DBIL', 'IBIL',
-      'DIR-BIL', 'INDIR-BIL', 'ALB', 'TP', 'TOTAL-PROTEIN', 'LDH', 'AMMONIA',
-      'CHE-PSEUDO', 'AG-RATIO', 'FIB-4'
+      'CHOL', 'TC', 'CHOL-TOTAL', 'T-CHOL', 'TG', 'TRIG', 'HDL', 'HDL-C', 'HDLC',
+      'LDL', 'LDL-C', 'LDLC', 'VLDL', 'VLDL-C', 'NON-HDL', 'TC/HDL', 'LDL/HDL',
+      'APO-A1', 'APO-B', 'APO-RATIO', 'LPA', 'LIPID'
     ].some(c => matchCode(code, c)) ||
-    name.includes('liver') || name.includes('كبد') || name.includes('bilirubin') ||
-    name.includes('transaminase') || name.includes('albumin') || name.includes('مرارة')
-  ) {
-    return { specialtyId: 'spec-chemistry', groupId: 'grp-liver' };
-  }
-
-  // 5. Renal Function & Electrolytes
-  if (
-    [
-      'UREA', 'CREAT', 'CREA', 'CREATININE', 'URIC', 'UA', 'BUN', 'NA', 'K',
-      'CL', 'CA', 'CA-ION', 'PHOS', 'MG', 'EGFR', 'CR-CLEAR', 'UPCR', 'MALB',
-      'U-PROT-24H', 'U-PHOS-24H', 'OSM', 'OSM-URINE'
-    ].some(c => matchCode(code, c)) ||
-    name.includes('renal') || name.includes('كلى') || name.includes('kidney') ||
-    name.includes('creatinine') || name.includes('urea') || name.includes('uric') ||
-    name.includes('أملاح') || name.includes('يوريا')
-  ) {
-    return { specialtyId: 'spec-chemistry', groupId: 'grp-renal' };
-  }
-
-  // 6. Lipid Profile & Cardiac Markers
-  if (
-    [
-      'CHOL', 'TG', 'HDL', 'LDL', 'VLDL', 'NON-HDL', 'TC/HDL', 'LDL/HDL',
-      'APO-A1', 'APO-B', 'APO-RATIO', 'LPA', 'TROP', 'TROPONIN', 'CKMB',
-      'CK-MB', 'CK', 'MYO', 'HCY', 'HS-CRP', 'NT-PROBNP', 'D-DIMER', 'DDIMER'
-    ].some(c => matchCode(code, c)) ||
-    name.includes('lipid') || name.includes('دهون') || name.includes('cholesterol') ||
-    name.includes('troponin') || name.includes('قلب') || name.includes('triglyceride')
+    name.includes('lipid') || name.includes('دهون') || name.includes('شحوم') ||
+    name.includes('cholesterol') || name.includes('triglyceride') ||
+    name.includes('كوليسترول') || name.includes('ثلاثية') || name.includes('lipoprotein')
   ) {
     return { specialtyId: 'spec-chemistry', groupId: 'grp-lipid' };
   }
 
-  // 7. Vitamins & Minerals
+  // 5. Cardiac Markers & Enzymes Profile (Troponin, CK-MB, CK, Myoglobin, NT-proBNP, Homocysteine, hs-CRP)
   if (
     [
-      'VIT-D', 'VITD', 'VIT-B12', 'VITB12', 'B12', 'FOLATE', 'RBC-FOLATE',
-      'IRON', 'FERRITIN', 'TIBC', 'ZINC', 'COPPER', 'CERULOPLAS', 'LEAD-BLOOD',
-      'VIT-A', 'VIT-B1', 'CALC'
+      'TROP', 'TROP-I', 'TROP-T', 'TROPONIN', 'HS-TROP', 'CKMB', 'CK-MB', 'CK', 'CPK',
+      'MYO', 'MYOGLOBIN', 'HCY', 'HOMOCYSTEINE', 'HS-CRP', 'HSCRP', 'NT-PROBNP', 'BNP', 'ANP'
+    ].some(c => matchCode(code, c)) ||
+    name.includes('troponin') || name.includes('تروبونين') || name.includes('ck-mb') ||
+    name.includes('myoglobin') || name.includes('nt-probnp') || name.includes('homocysteine') ||
+    name.includes('hs-crp') || name.includes('إنزيمات القلب') || name.includes('جلطة القلب')
+  ) {
+    return { specialtyId: 'spec-chemistry', groupId: 'grp-cardiac' };
+  }
+
+  // 6. Pancreatic & GI Enzymes (Amylase, Lipase, Elastase)
+  if (
+    ['AMYLASE', 'AMY', 'U-AMY', 'LIPASE', 'LIP', 'ELASTASE', 'GASTRIN', 'PEPSINOGEN'].some(c => matchCode(code, c)) ||
+    name.includes('amylase') || name.includes('lipase') || name.includes('أميليز') ||
+    name.includes('ليبيز') || name.includes('بنكرياس') || name.includes('pancrea')
+  ) {
+    return { specialtyId: 'spec-chemistry', groupId: 'grp-pancreatic' };
+  }
+
+  // 7. Liver Function & Enzymes (LFT)
+  if (
+    [
+      'GPT', 'ALT', 'SGPT', 'GOT', 'AST', 'SGOT', 'ALP', 'ALK-P', 'GGT', 'TSB', 'TBIL', 'BIL-T',
+      'DBIL', 'IBIL', 'DIR-BIL', 'BIL-D', 'INDIR-BIL', 'ALB', 'ALBUMIN', 'TP', 'TOTAL-PROTEIN',
+      'GLOB', 'GLOBULIN', 'LDH', 'AMMONIA', 'NH3', 'CHE-PSEUDO', 'AG-RATIO', 'FIB-4', 'BILE-ACIDS'
+    ].some(c => matchCode(code, c)) ||
+    name.includes('liver') || name.includes('كبد') || name.includes('bilirubin') ||
+    name.includes('بيليروبين') || name.includes('أبو صفار') ||
+    name.includes('transaminase') || name.includes('albumin') || name.includes('ألبومين') ||
+    name.includes('مرارة')
+  ) {
+    return { specialtyId: 'spec-chemistry', groupId: 'grp-liver' };
+  }
+
+  // 8. Electrolytes & Minerals Profile (Na, K, Cl, Ca, Ionized Ca, Phos, Mg, Bicarbonate, Osmolality)
+  if (
+    [
+      'NA', 'SODIUM', 'K', 'POTASSIUM', 'CL', 'CHLORIDE', 'CA', 'CALC', 'CALCIUM', 'CA-ION',
+      'ION-CA', 'PHOS', 'PHOSPHORUS', 'PO4', 'MG', 'MAGNESIUM', 'BICARB', 'HCO3', 'CO2',
+      'ANION-GAP', 'OSM', 'OSM-URINE', 'U-PHOS-24H', 'U-CA-24H', 'U-NA-24H', 'U-K-24H'
+    ].some(c => matchCode(code, c)) ||
+    name.includes('electrolyte') || name.includes('sodium') || name.includes('potassium') ||
+    name.includes('chloride') || name.includes('calcium') || name.includes('magnesium') ||
+    name.includes('phosphorus') || name.includes('صوديوم') || name.includes('بوتاسيوم') ||
+    name.includes('كلورايد') || name.includes('كالسيوم') || name.includes('مغنيسيوم') ||
+    name.includes('فسفور') || name.includes('شوارد')
+  ) {
+    return { specialtyId: 'spec-chemistry', groupId: 'grp-electrolytes' };
+  }
+
+  // 9. Renal Function Profile (RFT: Urea, Creatinine, Uric Acid, eGFR, Microalbumin, 24h Urine Protein)
+  if (
+    [
+      'UREA', 'CREAT', 'CREA', 'CR', 'CREATININE', 'URIC', 'UA', 'BUN', 'EGFR', 'CR-CLEAR',
+      'UPCR', 'UACR', 'MALB', 'MICROALB', 'U-PROT-24H', 'CYSTATIN', 'CYST-C', 'B2M-URINE'
+    ].some(c => matchCode(code, c)) ||
+    name.includes('renal') || name.includes('كلى') || name.includes('kidney') ||
+    name.includes('creatinine') || name.includes('كرياتينين') || name.includes('urea') ||
+    name.includes('uric') || name.includes('يوريا') || name.includes('نقرس')
+  ) {
+    return { specialtyId: 'spec-chemistry', groupId: 'grp-renal' };
+  }
+
+  // 10. Vitamins, Iron & Trace Elements
+  if (
+    [
+      'VIT-D', 'VITD', 'D3', 'VIT-B12', 'VITB12', 'B12', 'FOLATE', 'FOLIC', 'RBC-FOLATE',
+      'IRON', 'FE', 'FERRITIN', 'FER', 'TIBC', 'UIBC', 'TSAT', 'ZINC', 'ZN', 'COPPER', 'CU',
+      'SELENIUM', 'CERULOPLAS', 'LEAD-BLOOD', 'VIT-A', 'VIT-B1', 'VIT-B6', 'VIT-C', 'VIT-E'
     ].some(c => matchCode(code, c)) ||
     name.includes('vitamin') || name.includes('فيتامين') || name.includes('iron') ||
-    name.includes('حديد') || name.includes('ferritin')
+    name.includes('حديد') || name.includes('ferritin') || name.includes('فيريتين') ||
+    name.includes('مخزون الحديد') || name.includes('فوليك') || name.includes('زنك')
   ) {
     return { specialtyId: 'spec-chemistry', groupId: 'grp-vitamins' };
   }
 
-  // 8. Coagulation & Hemostasis
+  // 11. Coagulation & Hemostasis (including D-Dimer)
   if (
     [
-      'PT', 'INR', 'PTT', 'APTT', 'FIB', 'FIBRINOGEN', 'BT', 'CT', 'FACT-VIII',
-      'FACT-IX', 'AT-III', 'ANTI-XA', 'APCR'
+      'PT', 'PT-INR', 'INR', 'PTT', 'APTT', 'FIB', 'FIBRINOGEN', 'D-DIMER', 'DDIMER',
+      'BT', 'CT', 'FACT-VIII', 'FACT-IX', 'AT-III', 'ANTI-XA', 'APCR', 'PROT-C', 'PROT-S', 'LUPUS-AC'
     ].some(c => matchCode(code, c)) ||
     name.includes('coagulation') || name.includes('تخثر') || name.includes('prothrombin') ||
-    name.includes('سيولة')
+    name.includes('d-dimer') || name.includes('سيولة') || name.includes('نزف')
   ) {
     return { specialtyId: 'spec-hematology', groupId: 'grp-coag' };
   }
@@ -460,6 +517,17 @@ export function classifyTestCanonical(test: GroupableTest): { specialtyId: strin
 
   // Default fallback for general biochemistry
   return { specialtyId: 'spec-chemistry', groupId: 'grp-biochem' };
+}
+
+export function getCanonicalGroupMeta(test: GroupableTest): TestGroupContext & { specialtyNameEn: string; specialtyNameAr: string } {
+  const { specialtyId, groupId } = classifyTestCanonical(test);
+  const grp = CANONICAL_TEST_GROUPS.find(g => g.id === groupId) || CANONICAL_TEST_GROUPS[8];
+  const spec = CANONICAL_SPECIALTIES.find(s => s.id === specialtyId) || CANONICAL_SPECIALTIES[0];
+  return {
+    ...grp,
+    specialtyNameEn: spec.nameEn,
+    specialtyNameAr: spec.nameAr || spec.nameEn,
+  };
 }
 
 function resolveTestField<T extends GroupableTest>(test: T, field: 'specialtyId' | 'groupId' | 'sortOrder' | 'category'): any {

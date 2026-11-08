@@ -10,3 +10,4 @@ export * from './ageUtils';
 export * from './rangeClassification';
 export * from './grouping';
 export * from './reportTemplates';
+export * from './cbcDemographicRanges';

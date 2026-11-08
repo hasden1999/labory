@@ -1,8 +1,27 @@
 /**
  * cbcDeviceConfig.ts
  * Manages device-specific CBC parameter profiles, custom reference ranges,
- * parameter name customization, and sticky field visibility per analyzer.
+ * parameter name customization, sticky field visibility per analyzer,
+ * and age/gender-specific demographic reference intervals with customization.
  */
+
+import {
+  CbcDemographicBracketId,
+  CBC_DEMOGRAPHIC_BRACKETS,
+  DEFAULT_CBC_DEMOGRAPHIC_MATRIX,
+  resolveCbcDemographicBracket,
+  getCbcParamDemographicRange,
+  getPatientCbcDemographicRanges,
+} from '@lab-manager/domain';
+
+export type { CbcDemographicBracketId };
+export {
+  CBC_DEMOGRAPHIC_BRACKETS,
+  DEFAULT_CBC_DEMOGRAPHIC_MATRIX,
+  resolveCbcDemographicBracket,
+  getCbcParamDemographicRange,
+  getPatientCbcDemographicRanges,
+};
 
 export type CbcDeviceId = 
   | 'SWELAB_3PART' 
@@ -235,7 +254,91 @@ const STORAGE_KEYS = {
   LAST_DEVICE: 'labryo_cbc_last_device',
   CUSTOM_RANGES_PREFIX: 'labryo_cbc_custom_profile_',
   ACTIVE_FIELDS_PREFIX: 'labryo_cbc_active_fields_',
+  DEMOGRAPHIC_MATRIX: 'labryo_cbc_demographic_matrix',
 };
+
+/**
+ * Retrieves user-customized demographic ranges matrix from LocalStorage.
+ */
+export function getSavedCbcDemographicMatrix(): Record<string, Record<string, { min?: number; max?: number }>> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.DEMOGRAPHIC_MATRIX);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Persists customized demographic ranges matrix to LocalStorage and synchronizes with server settings.
+ */
+export function saveCbcDemographicMatrix(
+  matrix: Record<string, Record<string, { min?: number; max?: number }>>
+): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEYS.DEMOGRAPHIC_MATRIX, JSON.stringify(matrix));
+    // Persist to central settings so printed reports and other workstations immediately use it
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cbcDemographicMatrix: matrix }),
+    }).catch(() => {
+      // Graceful offline fallback
+    });
+  } catch (err) {
+    console.error('Failed to save CBC demographic matrix:', err);
+  }
+}
+
+/**
+ * Resets customized demographic ranges matrix (or a specific demographic bracket).
+ */
+export function resetCbcDemographicMatrix(bracketId?: CbcDemographicBracketId): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (!bracketId) {
+      localStorage.removeItem(STORAGE_KEYS.DEMOGRAPHIC_MATRIX);
+      fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cbcDemographicMatrix: {} }),
+      }).catch(() => {});
+    } else {
+      const current = getSavedCbcDemographicMatrix();
+      delete current[bracketId];
+      saveCbcDemographicMatrix(current);
+    }
+  } catch (err) {
+    console.error('Failed to reset CBC demographic matrix:', err);
+  }
+}
+
+/**
+ * Returns device CBC fields with reference ranges dynamically resolved for a specific patient's demographic bracket.
+ */
+export function getPatientDeviceCbcFields(
+  deviceId: CbcDeviceId,
+  patient?: any,
+  customMatrix?: Record<string, Record<string, { min?: number; max?: number }>>
+): CbcFieldMeta[] {
+  const baseFields = getDeviceCbcFields(deviceId);
+  const matrix = customMatrix || getSavedCbcDemographicMatrix();
+  const bracketId = resolveCbcDemographicBracket(patient);
+
+  return baseFields.map((f) => {
+    const range = getCbcParamDemographicRange(bracketId, f.key, matrix);
+    if (range && (range.min !== undefined || range.max !== undefined)) {
+      return {
+        ...f,
+        refMin: range.min !== undefined ? range.min : f.refMin,
+        refMax: range.max !== undefined ? range.max : f.refMax,
+      };
+    }
+    return f;
+  });
+}
 
 /**
  * Loads the active device profile with user customizations applied from LocalStorage.

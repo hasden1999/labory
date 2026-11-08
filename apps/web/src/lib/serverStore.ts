@@ -105,6 +105,7 @@ export interface LabSettings {
 
   // CBC & Clinical Reporting Flags
   cbcLayoutTemplate?: string;
+  cbcDemographicMatrix?: Record<string, Record<string, { min?: number; max?: number }>>;
   showPanicFlags?: boolean;
   showClinicalComments?: boolean;
   showReferenceRanges?: boolean;

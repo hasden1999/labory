@@ -204,4 +204,45 @@ describe('groupTests - Pure clinical grouping engine', () => {
     const hemCodes = hemSec!.allTests.map((t: any) => t.code);
     expect(hemCodes).toContain('HB');
   });
+
+  it('precisely separates Diabetic Profile, Lipid Profile, Renal (RFT), Electrolytes, Liver (LFT), and Cardiac Markers', () => {
+    const clinicalPanel = [
+      { id: 't-fbs', code: 'GLU-F', name: 'Fasting Blood Sugar (FBS)' },
+      { id: 't-rbs', code: 'GLU-R', name: 'Random Blood Sugar (RBS)' },
+      { id: 't-hba1c', code: 'HBA1C', name: 'Glycated Hemoglobin (HbA1c)' },
+      { id: 't-chol', code: 'CHOL', name: 'Total Cholesterol' },
+      { id: 't-tg', code: 'TG', name: 'Triglycerides' },
+      { id: 't-hdl', code: 'HDL', name: 'HDL Cholesterol' },
+      { id: 't-ldl', code: 'LDL', name: 'LDL Cholesterol' },
+      { id: 't-vldl', code: 'VLDL', name: 'VLDL Cholesterol' },
+      { id: 't-urea', code: 'UREA', name: 'Blood Urea' },
+      { id: 't-creat', code: 'CREAT', name: 'Serum Creatinine' },
+      { id: 't-na', code: 'NA', name: 'Serum Sodium (Na+)' },
+      { id: 't-k', code: 'K', name: 'Serum Potassium (K+)' },
+      { id: 't-alt', code: 'ALT', name: 'ALT (GPT)' },
+      { id: 't-trop', code: 'TROP-I', name: 'Troponin I' },
+    ];
+
+    const res = groupTests(clinicalPanel, 'specialty');
+    const chemSec = res.sections.find(s => s.id === 'spec-chemistry');
+    expect(chemSec).toBeDefined();
+
+    const diabGrp = chemSec!.groups.find(g => g.id === 'grp-diabetes');
+    expect(diabGrp?.tests.map((t: any) => t.code)).toEqual(['GLU-F', 'GLU-R', 'HBA1C']);
+
+    const lipidGrp = chemSec!.groups.find(g => g.id === 'grp-lipid');
+    expect(lipidGrp?.tests.map((t: any) => t.code)).toEqual(['CHOL', 'TG', 'HDL', 'LDL', 'VLDL']);
+
+    const renalGrp = chemSec!.groups.find(g => g.id === 'grp-renal');
+    expect(renalGrp?.tests.map((t: any) => t.code)).toEqual(['UREA', 'CREAT']);
+
+    const elecGrp = chemSec!.groups.find(g => g.id === 'grp-electrolytes');
+    expect(elecGrp?.tests.map((t: any) => t.code)).toEqual(['NA', 'K']);
+
+    const liverGrp = chemSec!.groups.find(g => g.id === 'grp-liver');
+    expect(liverGrp?.tests.map((t: any) => t.code)).toEqual(['ALT']);
+
+    const cardiacGrp = chemSec!.groups.find(g => g.id === 'grp-cardiac');
+    expect(cardiacGrp?.tests.map((t: any) => t.code)).toEqual(['TROP-I']);
+  });
 });

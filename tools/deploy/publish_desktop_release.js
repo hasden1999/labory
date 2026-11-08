@@ -78,6 +78,15 @@ const sha256Hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
 console.log(`بصمة التشفير SHA-256: ${sha256Hash}`);
 fs.writeFileSync(`${setupExePath}.sha256`, sha256Hash, 'utf-8');
 
+function getChangelogNotes(version) {
+  const changelogPath = path.join(rootDir, 'CHANGELOG.md');
+  if (!fs.existsSync(changelogPath)) return '';
+  const content = fs.readFileSync(changelogPath, 'utf-8');
+  const regex = new RegExp(`##\\s*\\[v?${version.replace(/\\./g, '\\.')}\\][^\n]*\n([\\s\\S]*?)(?=\\n##\\s*\\[|$)`);
+  const match = content.match(regex);
+  return match ? match[1].trim() : '';
+}
+
 // 4. توليد بيان التحديث latest.json
 const manifest = {
   version: VERSION,
@@ -90,7 +99,7 @@ const manifest = {
   releaseDate: new Date().toISOString(),
   downloadUrl: `https://github.com/${OWNER}/${REPO}/releases/download/${TAG}/${sanitizedRemoteName}`,
   mandatory: false,
-  releaseNotes: "تحديث Labryo LIMS v2.0.5: تفعيل الطباعة التلقائية (Auto-Print) للتقارير الطبية، والسماح بتجاوز حظر العينات المعلقة (force=true) لطباعة التقارير الجزئية فوراً، وإصلاح أزرار الطباعة في سجل المرضى والاستقبال ومركز العمليات."
+  releaseNotes: `تحديث Labryo LIMS ${TAG}: التقسيم السريري الدقيق للفحوصات ومديات CBC المعتمدة حسب العمر والجنس مع إمكانية التخصيص الكامل.`
 };
 
 const manifestPath = path.join(distDir, 'latest.json');
@@ -217,15 +226,13 @@ if (process.argv.includes('--publish')) {
         }
       }
 
-      const releaseTitle = `Labryo Clinical LIMS ${TAG} - دمج تحاليل الكيمياء والدهون في واتساب وتوحيد التقارير الطبية`;
-      const releaseBody = `## تحديث نظام المختبرات الطبية الكبير (${TAG})
+      const changelogSection = getChangelogNotes(VERSION);
+      const releaseTitle = `Labryo Clinical LIMS ${TAG} - التقسيم السريري للفحوصات ومديات CBC المعتمدة حسب العمر والجنس`;
+      const releaseBody = `## تحديث نظام المختبرات الطبية (${TAG})
 
-### أبرز التحديثات والميزات في هذا الإصدار:
-1. **توحيد وتجميع تحاليل الكيمياء السريرية والدهون في واتساب**: إرسال فحوصات الكيمياء السريرية، السكر التراكمي (HbA1c)، وباقة دهون الدم الشاملة مجمعة في صورة تشخيصية واحدة أنيقة وعالية الدقة بدلاً من إرسال كل فحص على حده.
-2. **عزل الاستمارات الطبية التخصصية**: استمرار إرسال استمارات صورة الدم الكاملة (CBC)، الفحص العام للإدرار (GUE)، الفحص العام للخروج (GSE)، وفحوصات الهرمونات كصور مستقلة لكل استمارة.
-3. **دعم النتائج السابقة والمقارنة التلقائية**: إدراج النتائج السابقة للمريض تلقائياً في التقرير المطبوع ورسائل الواتساب لمقارنة المؤشرات الحيوية مع الزيارات السابقة.
-4. **استقرار الأداء والربط الشبكي المحلي (LAN)**: تعزيز موثوقية الخادم المحلي والمزامنة اللحظية والطباعة السريعة.
+${changelogSection || 'تحديث شامل لنظام إدارة المختبرات الطبية.'}
 
+---
 - بصمة التحقق الرقمية (SHA-256): \`${sha256Hash}\`
 `;
 

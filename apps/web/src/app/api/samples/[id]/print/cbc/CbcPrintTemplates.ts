@@ -1,4 +1,4 @@
-import { classifyResultRange } from '@lab-manager/domain';
+import { classifyResultRange, getPatientCbcDemographicRanges } from '@lab-manager/domain';
 import { escapeHtml, toEnglishDigits } from '../PrintHeader';
 
 export type CbcLayoutTemplateId =
@@ -442,15 +442,87 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
   let cbcRowCounter = 0;
   let diffRowCounter = 0;
 
-  const rbcRef = isFemale ? '4.00 - 5.20' : '4.50 - 5.90';
-  const rbcLow = isFemale ? 4.0 : 4.5;
-  const rbcHigh = isFemale ? 5.2 : 5.9;
-  const hgbRef = isFemale ? '12.0 - 15.5' : '13.0 - 17.5';
-  const hgbLow = isFemale ? 12.0 : 13.0;
-  const hgbHigh = isFemale ? 15.5 : 17.5;
-  const hctRef = isFemale ? '36.0 - 48.0' : '40.0 - 52.0';
-  const hctLow = isFemale ? 36.0 : 40.0;
-  const hctHigh = isFemale ? 48.0 : 52.0;
+  const effectivePatient = patient || sample?.patient;
+  const patientRanges = getPatientCbcDemographicRanges(effectivePatient, settings?.cbcDemographicMatrix);
+  const demographicBracket = patientRanges.bracket;
+
+  const rbcR = patientRanges.getRange('rbc');
+  const rbcRef = rbcR.formatted || (isFemale ? '4.00 - 5.20' : '4.50 - 5.90');
+  const rbcLow = rbcR.min ?? (isFemale ? 4.0 : 4.5);
+  const rbcHigh = rbcR.max ?? (isFemale ? 5.2 : 5.9);
+
+  const hgbR = patientRanges.getRange('hgb');
+  const hgbRef = hgbR.formatted || (isFemale ? '12.0 - 15.5' : '13.0 - 17.5');
+  const hgbLow = hgbR.min ?? (isFemale ? 12.0 : 13.0);
+  const hgbHigh = hgbR.max ?? (isFemale ? 15.5 : 17.5);
+
+  const hctR = patientRanges.getRange('hct');
+  const hctRef = hctR.formatted || (isFemale ? '36.0 - 48.0' : '40.0 - 52.0');
+  const hctLow = hctR.min ?? (isFemale ? 36.0 : 40.0);
+  const hctHigh = hctR.max ?? (isFemale ? 48.0 : 52.0);
+
+  const wbcR = patientRanges.getRange('wbc');
+  const wbcRef = wbcR.formatted || '4.0 - 11.0';
+  const wbcLow = wbcR.min ?? 4.0;
+  const wbcHigh = wbcR.max ?? 11.0;
+
+  const mcvR = patientRanges.getRange('mcv');
+  const mcvRef = mcvR.formatted || '80.0 - 100.0';
+  const mcvLow = mcvR.min ?? 80.0;
+  const mcvHigh = mcvR.max ?? 100.0;
+
+  const mchR = patientRanges.getRange('mch');
+  const mchRef = mchR.formatted || '27.0 - 34.0';
+  const mchLow = mchR.min ?? 27.0;
+  const mchHigh = mchR.max ?? 34.0;
+
+  const mchcR = patientRanges.getRange('mchc');
+  const mchcRef = mchcR.formatted || '32.0 - 36.0';
+  const mchcLow = mchcR.min ?? 32.0;
+  const mchcHigh = mchcR.max ?? 36.0;
+
+  const rdwR = patientRanges.getRange('rdw');
+  const rdwRef = rdwR.formatted || '11.5 - 15.0';
+  const rdwLow = rdwR.min ?? 11.5;
+  const rdwHigh = rdwR.max ?? 15.0;
+
+  const pltR = patientRanges.getRange('plt');
+  const pltRef = pltR.formatted || '150 - 450';
+  const pltLow = pltR.min ?? 150.0;
+  const pltHigh = pltR.max ?? 450.0;
+
+  const mpvR = patientRanges.getRange('mpv');
+  const mpvRef = mpvR.formatted || '7.0 - 11.5';
+  const mpvLow = mpvR.min ?? 7.0;
+  const mpvHigh = mpvR.max ?? 11.5;
+
+  const pdwR = patientRanges.getRange('pdw');
+  const pdwRef = pdwR.formatted || '9.0 - 17.0';
+  const pdwLow = pdwR.min ?? 9.0;
+  const pdwHigh = pdwR.max ?? 17.0;
+
+  const pctR = patientRanges.getRange('pct');
+  const pctRef = pctR.formatted || '0.15 - 0.40';
+  const pctLow = pctR.min ?? 0.15;
+  const pctHigh = pctR.max ?? 0.40;
+
+  const graPctR = patientRanges.getRange('graPct');
+  const graAbsR = patientRanges.getRange('graAbs');
+  const lymPctR = patientRanges.getRange('lymPct');
+  const lymAbsR = patientRanges.getRange('lymAbs');
+  const midPctR = patientRanges.getRange('midPct');
+  const midAbsR = patientRanges.getRange('midAbs');
+
+  const neutR = patientRanges.getRange('neutrophils');
+  const neutAbsR = patientRanges.getRange('neutrophilsAbs');
+  const lymphR = patientRanges.getRange('lymphocytes');
+  const lymphAbsR = patientRanges.getRange('lymphocytesAbs');
+  const monoR = patientRanges.getRange('monocytes');
+  const monoAbsR = patientRanges.getRange('monocytesAbs');
+  const eosR = patientRanges.getRange('eosinophils');
+  const eosAbsR = patientRanges.getRange('eosinophilsAbs');
+  const basoR = patientRanges.getRange('basophils');
+  const basoAbsR = patientRanges.getRange('basophilsAbs');
 
   const wbcNum = parseFloat(parsed.wbc) || 0;
   const mentzerHtml = buildMentzerHtml(parsed, specialFormFontSize);
@@ -667,13 +739,13 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
                   </tr>
                 </thead>
                 <tbody>
-                  ${renderSwelabRow('WBC', parsed.wbc, '10^9/l', 4.0, 11.0, false, '4.0 : 11.0')}
-                  ${renderSwelabRow('GRA%', parsed.graPct, '%', 35.0, 80.0, false, '35.0 : 80.0')}
-                  ${renderSwelabRow('GRA', parsed.graAbs, '10^9/l', 1.2, 8.0, false, '1.2 : 8.0')}
-                  ${renderSwelabRow('LYM%', parsed.lymPct, '%', 15.0, 50.0, false, '15.0 : 50.0')}
-                  ${renderSwelabRow('LYM', parsed.lymAbs, '10^9/l', 0.9, 5.0, false, '0.9 : 5.0')}
-                  ${renderSwelabRow('MID%', parsed.midPct, '%', 2.0, 15.0, false, '2.0 : 15.0')}
-                  ${renderSwelabRow('MID', parsed.midAbs, '10^9/l', 0.1, 1.5, false, '0.1 : 1.5')}
+                  ${renderSwelabRow('WBC', parsed.wbc, '10^9/l', wbcLow, wbcHigh, false, wbcRef)}
+                  ${renderSwelabRow('GRA%', parsed.graPct, '%', graPctR.min ?? 35.0, graPctR.max ?? 80.0, false, graPctR.formatted)}
+                  ${renderSwelabRow('GRA', parsed.graAbs, '10^9/l', graAbsR.min ?? 1.2, graAbsR.max ?? 8.0, false, graAbsR.formatted)}
+                  ${renderSwelabRow('LYM%', parsed.lymPct, '%', lymPctR.min ?? 15.0, lymPctR.max ?? 50.0, false, lymPctR.formatted)}
+                  ${renderSwelabRow('LYM', parsed.lymAbs, '10^9/l', lymAbsR.min ?? 0.9, lymAbsR.max ?? 5.0, false, lymAbsR.formatted)}
+                  ${renderSwelabRow('MID%', parsed.midPct, '%', midPctR.min ?? 2.0, midPctR.max ?? 15.0, false, midPctR.formatted)}
+                  ${renderSwelabRow('MID', parsed.midAbs, '10^9/l', midAbsR.min ?? 0.1, midAbsR.max ?? 1.5, false, midAbsR.formatted)}
                 </tbody>
               </table>
             </div>
@@ -697,13 +769,13 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
                   </tr>
                 </thead>
                 <tbody>
-                  ${renderSwelabRow('RBC', parsed.rbc, '10^12/l', 3.50, 5.50, false, '3.50 : 5.50')}
-                  ${renderSwelabRow('HGB', parsed.hgb, 'g/dl', 11.5, 16.5, false, '11.5 : 16.5')}
-                  ${renderSwelabRow('HCT', parsed.hct, '%', 35.0, 55.0, false, '35.0 : 55.0')}
-                  ${renderSwelabRow('MCV', parsed.mcv, 'fl', 75.0, 100.0, false, '75.0 : 100.0')}
-                  ${renderSwelabRow('MCH', parsed.mch, 'pg', 25.0, 35.0, false, '25.0 : 35.0')}
-                  ${renderSwelabRow('MCHC', parsed.mchc, 'g/dl', 31.0, 38.0, false, '31.0 : 38.0')}
-                  ${renderSwelabRow('RDW%', parsed.rdw, '%', 11.0, 16.0, false, '11.0 : 16.0')}
+                  ${renderSwelabRow('RBC', parsed.rbc, '10^12/l', rbcLow, rbcHigh, false, rbcRef)}
+                  ${renderSwelabRow('HGB', parsed.hgb, 'g/dl', hgbLow, hgbHigh, false, hgbRef)}
+                  ${renderSwelabRow('HCT', parsed.hct, '%', hctLow, hctHigh, false, hctRef)}
+                  ${renderSwelabRow('MCV', parsed.mcv, 'fl', mcvLow, mcvHigh, false, mcvRef)}
+                  ${renderSwelabRow('MCH', parsed.mch, 'pg', mchLow, mchHigh, false, mchRef)}
+                  ${renderSwelabRow('MCHC', parsed.mchc, 'g/dl', mchcLow, mchcHigh, false, mchcRef)}
+                  ${renderSwelabRow('RDW%', parsed.rdw, '%', rdwLow, rdwHigh, false, rdwRef)}
                   ${parsed.rdwSd && parsed.rdwSd !== '-' ? renderSwelabRow('RDWa', parsed.rdwSd, 'fl', 0.1, 250.0, true, '0.1 : 250.0') : ''}
                 </tbody>
               </table>
@@ -728,8 +800,8 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
                   </tr>
                 </thead>
                 <tbody>
-                  ${renderSwelabRow('PLT', parsed.plt, '10^9/l', 150, 450, false, '150 : 450')}
-                  ${renderSwelabRow('MPV', parsed.mpv, 'fl', 6.5, 11.0, false, '6.5 : 11.0')}
+                  ${renderSwelabRow('PLT', parsed.plt, '10^9/l', pltLow, pltHigh, false, pltRef)}
+                  ${renderSwelabRow('MPV', parsed.mpv, 'fl', mpvLow, mpvHigh, false, mpvRef)}
                   ${parsed.pct && parsed.pct !== '-' ? renderSwelabRow('PCT', parsed.pct, '%', 0.01, 9.99, true, '0.01 : 9.99') : ''}
                   ${parsed.pdw && parsed.pdw !== '-' ? renderSwelabRow('PDW%', parsed.pdw, '%', 0.1, 99.9, true, '0.1 : 99.9') : ''}
                   ${parsed.pdwSd && parsed.pdwSd !== '-' ? renderSwelabRow('PDWa', parsed.pdwSd, 'fl', 0.1, 30.0, true, '0.1 : 30.0') : ''}
@@ -795,29 +867,29 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
               </thead>
               <tbody>
                 ${hasWbc ? `
-                ${renderMindrayRow('WBC', parsed.wbc, '10^9/L', 4.0, 10.0)}
-                ${renderMindrayRow('Lymph#', parsed.lymAbs, '10^9/L', 0.8, 4.0)}
-                ${renderMindrayRow('Mid#', parsed.midAbs, '10^9/L', 0.1, 1.5)}
-                ${renderMindrayRow('Gran#', parsed.graAbs, '10^9/L', 2.0, 7.0)}
-                ${renderMindrayRow('Lymph%', parsed.lymPct, '%', 20.0, 40.0)}
-                ${renderMindrayRow('Mid%', parsed.midPct, '%', 3.0, 15.0)}
-                ${renderMindrayRow('Gran%', parsed.graPct, '%', 50.0, 70.0)}
+                ${renderMindrayRow('WBC', parsed.wbc, '10^9/L', wbcLow, wbcHigh)}
+                ${renderMindrayRow('Lymph#', parsed.lymAbs, '10^9/L', lymAbsR.min ?? 0.8, lymAbsR.max ?? 4.0)}
+                ${renderMindrayRow('Mid#', parsed.midAbs, '10^9/L', midAbsR.min ?? 0.1, midAbsR.max ?? 1.5)}
+                ${renderMindrayRow('Gran#', parsed.graAbs, '10^9/L', graAbsR.min ?? 2.0, graAbsR.max ?? 7.0)}
+                ${renderMindrayRow('Lymph%', parsed.lymPct, '%', lymPctR.min ?? 20.0, lymPctR.max ?? 40.0)}
+                ${renderMindrayRow('Mid%', parsed.midPct, '%', midPctR.min ?? 3.0, midPctR.max ?? 15.0)}
+                ${renderMindrayRow('Gran%', parsed.graPct, '%', graPctR.min ?? 50.0, graPctR.max ?? 70.0)}
                 ` : ''}
                 ${hasRbc ? `
-                ${renderMindrayRow('RBC', parsed.rbc, '10^12/L', 3.50, 5.50, '#f8fafc')}
-                ${renderMindrayRow('HGB', parsed.hgb, 'g/dL', 11.0, 16.0, '#f8fafc')}
-                ${renderMindrayRow('HCT', parsed.hct, '%', 36.0, 50.0, '#f8fafc')}
-                ${renderMindrayRow('MCV', parsed.mcv, 'fL', 80.0, 100.0, '#f8fafc')}
-                ${renderMindrayRow('MCH', parsed.mch, 'pg', 27.0, 34.0, '#f8fafc')}
-                ${renderMindrayRow('MCHC', parsed.mchc, 'g/dL', 32.0, 36.0, '#f8fafc')}
-                ${renderMindrayRow('RDW-CV', parsed.rdw, '%', 11.0, 16.0, '#f8fafc')}
+                ${renderMindrayRow('RBC', parsed.rbc, '10^12/L', rbcLow, rbcHigh, '#f8fafc')}
+                ${renderMindrayRow('HGB', parsed.hgb, 'g/dL', hgbLow, hgbHigh, '#f8fafc')}
+                ${renderMindrayRow('HCT', parsed.hct, '%', hctLow, hctHigh, '#f8fafc')}
+                ${renderMindrayRow('MCV', parsed.mcv, 'fL', mcvLow, mcvHigh, '#f8fafc')}
+                ${renderMindrayRow('MCH', parsed.mch, 'pg', mchLow, mchHigh, '#f8fafc')}
+                ${renderMindrayRow('MCHC', parsed.mchc, 'g/dL', mchcLow, mchcHigh, '#f8fafc')}
+                ${renderMindrayRow('RDW-CV', parsed.rdw, '%', rdwLow, rdwHigh, '#f8fafc')}
                 ${renderMindrayRow('RDW-SD', parsed.rdwSd, 'fL', 35.0, 56.0, '#f8fafc')}
                 ` : ''}
                 ${hasPlt ? `
-                ${renderMindrayRow('PLT', parsed.plt, '10^9/L', 100, 300)}
-                ${renderMindrayRow('MPV', parsed.mpv, 'fL', 6.5, 12.0)}
-                ${renderMindrayRow('PDW', parsed.pdwSd !== '-' ? parsed.pdwSd : parsed.pdw, 'fL', 9.0, 17.0)}
-                ${renderMindrayRow('PCT', parsed.pct, '%', 0.108, 0.282)}
+                ${renderMindrayRow('PLT', parsed.plt, '10^9/L', pltLow, pltHigh)}
+                ${renderMindrayRow('MPV', parsed.mpv, 'fL', mpvLow, mpvHigh)}
+                ${renderMindrayRow('PDW', parsed.pdwSd !== '-' ? parsed.pdwSd : parsed.pdw, 'fL', pdwLow, pdwHigh)}
+                ${renderMindrayRow('PCT', parsed.pct, '%', pctLow, pctHigh)}
                 ${renderMindrayRow('P-LCR', parsed.plcr || '-', '%', 11.0, 45.0)}
                 ${renderMindrayRow('P-LCC', parsed.plcc || '-', '10^9/L', 30, 90)}
                 ` : ''}
@@ -882,33 +954,33 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
               </thead>
               <tbody>
                 ${hasWbc ? `
-                ${renderMindray5Row('WBC', parsed.wbc, '10^9/L', 4.0, 10.0)}
-                ${renderMindray5Row('Neu#', parsed.neutrophilsAbs, '10^9/L', 2.0, 7.0)}
-                ${renderMindray5Row('Lym#', parsed.lymphocytesAbs, '10^9/L', 0.8, 4.0)}
-                ${renderMindray5Row('Mon#', parsed.monocytesAbs, '10^9/L', 0.12, 1.2)}
-                ${renderMindray5Row('Eos#', parsed.eosinophilsAbs, '10^9/L', 0.02, 0.5)}
-                ${renderMindray5Row('Bas#', parsed.basophilsAbs, '10^9/L', 0.0, 0.1)}
-                ${renderMindray5Row('Neu%', parsed.neutrophils, '%', 40.0, 75.0)}
-                ${renderMindray5Row('Lym%', parsed.lymphocytes, '%', 20.0, 45.0)}
-                ${renderMindray5Row('Mon%', parsed.monocytes, '%', 2.0, 10.0)}
-                ${renderMindray5Row('Eos%', parsed.eosinophils, '%', 0.5, 6.0)}
-                ${renderMindray5Row('Bas%', parsed.basophils, '%', 0.0, 1.0)}
+                ${renderMindray5Row('WBC', parsed.wbc, '10^9/L', wbcLow, wbcHigh)}
+                ${renderMindray5Row('Neu#', parsed.neutrophilsAbs, '10^9/L', neutAbsR.min ?? 2.0, neutAbsR.max ?? 7.0)}
+                ${renderMindray5Row('Lym#', parsed.lymphocytesAbs, '10^9/L', lymphAbsR.min ?? 0.8, lymphAbsR.max ?? 4.0)}
+                ${renderMindray5Row('Mon#', parsed.monocytesAbs, '10^9/L', monoAbsR.min ?? 0.12, monoAbsR.max ?? 1.2)}
+                ${renderMindray5Row('Eos#', parsed.eosinophilsAbs, '10^9/L', eosAbsR.min ?? 0.02, eosAbsR.max ?? 0.5)}
+                ${renderMindray5Row('Bas#', parsed.basophilsAbs, '10^9/L', basoAbsR.min ?? 0.0, basoAbsR.max ?? 0.1)}
+                ${renderMindray5Row('Neu%', parsed.neutrophils, '%', neutR.min ?? 40.0, neutR.max ?? 75.0)}
+                ${renderMindray5Row('Lym%', parsed.lymphocytes, '%', lymphR.min ?? 20.0, lymphR.max ?? 45.0)}
+                ${renderMindray5Row('Mon%', parsed.monocytes, '%', monoR.min ?? 2.0, monoR.max ?? 10.0)}
+                ${renderMindray5Row('Eos%', parsed.eosinophils, '%', eosR.min ?? 0.5, eosR.max ?? 6.0)}
+                ${renderMindray5Row('Bas%', parsed.basophils, '%', basoR.min ?? 0.0, basoR.max ?? 1.0)}
                 ` : ''}
                 ${hasRbc ? `
-                ${renderMindray5Row('RBC', parsed.rbc, '10^12/L', 3.50, 5.50, '#f8fafc')}
-                ${renderMindray5Row('HGB', parsed.hgb, 'g/dL', 11.0, 16.0, '#f8fafc')}
-                ${renderMindray5Row('HCT', parsed.hct, '%', 36.0, 50.0, '#f8fafc')}
-                ${renderMindray5Row('MCV', parsed.mcv, 'fL', 80.0, 100.0, '#f8fafc')}
-                ${renderMindray5Row('MCH', parsed.mch, 'pg', 27.0, 34.0, '#f8fafc')}
-                ${renderMindray5Row('MCHC', parsed.mchc, 'g/dL', 32.0, 36.0, '#f8fafc')}
-                ${renderMindray5Row('RDW-CV', parsed.rdw, '%', 11.0, 16.0, '#f8fafc')}
+                ${renderMindray5Row('RBC', parsed.rbc, '10^12/L', rbcLow, rbcHigh, '#f8fafc')}
+                ${renderMindray5Row('HGB', parsed.hgb, 'g/dL', hgbLow, hgbHigh, '#f8fafc')}
+                ${renderMindray5Row('HCT', parsed.hct, '%', hctLow, hctHigh, '#f8fafc')}
+                ${renderMindray5Row('MCV', parsed.mcv, 'fL', mcvLow, mcvHigh, '#f8fafc')}
+                ${renderMindray5Row('MCH', parsed.mch, 'pg', mchLow, mchHigh, '#f8fafc')}
+                ${renderMindray5Row('MCHC', parsed.mchc, 'g/dL', mchcLow, mchcHigh, '#f8fafc')}
+                ${renderMindray5Row('RDW-CV', parsed.rdw, '%', rdwLow, rdwHigh, '#f8fafc')}
                 ${renderMindray5Row('RDW-SD', parsed.rdwSd, 'fL', 35.0, 56.0, '#f8fafc')}
                 ` : ''}
                 ${hasPlt ? `
-                ${renderMindray5Row('PLT', parsed.plt, '10^9/L', 100, 300)}
-                ${renderMindray5Row('MPV', parsed.mpv, 'fL', 6.5, 12.0)}
-                ${renderMindray5Row('PDW', parsed.pdwSd !== '-' ? parsed.pdwSd : parsed.pdw, 'fL', 9.0, 17.0)}
-                ${renderMindray5Row('PCT', parsed.pct, '%', 0.108, 0.282)}
+                ${renderMindray5Row('PLT', parsed.plt, '10^9/L', pltLow, pltHigh)}
+                ${renderMindray5Row('MPV', parsed.mpv, 'fL', mpvLow, mpvHigh)}
+                ${renderMindray5Row('PDW', parsed.pdwSd !== '-' ? parsed.pdwSd : parsed.pdw, 'fL', pdwLow, pdwHigh)}
+                ${renderMindray5Row('PCT', parsed.pct, '%', pctLow, pctHigh)}
                 ` : ''}
               </tbody>
             </table>
@@ -990,30 +1062,30 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
               </thead>
               <tbody>
                 ${hasWbc ? `
-                ${renderSysmexRow('WBC', parsed.wbc, '10^3/uL', 4.0, 10.0)}
-                ${renderSysmexRow('LYM%', parsed.lymPct, '%', 15.0, 45.0)}
-                ${renderSysmexRow('MXD%', parsed.midPct, '%', 2.0, 15.0)}
-                ${renderSysmexRow('NEUT%', parsed.graPct, '%', 40.0, 75.0)}
-                ${renderSysmexRow('LYM#', parsed.lymAbs, '10^3/uL', 0.8, 4.0)}
-                ${renderSysmexRow('MXD#', parsed.midAbs, '10^3/uL', 0.1, 1.5)}
-                ${renderSysmexRow('NEUT#', parsed.graAbs, '10^3/uL', 2.0, 7.0)}
+                ${renderSysmexRow('WBC', parsed.wbc, '10^3/uL', wbcLow, wbcHigh)}
+                ${renderSysmexRow('LYM%', parsed.lymPct, '%', lymPctR.min ?? 15.0, lymPctR.max ?? 45.0)}
+                ${renderSysmexRow('MXD%', parsed.midPct, '%', midPctR.min ?? 2.0, midPctR.max ?? 15.0)}
+                ${renderSysmexRow('NEUT%', parsed.graPct, '%', graPctR.min ?? 40.0, graPctR.max ?? 75.0)}
+                ${renderSysmexRow('LYM#', parsed.lymAbs, '10^3/uL', lymAbsR.min ?? 0.8, lymAbsR.max ?? 4.0)}
+                ${renderSysmexRow('MXD#', parsed.midAbs, '10^3/uL', midAbsR.min ?? 0.1, midAbsR.max ?? 1.5)}
+                ${renderSysmexRow('NEUT#', parsed.graAbs, '10^3/uL', graAbsR.min ?? 2.0, graAbsR.max ?? 7.0)}
                 ` : ''}
                 ${hasRbc ? `
-                ${renderSysmexRow('RBC', parsed.rbc, '10^6/uL', 3.8, 5.8)}
-                ${renderSysmexRow('HGB', parsed.hgb, 'g/dL', 11.5, 17.5)}
-                ${renderSysmexRow('HCT', parsed.hct, '%', 35.0, 50.0)}
-                ${renderSysmexRow('MCV', parsed.mcv, 'fL', 80.0, 100.0)}
-                ${renderSysmexRow('MCH', parsed.mch, 'pg', 27.0, 34.0)}
-                ${renderSysmexRow('MCHC', parsed.mchc, 'g/dL', 32.0, 36.0)}
+                ${renderSysmexRow('RBC', parsed.rbc, '10^6/uL', rbcLow, rbcHigh)}
+                ${renderSysmexRow('HGB', parsed.hgb, 'g/dL', hgbLow, hgbHigh)}
+                ${renderSysmexRow('HCT', parsed.hct, '%', hctLow, hctHigh)}
+                ${renderSysmexRow('MCV', parsed.mcv, 'fL', mcvLow, mcvHigh)}
+                ${renderSysmexRow('MCH', parsed.mch, 'pg', mchLow, mchHigh)}
+                ${renderSysmexRow('MCHC', parsed.mchc, 'g/dL', mchcLow, mchcHigh)}
                 ${renderSysmexRow('RDW-SD', parsed.rdwSd, 'fL', 35.0, 56.0)}
-                ${renderSysmexRow('RDW-CV', parsed.rdw, '%', 11.0, 16.0)}
+                ${renderSysmexRow('RDW-CV', parsed.rdw, '%', rdwLow, rdwHigh)}
                 ` : ''}
                 ${hasPlt ? `
-                ${renderSysmexRow('PLT', parsed.plt, '10^3/uL', 150, 450)}
-                ${renderSysmexRow('PDW', parsed.pdwSd !== '-' ? parsed.pdwSd : parsed.pdw, 'fL', 9.0, 17.0)}
-                ${renderSysmexRow('MPV', parsed.mpv, 'fL', 6.5, 12.0)}
+                ${renderSysmexRow('PLT', parsed.plt, '10^3/uL', pltLow, pltHigh)}
+                ${renderSysmexRow('PDW', parsed.pdwSd !== '-' ? parsed.pdwSd : parsed.pdw, 'fL', pdwLow, pdwHigh)}
+                ${renderSysmexRow('MPV', parsed.mpv, 'fL', mpvLow, mpvHigh)}
                 ${renderSysmexRow('P-LCR', parsed.plcr, '%', 11.0, 45.0)}
-                ${renderSysmexRow('PCT', parsed.pct, '%', 0.108, 0.282)}
+                ${renderSysmexRow('PCT', parsed.pct, '%', pctLow, pctHigh)}
                 ` : ''}
               </tbody>
             </table>
@@ -1620,7 +1692,7 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
     <!-- CBC Header Banner -->
     <div style="background: linear-gradient(90deg, #be123c 0%, #e11d48 100%); color: #ffffff; padding: 6px 12px; border-radius: 6px; font-weight: 800; font-size: ${specialFormFontSize + 0.5}px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;" dir="ltr">
       <span>COMPLETE BLOOD COUNT (CBC) &amp; 5-PART DIFFERENTIAL</span>
-      <span style="font-size: ${Math.max(9.5, specialFormFontSize - 1.5)}px; font-weight: 600; letter-spacing: 0.5px; opacity: 0.95;">AUTOMATED HEMATOLOGY REPORT</span>
+      <span style="font-size: ${Math.max(9.5, specialFormFontSize - 1.5)}px; font-weight: 700; letter-spacing: 0.3px; opacity: 0.95; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 4px;">REF: ${escapeHtml(demographicBracket.labelEn.toUpperCase())}</span>
     </div>
 
     <!-- 2-Column Clinical Grid -->
@@ -1646,10 +1718,10 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
               ${renderCbcRow('R.B.C (Red Blood Cells)', parsed.rbc, '10^6/uL', rbcRef, rbcLow, rbcHigh, priorCbcParsed?.rbc)}
               ${renderCbcRow('HGB (Hemoglobin)', parsed.hgb, 'g/dL', hgbRef, hgbLow, hgbHigh, priorCbcParsed?.hgb)}
               ${renderCbcRow('HCT / PCV (Hematocrit)', parsed.hct, '%', hctRef, hctLow, hctHigh, priorCbcParsed?.hct)}
-              ${renderCbcRow('MCV (Mean Corpuscular Vol)', parsed.mcv, 'fL', '80.0 - 100.0', 80.0, 100.0, priorCbcParsed?.mcv)}
-              ${renderCbcRow('MCH (Mean Corpuscular Hb)', parsed.mch, 'pg', '27.0 - 33.0', 27.0, 33.0, priorCbcParsed?.mch)}
-              ${renderCbcRow('MCHC (Mean Corpuscular Conc)', parsed.mchc, 'g/dL', '32.0 - 36.0', 32.0, 36.0, priorCbcParsed?.mchc)}
-              ${renderCbcRow('RDW-CV (Red Cell Distribution)', parsed.rdw, '%', '11.5 - 14.5', 11.5, 14.5, priorCbcParsed?.rdw)}
+              ${renderCbcRow('MCV (Mean Corpuscular Vol)', parsed.mcv, 'fL', mcvRef, mcvLow, mcvHigh, priorCbcParsed?.mcv)}
+              ${renderCbcRow('MCH (Mean Corpuscular Hb)', parsed.mch, 'pg', mchRef, mchLow, mchHigh, priorCbcParsed?.mch)}
+              ${renderCbcRow('MCHC (Mean Corpuscular Conc)', parsed.mchc, 'g/dL', mchcRef, mchcLow, mchcHigh, priorCbcParsed?.mchc)}
+              ${renderCbcRow('RDW-CV (Red Cell Distribution)', parsed.rdw, '%', rdwRef, rdwLow, rdwHigh, priorCbcParsed?.rdw)}
               ${parsed.rdwSd !== '-' ? renderCbcRow('RDWa / RDW-SD', parsed.rdwSd, 'fL', '35.0 - 56.0', 35.0, 56.0, priorCbcParsed?.rdwSd) : ''}
             </tbody>
           </table>
@@ -1672,10 +1744,10 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
               </tr>
             </thead>
             <tbody>
-              ${renderCbcRow('PLT (Platelet Count)', parsed.plt, '10^3/uL', '150 - 450', 150, 450, priorCbcParsed?.plt)}
-              ${renderCbcRow('MPV (Mean Platelet Volume)', parsed.mpv, 'fL', '7.4 - 10.4', 7.4, 10.4, priorCbcParsed?.mpv)}
-              ${renderCbcRow('PDW (Platelet Dist. Width)', parsed.pdw, '%', '9.0 - 17.0', 9.0, 17.0, priorCbcParsed?.pdw)}
-              ${renderCbcRow('PCT (Plateletcrit)', parsed.pct, '%', '0.15 - 0.40', 0.15, 0.40, priorCbcParsed?.pct)}
+              ${renderCbcRow('PLT (Platelet Count)', parsed.plt, '10^3/uL', pltRef, pltLow, pltHigh, priorCbcParsed?.plt)}
+              ${renderCbcRow('MPV (Mean Platelet Volume)', parsed.mpv, 'fL', mpvRef, mpvLow, mpvHigh, priorCbcParsed?.mpv)}
+              ${renderCbcRow('PDW (Platelet Dist. Width)', parsed.pdw, '%', pdwRef, pdwLow, pdwHigh, priorCbcParsed?.pdw)}
+              ${renderCbcRow('PCT (Plateletcrit)', parsed.pct, '%', pctRef, pctLow, pctHigh, priorCbcParsed?.pct)}
               ${parsed.pdwSd !== '-' ? renderCbcRow('PDWa (PDW-SD)', parsed.pdwSd, 'fL', '9.0 - 17.0', 9.0, 17.0, priorCbcParsed?.pdwSd) : ''}
               ${parsed.plcr !== '-' ? renderCbcRow('P-LCR (Large Platelet Ratio)', parsed.plcr, '%', '13.0 - 43.0', 13.0, 43.0, priorCbcParsed?.plcr) : ''}
               ${parsed.plcc !== '-' ? renderCbcRow('P-LCC (Large Platelet Count)', parsed.plcc, '10^9/L', '30 - 90', 30, 90, priorCbcParsed?.plcc) : ''}
@@ -1702,7 +1774,7 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
               </tr>
             </thead>
             <tbody>
-              ${renderCbcRow('W.B.C (Total Leukocytes)', parsed.wbc, '10^3/uL', '4.0 - 11.0', 4.0, 11.0, priorCbcParsed?.wbc)}
+              ${renderCbcRow('W.B.C (Total Leukocytes)', parsed.wbc, '10^3/uL', wbcRef, wbcLow, wbcHigh, priorCbcParsed?.wbc)}
             </tbody>
           </table>
 
@@ -1722,11 +1794,11 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
               </tr>
             </thead>
             <tbody>
-              ${renderDiffRow('Neutrophils', parsed.neutrophils, '40.0 - 75.0 %', 40.0, 75.0, wbcNum, priorCbcParsed?.neutrophils, parsed.neutrophilsAbs)}
-              ${renderDiffRow('Lymphocytes', parsed.lymphocytes, '20.0 - 45.0 %', 20.0, 45.0, wbcNum, priorCbcParsed?.lymphocytes, parsed.lymphocytesAbs)}
-              ${renderDiffRow('Monocytes', parsed.monocytes, '2.0 - 10.0 %', 2.0, 10.0, wbcNum, priorCbcParsed?.monocytes, parsed.monocytesAbs)}
-              ${renderDiffRow('Eosinophils', parsed.eosinophils, '1.0 - 6.0 %', 1.0, 6.0, wbcNum, priorCbcParsed?.eosinophils, parsed.eosinophilsAbs)}
-              ${renderDiffRow('Basophils', parsed.basophils, '0.0 - 1.0 %', 0.0, 1.0, wbcNum, priorCbcParsed?.basophils, parsed.basophilsAbs)}
+              ${renderDiffRow('Neutrophils', parsed.neutrophils, neutR.formatted || '40.0 - 75.0 %', neutR.min ?? 40.0, neutR.max ?? 75.0, wbcNum, priorCbcParsed?.neutrophils, parsed.neutrophilsAbs)}
+              ${renderDiffRow('Lymphocytes', parsed.lymphocytes, lymphR.formatted || '20.0 - 45.0 %', lymphR.min ?? 20.0, lymphR.max ?? 45.0, wbcNum, priorCbcParsed?.lymphocytes, parsed.lymphocytesAbs)}
+              ${renderDiffRow('Monocytes', parsed.monocytes, monoR.formatted || '2.0 - 10.0 %', monoR.min ?? 2.0, monoR.max ?? 10.0, wbcNum, priorCbcParsed?.monocytes, parsed.monocytesAbs)}
+              ${renderDiffRow('Eosinophils', parsed.eosinophils, eosR.formatted || '1.0 - 6.0 %', eosR.min ?? 1.0, eosR.max ?? 6.0, wbcNum, priorCbcParsed?.eosinophils, parsed.eosinophilsAbs)}
+              ${renderDiffRow('Basophils', parsed.basophils, basoR.formatted || '0.0 - 1.0 %', basoR.min ?? 0.0, basoR.max ?? 1.0, wbcNum, priorCbcParsed?.basophils, parsed.basophilsAbs)}
             </tbody>
           </table>
         </div>

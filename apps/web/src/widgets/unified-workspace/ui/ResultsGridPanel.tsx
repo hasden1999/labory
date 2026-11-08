@@ -356,14 +356,22 @@ export default function ResultsGridPanel({
                 borderBottom: '1px solid var(--border-color)',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'space-between',
                 gap: '8px',
                 fontSize: '12.5px',
                 fontWeight: 800,
                 color: 'var(--text-main)',
               }}
             >
-              <span>🏥</span>
-              <span>{sec.nameEn || sec.nameAr}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🏥</span>
+                <span>{sec.nameEn}</span>
+              </div>
+              {sec.nameAr && (
+                <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', direction: 'rtl' }}>
+                  {sec.nameAr}
+                </span>
+              )}
             </div>
 
             {/* Subgroups and tests in Department */}
@@ -371,19 +379,40 @@ export default function ResultsGridPanel({
               <div key={grp.id} style={{ marginBottom: '4px' }}>
                 <div
                   style={{
-                    padding: '5px 22px',
-                    backgroundColor: 'rgba(20, 184, 166, 0.06)',
+                    padding: '6px 18px',
+                    backgroundColor: 'rgba(20, 184, 166, 0.09)',
                     borderBottom: '1px solid var(--border-subtle)',
-                    fontSize: '11px',
-                    fontWeight: 700,
+                    borderLeft: '3px solid var(--accent-teal)',
+                    fontSize: '11.5px',
+                    fontWeight: 800,
                     color: 'var(--accent-teal)',
                     display: 'flex',
                     alignItems: 'center',
+                    justifyContent: 'space-between',
                     gap: '6px',
                   }}
                 >
-                  <span>📁</span>
-                  <span>{grp.nameEn || grp.nameAr}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>📁</span>
+                    <span>{grp.nameEn}</span>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        padding: '1px 6px',
+                        borderRadius: '999px',
+                        backgroundColor: 'rgba(20, 184, 166, 0.16)',
+                        color: 'var(--accent-teal)',
+                        fontWeight: 800,
+                      }}
+                    >
+                      {grp.tests.length}
+                    </span>
+                  </div>
+                  {grp.nameAr && (
+                    <span style={{ fontSize: '11px', fontWeight: 700, opacity: 0.9, direction: 'rtl' }}>
+                      {grp.nameAr}
+                    </span>
+                  )}
                 </div>
                 {grp.tests.map((test) => {
               const res = results[test.id] || {

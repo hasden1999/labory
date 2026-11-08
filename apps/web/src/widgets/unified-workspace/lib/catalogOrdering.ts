@@ -11,6 +11,8 @@
  * 4. Puts essential prioritized tests at the head of each category without duplicates.
  */
 
+import { classifyTestCanonical } from '@lab-manager/domain';
+
 export interface TestCatalogItem {
   id: string;
   name: string;
@@ -39,15 +41,22 @@ export const MOST_USED_FALLBACK_CODES = [
 
 export const RECEPTION_CATEGORIES = [
   { id: 'MOST_USED', label: 'Most used', isStar: true },
-  { id: 'BIOCHEMISTRY', label: 'Biochemistry' },
-  { id: 'HEMATOLOGY', label: 'Hematology' },
-  { id: 'HORMONES', label: 'Hormones' },
-  { id: 'VIROLOGY', label: 'Virology' },
-  { id: 'IMMUNOLOGY', label: 'Immunology' },
-  { id: 'MOLECULAR_PCR', label: 'Molecular (PCR)' },
+  { id: 'DIABETIC', label: 'Diabetic (السكري)' },
+  { id: 'LIPID', label: 'Lipids (الدهون)' },
+  { id: 'RENAL', label: 'Renal (الكلى)' },
+  { id: 'ELECTROLYTES', label: 'Electrolytes (الأملاح)' },
+  { id: 'LIVER', label: 'Liver LFT (الكبد)' },
+  { id: 'CARDIAC', label: 'Cardiac (القلب)' },
+  { id: 'VITAMINS', label: 'Vitamins (الفيتامينات)' },
+  { id: 'BIOCHEMISTRY', label: 'Biochemistry (عام)' },
+  { id: 'HEMATOLOGY', label: 'Hematology (الدم)' },
+  { id: 'HORMONES', label: 'Hormones (الهرمونات)' },
+  { id: 'VIROLOGY', label: 'Virology (الفيروسات)' },
+  { id: 'IMMUNOLOGY', label: 'Immunology (المناعة)' },
   { id: 'URINE_STOOL', label: 'GUE & GSE' },
   { id: 'TUMOR_MARKERS', label: 'Tumor Markers' },
   { id: 'MICROBIOLOGY', label: 'Microbiology' },
+  { id: 'MOLECULAR_PCR', label: 'Molecular (PCR)' },
   { id: 'TOXICOLOGY', label: 'Toxicology' },
   { id: 'BLOOD_BANK', label: 'Blood Bank' },
   { id: 'PATHOLOGY', label: 'Histopathology' },
@@ -244,6 +253,46 @@ export function normalizeCategory(categoryName?: string): string {
 
   // 13. Biochemistry & Lipids & Liver & Kidneys & Diabetes & Electrolytes & Cardiac
   return 'BIOCHEMISTRY';
+}
+
+/**
+ * Checks whether a test belongs to a specific Reception Category (including clinical sub-profiles like DIABETIC, LIPID, RENAL, LIVER, etc.).
+ */
+export function matchesReceptionCategory(t: TestCatalogItem, categoryId: string): boolean {
+  if (!t || !categoryId) return false;
+  const key = categoryId.toUpperCase().trim();
+  const canonical = classifyTestCanonical(t);
+
+  switch (key) {
+    case 'DIABETIC':
+      return canonical.groupId === 'grp-diabetes';
+    case 'LIPID':
+      return canonical.groupId === 'grp-lipid';
+    case 'RENAL':
+      return canonical.groupId === 'grp-renal';
+    case 'ELECTROLYTES':
+      return canonical.groupId === 'grp-electrolytes';
+    case 'LIVER':
+      return canonical.groupId === 'grp-liver';
+    case 'CARDIAC':
+      return canonical.groupId === 'grp-cardiac';
+    case 'VITAMINS':
+      return canonical.groupId === 'grp-vitamins';
+    case 'BIOCHEMISTRY':
+      return canonical.specialtyId === 'spec-chemistry' || normalizeCategory(t.category) === 'BIOCHEMISTRY';
+    case 'HEMATOLOGY':
+      return canonical.specialtyId === 'spec-hematology' || normalizeCategory(t.category) === 'HEMATOLOGY';
+    case 'HORMONES':
+      return canonical.specialtyId === 'spec-hormones' || normalizeCategory(t.category) === 'HORMONES';
+    case 'TUMOR_MARKERS':
+      return canonical.specialtyId === 'spec-tumor' || normalizeCategory(t.category) === 'TUMOR_MARKERS';
+    case 'URINE_STOOL':
+      return canonical.groupId === 'grp-micro-general' || normalizeCategory(t.category) === 'URINE_STOOL';
+    case 'MICROBIOLOGY':
+      return canonical.groupId === 'grp-culture' || normalizeCategory(t.category) === 'MICROBIOLOGY';
+    default:
+      return normalizeCategory(t.category) === key;
+  }
 }
 
 /** Matches a test against a priority code using code, aliases, ID, and canonical names */
