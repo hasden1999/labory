@@ -43,6 +43,7 @@ export default function UnifiedActionBar({
   const [savedSample, setSavedSample] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const { patient, selectedTests, results, invoice } = workspace;
 
@@ -223,8 +224,12 @@ export default function UnifiedActionBar({
     workspace,
   ]);
 
-  // Print Report (F10) - Auto-saves silently if not yet saved, then immediately prints
+  // Print Report (F10) - Auto-saves silently if not yet saved, then opens Print Preview Modal (or prints directly if preview is already open)
   const handlePrint = useCallback(async () => {
+    if (previewUrl) {
+      printUrlDirectly(previewUrl);
+      return;
+    }
     let target = savedSample;
     if (!target?.id) {
       if (!canSave) {
@@ -266,9 +271,9 @@ export default function UnifiedActionBar({
         console.warn('Failed to auto-sync latest results before print:', err);
       }
     }
-    const printUrl = `/api/samples/${target.id}/print?force=true`;
-    printUrlDirectly(printUrl);
-  }, [savedSample, canSave, hasName, hasAge, hasSex, hasTests, handleSave, results, isComplete, toast]);
+    const printUrl = `/api/samples/${target.id}/print?force=true&_t=${Date.now()}`;
+    setPreviewUrl(printUrl);
+  }, [previewUrl, savedSample, canSave, hasName, hasAge, hasSex, hasTests, handleSave, results, isComplete, toast]);
 
   // Send WhatsApp (F8)
   const handleWhatsApp = useCallback(async () => {
@@ -369,6 +374,7 @@ export default function UnifiedActionBar({
   const executeNewPatientReset = useCallback(() => {
     workspace.resetPatient();
     setSavedSample(null);
+    setPreviewUrl(null);
     setIsProcessing(false);
     workspace.setIsSaving(false);
 
@@ -827,6 +833,97 @@ export default function UnifiedActionBar({
         }}
         onCancel={() => setShowResetConfirm(false)}
       />
+
+      {/* Print Preview Modal */}
+      {previewUrl && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.72)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '24px',
+          }}
+        >
+          <div
+            style={{
+              width: '920px',
+              maxWidth: '95vw',
+              height: '90vh',
+              backgroundColor: '#ffffff',
+              borderRadius: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+            }}
+          >
+            <div
+              dir="rtl"
+              style={{
+                padding: '10px 16px',
+                backgroundColor: '#1e293b',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <span style={{ fontWeight: 800, fontSize: '14px' }}>معاينة التقرير قبل الطباعة</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (previewUrl) {
+                      printUrlDirectly(previewUrl);
+                    }
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: '#0284c7',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '6px 14px',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: '12.5px',
+                  }}
+                >
+                  <Printer size={14} />
+                  <span>طباعة التقرير</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewUrl(null)}
+                  style={{
+                    background: 'rgba(255,255,255,0.15)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '6px 12px',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    fontSize: '12.5px',
+                  }}
+                >
+                  إغلاق ✕
+                </button>
+              </div>
+            </div>
+            <iframe
+              src={previewUrl}
+              style={{ flex: 1, width: '100%', border: 'none', backgroundColor: '#fff' }}
+              title="Report Preview"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

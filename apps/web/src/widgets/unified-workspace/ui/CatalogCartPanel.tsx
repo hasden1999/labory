@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { Search, X, Star, Plus, Check, FolderPlus, Trash2 } from 'lucide-react';
 import { UnifiedWorkspaceReturn } from '../model/types';
 import { RECEPTION_CATEGORIES } from '../lib/catalogOrdering';
-import { getCanonicalGroupMeta } from '@lab-manager/domain';
 import { useToast } from '../../../components/Toast';
 import { apiRequest } from '../../../lib/api';
 
@@ -551,7 +550,7 @@ export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: Cata
         {/* Category Rail (Right edge inside panel in RTL) */}
         <div
           style={{
-            width: '158px',
+            width: '132px',
             borderLeft: '1px solid var(--border-color)',
             backgroundColor: 'var(--bg-card-subtle)',
             display: 'flex',
@@ -697,7 +696,6 @@ export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: Cata
               const selected = isTestSelected(test);
               const dedicatedForm = hasDedicatedForm(test);
               const isHighlighted = index === highlightedIndex;
-              const groupMeta = getCanonicalGroupMeta(test);
 
               return (
                 <div
@@ -718,9 +716,14 @@ export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: Cata
                     userSelect: 'none',
                     transition: 'background-color 0.12s ease',
                   }}
-                  onMouseEnter={() => setHighlightedIndex(index)}
+                  onMouseEnter={(e) => {
+                    if (!selected) e.currentTarget.style.backgroundColor = 'var(--bg-card-hover)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!selected) e.currentTarget.style.backgroundColor = isHighlighted ? 'var(--bg-card-hover)' : 'transparent';
+                  }}
                 >
-                  {/* Right side: Checkbox + Code + Name + Profile Badge + Form Badge */}
+                  {/* Right side: Checkbox + Code + Name + Form Badge */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '120px', flex: 1, overflow: 'hidden' }}>
                     <input
                       type="checkbox"
@@ -768,21 +771,6 @@ export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: Cata
                       }}
                     >
                       {test.name}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        color: 'var(--text-muted)',
-                        backgroundColor: 'var(--bg-card-subtle)',
-                        border: '1px solid var(--border-subtle)',
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        flexShrink: 0,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {groupMeta.nameEn.split('(')[0].trim()}
                     </span>
                     {dedicatedForm && (
                       <span

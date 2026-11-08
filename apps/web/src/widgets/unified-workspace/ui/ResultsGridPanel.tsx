@@ -367,11 +367,6 @@ export default function ResultsGridPanel({
                 <span>🏥</span>
                 <span>{sec.nameEn}</span>
               </div>
-              {sec.nameAr && (
-                <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', direction: 'rtl' }}>
-                  {sec.nameAr}
-                </span>
-              )}
             </div>
 
             {/* Subgroups and tests in Department */}
@@ -408,11 +403,6 @@ export default function ResultsGridPanel({
                       {grp.tests.length}
                     </span>
                   </div>
-                  {grp.nameAr && (
-                    <span style={{ fontSize: '11px', fontWeight: 700, opacity: 0.9, direction: 'rtl' }}>
-                      {grp.nameAr}
-                    </span>
-                  )}
                 </div>
                 {grp.tests.map((test) => {
               const res = results[test.id] || {

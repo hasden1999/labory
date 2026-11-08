@@ -41,18 +41,11 @@ export const MOST_USED_FALLBACK_CODES = [
 
 export const RECEPTION_CATEGORIES = [
   { id: 'MOST_USED', label: 'Most used', isStar: true },
-  { id: 'DIABETIC', label: 'Diabetic (السكري)' },
-  { id: 'LIPID', label: 'Lipids (الدهون)' },
-  { id: 'RENAL', label: 'Renal (الكلى)' },
-  { id: 'ELECTROLYTES', label: 'Electrolytes (الأملاح)' },
-  { id: 'LIVER', label: 'Liver LFT (الكبد)' },
-  { id: 'CARDIAC', label: 'Cardiac (القلب)' },
-  { id: 'VITAMINS', label: 'Vitamins (الفيتامينات)' },
-  { id: 'BIOCHEMISTRY', label: 'Biochemistry (عام)' },
-  { id: 'HEMATOLOGY', label: 'Hematology (الدم)' },
-  { id: 'HORMONES', label: 'Hormones (الهرمونات)' },
-  { id: 'VIROLOGY', label: 'Virology (الفيروسات)' },
-  { id: 'IMMUNOLOGY', label: 'Immunology (المناعة)' },
+  { id: 'BIOCHEMISTRY', label: 'Biochemistry' },
+  { id: 'HEMATOLOGY', label: 'Hematology' },
+  { id: 'HORMONES', label: 'Hormones' },
+  { id: 'VIROLOGY', label: 'Virology' },
+  { id: 'IMMUNOLOGY', label: 'Immunology' },
   { id: 'URINE_STOOL', label: 'GUE & GSE' },
   { id: 'TUMOR_MARKERS', label: 'Tumor Markers' },
   { id: 'MICROBIOLOGY', label: 'Microbiology' },
@@ -108,11 +101,10 @@ export const CODE_ALIASES: Record<string, string[]> = {
   BG: ['BG', 'BLOOD-GROUP', 'ABO'],
 };
 
-/** Normalizes category names (Arabic or English) to standard category keys */
-export function normalizeCategory(categoryName?: string): string {
-  if (!categoryName) return 'BIOCHEMISTRY';
-  const c = categoryName.toLowerCase().trim();
+const NORMALIZE_CATEGORY_CACHE = new Map<string, string>();
+const MAX_NORMALIZE_CATEGORY_CACHE_SIZE = 500;
 
+function normalizeCategoryUncached(c: string): string {
   // 1. Virology & Infectious Disease
   if (
     c.includes('فايروس') ||
@@ -253,6 +245,21 @@ export function normalizeCategory(categoryName?: string): string {
 
   // 13. Biochemistry & Lipids & Liver & Kidneys & Diabetes & Electrolytes & Cardiac
   return 'BIOCHEMISTRY';
+}
+
+/** Normalizes category names (Arabic or English) to standard category keys */
+export function normalizeCategory(categoryName?: string): string {
+  if (!categoryName) return 'BIOCHEMISTRY';
+  const cached = NORMALIZE_CATEGORY_CACHE.get(categoryName);
+  if (cached) return cached;
+
+  const c = categoryName.toLowerCase().trim();
+  const result = normalizeCategoryUncached(c);
+  if (NORMALIZE_CATEGORY_CACHE.size >= MAX_NORMALIZE_CATEGORY_CACHE_SIZE) {
+    NORMALIZE_CATEGORY_CACHE.clear();
+  }
+  NORMALIZE_CATEGORY_CACHE.set(categoryName, result);
+  return result;
 }
 
 /**

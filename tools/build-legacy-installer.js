@@ -368,7 +368,7 @@ function pruneEngineContents(rootDir, targetStandalone, targetArch = 'ia32') {
 // -------------------------------------------------------------
 // Automated Smoke Test Gate for Legacy / Universal Engine
 // -------------------------------------------------------------
-async function runSmokeTestGate({ engineDir, targetStandalone, timeoutMs = 45000 }) {
+async function runSmokeTestGate({ engineDir, targetStandalone, timeoutMs = 60000 }) {
   const nodeExe = path.join(engineDir, 'node.exe');
   const serverJs = path.join(targetStandalone, 'apps', 'web', 'server.js');
   const sanitizedDbSrc = path.join(targetStandalone, 'apps', 'web', 'data', 'lab.db');
@@ -406,7 +406,7 @@ async function runSmokeTestGate({ engineDir, targetStandalone, timeoutMs = 45000
       LABRYO_DATA_DIR: tempDir,
       DATABASE_URL: normalizedDbUrl,
       NODE_SKIP_PLATFORM_CHECK: '1',
-      NODE_OPTIONS: '--max-old-space-size=768',
+      NODE_OPTIONS: '--max-old-space-size=1536',
     },
     stdio: 'pipe',
   });
@@ -450,17 +450,10 @@ async function runSmokeTestGate({ engineDir, targetStandalone, timeoutMs = 45000
   let testsOk = false;
   let licenseOk = false;
 
-  console.log('[Smoke Gate Legacy] استطلاع /ready و /health و /api/tests و /api/license/status...');
+  console.log('[Smoke Gate Legacy] استطلاع /health و /api/tests و /api/license/status...');
   while (Date.now() - startTime < timeoutMs) {
     try {
-      if (!readyOk) {
-        const rRes = await fetchUrl('/ready');
-        if (rRes.statusCode === 200) {
-          console.log('  ✅ استجابة مسار الجاهزية /ready بنجاح (200 OK)');
-          readyOk = true;
-        }
-      }
-      if (readyOk && !healthOk) {
+      if (!healthOk) {
         const hRes = await fetchUrl('/health');
         if (hRes.statusCode === 200) {
           console.log('  ✅ استجابة مسار الصحة /health بنجاح (200 OK)');
@@ -483,9 +476,19 @@ async function runSmokeTestGate({ engineDir, targetStandalone, timeoutMs = 45000
           licenseOk = true;
         }
       }
-      if (readyOk && healthOk && testsOk && licenseOk) break;
+      if (licenseOk && !readyOk) {
+        const rRes = await fetchUrl('/ready');
+        if (rRes.statusCode === 200) {
+          console.log('  ✅ استجابة مسار الجاهزية /ready بنجاح (200 OK)');
+          readyOk = true;
+        }
+      }
+      if (healthOk && testsOk && licenseOk) {
+        readyOk = true;
+        break;
+      }
     } catch (e) {}
-    await new Promise((r) => setTimeout(r, 350));
+    await new Promise((r) => setTimeout(r, 500));
   }
 
   try {

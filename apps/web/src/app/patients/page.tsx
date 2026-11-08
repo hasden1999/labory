@@ -32,7 +32,6 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { toEnglishDigits, formatEnglishDate, formatClinicalAge } from '../../lib/formatters';
-import { groupTests } from '@lab-manager/domain';
 import { printUrlDirectly } from '../../lib/printHelper';
 import { shareReportToWhatsApp, autoSendReportViaWhatsAppWeb } from '../../lib/shareReportToWhatsApp';
 import { AddSampleTestsModal } from '../../features/add-sample-tests';
@@ -341,8 +340,7 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
         loadData();
       } catch {}
     }
-    const printUrl = `/api/samples/${activeVisit.sampleId}/print?force=true`;
-    printUrlDirectly(printUrl);
+    setPreviewUrl(`/api/samples/${activeVisit.sampleId}/print?force=true&_t=${Date.now()}`);
   };
 
   const handleSendWhatsApp = async () => {
@@ -1182,7 +1180,6 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                     </thead>
                     <tbody>
                       {(() => {
-                        const groupedVisit = groupTests(activeVisit.tests || [], 'specialty');
                         const renderVisitTestRow = (st: any) => {
                           const key = st.testId || st.id;
                           const code = st.test?.code || '';
@@ -1389,32 +1386,7 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                           );
                         };
 
-                        return groupedVisit.sections.map((sec) => (
-                          <React.Fragment key={sec.id || sec.nameEn}>
-                            <tr style={{ backgroundColor: 'var(--bg-card-subtle)', borderTop: '2px solid var(--accent-teal)', borderBottom: '1px solid var(--border-color)' }}>
-                              <td colSpan={5} style={{ padding: '7px 12px', fontWeight: 900, fontSize: '12.5px', color: 'var(--text-main)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span>🏥 {sec.nameEn}</span>
-                                  {sec.nameAr && <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', direction: 'rtl' }}>{sec.nameAr}</span>}
-                                </div>
-                              </td>
-                            </tr>
-                            {sec.groups.map((grp) => (
-                              <React.Fragment key={grp.id}>
-                                <tr style={{ backgroundColor: 'rgba(20, 184, 166, 0.08)', borderBottom: '1px solid var(--border-subtle)' }}>
-                                  <td colSpan={5} style={{ padding: '5px 18px', fontWeight: 800, fontSize: '11.5px', color: 'var(--accent-teal)', borderLeft: '3px solid var(--accent-teal)' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <span>📁 {grp.nameEn}</span>
-                                      {grp.nameAr && <span style={{ fontSize: '11px', opacity: 0.9, direction: 'rtl' }}>{grp.nameAr}</span>}
-                                    </div>
-                                  </td>
-                                </tr>
-                                {grp.tests.map((st: any) => renderVisitTestRow(st))}
-                              </React.Fragment>
-                            ))}
-                            {sec.directTests.map((st: any) => renderVisitTestRow(st))}
-                          </React.Fragment>
-                        ));
+                        return (activeVisit.tests || []).map((st: any) => renderVisitTestRow(st));
                       })()}
                     </tbody>
                   </table>
@@ -1744,7 +1716,7 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                   type="button"
                   onClick={() => {
                     if (previewUrl) {
-                      printUrlDirectly(`${previewUrl}${previewUrl.includes('?') ? '&' : '?'}force=true`);
+                      printUrlDirectly(previewUrl);
                     }
                   }}
                   style={{
@@ -1762,7 +1734,7 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                   }}
                 >
                   <Printer size={13} />
-                  <span>طباعة فورية</span>
+                  <span>طباعة التقرير</span>
                 </button>
                 <button
                   type="button"
@@ -2098,8 +2070,7 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                       <button
                         type="button"
                         onClick={() => {
-                          const printUrl = `/api/samples/${visitItem.sampleId}/print?force=true`;
-                          printUrlDirectly(printUrl);
+                          setPreviewUrl(`/api/samples/${visitItem.sampleId}/print?force=true&_t=${Date.now()}`);
                           setShowPatientHistoryModal(false);
                         }}
                         style={{

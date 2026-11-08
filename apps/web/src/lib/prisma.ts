@@ -79,9 +79,7 @@ function initPrismaClient(): PrismaClient | null {
       },
       log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
     });
-    if (process.env.NODE_ENV !== 'production') {
-      globalForPrisma.prisma = instance;
-    }
+    globalForPrisma.prisma = instance;
     return instance;
   } catch (err: any) {
     console.warn('⚠️ [Prisma SQLite] PrismaClient could not be initialized (falling back to memory/JSON store):', err?.message || err);

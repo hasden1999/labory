@@ -288,9 +288,11 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
         next[cUpper] = (next[cUpper] || 0) + 1;
       }
       if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('labryo_test_frequencies', JSON.stringify(next));
-        } catch {}
+        setTimeout(() => {
+          try {
+            localStorage.setItem('labryo_test_frequencies', JSON.stringify(next));
+          } catch {}
+        }, 0);
       }
       return next;
     });
@@ -475,10 +477,9 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
     setDirectLdlOverride(null);
   }, []);
 
-  // Category counts across catalog tests
-  const categoryCounts = useMemo(() => {
+  // Static category counts across catalog tests (independent of frequencyMap)
+  const staticCategoryCounts = useMemo(() => {
     const counts: Record<string, number> = {
-      MOST_USED: getMostUsedTests(catalogTests, frequencyMap).length,
       DIABETIC: 0,
       LIPID: 0,
       RENAL: 0,
@@ -501,7 +502,7 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
       WELLNESS_PANELS: 0,
     };
 
-    const subKeys = Object.keys(counts).filter((k) => k !== 'MOST_USED');
+    const subKeys = Object.keys(counts);
     catalogTests.forEach((t) => {
       for (const k of subKeys) {
         if (matchesReceptionCategory(t, k)) {
@@ -511,7 +512,15 @@ export function useUnifiedWorkspace(): UnifiedWorkspaceReturn {
     });
 
     return counts;
-  }, [catalogTests, frequencyMap]);
+  }, [catalogTests]);
+
+  // Category counts across catalog tests
+  const categoryCounts = useMemo(() => {
+    return {
+      ...staticCategoryCounts,
+      MOST_USED: getMostUsedTests(catalogTests, frequencyMap).length,
+    };
+  }, [staticCategoryCounts, catalogTests, frequencyMap]);
 
   // Filtered Catalog
   const filteredCatalog = useMemo(() => {

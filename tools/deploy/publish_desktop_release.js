@@ -99,7 +99,7 @@ const manifest = {
   releaseDate: new Date().toISOString(),
   downloadUrl: `https://github.com/${OWNER}/${REPO}/releases/download/${TAG}/${sanitizedRemoteName}`,
   mandatory: false,
-  releaseNotes: `تحديث Labryo LIMS ${TAG}: التقسيم السريري الدقيق للفحوصات ومديات CBC المعتمدة حسب العمر والجنس مع إمكانية التخصيص الكامل.`
+  releaseNotes: getChangelogNotes(VERSION) || `تحديث Labryo LIMS ${TAG}: تحسينات السرعة الفائقة للنظام وإزالة الزوائد البصرية وتفعيل معاينة التقرير قبل الطباعة.`
 };
 
 const manifestPath = path.join(distDir, 'latest.json');

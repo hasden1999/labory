@@ -648,7 +648,7 @@ export function getInitialDevices(): DeviceRecord[] {
     ipAddress: '192.168.1.101',
     port: 5100,
     apiKey: crypto.randomBytes(24).toString('hex'),
-    status: 'ONLINE',
+    status: 'OFFLINE',
     autoMatchSample: true,
     notes: 'موصول عبر شبكة LAN (الجهاز يعمل كـ TCP Server على منفذ 5100 والبرنامج يتصل به كـ Client) - بروتوكول HL7 v2.3.1 القياسي',
     lastCommunication: now,
@@ -697,7 +697,7 @@ export function ensureDeviceApiKeys(store: ServerStore): boolean {
       ipAddress: '192.168.1.101',
       port: 5100,
       apiKey: crypto.randomBytes(24).toString('hex'),
-      status: 'ONLINE',
+      status: 'OFFLINE',
       autoMatchSample: true,
       notes: 'موصول عبر شبكة LAN (الجهاز يعمل كـ TCP Server على منفذ 5100 والبرنامج يتصل به كـ Client) - بروتوكول HL7 v2.3.1 القياسي',
       lastCommunication: now,
@@ -706,40 +706,9 @@ export function ensureDeviceApiKeys(store: ServerStore): boolean {
     };
     store.devices.push(devMindrayBc30);
     updated = true;
-  } else {
-    // Migrate legacy placeholder seed settings for Mindray BC-30s to accurate catalog TCP_CLIENT 192.168.1.101:5100
-    for (const dev of store.devices) {
-      const isBc30 = dev.id === 'dev-mindray-bc30' || (dev.model && dev.model.includes('BC-30')) || (dev.name && dev.name.includes('BC-30'));
-      if (isBc30) {
-        if (!dev.ipAddress || dev.ipAddress === '192.168.1.155') {
-          dev.ipAddress = '192.168.1.101';
-          updated = true;
-        }
-        if (!dev.port || dev.port === 5000) {
-          dev.port = 5100;
-          updated = true;
-        }
-        if (dev.connectionType !== 'TCP_CLIENT') {
-          dev.connectionType = 'TCP_CLIENT';
-          updated = true;
-        }
-        if (!Array.isArray(dev.mappings) || dev.mappings.length < 15) {
-          dev.mappings = (bc30Preset?.defaultMappings || []).map((m, idx) => ({
-            id: `map-${dev.id}-${idx + 1}`,
-            deviceId: dev.id,
-            deviceTestCode: m.deviceTestCode,
-            deviceTestName: m.deviceTestName,
-            testCatalogId: m.testCatalogCode === 'HB' ? 't-hb' : (m.testCatalogCode === 'PLT' ? 't-plt' : 't-cbc'),
-            testCatalogCode: m.testCatalogCode,
-            testCatalogName: m.testCatalogName,
-            unit: m.unit,
-            multiplier: 1.0,
-            createdAt: now,
-          }));
-          updated = true;
-        }
-      }
-    }
+  } else if (!existingBc30.apiKey) {
+    existingBc30.apiKey = crypto.randomBytes(24).toString('hex');
+    updated = true;
   }
 
   for (const device of store.devices) {

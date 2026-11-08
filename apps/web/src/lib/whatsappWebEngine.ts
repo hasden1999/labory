@@ -172,9 +172,11 @@ class WhatsAppWebEngine {
   private initPromise: Promise<WhatsAppServiceStatus> | null = null;
   private initialQrResolvers: Array<() => void> = [];
   private reconnectTimer: NodeJS.Timeout | null = null;
+  private stableOpenTimer: NodeJS.Timeout | null = null;
   private reconnectAttempts: number = 0;
   private hasCheckedSession: boolean = false;
   private lastInitError: string | null = null;
+  private lastError: string | null = null;
 
   private cleanupSocket(sockInstance: any) {
     if (!sockInstance) return;
@@ -238,12 +240,16 @@ class WhatsAppWebEngine {
   }
 
   public async initSocket(forceRestart = false): Promise<WhatsAppServiceStatus> {
-    if (!forceRestart) {
+    if (forceRestart) {
+      this.reconnectAttempts = 0;
+      this.lastError = null;
+      this.lastInitError = null;
+    } else {
       if (this.sock && this.status === 'CONNECTED') {
         return this.getStatus();
       }
       if (this.sock && this.status === 'PAIRING') {
-        await this.waitForInitialQrOrOpen(4000);
+        await this.waitForInitialQrOrOpen(1500);
         return this.getStatus();
       }
       if (this.isInitializing && this.initPromise) {
@@ -257,9 +263,14 @@ class WhatsAppWebEngine {
         this.status = 'PAIRING';
       }
       this.lastInitError = null;
+      this.lastError = null;
       if (this.reconnectTimer) {
         clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
+      }
+      if (this.stableOpenTimer) {
+        clearTimeout(this.stableOpenTimer);
+        this.stableOpenTimer = null;
       }
 
       if (this.sock) {
@@ -339,7 +350,15 @@ class WhatsAppWebEngine {
           if (connection === 'open') {
             this.status = 'CONNECTED';
             this.qrDataUrl = null;
-            this.reconnectAttempts = 0;
+            this.lastError = null;
+            this.lastInitError = null;
+            if (this.stableOpenTimer) {
+              clearTimeout(this.stableOpenTimer);
+            }
+            this.stableOpenTimer = setTimeout(() => {
+              this.reconnectAttempts = 0;
+              this.stableOpenTimer = null;
+            }, 15000);
             const rawId = sock.user?.id || '';
             const cleanId = rawId.split(':')[0].split('@')[0];
             this.connectedUser = {
@@ -351,6 +370,10 @@ class WhatsAppWebEngine {
           }
 
           if (connection === 'close') {
+            if (this.stableOpenTimer) {
+              clearTimeout(this.stableOpenTimer);
+              this.stableOpenTimer = null;
+            }
             const statusCode =
               lastDisconnect?.error?.output?.statusCode ||
               lastDisconnect?.error?.statusCode;
@@ -376,38 +399,41 @@ class WhatsAppWebEngine {
                   this.initSocket(false).catch(() => {});
                 }
               }, 8000);
-            } else {
+            } else if (this.hasSavedCredentials() && this.reconnectAttempts < 8) {
               // Keep status as CONNECTED if we already had a verified user and are doing a fast background reconnect (e.g. 515 restartRequired)
               const isFastRestart = statusCode === DisconnectReason?.restartRequired || statusCode === 515 || this.reconnectAttempts < 2;
               if (!isFastRestart || !this.connectedUser) {
                 this.status = 'DISCONNECTED';
               }
-              if (this.hasSavedCredentials() && this.reconnectAttempts < 20) {
-                const delay = statusCode === 515
-                  ? 800
-                  : Math.min(20000, 2000 * Math.pow(1.35, this.reconnectAttempts || 0));
-                this.reconnectAttempts = (this.reconnectAttempts || 0) + 1;
-                if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-                this.reconnectTimer = setTimeout(() => {
-                  this.initSocket(false).catch((e) => {
-                    console.warn('[WhatsAppWebEngine] Reconnect attempt failed:', e?.message);
-                  });
-                }, delay);
-              } else {
-                this.status = 'DISCONNECTED';
+              this.reconnectAttempts++;
+              const delay = statusCode === 515
+                ? 800
+                : Math.min(60000, Math.round(3000 * Math.pow(1.8, this.reconnectAttempts)));
+              if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+              this.reconnectTimer = setTimeout(() => {
+                this.initSocket(false).catch((e) => {
+                  console.warn('[WhatsAppWebEngine] Reconnect attempt failed:', e?.message);
+                });
+              }, delay);
+            } else {
+              this.status = 'DISCONNECTED';
+              this.connectedUser = null;
+              if (this.reconnectAttempts >= 8) {
+                this.lastError = 'تعذر استقرار اتصال واتساب ويب تلقائياً (428). يرجى فتح إعدادات الواتساب لإعادةالاتصال.';
+                this.lastInitError = this.lastError;
               }
             }
             this.notifyInitialQrOrOpen();
           }
         });
 
-        await this.waitForInitialQrOrOpen(6000);
-        this.lastInitError = null;
+        await this.waitForInitialQrOrOpen(forceRestart ? 5000 : 1500);
         return this.getStatus();
       } catch (err: any) {
         console.error('[WhatsAppWebEngine] initSocket error:', err);
         this.status = 'DISCONNECTED';
         this.lastInitError = err?.message || String(err);
+        this.lastError = this.lastInitError;
         this.notifyInitialQrOrOpen();
         throw err;
       } finally {
@@ -440,12 +466,12 @@ class WhatsAppWebEngine {
     return this.sock;
   }
 
-  public getStatus(): WhatsAppServiceStatus {
+  public getStatus(_waitForQr = false): WhatsAppServiceStatus {
     if (!this.hasCheckedSession && !this.sock) {
       this.checkExistingSession();
     }
     const isEffectivelyConnected =
-      this.status === 'CONNECTED' || Boolean(this.connectedUser && this.hasSavedCredentials() && !this.qrDataUrl);
+      this.status === 'CONNECTED' || Boolean(this.connectedUser && this.hasSavedCredentials() && !this.qrDataUrl && this.reconnectAttempts < 8);
     const effectiveStatus: WhatsAppConnectionStatus =
       isEffectivelyConnected
         ? 'CONNECTED'
@@ -461,7 +487,7 @@ class WhatsAppWebEngine {
       qrDataUrl: this.qrDataUrl || undefined,
       authDir: getWhatsAppAuthDir(),
       hasSavedSession: this.hasSavedCredentials(),
-      lastError: this.lastInitError || undefined,
+      lastError: this.lastError || this.lastInitError || undefined,
     };
   }
 
@@ -470,6 +496,10 @@ class WhatsAppWebEngine {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
+    }
+    if (this.stableOpenTimer) {
+      clearTimeout(this.stableOpenTimer);
+      this.stableOpenTimer = null;
     }
 
     try {
@@ -485,6 +515,7 @@ class WhatsAppWebEngine {
     this.connectedUser = null;
     this.reconnectAttempts = 0;
     this.lastInitError = null;
+    this.lastError = null;
 
     const authDir = getWhatsAppAuthDir();
     if (fs.existsSync(authDir)) {

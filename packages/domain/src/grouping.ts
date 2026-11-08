@@ -136,11 +136,27 @@ export const CANONICAL_TEST_GROUPS: TestGroupContext[] = [
   { id: 'grp-tumor-all', specialtyId: 'spec-tumor', nameEn: 'Tumor Markers Profile', nameAr: 'دلالات الأورام التخصصية', sortOrder: 1 },
 ];
 
-function matchCode(code: string, pattern: string): boolean {
-  if (!code || !pattern) return false;
-  if (code === pattern) return true;
-  if (code.startsWith(`${pattern}-`) || code.startsWith(`${pattern}_`) || code.startsWith(`${pattern}.`)) return true;
-  return false;
+const CANONICAL_SPECIALTIES_MAP = new Map<string, SpecialtyContext>(
+  CANONICAL_SPECIALTIES.map((s) => [s.id, s])
+);
+
+const CANONICAL_TEST_GROUPS_MAP = new Map<string, TestGroupContext>(
+  CANONICAL_TEST_GROUPS.map((g) => [g.id, g])
+);
+
+const MAX_CLASSIFICATION_CACHE_SIZE = 5000;
+const CANONICAL_CLASSIFICATION_CACHE = new Map<string, { specialtyId: string; groupId: string }>();
+
+function isAlphaNumCharCode(ch: number): boolean {
+  return (ch >= 48 && ch <= 57) || (ch >= 65 && ch <= 90) || (ch >= 97 && ch <= 122);
+}
+
+function matchCode(testCode: string, target: string): boolean {
+  if (!testCode || !target) return false;
+  if (testCode === target) return true;
+  const targetLen = target.length;
+  if (testCode.length <= targetLen || !testCode.startsWith(target)) return false;
+  return !isAlphaNumCharCode(testCode.charCodeAt(targetLen));
 }
 
 export const CANONICAL_SPECIALTY_KEYWORDS: Record<string, string[]> = {
@@ -241,11 +257,11 @@ export const CANONICAL_GROUP_KEYWORDS: Record<string, { specialtyKey: string; ke
   },
 };
 
-export function classifyTestCanonical(test: GroupableTest): { specialtyId: string; groupId: string } {
-  const code = String(test.code || test.test?.code || '').toUpperCase().trim();
-  const name = `${test.name || ''} ${test.test?.name || ''} ${(test as any).arabicName || ''} ${test.test?.arabicName || ''}`.toLowerCase();
-  const cat = String(test.category || test.test?.category || '').toLowerCase();
-
+function classifyTestCanonicalUncached(
+  code: string,
+  name: string,
+  cat: string
+): { specialtyId: string; groupId: string } {
   // 1. Tumor Markers (checked before Renal/Electrolytes to avoid CA125 / CA19-9 matching Calcium 'CA')
   if (
     [
@@ -519,10 +535,29 @@ export function classifyTestCanonical(test: GroupableTest): { specialtyId: strin
   return { specialtyId: 'spec-chemistry', groupId: 'grp-biochem' };
 }
 
+export function classifyTestCanonical(test: GroupableTest): { specialtyId: string; groupId: string } {
+  const code = String(test.code || test.test?.code || '').toUpperCase().trim();
+  const name = `${test.name || ''} ${test.test?.name || ''} ${(test as any).arabicName || ''} ${test.test?.arabicName || ''}`.toLowerCase();
+  const cat = String(test.category || test.test?.category || '').toLowerCase();
+  const cacheKey = `${code}|${name}|${cat}`;
+
+  const cached = CANONICAL_CLASSIFICATION_CACHE.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const result = classifyTestCanonicalUncached(code, name, cat);
+  if (CANONICAL_CLASSIFICATION_CACHE.size >= MAX_CLASSIFICATION_CACHE_SIZE) {
+    CANONICAL_CLASSIFICATION_CACHE.clear();
+  }
+  CANONICAL_CLASSIFICATION_CACHE.set(cacheKey, result);
+  return result;
+}
+
 export function getCanonicalGroupMeta(test: GroupableTest): TestGroupContext & { specialtyNameEn: string; specialtyNameAr: string } {
   const { specialtyId, groupId } = classifyTestCanonical(test);
-  const grp = CANONICAL_TEST_GROUPS.find(g => g.id === groupId) || CANONICAL_TEST_GROUPS[8];
-  const spec = CANONICAL_SPECIALTIES.find(s => s.id === specialtyId) || CANONICAL_SPECIALTIES[0];
+  const grp = CANONICAL_TEST_GROUPS_MAP.get(groupId) || CANONICAL_TEST_GROUPS[8];
+  const spec = CANONICAL_SPECIALTIES_MAP.get(specialtyId) || CANONICAL_SPECIALTIES[0];
   return {
     ...grp,
     specialtyNameEn: spec.nameEn,
