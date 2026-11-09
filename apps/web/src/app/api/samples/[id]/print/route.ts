@@ -277,14 +277,20 @@ export async function GET(request: Request, { params }: { params: { id: string }
     });
   }
 
+  const { searchParams } = new URL(request.url);
+  const hidePreviousParam = searchParams.get('hidePrevious') === 'true' || searchParams.get('hidePrevious') === '1';
+  const showPreviousParam = searchParams.get('showPrevious') === 'true' || searchParams.get('showPrevious') === '1';
+  const forceHidePrevious = !showPreviousParam && (hidePreviousParam || (store.settings as any)?.showPreviousResults === false);
+
   // Enrich sample.tests with live catalog test definitions (especially referenceRanges) from store.tests
   const catalogTests = store.tests || [];
   const sample = {
     ...rawSample,
     tests: (rawSample.tests || []).map((st: any) => {
-      const tid = st.testId || st.test?.id;
-      const tcode = String(st.test?.code || st.code || '').toUpperCase().trim();
-      const tname = String(st.test?.name || st.name || '').toLowerCase().trim();
+      const baseSt = forceHidePrevious ? { ...st, includePrevious: false } : st;
+      const tid = baseSt.testId || baseSt.test?.id;
+      const tcode = String(baseSt.test?.code || baseSt.code || '').toUpperCase().trim();
+      const tname = String(baseSt.test?.name || baseSt.name || '').toLowerCase().trim();
       const catalogMatch = catalogTests.find(
         (ct: any) =>
           (tid && ct.id === tid) ||
@@ -300,31 +306,39 @@ export async function GET(request: Request, { params }: { params: { id: string }
           (tcode === 'HDLC' && String(ct.code || '').toUpperCase().trim() === 'HDL') ||
           (tcode === 'LDLC' && String(ct.code || '').toUpperCase().trim() === 'LDL')
       );
-      if (!catalogMatch && !initialMatch) return st;
-      const fallbackRanges = Array.isArray(initialMatch?.referenceRanges) && initialMatch.referenceRanges.length > 0
+      if (!catalogMatch && !initialMatch) return baseSt;
+      const isCustomEdited = Boolean(catalogMatch?.isUserEdited);
+      const fallbackRanges = !isCustomEdited && Array.isArray(initialMatch?.referenceRanges) && initialMatch.referenceRanges.length > 0
         ? initialMatch.referenceRanges
         : [];
       return {
-        ...st,
+        ...baseSt,
         test: {
-          ...(st.test || {}),
+          ...(baseSt.test || {}),
           ...(catalogMatch || initialMatch || {}),
           referenceRanges:
             Array.isArray(catalogMatch?.referenceRanges) && catalogMatch.referenceRanges.length > 0
               ? catalogMatch.referenceRanges
-              : fallbackRanges.length > 0
-                ? fallbackRanges
-                : st.test?.referenceRanges || [],
-          refRangeText: catalogMatch?.refRangeText ?? initialMatch?.refRangeText ?? st.test?.refRangeText ?? null,
-          refRangeLow: catalogMatch?.refRangeLow ?? initialMatch?.refRangeLow ?? st.test?.refRangeLow ?? null,
-          refRangeHigh: catalogMatch?.refRangeHigh ?? initialMatch?.refRangeHigh ?? st.test?.refRangeHigh ?? null,
-          unit: catalogMatch?.unit || initialMatch?.unit || st.test?.unit || st.unit || '',
+              : isCustomEdited && Array.isArray(catalogMatch?.referenceRanges)
+                ? []
+                : fallbackRanges.length > 0
+                  ? fallbackRanges
+                  : baseSt.test?.referenceRanges || [],
+          refRangeText: isCustomEdited
+            ? (catalogMatch?.refRangeText ?? catalogMatch?.referenceRange ?? null)
+            : (catalogMatch?.refRangeText ?? initialMatch?.refRangeText ?? baseSt.test?.refRangeText ?? null),
+          refRangeLow: isCustomEdited
+            ? (catalogMatch?.refRangeLow ?? null)
+            : (catalogMatch?.refRangeLow ?? initialMatch?.refRangeLow ?? baseSt.test?.refRangeLow ?? null),
+          refRangeHigh: isCustomEdited
+            ? (catalogMatch?.refRangeHigh ?? null)
+            : (catalogMatch?.refRangeHigh ?? initialMatch?.refRangeHigh ?? baseSt.test?.refRangeHigh ?? null),
+          unit: catalogMatch?.unit || initialMatch?.unit || baseSt.test?.unit || baseSt.unit || '',
         },
       };
     }),
   };
 
-  const { searchParams } = new URL(request.url);
   const allowForce = searchParams.get('force') === 'true';
   const sectionParam = (searchParams.get('section') || 'all').toLowerCase();
   const isSingleMode = searchParams.get('mode') === 'single' || searchParams.get('mode') === 'image';
@@ -601,6 +615,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   // Watermark Settings
   const enableWatermark = settings.enableWatermark === true;
+  const watermarkImage = settings.watermarkImage || '';
+  const watermarkType = settings.watermarkType || (watermarkImage ? 'IMAGE' : 'TEXT');
   const watermarkText = escapeHtml(settings.watermarkText || settings.labName || 'ORIGINAL REPORT');
   const watermarkOpacity = settings.watermarkOpacity ?? 0.08;
   const watermarkAngle = settings.watermarkAngle ?? -30;
@@ -689,6 +705,18 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   // Watermark Layer Helper
   const renderWatermark = () => {
+    if (enableWatermark && watermarkImage && watermarkType !== 'TEXT') {
+      return `
+        <div class="watermark-layer" aria-hidden="true">
+          <img
+            class="watermark-image"
+            src="${escapeHtml(watermarkImage)}"
+            alt=""
+            style="width: ${Math.round(watermarkSize * 4.8)}px; max-width: 75%; max-height: 75%; object-fit: contain; transform: rotate(${watermarkAngle}deg); opacity: ${watermarkOpacity}; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;"
+          />
+        </div>
+      `;
+    }
     if (settings.labEmblem && settings.labEmblem !== 'none' && !watermarkText && (settings.emblemPlacement === 'watermark' || settings.emblemPlacement === 'both' || !settings.emblemPlacement)) {
       return `
         <div class="watermark-layer" aria-hidden="true" style="opacity: 0.035; transform: translate(-50%, -50%) rotate(-25deg); position: absolute; top: 50%; left: 50%; pointer-events: none; z-index: 1;">

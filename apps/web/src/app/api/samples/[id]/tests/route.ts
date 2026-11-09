@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getStore, saveStoreToFile, getNextVoucherNumber } from '../../../../../lib/serverStore';
 import { syncSampleToSqlite, deleteSampleTestFromSqlite } from '../../../../../lib/sqliteSync';
+import { isBlockingOrderTest } from '../../../../../lib/orderHelpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -139,6 +140,16 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ message: 'العينة غير موجودة' }, { status: 404 });
     }
 
+    if ((sample.tests || []).length <= 1) {
+      return NextResponse.json(
+        {
+          error: 'لا يمكن حذف الفحص الوحيد المتبقي في الزيارة. يمكنك حذف الزيارة بالكامل من سجل المرضى.',
+          message: 'لا يمكن حذف الفحص الوحيد المتبقي في الزيارة. يمكنك حذف الزيارة بالكامل من سجل المرضى.',
+        },
+        { status: 400 }
+      );
+    }
+
     const testIndex = sample.tests.findIndex(
       t => t.id === sampleTestId || t.testId === sampleTestId || t.test?.id === sampleTestId
     );
@@ -148,15 +159,34 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     }
 
     const [removedTest] = sample.tests.splice(testIndex, 1);
-    const testPrice = removedTest.test?.price || 0;
+    const testPrice = Number((removedTest as any).priceAtTime ?? removedTest.test?.price ?? (removedTest as any).price ?? 0);
 
-    // Recalculate priceTotal and remainingAmount safely
+    // Recalculate priceTotal, paidAmount, and remainingAmount safely
     sample.priceTotal = Math.max(0, (sample.priceTotal || 0) - testPrice);
     const netTotal = Math.max(0, sample.priceTotal - (sample.discount || 0));
+    if ((sample.paidAmount || 0) > netTotal) {
+      sample.paidAmount = netTotal;
+    }
     sample.remainingAmount = Math.max(0, netTotal - (sample.paidAmount || 0));
 
+    // Recalculate sample status if all remaining blocking tests have results
+    const blockingTests = sample.tests.filter((t: any) => isBlockingOrderTest(t));
+    if (
+      sample.tests.length > 0 &&
+      blockingTests.every((t: any) => t.resultValue !== null && t.resultValue !== undefined && String(t.resultValue).trim() !== '')
+    ) {
+      sample.status = 'COMPLETED';
+    }
+
     saveStoreToFile();
-    await deleteSampleTestFromSqlite(sample.id, sampleTestId).catch(err => console.warn('[SqliteSync] Delete sample test sqlite error:', err?.message));
+    await deleteSampleTestFromSqlite(
+      sample.id,
+      sampleTestId,
+      sample.priceTotal,
+      sample.remainingAmount,
+      sample.paidAmount,
+      sample.status
+    ).catch(err => console.warn('[SqliteSync] Delete sample test sqlite error:', err?.message));
     syncSampleToSqlite(sample).catch(err => console.warn('[SqliteSync] Delete sample test sync error:', err?.message));
 
     return NextResponse.json({
@@ -166,5 +196,42 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     });
   } catch (err: any) {
     return NextResponse.json({ message: err.message || 'فشل حذف الفحص' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const body = await request.json();
+    const { sampleTestId, testId, includePrevious } = body || {};
+
+    const store = getStore();
+    const sample = store.samples.find(s => s.id === params.id || String(s.sampleNumber) === params.id);
+
+    if (!sample) {
+      return NextResponse.json({ message: 'العينة غير موجودة' }, { status: 404 });
+    }
+
+    if (sampleTestId === 'ALL' || testId === 'ALL') {
+      (sample.tests || []).forEach(t => {
+        (t as any).includePrevious = Boolean(includePrevious);
+      });
+    } else {
+      const targetTest = (sample.tests || []).find(
+        t =>
+          (sampleTestId && (t.id === sampleTestId || t.testId === sampleTestId || t.test?.id === sampleTestId)) ||
+          (testId && (t.id === testId || t.testId === testId || t.test?.id === testId))
+      );
+
+      if (!targetTest) {
+        return NextResponse.json({ message: 'الفحص غير موجود ضمن هذه العينة' }, { status: 404 });
+      }
+
+      (targetTest as any).includePrevious = Boolean(includePrevious);
+    }
+
+    saveStoreToFile();
+    return NextResponse.json(sample);
+  } catch (err: any) {
+    return NextResponse.json({ message: err.message || 'فشل تحديث إعدادات النتائج السابقة' }, { status: 500 });
   }
 }

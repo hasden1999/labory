@@ -184,7 +184,29 @@ export async function loadStoreFromSqlite(): Promise<any | null> {
       };
     });
 
-    // Format settings
+    // Format settings (preserve extended settings like cbcDemographicMatrix and showPreviousResults from lab_store.json)
+    let fallbackSettings: Record<string, any> = {};
+    try {
+      if ((global as any).__labStore?.settings) {
+        fallbackSettings = (global as any).__labStore.settings;
+      } else {
+        const fs = require('fs');
+        const path = require('path');
+        const dataDir = process.env.LABRYO_DATA_DIR
+          ? path.resolve(process.env.LABRYO_DATA_DIR)
+          : (process.env.VERCEL
+              ? path.join('/tmp', 'labryo_data')
+              : path.resolve(process.cwd().includes('apps') ? process.cwd() : path.join(process.cwd(), 'apps', 'web'), 'data'));
+        const dataFile = path.join(dataDir, 'lab_store.json');
+        if (fs.existsSync(dataFile)) {
+          const parsed = JSON.parse(fs.readFileSync(dataFile, 'utf-8'));
+          if (parsed?.settings) {
+            fallbackSettings = parsed.settings;
+          }
+        }
+      }
+    } catch {}
+
     const settings = dbSettings ? {
       labName: dbSettings.labName,
       labSubtitle: dbSettings.labSubtitle || '',
@@ -200,9 +222,16 @@ export async function loadStoreFromSqlite(): Promise<any | null> {
       reportTemplate: (dbSettings.reportTemplate as any) || 'CLASSIC',
       headerStyle: (dbSettings.reportTemplate ? TEMPLATE_TO_HEADER_STYLE_MAP[dbSettings.reportTemplate] : 'default') || 'default',
       cbcLayoutTemplate: (dbSettings.cbcLayoutTemplate as any) || 'WITH_HISTOGRAMS',
+      ...(fallbackSettings.cbcDemographicMatrix !== undefined
+        ? { cbcDemographicMatrix: fallbackSettings.cbcDemographicMatrix }
+        : ((dbSettings as any).cbcDemographicMatrix !== undefined ? { cbcDemographicMatrix: (dbSettings as any).cbcDemographicMatrix } : {})),
       showPanicFlags: dbSettings.showPanicFlags,
       showClinicalComments: dbSettings.showClinicalComments,
       showReferenceRanges: dbSettings.showReferenceRanges,
+      showPreviousResults:
+        (dbSettings as any).showPreviousResults !== undefined
+          ? Boolean((dbSettings as any).showPreviousResults)
+          : (fallbackSettings.showPreviousResults !== undefined ? Boolean(fallbackSettings.showPreviousResults) : true),
       fontFamily: dbSettings.fontFamily || 'Tajawal',
       fontSize: (dbSettings.fontSize as any) || 'MEDIUM',
       installedVersion: dbSettings.installedVersion || 'v1.0.9',
@@ -918,7 +947,14 @@ export async function syncTestSpecialtyAssignmentToSqlite(
   }
 }
 
-export async function deleteSampleTestFromSqlite(sampleId: string, testIdOrSampleTestId: string): Promise<void> {
+export async function deleteSampleTestFromSqlite(
+  sampleId: string,
+  testIdOrSampleTestId: string,
+  newPriceTotal?: number,
+  newRemaining?: number,
+  newPaidAmount?: number,
+  newStatus?: string
+): Promise<void> {
   if (!sampleId || !testIdOrSampleTestId) return;
   try {
     await initDbWAL();
@@ -932,6 +968,22 @@ export async function deleteSampleTestFromSqlite(sampleId: string, testIdOrSampl
         ],
       },
     });
+    if (
+      newPriceTotal !== undefined ||
+      newRemaining !== undefined ||
+      newPaidAmount !== undefined ||
+      newStatus !== undefined
+    ) {
+      await prisma.sample.update({
+        where: { id: sampleId },
+        data: {
+          ...(newPriceTotal !== undefined ? { priceTotal: newPriceTotal } : {}),
+          ...(newRemaining !== undefined ? { remainingAmount: newRemaining } : {}),
+          ...(newPaidAmount !== undefined ? { paidAmount: newPaidAmount } : {}),
+          ...(newStatus ? { status: newStatus } : {}),
+        },
+      });
+    }
   } catch (err: any) {
     console.warn('[SQLite Sync] deleteSampleTestFromSqlite warning:', err?.message);
   }

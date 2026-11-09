@@ -127,48 +127,87 @@ export default function ResultsGridPanel({
         style={{
           width: '68px',
           backgroundColor: 'var(--bg-card)',
-          borderRadius: '12px',
-          border: '1px solid var(--border-color)',
+          borderRadius: '14px',
+          border: '2.5px solid #059669',
+          boxShadow: '0 4px 16px rgba(5, 150, 105, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
-          gap: '24px',
-          padding: '24px 8px',
+          justifyContent: 'space-between',
           height: '100%',
           flexShrink: 0,
           boxSizing: 'border-box',
+          overflow: 'hidden',
           userSelect: 'none',
           transition: 'background-color 0.15s ease, border-color 0.15s ease',
         }}
       >
         <div
           style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(20, 184, 166, 0.14)',
+            width: '100%',
+            padding: '10px 4px',
+            background: 'linear-gradient(135deg, #047857 0%, #059669 100%)',
+            color: '#ffffff',
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--accent-teal)',
+            gap: '4px',
+            boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)',
           }}
         >
-          <Activity size={20} />
+          <span
+            style={{
+              fontSize: '10.5px',
+              fontWeight: 900,
+              padding: '2px 6px',
+              borderRadius: '12px',
+              background: 'rgba(255, 255, 255, 0.24)',
+              border: '1px solid rgba(255, 255, 255, 0.4)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            القسم 3
+          </span>
         </div>
         <div
           style={{
-            writingMode: 'vertical-rl',
-            transform: 'rotate(180deg)',
-            fontSize: '12px',
-            fontWeight: 600,
-            color: 'var(--text-muted)',
-            letterSpacing: '0.5px',
-            textAlign: 'center',
-            whiteSpace: 'nowrap',
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '20px',
+            padding: '16px 8px',
           }}
         >
-          تظهر خانات النتائج هنا بعد اختيار الفحوصات
+          <div
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(5, 150, 105, 0.14)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#059669',
+            }}
+          >
+            <Activity size={20} />
+          </div>
+          <div
+            style={{
+              writingMode: 'vertical-rl',
+              transform: 'rotate(180deg)',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: '#047857',
+              letterSpacing: '0.5px',
+              textAlign: 'center',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            القسم 3: إدخال نتائج المريض — تظهر بعد اختيار الفحوصات
+          </div>
         </div>
       </div>
     );
@@ -238,8 +277,9 @@ export default function ResultsGridPanel({
         maxWidth: '520px',
         minWidth: '340px',
         backgroundColor: 'var(--bg-card)',
-        borderRadius: '12px',
-        border: '1px solid var(--border-color)',
+        borderRadius: '14px',
+        border: '2.5px solid #059669',
+        boxShadow: '0 4px 16px rgba(5, 150, 105, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05)',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -248,11 +288,14 @@ export default function ResultsGridPanel({
         transition: 'background-color 0.15s ease, border-color 0.15s ease',
       }}
     >
-      {/* 1. Header */}
+      {/* 1. Header: Prominent Emerald Green Section 3 Banner */}
       <div
+        dir="rtl"
         style={{
-          padding: '12px 16px',
-          borderBottom: '1px solid var(--border-color)',
+          padding: '13px 16px',
+          background: 'linear-gradient(135deg, #047857 0%, #059669 100%)',
+          color: '#ffffff',
+          boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)',
           display: 'flex',
           flexDirection: 'column',
           gap: '8px',
@@ -260,14 +303,36 @@ export default function ResultsGridPanel({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
-            نتائج الفحوصات
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '4px 12px',
+                borderRadius: '20px',
+                fontSize: '12px',
+                fontWeight: 900,
+                color: '#ffffff',
+                background: 'rgba(255, 255, 255, 0.24)',
+                border: '1px solid rgba(255, 255, 255, 0.4)',
+              }}
+            >
+              القسم 3
+            </span>
+            <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.2px' }}>
+              إدخال نتائج المريض
+            </h2>
+          </div>
           <span
             style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: completedCount === totalCount ? 'var(--accent-teal)' : 'var(--text-muted)',
+              fontSize: '11.5px',
+              fontWeight: 800,
+              color: '#ffffff',
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: '1px solid rgba(255, 255, 255, 0.35)',
+              padding: '3px 10px',
+              borderRadius: '9999px',
             }}
           >
             تم إدخال {completedCount} من أصل {totalCount} فحص
@@ -279,7 +344,7 @@ export default function ResultsGridPanel({
           style={{
             width: '100%',
             height: '4px',
-            backgroundColor: 'var(--bg-card-subtle)',
+            backgroundColor: 'rgba(255, 255, 255, 0.25)',
             borderRadius: '2px',
             overflow: 'hidden',
           }}
@@ -288,7 +353,7 @@ export default function ResultsGridPanel({
             style={{
               width: `${progressPercent}%`,
               height: '100%',
-              backgroundColor: '#0f766e',
+              backgroundColor: '#ffffff',
               transition: 'width 0.2s ease',
             }}
           />

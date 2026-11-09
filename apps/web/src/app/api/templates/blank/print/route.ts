@@ -82,7 +82,9 @@ export async function GET(request: NextRequest) {
     const qrPosition = settings.qrCodePosition || 'HEADER';
 
     // Watermark configuration
-    const enableWatermark = settings.watermarkEnabled === true;
+    const enableWatermark = settings.enableWatermark === true || settings.watermarkEnabled === true;
+    const watermarkImage = settings.watermarkImage || '';
+    const watermarkType = settings.watermarkType || (watermarkImage ? 'IMAGE' : 'TEXT');
     const watermarkText = settings.watermarkText || settings.labName || 'CONFIDENTIAL';
     const watermarkAngle = settings.watermarkAngle ?? -30;
     const watermarkSize = settings.watermarkSize ?? 55;
@@ -90,6 +92,18 @@ export async function GET(request: NextRequest) {
     const watermarkOpacity = settings.watermarkOpacity ?? 0.06;
 
     const renderWatermark = () => {
+      if (enableWatermark && watermarkImage && watermarkType !== 'TEXT') {
+        return `
+          <div class="watermark-layer" aria-hidden="true">
+            <img
+              class="watermark-image"
+              src="${escapeHtml(watermarkImage)}"
+              alt=""
+              style="width: ${Math.round(watermarkSize * 4.8)}px; max-width: 75%; max-height: 75%; object-fit: contain; transform: rotate(${watermarkAngle}deg); opacity: ${watermarkOpacity}; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;"
+            />
+          </div>
+        `;
+      }
       if (settings.labEmblem && settings.labEmblem !== 'none' && !watermarkText && (settings.emblemPlacement === 'watermark' || settings.emblemPlacement === 'both' || !settings.emblemPlacement)) {
         return `
           <div class="watermark-layer" aria-hidden="true" style="opacity: 0.035; transform: translate(-50%, -50%) rotate(-25deg); position: absolute; top: 50%; left: 50%; pointer-events: none; z-index: 1;">

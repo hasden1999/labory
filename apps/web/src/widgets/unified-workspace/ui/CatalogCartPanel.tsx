@@ -265,8 +265,9 @@ export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: Cata
         flex: 1,
         minWidth: '340px',
         backgroundColor: 'var(--bg-card)',
-        borderRadius: '12px',
-        border: '1px solid var(--border-color)',
+        borderRadius: '14px',
+        border: '2.5px solid #0d9488',
+        boxShadow: '0 4px 16px rgba(13, 148, 136, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05)',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -274,34 +275,54 @@ export default function CatalogCartPanel({ workspace, onOpenSpecialModal }: Cata
         transition: 'background-color 0.15s ease, border-color 0.15s ease',
       }}
     >
-      {/* 1. Panel Header */}
+      {/* 1. Panel Header: Prominent Vivid Teal Section 2 Banner */}
       <div
+        dir="rtl"
         style={{
-          padding: '12px 16px',
-          borderBottom: '1px solid var(--border-color)',
+          padding: '13px 16px',
+          background: 'linear-gradient(135deg, #0f766e 0%, #0d9488 100%)',
+          color: '#ffffff',
+          boxShadow: '0 2px 8px rgba(13, 148, 136, 0.25)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexShrink: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
-            قائمة الفحوصات
-          </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span
             style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '4px 12px',
+              borderRadius: '20px',
               fontSize: '12px',
-              fontWeight: 600,
-              color: 'var(--text-muted)',
-              backgroundColor: 'var(--bg-card-hover)',
-              padding: '2px 8px',
-              borderRadius: '9999px',
+              fontWeight: 900,
+              color: '#ffffff',
+              background: 'rgba(255, 255, 255, 0.24)',
+              border: '1px solid rgba(255, 255, 255, 0.4)',
             }}
           >
-            {selectedTests.length} فحص مختار
+            القسم 2
           </span>
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.2px' }}>
+            قائمة اختيار الفحوصات
+          </h2>
         </div>
+        <span
+          style={{
+            fontSize: '11.5px',
+            fontWeight: 800,
+            color: '#ffffff',
+            background: 'rgba(255, 255, 255, 0.2)',
+            border: '1px solid rgba(255, 255, 255, 0.35)',
+            padding: '3px 10px',
+            borderRadius: '9999px',
+          }}
+        >
+          {selectedTests.length} فحص مختار
+        </span>
       </div>
 
       {/* 2. Search Bar */}

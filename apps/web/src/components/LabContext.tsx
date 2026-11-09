@@ -93,6 +93,7 @@ export interface LabProfile {
   tableZebraStriping?: boolean;
   tableRowSpacing?: 'COMPACT' | 'COMFORTABLE' | 'RELAXED';
   printRangeScope?: 'ALL' | 'APPLICABLE_ONLY';
+  showPreviousResults?: boolean;
 
   // Flexible Clinical Design Architecture (Indian Diagnostic Standard & Emblems)
   labEmblem?: 'microscope' | 'tubes' | 'dna' | 'badge' | 'blood' | 'none';
@@ -166,6 +167,7 @@ const DEFAULT_LAB_PROFILE: LabProfile = {
   showFooterSignature: true,
   enableWatermark: false,
   watermarkType: 'TEXT',
+  watermarkImage: '',
   watermarkText: '',
   watermarkOpacity: 0.08,
   watermarkAngle: -30,
@@ -191,6 +193,7 @@ const DEFAULT_LAB_PROFILE: LabProfile = {
   tableRowBorders: true,
   tableZebraStriping: false,
   tableRowSpacing: 'COMFORTABLE',
+  showPreviousResults: true,
 
   // Flexible Clinical Defaults
   labEmblem: 'microscope',

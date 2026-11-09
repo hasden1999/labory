@@ -506,6 +506,37 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
   const pctLow = pctR.min ?? 0.15;
   const pctHigh = pctR.max ?? 0.40;
 
+  const resolveExtRange = (keys: string[], defMin: number, defMax: number, defFmt: string) => {
+    for (const k of keys) {
+      const r = patientRanges?.getRange ? patientRanges.getRange(k as any) : null;
+      if (r && (r.min != null || r.max != null)) {
+        const low = r.min ?? defMin;
+        const high = r.max ?? defMax;
+        return { min: low, max: high, formatted: r.formatted || `${low} - ${high}` };
+      }
+      const direct = (patientRanges as any)?.[k];
+      if (direct && (direct.min != null || direct.max != null || direct.low != null || direct.high != null)) {
+        const low = direct.min ?? direct.low ?? defMin;
+        const high = direct.max ?? direct.high ?? defMax;
+        return { min: low, max: high, formatted: direct.formatted || `${low} - ${high}` };
+      }
+    }
+    return { min: defMin, max: defMax, formatted: defFmt };
+  };
+
+  const rdwSdR = resolveExtRange(['rdwSd', 'RDW-SD', 'rdwa', 'RDWa'], 35.0, 56.0, '35.0 - 56.0');
+  const pdwSdR = resolveExtRange(['pdwSd', 'PDW-SD', 'pdwa', 'PDWa'], 9.0, 17.0, '9.0 - 17.0');
+  const plcrR = resolveExtRange(['plcr', 'P-LCR', 'PLCR'], 13.0, 43.0, '13.0 - 43.0');
+  const plcrMindrayR = resolveExtRange(['plcr', 'P-LCR', 'PLCR'], 11.0, 45.0, '11.0 - 45.0');
+  const plccR = resolveExtRange(['plcc', 'P-LCC', 'PLCC'], 30, 90, '30 - 90');
+  const swelabRdwSdR = resolveExtRange(['rdwSd', 'RDW-SD', 'rdwa', 'RDWa'], 0.1, 250.0, '0.1 : 250.0');
+  const swelabPctR = (patientRanges as any)?.PCT
+    ? resolveExtRange(['PCT'], 0.01, 9.99, '0.01 : 9.99')
+    : { min: 0.01, max: 9.99, formatted: '0.01 : 9.99' };
+  const swelabPdwSdR = resolveExtRange(['pdwSd', 'PDW-SD', 'pdwa', 'PDWa'], 0.1, 30.0, '0.1 : 30.0');
+  const swelabPlcrR = resolveExtRange(['plcr', 'P-LCR', 'PLCR'], 0.1, 99.9, '0.1 : 99.9');
+  const swelabPlccR = resolveExtRange(['plcc', 'P-LCC', 'PLCC'], 1, 1999, '1 : 1999');
+
   const graPctR = patientRanges.getRange('graPct');
   const graAbsR = patientRanges.getRange('graAbs');
   const lymPctR = patientRanges.getRange('lymPct');
@@ -776,7 +807,7 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
                   ${renderSwelabRow('MCH', parsed.mch, 'pg', mchLow, mchHigh, false, mchRef)}
                   ${renderSwelabRow('MCHC', parsed.mchc, 'g/dl', mchcLow, mchcHigh, false, mchcRef)}
                   ${renderSwelabRow('RDW%', parsed.rdw, '%', rdwLow, rdwHigh, false, rdwRef)}
-                  ${parsed.rdwSd && parsed.rdwSd !== '-' ? renderSwelabRow('RDWa', parsed.rdwSd, 'fl', 0.1, 250.0, true, '0.1 : 250.0') : ''}
+                  ${parsed.rdwSd && parsed.rdwSd !== '-' ? renderSwelabRow('RDWa', parsed.rdwSd, 'fl', swelabRdwSdR.min, swelabRdwSdR.max, true, swelabRdwSdR.formatted) : ''}
                 </tbody>
               </table>
             </div>
@@ -802,11 +833,11 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
                 <tbody>
                   ${renderSwelabRow('PLT', parsed.plt, '10^9/l', pltLow, pltHigh, false, pltRef)}
                   ${renderSwelabRow('MPV', parsed.mpv, 'fl', mpvLow, mpvHigh, false, mpvRef)}
-                  ${parsed.pct && parsed.pct !== '-' ? renderSwelabRow('PCT', parsed.pct, '%', 0.01, 9.99, true, '0.01 : 9.99') : ''}
+                  ${parsed.pct && parsed.pct !== '-' ? renderSwelabRow('PCT', parsed.pct, '%', swelabPctR.min, swelabPctR.max, true, swelabPctR.formatted) : ''}
                   ${parsed.pdw && parsed.pdw !== '-' ? renderSwelabRow('PDW%', parsed.pdw, '%', 0.1, 99.9, true, '0.1 : 99.9') : ''}
-                  ${parsed.pdwSd && parsed.pdwSd !== '-' ? renderSwelabRow('PDWa', parsed.pdwSd, 'fl', 0.1, 30.0, true, '0.1 : 30.0') : ''}
-                  ${parsed.plcr && parsed.plcr !== '-' ? renderSwelabRow('P-LCR', parsed.plcr, '%', 0.1, 99.9, true, '0.1 : 99.9') : ''}
-                  ${parsed.plcc && parsed.plcc !== '-' ? renderSwelabRow('P-LCC', parsed.plcc, '10^9/l', 1, 1999, true, '1 : 1999') : ''}
+                  ${parsed.pdwSd && parsed.pdwSd !== '-' ? renderSwelabRow('PDWa', parsed.pdwSd, 'fl', swelabPdwSdR.min, swelabPdwSdR.max, true, swelabPdwSdR.formatted) : ''}
+                  ${parsed.plcr && parsed.plcr !== '-' ? renderSwelabRow('P-LCR', parsed.plcr, '%', swelabPlcrR.min, swelabPlcrR.max, true, swelabPlcrR.formatted) : ''}
+                  ${parsed.plcc && parsed.plcc !== '-' ? renderSwelabRow('P-LCC', parsed.plcc, '10^9/l', swelabPlccR.min, swelabPlccR.max, true, swelabPlccR.formatted) : ''}
                 </tbody>
               </table>
             </div>
@@ -883,15 +914,15 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
                 ${renderMindrayRow('MCH', parsed.mch, 'pg', mchLow, mchHigh, '#f8fafc')}
                 ${renderMindrayRow('MCHC', parsed.mchc, 'g/dL', mchcLow, mchcHigh, '#f8fafc')}
                 ${renderMindrayRow('RDW-CV', parsed.rdw, '%', rdwLow, rdwHigh, '#f8fafc')}
-                ${renderMindrayRow('RDW-SD', parsed.rdwSd, 'fL', 35.0, 56.0, '#f8fafc')}
+                ${renderMindrayRow('RDW-SD', parsed.rdwSd, 'fL', rdwSdR.min, rdwSdR.max, '#f8fafc')}
                 ` : ''}
                 ${hasPlt ? `
                 ${renderMindrayRow('PLT', parsed.plt, '10^9/L', pltLow, pltHigh)}
                 ${renderMindrayRow('MPV', parsed.mpv, 'fL', mpvLow, mpvHigh)}
                 ${renderMindrayRow('PDW', parsed.pdwSd !== '-' ? parsed.pdwSd : parsed.pdw, 'fL', pdwLow, pdwHigh)}
                 ${renderMindrayRow('PCT', parsed.pct, '%', pctLow, pctHigh)}
-                ${renderMindrayRow('P-LCR', parsed.plcr || '-', '%', 11.0, 45.0)}
-                ${renderMindrayRow('P-LCC', parsed.plcc || '-', '10^9/L', 30, 90)}
+                ${renderMindrayRow('P-LCR', parsed.plcr || '-', '%', plcrMindrayR.min, plcrMindrayR.max)}
+                ${renderMindrayRow('P-LCC', parsed.plcc || '-', '10^9/L', plccR.min, plccR.max)}
                 ` : ''}
               </tbody>
             </table>
@@ -974,7 +1005,7 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
                 ${renderMindray5Row('MCH', parsed.mch, 'pg', mchLow, mchHigh, '#f8fafc')}
                 ${renderMindray5Row('MCHC', parsed.mchc, 'g/dL', mchcLow, mchcHigh, '#f8fafc')}
                 ${renderMindray5Row('RDW-CV', parsed.rdw, '%', rdwLow, rdwHigh, '#f8fafc')}
-                ${renderMindray5Row('RDW-SD', parsed.rdwSd, 'fL', 35.0, 56.0, '#f8fafc')}
+                ${renderMindray5Row('RDW-SD', parsed.rdwSd, 'fL', rdwSdR.min, rdwSdR.max, '#f8fafc')}
                 ` : ''}
                 ${hasPlt ? `
                 ${renderMindray5Row('PLT', parsed.plt, '10^9/L', pltLow, pltHigh)}
@@ -1077,14 +1108,14 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
                 ${renderSysmexRow('MCV', parsed.mcv, 'fL', mcvLow, mcvHigh)}
                 ${renderSysmexRow('MCH', parsed.mch, 'pg', mchLow, mchHigh)}
                 ${renderSysmexRow('MCHC', parsed.mchc, 'g/dL', mchcLow, mchcHigh)}
-                ${renderSysmexRow('RDW-SD', parsed.rdwSd, 'fL', 35.0, 56.0)}
+                ${renderSysmexRow('RDW-SD', parsed.rdwSd, 'fL', rdwSdR.min, rdwSdR.max)}
                 ${renderSysmexRow('RDW-CV', parsed.rdw, '%', rdwLow, rdwHigh)}
                 ` : ''}
                 ${hasPlt ? `
                 ${renderSysmexRow('PLT', parsed.plt, '10^3/uL', pltLow, pltHigh)}
                 ${renderSysmexRow('PDW', parsed.pdwSd !== '-' ? parsed.pdwSd : parsed.pdw, 'fL', pdwLow, pdwHigh)}
                 ${renderSysmexRow('MPV', parsed.mpv, 'fL', mpvLow, mpvHigh)}
-                ${renderSysmexRow('P-LCR', parsed.plcr, '%', 11.0, 45.0)}
+                ${renderSysmexRow('P-LCR', parsed.plcr, '%', plcrMindrayR.min, plcrMindrayR.max)}
                 ${renderSysmexRow('PCT', parsed.pct, '%', pctLow, pctHigh)}
                 ` : ''}
               </tbody>
@@ -1261,10 +1292,10 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
               ${renderCbcRow('MCH', parsed.mch, 'pg', '25.0 - 35.0', 25.0, 35.0, priorCbcParsed?.mch)}
               ${renderCbcRow('MCHC', parsed.mchc, 'g/dL', '31.0 - 38.0', 31.0, 38.0, priorCbcParsed?.mchc)}
               ${renderCbcRow('RDW-CV (RDW%)', parsed.rdw, '%', '11.0 - 16.0', 11.0, 16.0, priorCbcParsed?.rdw)}
-              ${parsed.rdwSd !== '-' ? renderCbcRow('RDW-SD (RDWa)', parsed.rdwSd, 'fL', '35.0 - 56.0', 35.0, 56.0) : ''}
+              ${parsed.rdwSd !== '-' ? renderCbcRow('RDW-SD (RDWa)', parsed.rdwSd, 'fL', rdwSdR.formatted, rdwSdR.min, rdwSdR.max) : ''}
               ${renderCbcRow('Platelets (PLT)', parsed.plt, '10^9/L', '150 - 450', 150, 450, priorCbcParsed?.plt)}
               ${renderCbcRow('MPV', parsed.mpv, 'fL', '6.5 - 11.0', 6.5, 11.0, priorCbcParsed?.mpv)}
-              ${renderCbcRow('PCT', parsed.pct, '%', '0.15 - 0.40', 0.15, 0.40, priorCbcParsed?.pct)}
+              ${renderCbcRow('PCT', parsed.pct, '%', pctRef, pctLow, pctHigh, priorCbcParsed?.pct)}
               ${renderCbcRow('PDW%', parsed.pdw, '%', '9.0 - 17.0', 9.0, 17.0, priorCbcParsed?.pdw)}
             </tbody>
           </table>
@@ -1344,10 +1375,10 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
           <div style="font-weight: 900; color: #b45309; font-size: ${specialFormFontSize}px; margin-bottom: 8px;">🟡 PLATELETS &amp; CLOTTING</div>
           ${renderCardItem('Platelets (PLT)', parsed.plt, '10^9/L', 150, 450, '150 - 450')}
           ${renderCardItem('MPV', parsed.mpv, 'fL', 6.5, 11.0, '6.5 - 11.0')}
-          ${renderCardItem('PCT', parsed.pct, '%', 0.15, 0.40, '0.15 - 0.40')}
+          ${renderCardItem('PCT', parsed.pct, '%', pctLow, pctHigh, pctRef)}
           ${renderCardItem('PDW%', parsed.pdw, '%', 9.0, 17.0, '9.0 - 17.0')}
-          ${parsed.plcr !== '-' ? renderCardItem('P-LCR', parsed.plcr, '%', 13, 43, '13 - 43') : ''}
-          ${parsed.plcc !== '-' ? renderCardItem('P-LCC', parsed.plcc, '10^9/L', 30, 90, '30 - 90') : ''}
+          ${parsed.plcr !== '-' ? renderCardItem('P-LCR', parsed.plcr, '%', plcrR.min, plcrR.max, plcrR.formatted) : ''}
+          ${parsed.plcc !== '-' ? renderCardItem('P-LCC', parsed.plcc, '10^9/L', plccR.min, plccR.max, plccR.formatted) : ''}
           ${mentzerHtml}
         </div>
       </div>
@@ -1396,10 +1427,10 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
             ${renderMinRow('MCH', parsed.mch, 'pg', 25.0, 35.0, '25.0 - 35.0')}
             ${renderMinRow('MCHC', parsed.mchc, 'g/dL', 31.0, 38.0, '31.0 - 38.0')}
             ${renderMinRow('RDW%', parsed.rdw, '%', 11.0, 16.0, '11.0 - 16.0')}
-            ${renderMinRow('RDWa', parsed.rdwSd, 'fL', 35.0, 56.0, '35.0 - 56.0')}
+            ${renderMinRow('RDWa', parsed.rdwSd, 'fL', rdwSdR.min, rdwSdR.max, rdwSdR.formatted)}
             ${renderMinRow('PLT', parsed.plt, '10^9/L', 150, 450, '150 - 450')}
             ${renderMinRow('MPV', parsed.mpv, 'fL', 6.5, 11.0, '6.5 - 11.0')}
-            ${renderMinRow('PCT', parsed.pct, '%', 0.15, 0.40, '0.15 - 0.40')}
+            ${renderMinRow('PCT', parsed.pct, '%', pctLow, pctHigh, pctRef)}
           </tbody>
         </table>
 
@@ -1421,9 +1452,9 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
             ${renderMinRow('MID%', parsed.midPct, '%', 2.0, 15.0, '2.0 - 15.0')}
             ${renderMinRow('MID#', parsed.midAbs, '10^9/L', 0.1, 1.5, '0.1 - 1.5')}
             ${renderMinRow('PDW%', parsed.pdw, '%', 9.0, 17.0, '9.0 - 17.0')}
-            ${renderMinRow('PDWa', parsed.pdwSd, 'fL', 9.0, 17.0, '9.0 - 17.0')}
-            ${renderMinRow('P-LCR', parsed.plcr, '%', 13.0, 43.0, '13.0 - 43.0')}
-            ${renderMinRow('P-LCC', parsed.plcc, '10^9/L', 30, 90, '30 - 90')}
+            ${renderMinRow('PDWa', parsed.pdwSd, 'fL', pdwSdR.min, pdwSdR.max, pdwSdR.formatted)}
+            ${renderMinRow('P-LCR', parsed.plcr, '%', plcrR.min, plcrR.max, plcrR.formatted)}
+            ${renderMinRow('P-LCC', parsed.plcc, '10^9/L', plccR.min, plccR.max, plccR.formatted)}
           </tbody>
         </table>
       </div>
@@ -1599,7 +1630,7 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
                 ${renderCbcRow('MCH', parsed.mch, 'pg', '25.0 - 35.0', 25.0, 35.0)}
                 ${renderCbcRow('MCHC', parsed.mchc, 'g/dL', '31.0 - 38.0', 31.0, 38.0)}
                 ${renderCbcRow('RDW% (RDW-CV)', parsed.rdw, '%', '11.0 - 16.0', 11.0, 16.0)}
-                ${renderCbcRow('RDWa (RDW-SD)', parsed.rdwSd, 'fL', '35.0 - 56.0', 35.0, 56.0)}
+                ${renderCbcRow('RDWa (RDW-SD)', parsed.rdwSd, 'fL', rdwSdR.formatted, rdwSdR.min, rdwSdR.max)}
               </tbody>
             </table>
           </div>
@@ -1612,11 +1643,11 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
               <tbody>
                 ${renderCbcRow('PLT', parsed.plt, '10^9/L', '150 - 450', 150, 450)}
                 ${renderCbcRow('MPV', parsed.mpv, 'fL', '6.5 - 11.0', 6.5, 11.0)}
-                ${renderCbcRow('PCT', parsed.pct, '%', '0.15 - 0.40', 0.15, 0.40)}
+                ${renderCbcRow('PCT', parsed.pct, '%', pctRef, pctLow, pctHigh)}
                 ${renderCbcRow('PDW% (PDW-CV)', parsed.pdw, '%', '9.0 - 17.0', 9.0, 17.0)}
-                ${renderCbcRow('PDWa (PDW-SD)', parsed.pdwSd, 'fL', '9.0 - 17.0', 9.0, 17.0)}
-                ${renderCbcRow('P-LCR', parsed.plcr, '%', '13.0 - 43.0', 13.0, 43.0)}
-                ${renderCbcRow('P-LCC', parsed.plcc, '10^9/L', '30 - 90', 30, 90)}
+                ${renderCbcRow('PDWa (PDW-SD)', parsed.pdwSd, 'fL', pdwSdR.formatted, pdwSdR.min, pdwSdR.max)}
+                ${renderCbcRow('P-LCR', parsed.plcr, '%', plcrR.formatted, plcrR.min, plcrR.max)}
+                ${renderCbcRow('P-LCC', parsed.plcc, '10^9/L', plccR.formatted, plccR.min, plccR.max)}
               </tbody>
             </table>
           </div>
@@ -1722,7 +1753,7 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
               ${renderCbcRow('MCH (Mean Corpuscular Hb)', parsed.mch, 'pg', mchRef, mchLow, mchHigh, priorCbcParsed?.mch)}
               ${renderCbcRow('MCHC (Mean Corpuscular Conc)', parsed.mchc, 'g/dL', mchcRef, mchcLow, mchcHigh, priorCbcParsed?.mchc)}
               ${renderCbcRow('RDW-CV (Red Cell Distribution)', parsed.rdw, '%', rdwRef, rdwLow, rdwHigh, priorCbcParsed?.rdw)}
-              ${parsed.rdwSd !== '-' ? renderCbcRow('RDWa / RDW-SD', parsed.rdwSd, 'fL', '35.0 - 56.0', 35.0, 56.0, priorCbcParsed?.rdwSd) : ''}
+              ${parsed.rdwSd !== '-' ? renderCbcRow('RDWa / RDW-SD', parsed.rdwSd, 'fL', rdwSdR.formatted, rdwSdR.min, rdwSdR.max, priorCbcParsed?.rdwSd) : ''}
             </tbody>
           </table>
           ${mentzerHtml ? `<div style="padding: 0 8px 6px 8px;">${mentzerHtml}</div>` : ''}
@@ -1748,9 +1779,9 @@ export function renderCbcTemplate(ctx: RenderCbcTemplateContext): string {
               ${renderCbcRow('MPV (Mean Platelet Volume)', parsed.mpv, 'fL', mpvRef, mpvLow, mpvHigh, priorCbcParsed?.mpv)}
               ${renderCbcRow('PDW (Platelet Dist. Width)', parsed.pdw, '%', pdwRef, pdwLow, pdwHigh, priorCbcParsed?.pdw)}
               ${renderCbcRow('PCT (Plateletcrit)', parsed.pct, '%', pctRef, pctLow, pctHigh, priorCbcParsed?.pct)}
-              ${parsed.pdwSd !== '-' ? renderCbcRow('PDWa (PDW-SD)', parsed.pdwSd, 'fL', '9.0 - 17.0', 9.0, 17.0, priorCbcParsed?.pdwSd) : ''}
-              ${parsed.plcr !== '-' ? renderCbcRow('P-LCR (Large Platelet Ratio)', parsed.plcr, '%', '13.0 - 43.0', 13.0, 43.0, priorCbcParsed?.plcr) : ''}
-              ${parsed.plcc !== '-' ? renderCbcRow('P-LCC (Large Platelet Count)', parsed.plcc, '10^9/L', '30 - 90', 30, 90, priorCbcParsed?.plcc) : ''}
+              ${parsed.pdwSd !== '-' ? renderCbcRow('PDWa (PDW-SD)', parsed.pdwSd, 'fL', pdwSdR.formatted, pdwSdR.min, pdwSdR.max, priorCbcParsed?.pdwSd) : ''}
+              ${parsed.plcr !== '-' ? renderCbcRow('P-LCR (Large Platelet Ratio)', parsed.plcr, '%', plcrR.formatted, plcrR.min, plcrR.max, priorCbcParsed?.plcr) : ''}
+              ${parsed.plcc !== '-' ? renderCbcRow('P-LCC (Large Platelet Count)', parsed.plcc, '10^9/L', plccR.formatted, plccR.min, plccR.max, priorCbcParsed?.plcc) : ''}
             </tbody>
           </table>
         </div>

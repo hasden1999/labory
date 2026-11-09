@@ -258,11 +258,25 @@ export default function ReferenceRangesEditor({
 
   const handleUpdateRow = (index: number, field: keyof ReferenceRangeItem, val: any) => {
     const updated = [...ranges];
-    updated[index] = {
-      ...updated[index],
+    const current = updated[index];
+    const nextRow: ReferenceRangeItem = {
+      ...current,
       [field]: val,
       isUserEdited: true,
     };
+    if ((field === 'low' || field === 'high') && nextRow.valueType !== 'text') {
+      const nextLow = field === 'low' ? val : current.low;
+      const nextHigh = field === 'high' ? val : current.high;
+      nextRow.text =
+        nextLow != null && nextHigh != null
+          ? `${nextLow} - ${nextHigh}`
+          : nextLow != null
+            ? `>= ${nextLow}`
+            : nextHigh != null
+              ? `<= ${nextHigh}`
+              : null;
+    }
+    updated[index] = nextRow;
     onChange(updated);
   };
 

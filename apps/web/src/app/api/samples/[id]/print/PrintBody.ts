@@ -516,7 +516,7 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
 
   // Prior lookup helper
   const findPriorForTest = (st: any): { value: string; date: string; sampleId: string } | null => {
-    if (st.includePrevious === false) return null;
+    if (st.includePrevious === false || (settings as any)?.showPreviousResults === false) return null;
     if (st.previousValue && String(st.previousValue).trim() !== '') {
       return { value: String(st.previousValue), date: st.previousDate ? formatEnglishDate(st.previousDate) : '', sampleId: st.previousSampleId || '' };
     }
@@ -658,17 +658,25 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
       const rRanges = t.test?.referenceRanges || [];
 
       const formatSingleRangeRowHtml = (r: any, isMatchedRow = false): string => {
+        const isNumericRow = r.valueType !== 'text';
+        const effLow = r.low ?? r.min;
+        const effHigh = r.high ?? r.max;
+        const isPlainNumericText = !r.text || /^[<>=\d.\s\-–—to]+$/i.test(String(r.text).trim());
         const rawTxt =
-          r.text ||
-          (r.low != null && r.high != null
-            ? `${r.low} - ${r.high}`
-            : r.min != null && r.max != null
-              ? `${r.min} - ${r.max}`
-              : r.low != null || r.min != null
-                ? `>= ${r.low ?? r.min}`
-                : r.high != null || r.max != null
-                  ? `<= ${r.high ?? r.max}`
-                  : '');
+          isNumericRow && effLow != null && effHigh != null && isPlainNumericText
+            ? `${effLow} - ${effHigh}`
+            : isNumericRow && effLow != null && effHigh == null && isPlainNumericText
+              ? `>= ${effLow}`
+              : isNumericRow && effHigh != null && effLow == null && isPlainNumericText
+                ? `<= ${effHigh}`
+                : r.text ||
+                  (effLow != null && effHigh != null
+                    ? `${effLow} - ${effHigh}`
+                    : effLow != null
+                      ? `>= ${effLow}`
+                      : effHigh != null
+                        ? `<= ${effHigh}`
+                        : '');
         const rawLbl = r.label ? String(r.label).trim() : '';
         const isGeneralRaw =
           !rawLbl ||
@@ -1166,7 +1174,7 @@ export function renderPrintBodyPages(params: PrintBodyParams): string[] {
         }
       }
     }
-  } else if (!cbcTests.some((t: any) => (t as any).includePrevious === false)) {
+  } else if ((settings as any)?.showPreviousResults !== false && !cbcTests.some((t: any) => (t as any).includePrevious === false)) {
     for (const ps of priorSamples) {
       const pCbc = (ps.tests || []).find((t: any) => isCbcTest(t.test || t));
       if (pCbc && pCbc.resultValue && String(pCbc.resultValue).trim() !== '') {

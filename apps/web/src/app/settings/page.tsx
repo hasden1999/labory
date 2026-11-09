@@ -476,26 +476,59 @@ function UnifiedSettingsCatalogView({
     if (!rangesModalTest) return;
     setSavingRanges(true);
     try {
-      const maleRow = activeRanges.find((r) => r.sex === 'M' || r.label?.includes('رجال'));
-      const femaleRow = activeRanges.find((r) => r.sex === 'F' || r.label?.includes('نساء'));
-      const generalRow = activeRanges.find((r) => r.sex === 'any' || r.label === 'للجميع') || activeRanges[0];
+      const normalizedRanges: ReferenceRangeItem[] = activeRanges.map((r, idx) => {
+        const isText = r.valueType === 'text' || (Boolean(r.text) && r.low == null && r.high == null);
+        let syncedText = r.text ?? null;
+        if (!isText && (r.low != null || r.high != null)) {
+          syncedText =
+            r.low != null && r.high != null
+              ? `${r.low} - ${r.high}`
+              : r.low != null
+                ? `>= ${r.low}`
+                : `<= ${r.high}`;
+        }
+        return {
+          ...r,
+          text: syncedText,
+          isUserEdited: true,
+          sortOrder: r.sortOrder ?? idx,
+        };
+      });
+
+      const maleRow = normalizedRanges.find((r) => r.sex === 'M' || r.label?.includes('رجال'));
+      const femaleRow = normalizedRanges.find((r) => r.sex === 'F' || r.label?.includes('نساء'));
+      const generalRow = normalizedRanges.find((r) => r.sex === 'any' || r.label === 'للجميع') || normalizedRanges[0];
+
+      const formatRowVal = (r: ReferenceRangeItem) =>
+        r.low != null && r.high != null
+          ? `${r.low} - ${r.high}`
+          : r.low != null
+            ? `>= ${r.low}`
+            : r.high != null
+              ? `<= ${r.high}`
+              : r.text || '';
 
       let summaryText = '';
-      if (maleRow && femaleRow) {
-        const mStr = maleRow.low != null || maleRow.high != null ? `${maleRow.low ?? ''} - ${maleRow.high ?? ''}` : maleRow.text || '';
-        const fStr = femaleRow.low != null || femaleRow.high != null ? `${femaleRow.low ?? ''} - ${femaleRow.high ?? ''}` : femaleRow.text || '';
+      if (maleRow && femaleRow && normalizedRanges.length === 2) {
+        const mStr = formatRowVal(maleRow);
+        const fStr = formatRowVal(femaleRow);
         summaryText = `M: ${mStr} | F: ${fStr}`;
+      } else if (normalizedRanges.length > 1) {
+        summaryText = normalizedRanges
+          .map((r) => {
+            const v = formatRowVal(r);
+            if (!v) return '';
+            return r.label && r.label !== 'للجميع' ? `${r.label}: ${v}` : v;
+          })
+          .filter(Boolean)
+          .join(' | ');
       } else if (generalRow) {
-        if (generalRow.low != null && generalRow.high != null) {
-          summaryText = `${generalRow.low} - ${generalRow.high}`;
-        } else if (generalRow.text) {
-          summaryText = generalRow.text;
-        }
+        summaryText = formatRowVal(generalRow);
       }
 
       const payload = {
         ...rangesModalTest,
-        referenceRanges: activeRanges,
+        referenceRanges: normalizedRanges,
         criticalLow: activeCriticalLow !== '' ? Number(toEnglishDigits(activeCriticalLow)) : null,
         criticalHigh: activeCriticalHigh !== '' ? Number(toEnglishDigits(activeCriticalHigh)) : null,
         normalMaleLow: maleRow && maleRow.low != null ? Number(maleRow.low) : null,
@@ -504,9 +537,10 @@ function UnifiedSettingsCatalogView({
         normalFemaleHigh: femaleRow && femaleRow.high != null ? Number(femaleRow.high) : null,
         refRangeLow: generalRow && generalRow.low != null ? Number(generalRow.low) : null,
         refRangeHigh: generalRow && generalRow.high != null ? Number(generalRow.high) : null,
-        refRangeText: summaryText || rangesModalTest.refRangeText || null,
-        referenceRange: summaryText || rangesModalTest.referenceRange || null,
-        normalRange: summaryText || rangesModalTest.normalRange || null,
+        refRangeText: summaryText,
+        referenceRange: summaryText,
+        normalRange: summaryText,
+        isUserEdited: true,
       };
 
       await apiRequest(`/tests/${rangesModalTest.id}`, 'PUT', payload);
@@ -543,28 +577,71 @@ function UnifiedSettingsCatalogView({
           syncedRanges = [];
           nextLow = null;
           nextHigh = null;
+        } else if (/[|\n;]/.test(cleanRef)) {
+          const segments = cleanRef
+            .split(/[|\n;]/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+          syncedRanges = segments.map((seg, idx) => {
+            let label = `فئة ${idx + 1}`;
+            let sex: 'any' | 'M' | 'F' = 'any';
+            let valPart = seg;
+            if (seg.includes(':')) {
+              const colonIdx = seg.indexOf(':');
+              const rawLbl = seg.slice(0, colonIdx).trim();
+              valPart = seg.slice(colonIdx + 1).trim();
+              const upperLbl = rawLbl.toUpperCase();
+              if (upperLbl === 'M' || upperLbl === 'MALE' || rawLbl.includes('رجال') || rawLbl.includes('ذكر')) {
+                sex = 'M';
+                label = 'رجال';
+              } else if (upperLbl === 'F' || upperLbl === 'FEMALE' || rawLbl.includes('نساء') || rawLbl.includes('أنثى')) {
+                sex = 'F';
+                label = 'نساء';
+              } else {
+                label = rawLbl;
+              }
+            }
+            const segNum = valPart.match(/^\s*(-?\d+(?:\.\d+)?)\s*[-–—]\s*(-?\d+(?:\.\d+)?)\s*$/);
+            const sLow = segNum ? Number(segNum[1]) : null;
+            const sHigh = segNum ? Number(segNum[2]) : null;
+            return {
+              id: `inline-${t.id || Date.now()}-${idx}`,
+              label,
+              sex,
+              ageUnit: 'years' as const,
+              ageMin: 0,
+              ageMax: null,
+              low: sLow,
+              high: sHigh,
+              text: valPart,
+              valueType: sLow != null && sHigh != null ? ('numeric' as const) : ('text' as const),
+              isUserEdited: true,
+              sortOrder: idx,
+            };
+          });
+          nextLow = syncedRanges[0]?.low ?? null;
+          nextHigh = syncedRanges[0]?.high ?? null;
         } else {
-          const numMatch = cleanRef.match(/^\s*(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)\s*$/);
+          const numMatch = cleanRef.match(/^\s*(-?\d+(?:\.\d+)?)\s*[-–—]\s*(-?\d+(?:\.\d+)?)\s*$/);
           const parsedLow = numMatch ? Number(numMatch[1]) : null;
           const parsedHigh = numMatch ? Number(numMatch[2]) : null;
           nextLow = parsedLow;
           nextHigh = parsedHigh;
-          // Protect multi-demographic reference ranges (Male/Female/Child) from being wiped out
-          if (syncedRanges.length <= 1) {
-            syncedRanges = [
-              {
-                id: syncedRanges[0]?.id || `inline-${t.id || Date.now()}`,
-                label: syncedRanges[0]?.label || 'للجميع',
-                sex: syncedRanges[0]?.sex || 'any',
-                ageUnit: syncedRanges[0]?.ageUnit || 'years',
-                ageMin: syncedRanges[0]?.ageMin ?? null,
-                ageMax: syncedRanges[0]?.ageMax ?? null,
-                low: parsedLow,
-                high: parsedHigh,
-                text: cleanRef,
-              },
-            ];
-          }
+          syncedRanges = [
+            {
+              id: syncedRanges[0]?.id || `inline-${t.id || Date.now()}`,
+              label: 'للجميع',
+              sex: 'any',
+              ageUnit: 'years',
+              ageMin: 0,
+              ageMax: null,
+              low: parsedLow,
+              high: parsedHigh,
+              text: cleanRef,
+              valueType: parsedLow != null && parsedHigh != null ? 'numeric' : 'text',
+              isUserEdited: true,
+            },
+          ];
         }
       }
 
@@ -932,7 +1009,40 @@ function UnifiedSettingsCatalogView({
           })}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={async () => {
+              const nextVal = !(labProfile?.showPreviousResults !== false);
+              updateLabProfile({ ...labProfile, showPreviousResults: nextVal });
+              try {
+                await apiRequest('/settings', 'POST', { showPreviousResults: nextVal });
+              } catch {}
+              if (nextVal) {
+                toast.success('تم تفعيل إظهار النتيجة السابقة افتراضياً في التقارير المطبوعة ✓');
+              } else {
+                toast.info('تم إخفاء النتيجة السابقة افتراضياً من التقارير المطبوعة');
+              }
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: labProfile?.showPreviousResults !== false ? '1.5px solid #0284c7' : '1px solid var(--border-color)',
+              backgroundColor: labProfile?.showPreviousResults !== false ? 'rgba(2, 132, 199, 0.1)' : 'var(--bg-card)',
+              color: labProfile?.showPreviousResults !== false ? '#0284c7' : 'var(--text-muted)',
+              fontSize: '12px',
+              fontWeight: 800,
+              cursor: 'pointer',
+            }}
+            title="التحكم في إظهار أو إخفاء عمود النتيجة السابقة (Previous) في التقارير المطبوعة افتراضياً"
+          >
+            <span>{labProfile?.showPreviousResults !== false ? '☑️' : '⬜'}</span>
+            <span>إظهار النتيجة السابقة افتراضياً في التقرير</span>
+          </button>
+
           {activeTab !== 'WHATSAPP' && (
             <button
               type="button"

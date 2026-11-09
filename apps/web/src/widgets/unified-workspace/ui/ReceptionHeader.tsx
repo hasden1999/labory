@@ -268,6 +268,68 @@ export default function ReceptionHeader({ workspace }: ReceptionHeaderProps) {
           {currentDate || '8 Oct 2026'}
         </div>
 
+        {/* Sequence Guide Pills (Prominent 3 Sections Indicator) */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            padding: '3px 10px',
+            borderRadius: '20px',
+            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+          }}
+        >
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '11px',
+              fontWeight: 800,
+              padding: '2px 8px',
+              borderRadius: '12px',
+              backgroundColor: '#eff6ff',
+              color: '#1d4ed8',
+            }}
+          >
+            1. بيانات المريض
+          </span>
+          <span style={{ color: '#cbd5e1', fontSize: '10px', fontWeight: 900 }}>◀</span>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '11px',
+              fontWeight: 800,
+              padding: '2px 8px',
+              borderRadius: '12px',
+              backgroundColor: '#f0fdfa',
+              color: '#0f766e',
+            }}
+          >
+            2. اختيار الفحوصات
+          </span>
+          <span style={{ color: '#cbd5e1', fontSize: '10px', fontWeight: 900 }}>◀</span>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '11px',
+              fontWeight: 800,
+              padding: '2px 8px',
+              borderRadius: '12px',
+              backgroundColor: '#ecfdf5',
+              color: '#047857',
+            }}
+          >
+            3. إدخال النتائج
+          </span>
+        </div>
+
         {/* Reception title and subtitle */}
         <div style={{ textAlign: 'right' }}>
           <h1

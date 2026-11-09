@@ -227,7 +227,9 @@ if (process.argv.includes('--publish')) {
       }
 
       const changelogSection = getChangelogNotes(VERSION);
-      const releaseTitle = `Labryo Clinical LIMS ${TAG} - التقسيم السريري للفحوصات ومديات CBC المعتمدة حسب العمر والجنس`;
+      const firstLineMatch = changelogSection ? changelogSection.match(/-\s+\*\*([^*]+)\*\*/) : null;
+      const subtitle = firstLineMatch ? firstLineMatch[1].trim() : 'تحديث شامل ومستقر لنظام المختبرات الطبية';
+      const releaseTitle = `Labryo Clinical LIMS ${TAG} - ${subtitle}`;
       const releaseBody = `## تحديث نظام المختبرات الطبية (${TAG})
 
 ${changelogSection || 'تحديث شامل لنظام إدارة المختبرات الطبية.'}

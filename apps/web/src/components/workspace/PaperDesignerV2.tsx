@@ -199,11 +199,16 @@ export default function PaperDesignerV2() {
 
   // Security Watermark Customization
   const [enableWatermark, setEnableWatermark] = useState<boolean>(labProfile.enableWatermark ?? false);
+  const [watermarkType, setWatermarkType] = useState<'TEXT' | 'IMAGE'>(
+    labProfile.watermarkType || (labProfile.watermarkImage ? 'IMAGE' : 'TEXT')
+  );
+  const [watermarkImage, setWatermarkImage] = useState<string>(labProfile.watermarkImage || '');
   const [watermarkText, setWatermarkText] = useState<string>(labProfile.watermarkText || '');
   const [watermarkOpacity, setWatermarkOpacity] = useState<number>(labProfile.watermarkOpacity ?? 0.08);
   const [watermarkAngle, setWatermarkAngle] = useState<number>(labProfile.watermarkAngle ?? -30);
   const [watermarkSize, setWatermarkSize] = useState<number>(labProfile.watermarkSize ?? 46);
   const [watermarkColor, setWatermarkColor] = useState<string>(labProfile.watermarkColor || '#0f172a');
+  const watermarkFileInputRef = useRef<HTMLInputElement>(null);
 
   // Header Lab Name Typography
   const [labNameFontSize, setLabNameFontSize] = useState<number>(labProfile.labNameFontSize ?? 22);
@@ -397,6 +402,8 @@ export default function PaperDesignerV2() {
       if (labProfile.qrCodePosition) setQrCodePosition(labProfile.qrCodePosition);
 
       setEnableWatermark(labProfile.enableWatermark ?? false);
+      setWatermarkType(labProfile.watermarkType || (labProfile.watermarkImage ? 'IMAGE' : 'TEXT'));
+      setWatermarkImage(labProfile.watermarkImage || '');
       setWatermarkText(labProfile.watermarkText || '');
       setWatermarkOpacity(labProfile.watermarkOpacity ?? 0.08);
       setWatermarkAngle(labProfile.watermarkAngle ?? -30);
@@ -580,6 +587,28 @@ export default function PaperDesignerV2() {
     reader.readAsDataURL(file);
   };
 
+  const handleWatermarkLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error('حجم شعار العلامة المائية يجب ألا يتجاوز 3 ميجابايت', 'تنبيه');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setWatermarkImage(reader.result);
+        setWatermarkType('IMAGE');
+        setEnableWatermark(true);
+        if (watermarkAngle === -30) {
+          setWatermarkAngle(0);
+        }
+        toast.success('تم رفع شعار العلامة المائية وتفعيله بدل الكلام في وسط التقرير!', 'شعار العلامة المائية');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleLetterheadUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -753,6 +782,8 @@ export default function PaperDesignerV2() {
 
         // Watermark
         enableWatermark,
+        watermarkType,
+        watermarkImage: watermarkImage || '',
         watermarkText: watermarkText.trim(),
         watermarkOpacity: Number(watermarkOpacity),
         watermarkAngle: Number(watermarkAngle),
@@ -869,6 +900,8 @@ export default function PaperDesignerV2() {
           qrCodePosition,
 
           enableWatermark,
+          watermarkType,
+          watermarkImage: watermarkImage || '',
           watermarkText: watermarkText.trim(),
           watermarkOpacity: Number(watermarkOpacity),
           watermarkAngle: Number(watermarkAngle),
@@ -943,7 +976,7 @@ export default function PaperDesignerV2() {
     showLabName, showLabSubtitle, showContactInfo, showDoctorInfo,
     showPatientBox, showReportBorder, showFooter, showFooterSignature,
     enableQrCode, qrCodePosition,
-    enableWatermark, watermarkText, watermarkOpacity, watermarkAngle, watermarkSize, watermarkColor,
+    enableWatermark, watermarkType, watermarkImage, watermarkText, watermarkOpacity, watermarkAngle, watermarkSize, watermarkColor,
     labNameFontSize, labNameColor, labNameAlignment, labNameStyle,
     formBgColor, headerBgColor, headerTextColor, textColor, borderColor,
     fontFamily, fontSize, reportTitleFontSize, testNameFontSize, resultValueFontSize,
@@ -2814,38 +2847,88 @@ export default function PaperDesignerV2() {
 
             {/* Security Watermark */}
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <ShieldCheck size={16} color="var(--accent-cyan)" />
                   <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>العلامة المائية للأمان والتوثيق (Security Watermark):</strong>
                 </div>
 
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={enableWatermark}
-                    onChange={(e) => setEnableWatermark(e.target.checked)}
-                    style={{ width: '15px', height: '15px' }}
-                  />
-                  <span style={{ fontSize: '11px', fontWeight: 800, color: enableWatermark ? '#10b981' : '#ef4444' }}>
-                    {enableWatermark ? 'مفعلة' : 'معطلة'}
-                  </span>
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-input-deep)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWatermarkType('IMAGE');
+                        setEnableWatermark(true);
+                      }}
+                      style={{
+                        padding: '3px 8px',
+                        fontSize: '10.5px',
+                        fontWeight: 800,
+                        borderRadius: '4px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: watermarkType === 'IMAGE' ? 'var(--accent-cyan)' : 'transparent',
+                        color: watermarkType === 'IMAGE' ? '#000' : 'var(--text-muted)',
+                      }}
+                    >
+                      شعار (صورة)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWatermarkType('TEXT');
+                        setEnableWatermark(true);
+                      }}
+                      style={{
+                        padding: '3px 8px',
+                        fontSize: '10.5px',
+                        fontWeight: 800,
+                        borderRadius: '4px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: watermarkType === 'TEXT' ? 'var(--accent-cyan)' : 'transparent',
+                        color: watermarkType === 'TEXT' ? '#000' : 'var(--text-muted)',
+                      }}
+                    >
+                      نص (كلام)
+                    </button>
+                  </div>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={enableWatermark}
+                      onChange={(e) => setEnableWatermark(e.target.checked)}
+                      style={{ width: '15px', height: '15px' }}
+                    />
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: enableWatermark ? '#10b981' : '#ef4444' }}>
+                      {enableWatermark ? 'مفعلة' : 'معطلة'}
+                    </span>
+                  </label>
+                </div>
               </div>
 
               {enableWatermark && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-                  <div>
-                    <label className="input-label" style={{ fontSize: '11px' }}>نص العلامة المائية:</label>
-                    <input
-                      type="text"
-                      className="input-control"
-                      value={watermarkText}
-                      onChange={(e) => setWatermarkText(e.target.value)}
-                      placeholder={labName || 'ORIGINAL REPORT'}
-                      style={{ height: '30px', fontSize: '11px' }}
-                    />
-                  </div>
+                  {watermarkType === 'TEXT' ? (
+                    <div>
+                      <label className="input-label" style={{ fontSize: '11px' }}>نص العلامة المائية:</label>
+                      <input
+                        type="text"
+                        className="input-control"
+                        value={watermarkText}
+                        onChange={(e) => setWatermarkText(e.target.value)}
+                        placeholder={labName || 'ORIGINAL REPORT'}
+                        style={{ height: '30px', fontSize: '11px' }}
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                      <ImageIcon size={15} color="var(--accent-cyan)" />
+                      <span>يتم عرض <strong>شعار العلامة المائية</strong> بدل الكلام (يمكن رفعه من قسم الشعار أدناه).</span>
+                    </div>
+                  )}
 
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
@@ -2855,7 +2938,7 @@ export default function PaperDesignerV2() {
                     <input
                       type="range"
                       min={0.03}
-                      max={0.3}
+                      max={0.35}
                       step={0.01}
                       value={watermarkOpacity}
                       onChange={(e) => setWatermarkOpacity(Number(e.target.value))}
@@ -2881,13 +2964,13 @@ export default function PaperDesignerV2() {
 
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-main)', fontWeight: 700 }}>حجم الخط:</span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-main)', fontWeight: 700 }}>{watermarkType === 'IMAGE' ? 'حجم الشعار:' : 'حجم الخط:'}</span>
                       <strong style={{ fontSize: '11px', color: 'var(--accent-cyan)' }}>{watermarkSize}px</strong>
                     </div>
                     <input
                       type="range"
                       min={24}
-                      max={80}
+                      max={110}
                       value={watermarkSize}
                       onChange={(e) => setWatermarkSize(Number(e.target.value))}
                       style={{ width: '100%' }}
@@ -3038,86 +3121,247 @@ export default function PaperDesignerV2() {
               </div>
             </div>
 
-            {/* Logo Manager */}
+            {/* Logo Manager (Header Logo beside Lab Name + Watermark Logo beside it) */}
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
                 <ImageIcon size={16} color="var(--accent-cyan)" />
-                <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>شعار المختبر الرسمي (Lab Logo):</strong>
+                <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>إعدادات شعار المختبر (شعار الترويسة بجانب الاسم + شعار العلامة المائية):</strong>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                {logoUrl ? (
-                  <div style={{ position: 'relative', width: '80px', height: '80px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '4px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <img src={logoUrl} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                    <button
-                      type="button"
-                      onClick={() => setLogoUrl('')}
-                      style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                      title="حذف الشعار"
-                    >
-                      <X size={12} />
-                    </button>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '16px', alignItems: 'start' }}>
+                {/* 1. Original Header Logo (Beside Lab Name - 100% Untouched Behavior) */}
+                <div style={{ background: 'var(--bg-input-deep)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <strong style={{ fontSize: '12px', color: 'var(--text-main)' }}>1. شعار المختبر الرسمي (بجانب الاسم في الترويسة):</strong>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--accent-cyan)', background: 'rgba(6, 182, 212, 0.12)', padding: '2px 7px', borderRadius: '6px' }}>
+                      الترويسة العلوية
+                    </span>
                   </div>
-                ) : (
-                  <div style={{ width: '80px', height: '80px', border: '1px dashed var(--border-color)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-                    <ImageIcon size={28} />
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                    {logoUrl ? (
+                      <div style={{ position: 'relative', width: '80px', height: '80px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '4px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <img src={logoUrl} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                        <button
+                          type="button"
+                          onClick={() => setLogoUrl('')}
+                          style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                          title="حذف الشعار"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ width: '80px', height: '80px', border: '1px dashed var(--border-color)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                        <ImageIcon size={28} />
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <label className="btn-secondary" style={{ padding: '6px 12px', fontSize: '11.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <Upload size={14} />
+                        <span>رفع ملف الشعار</span>
+                        <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={startCamera}
+                        className="btn-secondary"
+                        style={{ padding: '6px 12px', fontSize: '11.5px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Camera size={14} />
+                        <span>التقاط بالكاميرا</span>
+                      </button>
+                    </div>
                   </div>
-                )}
 
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <label className="btn-secondary" style={{ padding: '6px 12px', fontSize: '11.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    <Upload size={14} />
-                    <span>رفع ملف الشعار</span>
-                    <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} />
-                  </label>
+                  {/* Webcam Modal */}
+                  {isCameraOpen && (
+                    <div style={{ marginTop: '12px', background: '#000', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
+                      <video ref={videoRef} style={{ width: '100%', maxHeight: '240px', objectFit: 'cover', borderRadius: '6px' }} />
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '8px' }}>
+                        <button type="button" onClick={capturePhoto} className="btn-cyan-primary" style={{ padding: '6px 16px', fontSize: '12px' }}>
+                          التقاط الصورة
+                        </button>
+                        <button type="button" onClick={stopCamera} className="btn-secondary" style={{ padding: '6px 16px', fontSize: '12px' }}>
+                          إلغاء
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={startCamera}
-                    className="btn-secondary"
-                    style={{ padding: '6px 12px', fontSize: '11.5px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <Camera size={14} />
-                    <span>التقاط بالكاميرا</span>
-                  </button>
+                  {/* Advanced Logo Size & Position Controls */}
+                  <LogoSettingsControl
+                    logoUrl={logoUrl}
+                    logoWidthMm={logoWidthMm}
+                    logoAlign={logoAlign}
+                    logoOffsetXMm={logoOffsetXMm}
+                    logoOffsetYMm={logoOffsetYMm}
+                    onChange={(updates) => {
+                      if (updates.logoWidthMm !== undefined) setLogoWidthMm(updates.logoWidthMm);
+                      if (updates.logoAlign !== undefined) setLogoAlign(updates.logoAlign);
+                      if (updates.logoOffsetXMm !== undefined) setLogoOffsetXMm(updates.logoOffsetXMm);
+                      if (updates.logoOffsetYMm !== undefined) setLogoOffsetYMm(updates.logoOffsetYMm);
+                    }}
+                    onReset={() => {
+                      setLogoWidthMm(null);
+                      setLogoAlign(null);
+                      setLogoOffsetXMm(null);
+                      setLogoOffsetYMm(null);
+                    }}
+                  />
+                </div>
+
+                {/* 2. Dedicated Watermark Logo Box (Beside Header Logo - Replaces Watermark Text) */}
+                <div style={{ background: 'var(--bg-input-deep)', border: '1.5px solid rgba(6, 182, 212, 0.35)', borderRadius: '10px', padding: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '6px' }}>
+                    <strong style={{ fontSize: '12px', color: 'var(--text-main)' }}>2. شعار العلامة المائية (وسط التقرير بدل الكلام):</strong>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={enableWatermark && watermarkType === 'IMAGE'}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setEnableWatermark(true);
+                            setWatermarkType('IMAGE');
+                            if (!watermarkImage && logoUrl) {
+                              setWatermarkImage(logoUrl);
+                              if (watermarkAngle === -30) setWatermarkAngle(0);
+                            }
+                          } else {
+                            setEnableWatermark(false);
+                          }
+                        }}
+                        style={{ width: '15px', height: '15px' }}
+                      />
+                      <span style={{ fontSize: '10.5px', fontWeight: 800, color: enableWatermark && watermarkType === 'IMAGE' ? '#10b981' : 'var(--text-muted)' }}>
+                        {enableWatermark && watermarkType === 'IMAGE' ? 'مفعل كعلامة مائية' : 'تفعيل الشعار كعلامة مائية'}
+                      </span>
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                    {watermarkImage ? (
+                      <div style={{ position: 'relative', width: '80px', height: '80px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '4px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <img src={watermarkImage} alt="Watermark Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', opacity: Math.min(1, watermarkOpacity * 4.5) }} />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setWatermarkImage('');
+                            setWatermarkType('TEXT');
+                            toast.info('تم حذف شعار العلامة المائية');
+                          }}
+                          style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                          title="حذف شعار العلامة المائية"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ width: '80px', height: '80px', border: '1px dashed var(--accent-cyan)', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', gap: '4px' }}>
+                        <ShieldCheck size={24} color="var(--accent-cyan)" />
+                        <span style={{ fontSize: '9px', fontWeight: 700 }}>شعار مائي</span>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: '150px' }}>
+                      <label className="btn-cyan-primary" style={{ padding: '6px 12px', fontSize: '11.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontWeight: 800 }}>
+                        <Upload size={14} />
+                        <span>رفع شعار العلامة المائية</span>
+                        <input type="file" accept="image/*" ref={watermarkFileInputRef} onChange={handleWatermarkLogoUpload} style={{ display: 'none' }} />
+                      </label>
+
+                      {logoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setWatermarkImage(logoUrl);
+                            setWatermarkType('IMAGE');
+                            setEnableWatermark(true);
+                            if (watermarkAngle === -30) {
+                              setWatermarkAngle(0);
+                            }
+                            toast.success('تم اعتماد شعار الترويسة ليكون أيضاً شعار العلامة المائية!', 'تم التطبيق');
+                          }}
+                          className="btn-secondary"
+                          style={{ padding: '5px 10px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                        >
+                          <Sparkles size={13} />
+                          <span>استخدام نفس شعار الترويسة</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Watermark Logo Size, Opacity & Angle Sliders */}
+                  <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed var(--border-color)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                        <span style={{ fontSize: '10.5px', color: 'var(--text-main)', fontWeight: 700 }}>شفافية الشعار:</span>
+                        <strong style={{ fontSize: '10.5px', color: 'var(--accent-cyan)' }}>{Math.round(watermarkOpacity * 100)}%</strong>
+                      </div>
+                      <input
+                        type="range"
+                        min={0.03}
+                        max={0.35}
+                        step={0.01}
+                        value={watermarkOpacity}
+                        onChange={(e) => {
+                          setWatermarkOpacity(Number(e.target.value));
+                          if (watermarkImage) {
+                            setWatermarkType('IMAGE');
+                            setEnableWatermark(true);
+                          }
+                        }}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                        <span style={{ fontSize: '10.5px', color: 'var(--text-main)', fontWeight: 700 }}>حجم الشعار:</span>
+                        <strong style={{ fontSize: '10.5px', color: 'var(--accent-cyan)' }}>{Math.round(watermarkSize * 4.2)}px</strong>
+                      </div>
+                      <input
+                        type="range"
+                        min={24}
+                        max={110}
+                        value={watermarkSize}
+                        onChange={(e) => {
+                          setWatermarkSize(Number(e.target.value));
+                          if (watermarkImage) {
+                            setWatermarkType('IMAGE');
+                            setEnableWatermark(true);
+                          }
+                        }}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '10.5px', color: 'var(--text-main)', fontWeight: 700, whiteSpace: 'nowrap' }}>زاوية الشعار ({watermarkAngle}°):</span>
+                      <input
+                        type="range"
+                        min={-90}
+                        max={90}
+                        step={5}
+                        value={watermarkAngle}
+                        onChange={(e) => setWatermarkAngle(Number(e.target.value))}
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setWatermarkAngle(0)}
+                        className="btn-secondary"
+                        style={{ padding: '2px 8px', fontSize: '10px', whiteSpace: 'nowrap' }}
+                      >
+                        0° مستقيم
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              {/* Webcam Modal */}
-              {isCameraOpen && (
-                <div style={{ marginTop: '12px', background: '#000', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
-                  <video ref={videoRef} style={{ width: '100%', maxHeight: '240px', objectFit: 'cover', borderRadius: '6px' }} />
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '8px' }}>
-                    <button type="button" onClick={capturePhoto} className="btn-cyan-primary" style={{ padding: '6px 16px', fontSize: '12px' }}>
-                      التقاط الصورة
-                    </button>
-                    <button type="button" onClick={stopCamera} className="btn-secondary" style={{ padding: '6px 16px', fontSize: '12px' }}>
-                      إلغاء
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Advanced Logo Size & Position Controls */}
-              <LogoSettingsControl
-                logoUrl={logoUrl}
-                logoWidthMm={logoWidthMm}
-                logoAlign={logoAlign}
-                logoOffsetXMm={logoOffsetXMm}
-                logoOffsetYMm={logoOffsetYMm}
-                onChange={(updates) => {
-                  if (updates.logoWidthMm !== undefined) setLogoWidthMm(updates.logoWidthMm);
-                  if (updates.logoAlign !== undefined) setLogoAlign(updates.logoAlign);
-                  if (updates.logoOffsetXMm !== undefined) setLogoOffsetXMm(updates.logoOffsetXMm);
-                  if (updates.logoOffsetYMm !== undefined) setLogoOffsetYMm(updates.logoOffsetYMm);
-                }}
-                onReset={() => {
-                  setLogoWidthMm(null);
-                  setLogoAlign(null);
-                  setLogoOffsetXMm(null);
-                  setLogoOffsetYMm(null);
-                }}
-              />
             </div>
 
             {/* Currency and Pricing Engine */}
@@ -3319,11 +3563,27 @@ export default function PaperDesignerV2() {
                 userSelect: 'none',
                 zIndex: 0,
                 textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 maxWidth: '90%',
                 lineHeight: 1.2,
               }}
             >
-              {watermarkText || labName || 'ORIGINAL REPORT'}
+              {watermarkImage && watermarkType !== 'TEXT' ? (
+                <img
+                  src={watermarkImage}
+                  alt="Watermark Logo"
+                  style={{
+                    width: `${Math.round(watermarkSize * 4.2)}px`,
+                    maxWidth: '380px',
+                    maxHeight: '380px',
+                    objectFit: 'contain',
+                  }}
+                />
+              ) : (
+                watermarkText || labName || 'ORIGINAL REPORT'
+              )}
             </div>
           )}
 

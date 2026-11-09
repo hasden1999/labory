@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import { getStore } from '../../apps/web/src/lib/serverStore';
+import { getStore, updateTestInStore } from '../../apps/web/src/lib/serverStore';
 import { GET as getPrintReport } from '../../apps/web/src/app/api/samples/[id]/print/route';
 
 async function runPdfArabicAndFlagsGoldenTest() {
@@ -233,6 +233,70 @@ async function runPdfArabicAndFlagsGoldenTest() {
   }
   console.log('  ✓ Confirmed 0 Arabic-script characters outside allowed user data fields.');
 
+  // 4.5. Regression Check: Normal Values update in Settings reflects in Print & Previous Result toggle
+  console.log('  ✓ Verifying Settings Normal Value Updates & Previous Result Toggle in Print...');
+  const origCreatIndex = store.tests.findIndex((t: any) => t.id === 't-creat' || t.code === 'CREAT');
+  const origCreatBackup = origCreatIndex >= 0 ? JSON.parse(JSON.stringify(store.tests[origCreatIndex])) : null;
+  try {
+    if (origCreatIndex >= 0) {
+      store.tests[origCreatIndex] = {
+        ...store.tests[origCreatIndex],
+        refRangeText: '0.55 - 1.45',
+        referenceRange: '0.55 - 1.45',
+        refRangeLow: 0.55,
+        refRangeHigh: 1.45,
+        referenceRanges: [
+          {
+            id: 'inline-t-creat',
+            label: 'للجميع',
+            sex: 'any',
+            ageUnit: 'years',
+            ageMin: 0,
+            ageMax: null,
+            low: 0.55,
+            high: 1.45,
+            text: '0.55 - 1.45',
+            isUserEdited: true,
+          },
+        ],
+        isUserEdited: true,
+      };
+      const updatedPrintRes = await getPrintReport(
+        new Request(`http://127.0.0.1:8080/api/samples/${testSampleId}/print?force=true`),
+        { params: { id: testSampleId } }
+      );
+      const updatedHtml = await updatedPrintRes.text();
+      assert.ok(
+        updatedHtml.includes('0.55 - 1.45'),
+        'Edited normal value in Settings (0.55 - 1.45) must immediately reflect in Print output!'
+      );
+    }
+
+    // Verify Previous Result toggle (?hidePrevious=true)
+    goldenSample.tests[0].previousValue = '142';
+    goldenSample.tests[0].previousDate = '2026-10-01T10:00:00.000Z';
+    const withPrevRes = await getPrintReport(
+      new Request(`http://127.0.0.1:8080/api/samples/${testSampleId}/print?force=true`),
+      { params: { id: testSampleId } }
+    );
+    const withPrevHtml = await withPrevRes.text();
+    assert.ok(withPrevHtml.includes('PREVIOUS'), 'PREVIOUS column must appear by default when previousValue exists');
+
+    const hidePrevRes = await getPrintReport(
+      new Request(`http://127.0.0.1:8080/api/samples/${testSampleId}/print?force=true&hidePrevious=true`),
+      { params: { id: testSampleId } }
+    );
+    const hidePrevHtml = await hidePrevRes.text();
+    assert.ok(!hidePrevHtml.includes('>142<'), 'Previous value (142) must be hidden when hidePrevious=true is passed');
+    delete goldenSample.tests[0].previousValue;
+    delete goldenSample.tests[0].previousDate;
+  } finally {
+    if (origCreatIndex >= 0 && origCreatBackup) {
+      store.tests[origCreatIndex] = origCreatBackup;
+    }
+    store.samples = store.samples.filter((s: any) => s.id !== testSampleId);
+  }
+
   // 5. Render authentic PDF via Puppeteer
   console.log('  ✓ Rendering authentic PDF report via Puppeteer...');
   const puppeteer = (await import('puppeteer')).default;
@@ -296,6 +360,7 @@ async function runPdfArabicAndFlagsGoldenTest() {
   }
 
   console.log('✅ [Golden Test] High/Low Indicators, Arrows, and Zero-Arabic Engine PASSED 100%!\n');
+  process.exit(0);
 }
 
 runPdfArabicAndFlagsGoldenTest().catch((err) => {

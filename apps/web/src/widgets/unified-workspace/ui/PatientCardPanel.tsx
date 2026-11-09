@@ -357,8 +357,9 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
         maxWidth: '312px',
         flexShrink: 0,
         backgroundColor: 'var(--bg-card)',
-        borderRadius: '12px',
-        border: '1px solid var(--border-color)',
+        borderRadius: '14px',
+        border: '2.5px solid #2563eb',
+        boxShadow: '0 4px 16px rgba(37, 99, 235, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05)',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -371,43 +372,64 @@ export default function PatientCardPanel({ workspace }: PatientCardPanelProps) {
         transition: 'background-color 0.15s ease, border-color 0.15s ease',
       }}
     >
-      {/* 1. Header: Patient Panel Title */}
+      {/* 1. Header: Prominent Royal Blue Section 1 Banner */}
       <div
         style={{
           flexShrink: 0,
-          borderBottom: '1px solid var(--border-color)',
-          paddingBottom: '10px',
-          marginBottom: '12px',
+          margin: '-16px -16px 14px -16px',
+          padding: '13px 16px',
+          background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)',
+          color: '#ffffff',
+          boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
         }}
       >
-        <h2
-          style={{
-            fontSize: '15px',
-            fontWeight: 800,
-            color: 'var(--text-main)',
-            margin: 0,
-          }}
-        >
-          بيانات المريض
-        </h2>
-        {patient.visitCount ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span
             style={{
-              fontSize: '11px',
-              fontWeight: 800,
-              padding: '2px 8px',
-              borderRadius: '999px',
-              backgroundColor: patient.visitCount > 1 ? 'rgba(15, 118, 110, 0.12)' : 'var(--bg-input)',
-              color: patient.visitCount > 1 ? '#0f766e' : 'var(--text-muted)',
-              border: '1px solid var(--border-color)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '4px 12px',
+              borderRadius: '20px',
+              fontSize: '12px',
+              fontWeight: 900,
+              color: '#ffffff',
+              background: 'rgba(255, 255, 255, 0.24)',
+              border: '1px solid rgba(255, 255, 255, 0.4)',
             }}
           >
-            🏥 {patient.visitCount} {patient.visitCount === 1 ? 'زيارة' : 'زيارات'}
+            القسم 1
           </span>
-        ) : null}
+          <h2
+            style={{
+              fontSize: '16px',
+              fontWeight: 800,
+              color: '#ffffff',
+              margin: 0,
+              letterSpacing: '-0.2px',
+            }}
+          >
+            بيانات المريض
+          </h2>
+        </div>
+        <span
+          style={{
+            fontSize: '11.5px',
+            fontWeight: 800,
+            padding: '3px 10px',
+            borderRadius: '9999px',
+            background: 'rgba(255, 255, 255, 0.2)',
+            color: '#ffffff',
+            border: '1px solid rgba(255, 255, 255, 0.35)',
+          }}
+        >
+          {patient.visitCount
+            ? `🏥 ${patient.visitCount} ${patient.visitCount === 1 ? 'زيارة' : 'زيارات'}`
+            : 'معلومات الزيارة'}
+        </span>
       </div>
 
       {/* 2. Main Patient Input Fields */}

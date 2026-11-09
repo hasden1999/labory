@@ -109,6 +109,7 @@ export interface LabSettings {
   showPanicFlags?: boolean;
   showClinicalComments?: boolean;
   showReferenceRanges?: boolean;
+  showPreviousResults?: boolean;
   installedVersion?: string;
 
   // Sheet Elements & Watermark Customization
@@ -764,6 +765,7 @@ function initStore(): ServerStore {
       showPanicFlags: true,
       showClinicalComments: true,
       showReferenceRanges: true,
+      showPreviousResults: true,
       installedVersion: 'v1.1.3',
       showLabName: true,
       labNameFontSize: 22,
@@ -779,6 +781,7 @@ function initStore(): ServerStore {
       showFooterSignature: true,
       enableWatermark: false,
       watermarkType: 'TEXT',
+      watermarkImage: '',
       watermarkText: '',
       watermarkOpacity: 0.08,
       watermarkAngle: -30,
@@ -869,7 +872,13 @@ export function flushStoreSync(): void {
     if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
 
     if (global.__labStore) {
-      const payload = JSON.stringify(global.__labStore, null, 2);
+      if (Array.isArray(global.__labStore.deviceRawLogs) && global.__labStore.deviceRawLogs.length > 200) {
+        global.__labStore.deviceRawLogs = global.__labStore.deviceRawLogs.slice(0, 200);
+      }
+      if (Array.isArray((global.__labStore as any).auditLogs) && (global.__labStore as any).auditLogs.length > 1000) {
+        (global.__labStore as any).auditLogs = (global.__labStore as any).auditLogs.slice(0, 1000);
+      }
+      const payload = JSON.stringify(global.__labStore);
       tempFile = `${DATA_FILE}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
       const bakFile = `${DATA_FILE}.bak`;
 
@@ -909,7 +918,13 @@ async function executeAsyncSave(): Promise<void> {
     if (!fs.existsSync(BACKUP_DIR)) await fs.promises.mkdir(BACKUP_DIR, { recursive: true });
 
     if (global.__labStore) {
-      const payload = JSON.stringify(global.__labStore, null, 2);
+      if (Array.isArray(global.__labStore.deviceRawLogs) && global.__labStore.deviceRawLogs.length > 200) {
+        global.__labStore.deviceRawLogs = global.__labStore.deviceRawLogs.slice(0, 200);
+      }
+      if (Array.isArray((global.__labStore as any).auditLogs) && (global.__labStore as any).auditLogs.length > 1000) {
+        (global.__labStore as any).auditLogs = (global.__labStore as any).auditLogs.slice(0, 1000);
+      }
+      const payload = JSON.stringify(global.__labStore);
       tempFile = `${DATA_FILE}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}.tmp`;
       const bakFile = `${DATA_FILE}.bak`;
 
@@ -956,6 +971,14 @@ export function scheduleSaveStore(delayMs = 250): void {
 
 // Backward-compatible saveStoreToFile: now non-blocking by default (0ms latency for HTTP requests)
 export function saveStoreToFile(forceSync = false): void {
+  if (global.__labStore) {
+    if (Array.isArray(global.__labStore.deviceRawLogs) && global.__labStore.deviceRawLogs.length > 200) {
+      global.__labStore.deviceRawLogs = global.__labStore.deviceRawLogs.slice(0, 200);
+    }
+    if (Array.isArray((global.__labStore as any).auditLogs) && (global.__labStore as any).auditLogs.length > 1000) {
+      (global.__labStore as any).auditLogs = (global.__labStore as any).auditLogs.slice(0, 1000);
+    }
+  }
   if (forceSync) {
     flushStoreSync();
   } else {
@@ -1681,22 +1704,54 @@ export function updateTestInStore(id: string, data: any): any | null {
   // Sync referenceRanges if user edited refRangeText without supplying custom ranges
   if (data.refRangeText !== undefined && data.referenceRanges === undefined) {
     const trimmed = String(data.refRangeText || '').trim();
+    const prevText = String(existing.refRangeText || (existing as any).referenceRange || '').trim();
+    const textChanged = trimmed !== prevText;
     const existingRanges = Array.isArray(existing.referenceRanges) ? existing.referenceRanges : [];
     if (!trimmed) {
       updated.referenceRanges = [];
-    } else if (existingRanges.length <= 1) {
-      const numMatch = trimmed.match(/^\s*(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)\s*$/);
-      updated.referenceRanges = [{
-        id: (existingRanges[0]?.id) || `inline-${id}`,
-        label: existingRanges[0]?.label || 'للجميع',
-        sex: existingRanges[0]?.sex || 'any',
-        ageUnit: existingRanges[0]?.ageUnit || 'years',
-        ageMin: existingRanges[0]?.ageMin ?? null,
-        ageMax: existingRanges[0]?.ageMax ?? null,
-        low: numMatch ? Number(numMatch[1]) : null,
-        high: numMatch ? Number(numMatch[2]) : null,
-        text: trimmed,
-      }];
+    } else if (existingRanges.length <= 1 || textChanged) {
+      if (trimmed.includes('|')) {
+        const segments = trimmed.split('|').map(s => s.trim()).filter(Boolean);
+        updated.referenceRanges = segments.map((seg, idx) => {
+          const colonIdx = seg.indexOf(':');
+          const labelPart = colonIdx !== -1 ? seg.slice(0, colonIdx).trim() : (existingRanges[idx]?.label || `فئة ${idx + 1}`);
+          const valPart = colonIdx !== -1 ? seg.slice(colonIdx + 1).trim() : seg;
+          const numMatch = valPart.match(/^\s*(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)\s*$/);
+          const lowerLabel = labelPart.toLowerCase();
+          const inferredSex =
+            lowerLabel.includes('male') && !lowerLabel.includes('female')
+              ? 'male'
+              : lowerLabel.includes('female') || lowerLabel.includes('أنثى') || lowerLabel.includes('انثى') || lowerLabel.includes('نساء')
+              ? 'female'
+              : lowerLabel.includes('ذكر') || lowerLabel.includes('رجال')
+              ? 'male'
+              : (existingRanges[idx]?.sex || 'any');
+          return {
+            id: existingRanges[idx]?.id || `inline-${id}-${idx}`,
+            label: labelPart,
+            sex: inferredSex,
+            ageUnit: existingRanges[idx]?.ageUnit || 'years',
+            ageMin: existingRanges[idx]?.ageMin ?? null,
+            ageMax: existingRanges[idx]?.ageMax ?? null,
+            low: numMatch ? Number(numMatch[1]) : null,
+            high: numMatch ? Number(numMatch[2]) : null,
+            text: valPart,
+          };
+        });
+      } else {
+        const numMatch = trimmed.match(/^\s*(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)\s*$/);
+        updated.referenceRanges = [{
+          id: existingRanges[0]?.id || `inline-${id}`,
+          label: existingRanges.length === 1 ? (existingRanges[0]?.label || 'للجميع') : 'للجميع',
+          sex: existingRanges.length === 1 ? (existingRanges[0]?.sex || 'any') : 'any',
+          ageUnit: existingRanges.length === 1 ? (existingRanges[0]?.ageUnit || 'years') : 'years',
+          ageMin: existingRanges.length === 1 ? (existingRanges[0]?.ageMin ?? null) : null,
+          ageMax: existingRanges.length === 1 ? (existingRanges[0]?.ageMax ?? null) : null,
+          low: numMatch ? Number(numMatch[1]) : null,
+          high: numMatch ? Number(numMatch[2]) : null,
+          text: trimmed,
+        }];
+      }
     }
   }
 
@@ -1711,6 +1766,9 @@ export function updateTestInStore(id: string, data: any): any | null {
     }
   }
 
+  (updated as any).referenceRange = updated.refRangeText;
+  (updated as any).normalRange = updated.refRangeText;
+
   store.tests[index] = updated;
 
   // Live update all in-memory sample test references to prevent stale reference ranges and metadata
@@ -1718,9 +1776,14 @@ export function updateTestInStore(id: string, data: any): any | null {
     store.samples.forEach(s => {
       if (Array.isArray(s.tests)) {
         s.tests.forEach(st => {
-          if (st.testId === id || st.test?.id === id) {
+          const codeMatch =
+            updated.code &&
+            String(st.test?.code || (st as any).code || '').toUpperCase() === String(updated.code).toUpperCase();
+          if (st.testId === id || st.test?.id === id || st.testId === updated.id || st.test?.id === updated.id || codeMatch) {
             st.test = { ...st.test, ...updated };
             st.refRangeText = updated.refRangeText;
+            st.referenceRange = updated.refRangeText;
+            (st as any).normalRange = updated.refRangeText;
             st.refRangeLow = updated.refRangeLow;
             st.refRangeHigh = updated.refRangeHigh;
             if (updated.unit) st.unit = updated.unit;
@@ -2034,13 +2097,33 @@ export function findSample(idOrNumber: string): SampleRecord | undefined {
 export function enrichSamplesWithDeltaCheck(samples: SampleRecord[], targetSampleId?: string): SampleRecord[] {
   if (!Array.isArray(samples) || samples.length === 0) return samples;
 
+  const getPatientKey = (s: SampleRecord): string => {
+    const pId = s.patientId || s.patient?.id;
+    if (pId) return `id:${pId}`;
+    const pName = s.patient?.name ? normalizeArabic(s.patient.name) : '';
+    return pName ? `name:${pName}` : '';
+  };
+
+  // Pre-cache parsed timestamps once to avoid repeated Date allocations in inner loops
+  const sampleTimeMap = new Map<string, number>();
+  for (const s of samples) {
+    sampleTimeMap.set(s.id, s.createdAt ? new Date(s.createdAt).getTime() : 0);
+  }
+
   // Build high-speed patient history map to reduce O(N^2) quadratic scan to O(N)
   const patientMap = new Map<string, SampleRecord[]>();
+  let targetKeyFilter: string | null = null;
+  if (targetSampleId) {
+    const targetSample = samples.find(s => s.id === targetSampleId);
+    if (!targetSample) return samples;
+    targetKeyFilter = getPatientKey(targetSample);
+    if (!targetKeyFilter) return samples;
+  }
+
   for (const s of samples) {
-    const pId = s.patientId || s.patient?.id;
-    const pName = s.patient?.name ? normalizeArabic(s.patient.name) : '';
-    const key = pId ? `id:${pId}` : pName ? `name:${pName}` : '';
+    const key = getPatientKey(s);
     if (!key) continue;
+    if (targetKeyFilter && key !== targetKeyFilter) continue;
     let list = patientMap.get(key);
     if (!list) {
       list = [];
@@ -2052,17 +2135,19 @@ export function enrichSamplesWithDeltaCheck(samples: SampleRecord[], targetSampl
   for (const sample of samples) {
     if (targetSampleId && sample.id !== targetSampleId) continue;
     if (!Array.isArray(sample.tests)) continue;
-    const patId = sample.patientId || sample.patient?.id;
-    const patName = sample.patient?.name ? normalizeArabic(sample.patient.name) : '';
-    const key = patId ? `id:${patId}` : patName ? `name:${patName}` : '';
+    const key = getPatientKey(sample);
     if (!key) continue;
 
     const patientHistory = patientMap.get(key);
     if (!patientHistory || patientHistory.length <= 1) continue;
 
-    const sampleCreatedMs = sample.createdAt ? new Date(sample.createdAt).getTime() : Date.now();
-    for (const st of sample.tests) {
-      if (st.previousValue !== undefined && st.previousValue !== null && String(st.previousValue).trim() !== '') {
+    const sampleCreatedMs = sampleTimeMap.get(sample.id) || Date.now();
+    for (const currTest of sample.tests) {
+      const explicitIncludePrev = (currTest as any).includePrevious;
+      if (currTest.previousValue !== undefined && currTest.previousValue !== null && String(currTest.previousValue).trim() !== '') {
+        if (explicitIncludePrev !== undefined) {
+          (currTest as any).includePrevious = Boolean(explicitIncludePrev);
+        }
         continue;
       }
       let latestPrevVal: string | null = null;
@@ -2070,19 +2155,19 @@ export function enrichSamplesWithDeltaCheck(samples: SampleRecord[], targetSampl
       let latestPrevNum: number | null = null;
       let latestMs = -1;
 
-      const stCode = (st.test?.code || st.code || '').toUpperCase().trim();
-      const stName = (st.test?.name || st.name || '').toLowerCase().trim();
+      const stCode = (currTest.test?.code || currTest.code || '').toUpperCase().trim();
+      const stName = (currTest.test?.name || currTest.name || '').toLowerCase().trim();
 
       for (const other of patientHistory) {
         if (other.id === sample.id) continue;
-        const otherMs = other.createdAt ? new Date(other.createdAt).getTime() : 0;
+        const otherMs = sampleTimeMap.get(other.id) || 0;
         if (otherMs >= sampleCreatedMs || otherMs <= latestMs) continue;
 
         const matchTest = (other.tests || []).find(
           ot => {
             const otCode = (ot.test?.code || ot.code || '').toUpperCase().trim();
             const otName = (ot.test?.name || ot.name || '').toLowerCase().trim();
-            const idMatch = (st.testId && (ot.testId === st.testId || ot.test?.id === st.testId)) || (st.test?.id && (ot.testId === st.test.id || ot.test?.id === st.test.id));
+            const idMatch = (currTest.testId && (ot.testId === currTest.testId || ot.test?.id === currTest.testId)) || (currTest.test?.id && (ot.testId === currTest.test.id || ot.test?.id === currTest.test.id));
             const codeMatch = stCode && otCode && stCode === otCode;
             const nameMatch = stName && otName && stName === otName;
             return (idMatch || codeMatch || nameMatch) && ot.resultValue !== null && ot.resultValue !== undefined && String(ot.resultValue).trim() !== '';
@@ -2096,9 +2181,12 @@ export function enrichSamplesWithDeltaCheck(samples: SampleRecord[], targetSampl
         }
       }
       if (latestPrevVal !== null) {
-        st.previousValue = latestPrevVal;
-        st.previousDate = latestPrevDate;
-        st.previousSampleNumber = latestPrevNum;
+        currTest.previousValue = latestPrevVal;
+        currTest.previousDate = latestPrevDate;
+        currTest.previousSampleNumber = latestPrevNum;
+      }
+      if (explicitIncludePrev !== undefined) {
+        (currTest as any).includePrevious = Boolean(explicitIncludePrev);
       }
     }
   }

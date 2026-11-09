@@ -71,6 +71,12 @@ function isSpecialFormTest(code: string, name: string): 'GUE' | 'GSE' | 'CBC' | 
   return null;
 }
 
+function isCbcTest(t: any): boolean {
+  const code = t?.test?.code || t?.code || '';
+  const name = t?.test?.name || t?.name || '';
+  return isSpecialFormTest(code, name) === 'CBC';
+}
+
 function parseRefRangeBounds(refStr: string): { low?: number; high?: number } {
   if (!refStr) return {};
   const match = refStr.match(/(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)/);
@@ -111,6 +117,10 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
 
   // Delete Confirm State
   const [deleteSampleId, setDeleteSampleId] = useState<string | null>(null);
+  const [deletingTestKey, setDeletingTestKey] = useState<string | null>(null);
+
+  // Windowed Visit Rendering State
+  const [visibleVisitsCount, setVisibleVisitsCount] = useState<number>(50);
 
   // Print Preview Modal
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -220,6 +230,15 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
     });
   }, [visits, activeFilter, searchQuery, todayStr]);
 
+  useEffect(() => {
+    setVisibleVisitsCount(50);
+  }, [searchQuery, activeFilter]);
+
+  const displayedVisits = useMemo(
+    () => filteredVisits.slice(0, visibleVisitsCount),
+    [filteredVisits, visibleVisitsCount]
+  );
+
   const activeVisit = useMemo(() => {
     return visits.find((v) => v.sampleId === selectedSampleId) || filteredVisits[0] || null;
   }, [visits, filteredVisits, selectedSampleId]);
@@ -236,6 +255,115 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
       })
       .sort((a, b) => new Date(b.collectionTime).getTime() - new Date(a.collectionTime).getTime());
   }, [visits, activeVisit]);
+
+  const buildPrintUrl = useCallback((visitTarget: FlattenedVisit | any) => {
+    const visitId = visitTarget?.sampleId || visitTarget?.id;
+    const visitTests = Array.isArray(visitTarget?.tests) ? visitTarget.tests : [];
+    const allPriorHidden =
+      visitTests.length > 0 && visitTests.every((t: any) => (t as any).includePrevious === false);
+    let url = `/api/samples/${encodeURIComponent(visitId)}/print?force=true&_t=${Date.now()}`;
+    if (allPriorHidden) {
+      url += '&hidePrevious=true';
+    }
+    return url;
+  }, []);
+
+  const handleDeleteTestFromVisit = async (visit: any, st: any) => {
+    const visitId = visit?.sampleId || visit?.id;
+    if (!visitId || !st) return;
+    const visitTests = Array.isArray(visit.tests) ? visit.tests : [];
+    const nonCalcTests = visitTests.filter((t: any) => !t.test?.isCalculated && !t.isCalculated);
+    const effectiveCount = nonCalcTests.length > 0 ? nonCalcTests.length : visitTests.length;
+    if (visitTests.length <= 1 || effectiveCount <= 1) {
+      if (window.confirm('هذا هو الفحص الوحيد في هذه الزيارة. هل تريد حذف الزيارة بالكامل؟')) {
+        setDeleteSampleId(visitId);
+      }
+      return;
+    }
+    const testLabel = st.test?.name || st.test?.code || 'الفحص';
+    const patientLabel = visit.patient?.name || '';
+    if (
+      !window.confirm(
+        `هل أنت متأكد من حذف فحص "${testLabel}" من زيارة المريض "${patientLabel}"؟\nسيتم تعديل المبلغ الإجمالي تلقائياً.`
+      )
+    ) {
+      return;
+    }
+    const targetKey = st.id || st.testId;
+    setDeletingTestKey(targetKey);
+    try {
+      const res = await fetch(
+        `/api/samples/${encodeURIComponent(visitId)}/tests?sampleTestId=${encodeURIComponent(st.id || st.testId || '')}`,
+        { method: 'DELETE' }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || data?.message || 'تعذر حذف الفحص من الزيارة');
+      }
+      const updatedSample = data?.sample || (data?.id ? data : null);
+      setSamples((prev) =>
+        prev.map((s: any) => {
+          if (s.id !== visitId) return s;
+          if (updatedSample && updatedSample.id) {
+            return { ...s, ...updatedSample };
+          }
+          return {
+            ...s,
+            tests: (s.tests || []).filter((t: any) => t.id !== st.id && (t.testId || t.id) !== (st.testId || st.id)),
+          };
+        })
+      );
+      setEditedResults((prev) => {
+        const next = { ...prev };
+        if (st.id) delete next[st.id];
+        if (st.testId) delete next[st.testId];
+        return next;
+      });
+      toast.success('تم حذف الفحص وتحديث حساب الزيارة بنجاح');
+      await loadData();
+    } catch (err: any) {
+      toast.error(err.message || 'تعذر حذف الفحص من الزيارة');
+    } finally {
+      setDeletingTestKey(null);
+    }
+  };
+
+  const handleTogglePreviousResult = async (visitId: string, sampleTestId: string, currentInclude: boolean) => {
+    if (!visitId) return;
+    const nextInclude = !currentInclude;
+    setSamples((prev) =>
+      prev.map((s: any) => {
+        if (s.id !== visitId) return s;
+        return {
+          ...s,
+          tests: (s.tests || []).map((t: any) => {
+            if (sampleTestId === 'ALL' || t.id === sampleTestId || t.testId === sampleTestId) {
+              return { ...t, includePrevious: nextInclude };
+            }
+            return t;
+          }),
+        };
+      })
+    );
+    try {
+      const res = await fetch(`/api/samples/${encodeURIComponent(visitId)}/tests`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sampleTestId, includePrevious: nextInclude }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.error || errData?.message || 'تعذر تحديث حالة النتيجة السابقة');
+      }
+      toast.info(
+        nextInclude
+          ? 'سيتم إظهار النتيجة السابقة في التقرير المطبوع'
+          : 'تم إخفاء النتيجة السابقة من التقرير المطبوع (ستظهر النتيجة الحالية فقط)'
+      );
+    } catch (err: any) {
+      toast.error(err.message || 'تعذر تحديث حالة النتيجة السابقة');
+    }
+  };
 
   useEffect(() => {
     if (!activeVisit) {
@@ -261,7 +389,47 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
       const resultsPayload = activeVisit.tests.map((st: any) => {
         const key = st.testId || st.id;
         const val = editedResults[key] !== undefined ? editedResults[key] : (st.resultValue || '');
-        const refRange = st.referenceRange || st.test?.referenceRange || '';
+        const rRangesArr = Array.isArray(st.test?.referenceRanges) ? st.test.referenceRanges : [];
+        const resolvedRef = (st as any).resolvedRef;
+        const formattedRangesArr =
+          rRangesArr.length > 0
+            ? rRangesArr
+                .map((r: any) => {
+                  const hasLow = r.low !== null && r.low !== undefined && String(r.low).trim() !== '';
+                  const hasHigh = r.high !== null && r.high !== undefined && String(r.high).trim() !== '';
+                  const txt =
+                    hasLow && hasHigh
+                      ? `${r.low} - ${r.high}`
+                      : hasLow
+                        ? `>= ${r.low}`
+                        : hasHigh
+                          ? `<= ${r.high}`
+                          : r.text || r.rangeText || '';
+                  if (!txt) return '';
+                  return r.label ? `${r.label}: ${txt}` : txt;
+                })
+                .filter(Boolean)
+                .join('\n')
+            : '';
+        const refRange =
+          (rRangesArr.length > 0
+            ? (rRangesArr.length === 1 || resolvedRef?.matched) &&
+              resolvedRef?.rangeText &&
+              resolvedRef.rangeText !== '-'
+              ? resolvedRef.rangeText
+              : formattedRangesArr
+            : '') ||
+          (resolvedRef?.rangeText && resolvedRef.rangeText !== '-' ? resolvedRef.rangeText : '') ||
+          (st.test?.refRangeLow != null &&
+          st.test?.refRangeHigh != null &&
+          String(st.test.refRangeLow).trim() !== '' &&
+          String(st.test.refRangeHigh).trim() !== ''
+            ? `${st.test.refRangeLow} - ${st.test.refRangeHigh}`
+            : '') ||
+          st.test?.refRangeText ||
+          st.test?.referenceRange ||
+          st.referenceRange ||
+          '';
         const bounds = parseRefRangeBounds(refRange);
         const numVal = parseFloat(val);
         let isAbnormal = Boolean(st.isAbnormal);
@@ -340,7 +508,7 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
         loadData();
       } catch {}
     }
-    setPreviewUrl(`/api/samples/${activeVisit.sampleId}/print?force=true&_t=${Date.now()}`);
+    setPreviewUrl(buildPrintUrl(activeVisit));
   };
 
   const handleSendWhatsApp = async () => {
@@ -766,142 +934,190 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                 لا توجد سجلات مطابقة للبحث
               </div>
             ) : (
-              filteredVisits.map((visit) => {
-                const isSelected = activeVisit?.sampleId === visit.sampleId;
-                const isCompleted = isCompletedStatus(visit.sampleStatus);
-                const hasDebt = visit.remainingAmount > 0;
-                const patientVisitsCount = getPatientVisitCount(visit.patient?.id || visit.rawSample?.patientId, visit.patient?.name);
-                const testSummary = visit.tests
-                  .slice(0, 4)
-                  .map((t: any) => t.test?.code || t.test?.name || 'فحص')
-                  .join(' , ');
+              <>
+                {displayedVisits.map((visit) => {
+                  const isSelected = activeVisit?.sampleId === visit.sampleId;
+                  const isCompleted = isCompletedStatus(visit.sampleStatus);
+                  const hasDebt = visit.remainingAmount > 0;
+                  const patientVisitsCount = getPatientVisitCount(visit.patient?.id || visit.rawSample?.patientId, visit.patient?.name);
+                  const testSummary = visit.tests
+                    .slice(0, 4)
+                    .map((t: any) => t.test?.code || t.test?.name || 'فحص')
+                    .join(' , ');
 
-                return (
-                  <div
-                    key={visit.sampleId}
-                    onClick={() => setSelectedSampleId(visit.sampleId)}
-                    style={{
-                      padding: '11px 12px',
-                      borderRadius: '10px',
-                      border: isSelected ? '2px solid #0f766e' : '1px solid var(--border-color)',
-                      backgroundColor: isSelected ? 'rgba(15, 118, 110, 0.06)' : 'var(--bg-card)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                      transition: 'all 0.12s ease',
-                    }}
-                  >
-                    {/* Patient Info (Right side in RTL) */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                      <div
-                        style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '999px',
-                          backgroundColor: isSelected ? '#0f766e' : 'var(--bg-input)',
-                          color: isSelected ? '#ffffff' : 'var(--text-muted)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          fontWeight: 800,
-                          fontSize: '13px',
-                        }}
-                      >
-                        <User size={17} />
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span
+                  return (
+                    <div
+                      key={visit.sampleId}
+                      onClick={() => setSelectedSampleId(visit.sampleId)}
+                      style={{
+                        padding: '11px 12px',
+                        borderRadius: '10px',
+                        border: isSelected ? '2px solid #0f766e' : '1px solid var(--border-color)',
+                        backgroundColor: isSelected ? 'rgba(15, 118, 110, 0.06)' : 'var(--bg-card)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                        transition: 'all 0.12s ease',
+                      }}
+                    >
+                      {/* Patient Info (Right side in RTL) */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                        <div
+                          style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '999px',
+                            backgroundColor: isSelected ? '#0f766e' : 'var(--bg-input)',
+                            color: isSelected ? '#ffffff' : 'var(--text-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            fontWeight: 800,
+                            fontSize: '13px',
+                          }}
+                        >
+                          <User size={17} />
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span
+                              style={{
+                                fontSize: '13.5px',
+                                fontWeight: 800,
+                                color: 'var(--text-main)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              {visit.patient?.name || 'مريض'}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                padding: '1px 7px',
+                                borderRadius: '999px',
+                                backgroundColor: 'rgba(15, 118, 110, 0.12)',
+                                color: '#0f766e',
+                                flexShrink: 0,
+                              }}
+                            >
+                              #{visit.sampleNumber}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: 800,
+                                padding: '1px 6px',
+                                borderRadius: '999px',
+                                backgroundColor: patientVisitsCount > 1 ? 'rgba(15, 118, 110, 0.12)' : 'var(--bg-input)',
+                                color: patientVisitsCount > 1 ? '#0f766e' : 'var(--text-muted)',
+                                border: '1px solid var(--border-color)',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {patientVisitsCount} {patientVisitsCount === 1 ? 'زيارة' : 'زيارات'}
+                            </span>
+                          </div>
+                          <div
                             style={{
-                              fontSize: '13.5px',
-                              fontWeight: 800,
-                              color: 'var(--text-main)',
+                              fontSize: '11.5px',
+                              color: 'var(--text-muted)',
+                              fontWeight: 600,
+                              marginTop: '3px',
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                             }}
                           >
-                            {visit.patient?.name || 'مريض'}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 800,
-                              padding: '1px 7px',
-                              borderRadius: '999px',
-                              backgroundColor: 'rgba(15, 118, 110, 0.12)',
-                              color: '#0f766e',
-                              flexShrink: 0,
-                            }}
-                          >
-                            #{visit.sampleNumber}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: 800,
-                              padding: '1px 6px',
-                              borderRadius: '999px',
-                              backgroundColor: patientVisitsCount > 1 ? 'rgba(15, 118, 110, 0.12)' : 'var(--bg-input)',
-                              color: patientVisitsCount > 1 ? '#0f766e' : 'var(--text-muted)',
-                              border: '1px solid var(--border-color)',
-                              flexShrink: 0,
-                            }}
-                          >
-                            {patientVisitsCount} {patientVisitsCount === 1 ? 'زيارة' : 'زيارات'}
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            fontSize: '11.5px',
-                            color: 'var(--text-muted)',
-                            fontWeight: 600,
-                            marginTop: '3px',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                        >
-                          {testSummary || 'بدون فحوصات'}
+                            {testSummary || 'بدون فحوصات'}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Status Badges (Left side in RTL) */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 800,
-                          padding: '2px 9px',
-                          borderRadius: '999px',
-                          backgroundColor: isCompleted ? '#dcfce7' : '#e0f2fe',
-                          color: isCompleted ? '#15803d' : '#0369a1',
-                        }}
-                      >
-                        {isCompleted ? 'مكتمل' : 'قيد الفحص'}
-                      </span>
-                      {hasDebt && (
+                      {/* Status Badges (Left side in RTL) */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
                         <span
                           style={{
-                            fontSize: '10.5px',
+                            fontSize: '11px',
                             fontWeight: 800,
-                            padding: '2px 8px',
+                            padding: '2px 9px',
                             borderRadius: '999px',
-                            backgroundColor: '#fee2e2',
-                            color: '#b91c1c',
+                            backgroundColor: isCompleted ? '#dcfce7' : '#e0f2fe',
+                            color: isCompleted ? '#15803d' : '#0369a1',
                           }}
                         >
-                          غير مسدد
+                          {isCompleted ? 'مكتمل' : 'قيد الفحص'}
                         </span>
-                      )}
+                        {hasDebt && (
+                          <span
+                            style={{
+                              fontSize: '10.5px',
+                              fontWeight: 800,
+                              padding: '2px 8px',
+                              borderRadius: '999px',
+                              backgroundColor: '#fee2e2',
+                              color: '#b91c1c',
+                            }}
+                          >
+                            غير مسدد
+                          </span>
+                        )}
+                      </div>
                     </div>
+                  );
+                })}
+                {filteredVisits.length > visibleVisitsCount && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      padding: '8px 4px 4px 4px',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setVisibleVisitsCount((prev) => prev + 50)}
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: '9px',
+                        border: '1.5px solid #0f766e',
+                        backgroundColor: 'rgba(15, 118, 110, 0.08)',
+                        color: '#0f766e',
+                        fontSize: '12px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      عرض المزيد من الزيارات (متبقي {filteredVisits.length - visibleVisitsCount} من أصل {filteredVisits.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVisibleVisitsCount(filteredVisits.length)}
+                      style={{
+                        width: '100%',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-input)',
+                        color: 'var(--text-muted)',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      عرض الكل ({filteredVisits.length})
+                    </button>
                   </div>
-                );
-              })
+                )}
+              </>
             )}
           </div>
         </section>
@@ -1031,6 +1247,62 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                         <Plus size={13} />
                         <span>➕ إضافة فحص</span>
                       </button>
+                      {(() => {
+                        const hasAnyPrior = (activeVisit.tests || []).some((t: any) => {
+                          if (Boolean(t.previousValue)) return true;
+                          if (isCbcTest(t) && currentPatientVisits.length > 1) return true;
+                          if (currentPatientVisits.length > 1) {
+                            const tCode = (t.test?.code || t.code || '').toUpperCase().trim();
+                            const tName = (t.test?.name || t.name || '').toLowerCase().trim();
+                            const curTime = new Date(activeVisit.collectionTime).getTime();
+                            for (const pv of currentPatientVisits) {
+                              if (pv.sampleId === activeVisit.sampleId) continue;
+                              if (new Date(pv.collectionTime).getTime() >= curTime) continue;
+                              const pt = (pv.tests || []).find(
+                                (x: any) =>
+                                  x.testId === (t.testId || t.id) ||
+                                  (tCode && (x.test?.code || x.code || '').toUpperCase().trim() === tCode) ||
+                                  (tName && (x.test?.name || x.name || '').toLowerCase().trim() === tName)
+                              );
+                              if (pt && pt.resultValue && String(pt.resultValue).trim() !== '') return true;
+                            }
+                          }
+                          return false;
+                        });
+                        const allPriorHidden =
+                          (activeVisit.tests || []).length > 0 &&
+                          (activeVisit.tests || []).every((t: any) => (t as any).includePrevious === false);
+                        if (!hasAnyPrior) return null;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePreviousResult(activeVisit.sampleId, 'ALL', !allPriorHidden)}
+                            title={
+                              allPriorHidden
+                                ? 'اضغط لإظهار النتائج السابقة في التقرير المطبوع'
+                                : 'اضغط لإخفاء النتائج السابقة من التقرير المطبوع'
+                            }
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              fontSize: '11.5px',
+                              fontWeight: 800,
+                              padding: '3px 11px',
+                              borderRadius: '999px',
+                              backgroundColor: allPriorHidden ? 'rgba(239, 68, 68, 0.1)' : '#eff6ff',
+                              color: allPriorHidden ? '#dc2626' : '#1d4ed8',
+                              border: allPriorHidden ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid #bfdbfe',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            <span>
+                              {allPriorHidden ? '📊 النتيجة السابقة: مخفية (الحالية فقط)' : '📊 النتيجة السابقة: ظاهرة'}
+                            </span>
+                          </button>
+                        );
+                      })()}
                       <button
                         type="button"
                         onClick={handleOpenEditPatient}
@@ -1175,7 +1447,7 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                         <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700, width: '220px' }}>Result</th>
                         <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700 }}>Units</th>
                         <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700 }}>Reference Range</th>
-                        <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700, width: '110px' }}>Status</th>
+                        <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700, width: '140px' }}>Status</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1186,22 +1458,47 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                           const name = st.test?.name || code || 'Test';
                           const unit = st.unit || st.test?.unit || '-';
                           const rRangesArr = Array.isArray(st.test?.referenceRanges) ? st.test.referenceRanges : [];
+                          const resolvedRef = (st as any).resolvedRef;
+                          const formattedRangesArr =
+                            rRangesArr.length > 0
+                              ? rRangesArr
+                                  .map((r: any) => {
+                                    const hasLow = r.low !== null && r.low !== undefined && String(r.low).trim() !== '';
+                                    const hasHigh = r.high !== null && r.high !== undefined && String(r.high).trim() !== '';
+                                    const txt =
+                                      hasLow && hasHigh
+                                        ? `${r.low} - ${r.high}`
+                                        : hasLow
+                                          ? `>= ${r.low}`
+                                          : hasHigh
+                                            ? `<= ${r.high}`
+                                            : r.text || r.rangeText || '';
+                                    if (!txt) return '';
+                                    return r.label ? `${r.label}: ${txt}` : txt;
+                                  })
+                                  .filter(Boolean)
+                                  .join('\n')
+                              : '';
+
                           const refRange =
-                            st.referenceRange ||
-                            st.test?.referenceRange ||
-                            st.test?.refRangeText ||
-                            (st.test?.refRangeLow != null && st.test?.refRangeHigh != null
+                            (rRangesArr.length > 0
+                              ? (rRangesArr.length === 1 || resolvedRef?.matched) &&
+                                resolvedRef?.rangeText &&
+                                resolvedRef.rangeText !== '-'
+                                ? resolvedRef.rangeText
+                                : formattedRangesArr
+                              : '') ||
+                            (resolvedRef?.rangeText && resolvedRef.rangeText !== '-' ? resolvedRef.rangeText : '') ||
+                            (st.test?.refRangeLow != null &&
+                            st.test?.refRangeHigh != null &&
+                            String(st.test.refRangeLow).trim() !== '' &&
+                            String(st.test.refRangeHigh).trim() !== ''
                               ? `${st.test.refRangeLow} - ${st.test.refRangeHigh}`
-                              : rRangesArr.length > 0
-                                ? rRangesArr
-                                    .map((r: any) => {
-                                      const txt =
-                                        r.text ||
-                                        (r.low != null && r.high != null ? `${r.low} - ${r.high}` : r.low != null ? `>= ${r.low}` : r.high != null ? `<= ${r.high}` : '');
-                                      return r.label ? `${r.label}: ${txt}` : txt;
-                                    })
-                                    .join('\n')
-                                : '-');
+                              : '') ||
+                            st.test?.refRangeText ||
+                            st.test?.referenceRange ||
+                            st.referenceRange ||
+                            '-';
                           const val = editedResults[key] !== undefined ? editedResults[key] : (st.resultValue || '');
                           const specialType = isSpecialFormTest(code, name);
 
@@ -1249,22 +1546,85 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                                     }
                                   }
                                   if (!displayPriorVal) return null;
+                                  const isPrevHidden = (st as any).includePrevious === false;
+                                  const formattedPriorVal = String(displayPriorVal).trim().startsWith('{')
+                                    ? 'نتيجة سابقة مسجلة'
+                                    : displayPriorVal;
                                   return (
-                                    <span
+                                    <div
                                       dir="rtl"
                                       style={{
-                                        display: 'inline-block',
-                                        fontSize: '10.5px',
-                                        padding: '1px 6px',
-                                        borderRadius: '4px',
-                                        backgroundColor: '#eff6ff',
-                                        color: '#1d4ed8',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
                                         marginTop: '3px',
-                                        fontWeight: 700,
+                                        flexWrap: 'wrap',
                                       }}
                                     >
-                                      📊 السابق: {displayPriorVal} {displayPriorDate ? `(${formatEnglishDate(displayPriorDate)})` : ''}
-                                    </span>
+                                      <span
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '4px',
+                                          fontSize: '10.5px',
+                                          padding: '1px 6px',
+                                          borderRadius: '4px',
+                                          backgroundColor: isPrevHidden ? 'rgba(148, 163, 184, 0.15)' : '#eff6ff',
+                                          color: isPrevHidden ? '#64748b' : '#1d4ed8',
+                                          fontWeight: 700,
+                                          opacity: isPrevHidden ? 0.75 : 1,
+                                        }}
+                                      >
+                                        <span style={{ textDecoration: isPrevHidden ? 'line-through' : 'none' }}>
+                                          📊 السابق: {formattedPriorVal}{' '}
+                                          {displayPriorDate ? `(${formatEnglishDate(displayPriorDate)})` : ''}
+                                        </span>
+                                        {isPrevHidden && (
+                                          <span style={{ fontSize: '10px', color: '#dc2626', fontWeight: 800 }}>
+                                            (مخفية من الطباعة)
+                                          </span>
+                                        )}
+                                      </span>
+                                      {!isPrevHidden ? (
+                                        <button
+                                          type="button"
+                                          title="إخفاء النتيجة السابقة من التقرير المطبوع"
+                                          onClick={() => handleTogglePreviousResult(activeVisit.sampleId, st.id || key, true)}
+                                          style={{
+                                            border: '1px solid #bfdbfe',
+                                            backgroundColor: '#eff6ff',
+                                            color: '#dc2626',
+                                            borderRadius: '4px',
+                                            padding: '0px 5px',
+                                            fontSize: '10px',
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                            lineHeight: '16px',
+                                          }}
+                                        >
+                                          ✕
+                                        </button>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          title="إعادة إظهار النتيجة السابقة في التقرير"
+                                          onClick={() => handleTogglePreviousResult(activeVisit.sampleId, st.id || key, false)}
+                                          style={{
+                                            border: '1px solid var(--border-color)',
+                                            backgroundColor: 'var(--bg-input)',
+                                            color: '#0f766e',
+                                            borderRadius: '4px',
+                                            padding: '0px 6px',
+                                            fontSize: '10px',
+                                            fontWeight: 800,
+                                            cursor: 'pointer',
+                                            lineHeight: '16px',
+                                          }}
+                                        >
+                                          👁️ إظهار
+                                        </button>
+                                      )}
+                                    </div>
                                   );
                                 })()}
                               </td>
@@ -1368,19 +1728,45 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                               </td>
 
                               <td style={{ padding: '10px 8px', textAlign: 'center' }}>
-                                <span
-                                  style={{
-                                    display: 'inline-block',
-                                    padding: '3px 10px',
-                                    borderRadius: '999px',
-                                    fontSize: '11.5px',
-                                    fontWeight: 800,
-                                    backgroundColor: statusBg,
-                                    color: statusColor,
-                                  }}
-                                >
-                                  {statusLabel}
-                                </span>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                  <span
+                                    style={{
+                                      display: 'inline-block',
+                                      padding: '3px 10px',
+                                      borderRadius: '999px',
+                                      fontSize: '11.5px',
+                                      fontWeight: 800,
+                                      backgroundColor: statusBg,
+                                      color: statusColor,
+                                    }}
+                                  >
+                                    {statusLabel}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    title="حذف هذا الفحص من الزيارة"
+                                    disabled={deletingTestKey === (st.id || key) || deletingTestKey === st.id}
+                                    onClick={() => handleDeleteTestFromVisit(activeVisit, st)}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: '26px',
+                                      height: '26px',
+                                      borderRadius: '6px',
+                                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                                      backgroundColor: 'rgba(239, 68, 68, 0.06)',
+                                      color: '#ef4444',
+                                      cursor: deletingTestKey === (st.id || key) || deletingTestKey === st.id ? 'wait' : 'pointer',
+                                      opacity: deletingTestKey === (st.id || key) || deletingTestKey === st.id ? 0.5 : 1,
+                                      padding: 0,
+                                      flexShrink: 0,
+                                      transition: 'all 0.15s ease',
+                                    }}
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -2070,7 +2456,7 @@ function UnifiedPatientsResultsView({ defaultFilter = 'ALL' }: { defaultFilter?:
                       <button
                         type="button"
                         onClick={() => {
-                          setPreviewUrl(`/api/samples/${visitItem.sampleId}/print?force=true&_t=${Date.now()}`);
+                          setPreviewUrl(buildPrintUrl(visitItem));
                           setShowPatientHistoryModal(false);
                         }}
                         style={{
